@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-groupe
+      author: dev
+      comment: "Création de la table groupe : subdivision d'une option (ex: Groupe 1, Groupe 2 dans l'option Infres)"
+      changes:
+        - createTable:
+            tableName: groupe
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: integer
+                  autoIncrement: true
+                  generationType: BY DEFAULT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: groupe_pkey
+                    nullable: false
+              - column:
+                  name: version
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: text
+                  remarks: "Ex: Groupe 1, Groupe 2, Groupe TP A..."
+                  constraints:
+                    nullable: false
+              - column:
+                  name: option_id
+                  type: integer
+                  remarks: "Option à laquelle appartient ce groupe"
+                  constraints:
+                    nullable: false
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE public.groupe ADD CONSTRAINT chk_groupe_name_length CHECK (length(name) > 0);
+
+        - addUniqueConstraint:
+            constraintName: uk_groupe_name_option
+            tableName: groupe
+            schemaName: public
+            columnNames: name, option_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_groupe_option
+            baseTableSchemaName: public
+            baseTableName: groupe
+            baseColumnNames: option_id
+            referencedTableSchemaName: public
+            referencedTableName: option
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_groupe_option_id
+            tableName: groupe
+            schemaName: public
+            columns:
+              - column:
+                  name: option_id
+
+      rollback:
+        - dropTable:
+            tableName: groupe
+            schemaName: public
+            cascadeConstraints: true

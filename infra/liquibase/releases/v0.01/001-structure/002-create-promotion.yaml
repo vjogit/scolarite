@@ -1,0 +1,84 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-promotion
+      author: dev
+      comment: "Création de la table promotion (FK → formation)"
+      changes:
+        - createTable:
+            tableName: promotion
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: debut
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fin
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: echelle_gpa
+                  type: "REAL[]"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: echelle
+                  type: "REAL[]"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: matiere_eliminatoire
+                  type: boolean
+              - column:
+                  name: value_matiere_eliminatoire
+                  type: FLOAT
+              - column:
+                  name: formation_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_promotion_formation
+                    referencedTableName: formation
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_name_length CHECK (length(name) > 0);
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_dates CHECK (fin > debut);
+              ALTER TABLE promotion ADD CONSTRAINT chk_ue_echelle_gpa_len CHECK (array_length(echelle_gpa, 1) = 6);
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_echelle_gpa CHECK (
+                echelle_gpa[1] > echelle_gpa[2] AND echelle_gpa[2] > echelle_gpa[3] AND
+                echelle_gpa[3] > echelle_gpa[4] AND echelle_gpa[4] > echelle_gpa[5] AND
+                echelle_gpa[5] > echelle_gpa[6]
+              );
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_echelle_len CHECK (array_length(echelle, 1) = 5);
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_echelle_desc CHECK (
+                echelle[1] > echelle[2] AND echelle[2] > echelle[3] AND
+                echelle[3] > echelle[4] AND echelle[4] > echelle[5]
+              );
+
+      rollback:
+        - dropTable:
+            tableName: promotion
+            cascadeConstraints: true

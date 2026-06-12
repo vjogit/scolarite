@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-add-exclusion-constraints
+      author: dev
+      comment: "Contraintes d'exclusion GiST pour interdire les chevauchements de créneaux (salle, intervenant, groupe)"
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE public.reservation_salle
+                ADD CONSTRAINT sans_conflit_salle
+                EXCLUDE USING gist (salle_id WITH =, horaire WITH &&);
+
+              ALTER TABLE public.reservation_intervenant
+                ADD CONSTRAINT sans_conflit_intervenant
+                EXCLUDE USING gist (user_id WITH =, horaire WITH &&);
+
+              ALTER TABLE public.reservation_groupe
+                ADD CONSTRAINT sans_conflit_groupe
+                EXCLUDE USING gist (groupe_id WITH =, horaire WITH &&);
+
+      rollback:
+        - sql:
+            sql: |
+              ALTER TABLE public.reservation_salle      DROP CONSTRAINT IF EXISTS sans_conflit_salle;
+              ALTER TABLE public.reservation_intervenant DROP CONSTRAINT IF EXISTS sans_conflit_intervenant;
+              ALTER TABLE public.reservation_groupe      DROP CONSTRAINT IF EXISTS sans_conflit_groupe;

@@ -1,0 +1,91 @@
+DOCKER_DIR=infra/container
+INFRA_DIR=infra
+BACK_DIR=back
+RUN_DIR=infra/run
+PG_CONTAINER=postgres-16.10-alpine
+KEYCLOAK_DIR=./infra/keycloak
+
+include $(SECRETS_FILE_LOCAL)
+export
+
+.PHONY: start-local-reset start-local-keep restart-local-keep reset-db _pg-up _keycloak-down _keycloak-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset
+
+
+
+start-local-reset: _pg-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
+	@echo "--- ✅ Infra locale démarrée (BD recréée) ---"
+
+start-local-keep: _pg-up _keycloak-up keycloak liquibase gen_sql start-scolarite
+	@echo "--- ✅ Infra locale démarrée (BD conservée) ---"
+
+restart-local-reset: stop-local _sleep start-local-reset
+
+restart-local-keep: stop-local _sleep start-local-keep
+
+_sleep:
+	sleep 5
+
+_pg-up:
+	@echo "--- 🐳 Démarrage de PostgreSQL ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) up -d --wait db
+
+reset-db:
+	@echo "--- 🗑️  Suppression des bases de données ---"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname IN ('$(KC_DB_NAME)', '$(SCOLARITE_DB)');"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "DROP DATABASE IF EXISTS $(KC_DB_NAME);"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "DROP DATABASE IF EXISTS $(SCOLARITE_DB);"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "DROP USER IF EXISTS $(KC_DB_USERNAME);"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "DROP USER IF EXISTS $(SCOLARITE_USER);"
+	@echo "--- 🆕 Création des bases de données ---"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE USER $(KC_DB_USERNAME) WITH PASSWORD '$(KC_DB_PASSWORD)';"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE DATABASE $(KC_DB_NAME) WITH OWNER = $(KC_DB_USERNAME);"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "GRANT ALL PRIVILEGES ON DATABASE $(KC_DB_NAME) TO $(KC_DB_USERNAME);"
+	
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE USER $(SCOLARITE_USER) WITH PASSWORD '$(SCOLARITE_PASSWORD)';"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE DATABASE $(SCOLARITE_DB) WITH OWNER = $(SCOLARITE_USER);"
+	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "GRANT ALL PRIVILEGES ON DATABASE $(SCOLARITE_DB) TO $(SCOLARITE_USER);"
+
+_keycloak-down:
+	@echo "--- 🛑 Arrêt de Keycloak ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) stop auth-service
+
+_keycloak-up:
+	@echo "--- 🐳 Démarrage de Keycloak ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) up -d auth-service
+	@echo "--- ⏳ Attente de la disponibilité de Keycloak ---"
+	$(DOCKER_DIR)/wait_for_keycloak.sh http://$(KC_INTERNAL_HOSTNAME):8080$(KC_HTTP_RELATIVE_PATH)/realms/master/protocol/openid-connect/certs
+
+keycloak: _keycloak-up
+	@echo "--- 🔑 Déploiement Keycloak avec Terraform ---"
+	@if [ ! -f "$(KEYCLOAK_DIR)/terraform.tfstate" ]; then \
+		terraform -chdir=$(KEYCLOAK_DIR) init; \
+	fi
+	terraform -chdir=$(KEYCLOAK_DIR) apply -auto-approve
+	@echo "--- 📝 Mise à jour du secret Keycloak dans secrets-local.env ---"
+	@SECRET=$$(terraform -chdir=$(KEYCLOAK_DIR) output -raw backend_client_secret); \
+	sed -i "s|^KC_BACKEND_CLIENT_SECRET=.*|KC_BACKEND_CLIENT_SECRET=$$SECRET|" $(SECRETS_FILE_LOCAL)
+
+liquibase:
+	@echo "--- 🚀 Application des migrations Liquibase ---"
+	@if [ ! -f "$(INFRA_DIR)/liquibase/liquibase_libs/postgresql-42.7.8.jar" ]; then \
+		mkdir -p $(INFRA_DIR)/liquibase/liquibase_libs; \
+		cd $(INFRA_DIR)/liquibase/liquibase_libs && wget https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.8/postgresql-42.7.8.jar; \
+	fi
+	cd $(INFRA_DIR)/liquibase && liquibase update \
+		--url=jdbc:postgresql://$(POSTGRES_HOST):$(POSTGRES_PORT)/$(SCOLARITE_DB) \
+		--username=$(SCOLARITE_USER) \
+		--password=$(SCOLARITE_PASSWORD)
+
+gen_sql:
+	@echo "--- 🆕 gen code sqlc ---"
+	$(INFRA_DIR)/gen_sql.sh $(SECRETS_FILE_LOCAL)
+
+start-scolarite : 
+	$(RUN_DIR)/build-scolarite.sh local
+	$(RUN_DIR)/start-scolarite-local.sh	
+
+stop-local:
+	@echo "--- 🛑 Arrêt des conteneurs Docker ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) down
+	@echo "--- 🛑 Arrêt de l'application scolarite ---"
+	SECRETS_FILE_LOCAL=$(abspath $(SECRETS_FILE_LOCAL)) docker compose -f $(RUN_DIR)/compose.yaml down

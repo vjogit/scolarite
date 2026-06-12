@@ -1,0 +1,79 @@
+package toeic
+
+import (
+	"context"
+	"cyb-react/pkg/certification/toeic/gen"
+	"cyb-react/pkg/services"
+	"log/slog"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+)
+
+func RouteToeic(r chi.Router) {
+
+	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		CreateToeic(w, r)
+	})
+
+	r.Route("/{toeicID}", func(r chi.Router) {
+		r.With(ToeicUse).Get("/", FetchToeic)
+		r.With(ToeicUse).Put("/", Update)
+		r.Delete("/", Delete)
+	})
+
+	r.Get("/", FetchToeicsByPromotionID)
+}
+
+func ToeicUse(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if toeicID := chi.URLParam(r, "toeicID"); toeicID != "" {
+
+			id, err := strconv.Atoi(toeicID)
+			if err != nil {
+				services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				return
+			}
+
+			queries := getQueriesFromCtx(r)
+			toeic, err := queries.FetchToeicById(context.Background(), int32(id))
+			if err == pgx.ErrNoRows {
+				services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
+				return
+			}
+			if err != nil {
+				services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				return
+			}
+
+			ctx := setToeicFromCtx(r, &toeic)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		services.InvalidRequestError(w, r, "pas d'id toeic", services.MISSING_PARAM, nil)
+	})
+}
+
+var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
+	pgCtx := services.GetPgCtx(r.Context())
+	return gen.New(pgCtx.Db)
+}
+
+var ToeicContextKey = &services.ContextKey{Name: "toeic key"}
+
+func getToeicFromCtx(r *http.Request) *gen.FetchToeicByIdRow {
+	toeic, ok := r.Context().Value(ToeicContextKey).(*gen.FetchToeicByIdRow)
+	if ok {
+		return toeic
+	}
+	slog.Warn("contexte toeic inconnu")
+	return nil
+}
+
+func setToeicFromCtx(r *http.Request, toeic *gen.FetchToeicByIdRow) context.Context {
+	return context.WithValue(r.Context(), ToeicContextKey, toeic)
+}

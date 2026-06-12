@@ -1,0 +1,38 @@
+name: scolarite
+
+services:
+  backend:
+    container_name: scolarite-backend
+    build:
+      context: ../../
+      dockerfile: infra/run/build/Dockerfile
+      target: local
+      args:
+        VERSION: ${VERSION:-dev}
+        BUILD_TIME: ${BUILD_TIME:-}
+    volumes:
+      - /home/vjo/.scolarite/conf:/opt/scolarite/conf:ro
+    env_file:
+      - ${SECRETS_FILE_LOCAL}
+    networks:
+      scolarite-net:
+        ipv4_address: 10.20.2.4
+    restart: unless-stopped
+
+  nginx:
+    container_name: scolarite-nginx
+    build:
+      context: ../../
+      dockerfile: infra/run/build/Dockerfile
+      target: nginx
+    depends_on:
+      - backend
+    networks:
+      scolarite-net:
+        ipv4_address: 10.20.2.5
+    restart: unless-stopped
+
+networks:
+  scolarite-net:
+    external: true
+    name: keycloak-postgres_scolarite-net

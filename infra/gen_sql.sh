@@ -1,0 +1,38 @@
+#!/bin/bash
+set -euo pipefail
+
+# Usage: db-to-code.sh <secrets-file>
+
+SECRETS_FILE="${1:-}"
+
+if [[ -z "$SECRETS_FILE" ]]; then
+    echo "Usage: $0 <secrets-file>"
+    exit 1
+fi
+
+SECRETS_FILE="$(realpath "$SECRETS_FILE")"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+get() { grep "^$1=" "$SECRETS_FILE" | cut -d= -f2; }
+
+POSTGRES_HOST=$(get POSTGRES_HOST)
+POSTGRES_PORT=$(get POSTGRES_PORT)
+POSTGRES_USER=$(get POSTGRES_USER)
+POSTGRES_PASSWORD=$(get POSTGRES_PASSWORD)
+SCOLARITE_DB=$(get SCOLARITE_DB)
+
+DB_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$SCOLARITE_DB"
+
+BACK_DIR="$PROJECT_ROOT/back"
+SCHEMA_FILE_POSTGRES="schema.sql"
+
+echo "--- 🐘 1. Extraction du schéma PostgreSQL ---"
+docker exec postgres-16.10-alpine pg_dump -U "$POSTGRES_USER" -d "$SCOLARITE_DB" -s -x -O -T "databasechangelog*" > "$BACK_DIR/$SCHEMA_FILE_POSTGRES"
+
+echo "--- 🧹 2. Nettoyage du fichier SQL ---"
+sed -i '/restrict/d' "$BACK_DIR/$SCHEMA_FILE_POSTGRES"
+sed -i '/unrestrict/d' "$BACK_DIR/$SCHEMA_FILE_POSTGRES"
+sed -i '/^--/d' "$BACK_DIR/$SCHEMA_FILE_POSTGRES"
+
+echo "--- 🏗️ 3. Lancement de sqlc generate ---"
+(cd "$BACK_DIR"   && sqlc generate)
+

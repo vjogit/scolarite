@@ -1,0 +1,11 @@
+keycloak:
+# KC_HTTP_RELATIVE_PATH: /auth dans le lancement du container keycloak.
+  host: http://localhost:8080/auth
+  realm: realms/RealmCybScolarite
+  client: ${KC_CLIENT_ID}
+  backend_client_id: ${KC_BACKEND_CLIENT_ID}
+  backend_client_secret: ${KC_BACKEND_CLIENT_SECRET}
+
+import:
+  mariadb: "root:root@tcp(localhost:3306)/cyber_notes_v2"
+  postgres: "postgres://postgres:root@localhost:5432/scolarite"

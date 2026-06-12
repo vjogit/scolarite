@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-formation
+      author: dev
+      comment: "Création de la table formation"
+      changes:
+        - createTable:
+            tableName: formation
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+                    unique: true
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE formation ADD CONSTRAINT chk_formation_name_length CHECK (length(name) > 0);
+
+        - setTableRemarks:
+            tableName: formation
+            remarks: |
+              swagger: commentaire swagger pour formation
+
+        - setColumnRemarks:
+            tableName: formation
+            columnName: name
+            remarks: |
+              swagger: commentaire pour name de formation
+              tags:
+                validate: email,required
+                example: nom de la formation
+
+      rollback:
+        - dropTable:
+            tableName: formation
+            cascadeConstraints: true

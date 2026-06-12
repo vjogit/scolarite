@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-groupe-user
+      author: dev
+      comment: "Table de jointure N-N : élèves appartenant à un groupe"
+      changes:
+        - createTable:
+            tableName: groupe_user
+            schemaName: public
+            columns:
+              - column:
+                  name: groupe_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: integer
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: groupe_user_pkey
+            tableName: groupe_user
+            schemaName: public
+            columnNames: groupe_id, user_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_gu_groupe
+            baseTableSchemaName: public
+            baseTableName: groupe_user
+            baseColumnNames: groupe_id
+            referencedTableSchemaName: public
+            referencedTableName: groupe
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_gu_user
+            baseTableSchemaName: public
+            baseTableName: groupe_user
+            baseColumnNames: user_id
+            referencedTableSchemaName: public
+            referencedTableName: user
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_gu_user_id
+            tableName: groupe_user
+            schemaName: public
+            columns:
+              - column:
+                  name: user_id

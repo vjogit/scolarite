@@ -1,0 +1,18 @@
+database:
+  host: ${POSTGRES_HOST}
+  port: ${POSTGRES_PORT}
+  user: ${SCOLARITE_USER}
+  password: ${SCOLARITE_PASSWORD}
+  name: ${SCOLARITE_DB}
+
+server:
+  host: localhost
+  port: 3333
+
+keycloak:
+  host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
+  issuer: ${KC_HOSTNAME}
+  realm: realms/RealmCybScolarite
+  client: ${KC_CLIENT_ID}
+  backend_client_id: ${KC_BACKEND_CLIENT_ID}
+  backend_client_secret: ${KC_BACKEND_CLIENT_SECRET}

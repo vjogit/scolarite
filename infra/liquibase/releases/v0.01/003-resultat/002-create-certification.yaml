@@ -1,0 +1,148 @@
+databaseChangeLog:
+  - changeSet:
+      id: 010-create-toeic
+      author: dev
+      comment: "Création de la table toeic (FK → promotion + user)"
+      changes:
+        - createTable:
+            tableName: toeic
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: score
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date_passage
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: remarque
+                  type: TEXT
+              - column:
+                  name: promotion_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_certification_toeic_promotion
+                    referencedTableName: promotion
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: user_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_toeic_user
+                    referencedTableName: user
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public.toeic ADD CONSTRAINT chk_toeic_score CHECK (score >= 0 AND score <= 990);
+
+      rollback:
+        - dropTable:
+            tableName: toeic
+            schemaName: public
+            cascadeConstraints: true
+
+  - changeSet:
+      id: 010-create-mobilite-internationale
+      author: dev
+      comment: "Création de la table mobilite_internationale (FK → promotion + user)"
+      changes:
+        - createTable:
+            tableName: mobilite_internationale
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: pays
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ville
+                  type: TEXT
+              - column:
+                  name: type_mobilite
+                  type: TEXT
+                  remarks: "Ex: Stage, Semestre académique, Job d'été"
+              - column:
+                  name: date_debut
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: date_fin
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: est_valide
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: remarque
+                  type: TEXT
+              - column:
+                  name: promotion_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_certification_mobilite_internationale_promotion
+                    referencedTableName: promotion
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: user_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_mobilite_internationale_user
+                    referencedTableName: user
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - createIndex:
+            indexName: idx_mobilite_user_id
+            tableName: mobilite_internationale
+            schemaName: public
+            columns:
+              - column:
+                  name: user_id
+
+      rollback:
+        - dropTable:
+            tableName: mobilite_internationale
+            schemaName: public
+            cascadeConstraints: true

@@ -1,0 +1,169 @@
+package option
+
+import (
+	"cyb-react/pkg/services"
+	"cyb-react/pkg/structure/option/gen"
+	"errors"
+	"log/slog"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/render"
+	"github.com/jackc/pgx/v5"
+)
+
+// Définition des contraintes spécifiques au domaine "Option"
+var optionConstraints = map[string]services.ConstraintRule{
+	"chk_option_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
+	"fk_option_promotion":    {Field: "promotion_id", Message: "La promotion spécifiée n'existe pas"},
+}
+
+func CreateOption(w http.ResponseWriter, r *http.Request) {
+	var input gen.Option
+	if err := render.DecodeJSON(r.Body, &input); err != nil {
+		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	queries := getQueriesFromCtx(r)
+
+	id, err := queries.CreateOption(r.Context(), gen.CreateOptionParams{
+		Name:        input.Name,
+		PromotionID: input.PromotionID,
+	})
+	if err != nil {
+		errorsMap := services.MapPgErrorToValidationErrors(err, optionConstraints)
+
+		if len(errorsMap) > 0 {
+			// On renvoie un 400 avec le détail des champs
+			services.InvalidRequestError(w, r, "erreur de validation des données de l'option", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
+			return
+		}
+
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	slog.Debug("Option créée", "id", id)
+
+	input.ID = id
+	input.Version = 1
+	render.Status(r, http.StatusCreated)
+	render.JSON(w, r, input)
+
+}
+
+func FetchOption(w http.ResponseWriter, r *http.Request) {
+	option := GetOptionFromCtx(r)
+	render.JSON(w, r, option)
+}
+
+func FetchOptionsByPromotionID(w http.ResponseWriter, r *http.Request) {
+
+	queries := getQueriesFromCtx(r)
+
+	var options []gen.Option
+	var err error
+	var fIDStr string
+
+	// Filtrage manuel si promotion_id est présent
+	if fIDStr = r.URL.Query().Get("promotion_id"); fIDStr == "" {
+		services.InvalidRequestError(w, r, "promotion_id requis", services.MISSING_PARAM, nil)
+		return
+	}
+
+	fID, errConv := strconv.Atoi(fIDStr)
+	if errConv != nil {
+		services.InvalidRequestError(w, r, "promotion_id invalide", services.INVALID_PARAM, nil)
+		return
+	}
+
+	// 1. Vérification explicite de l'existence de la promotion
+	_, err = queries.CheckPromotionExists(r.Context(), int32(fID))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			services.InvalidRequestError(w, r, "Promotion introuvable", services.NOT_FOUND, nil)
+			return
+		}
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	// 2. Récupération des données
+	options, err = queries.FetchOptionsByPromotionID(r.Context(), int32(fID))
+
+	if err != nil {
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+	if options == nil {
+		options = []gen.Option{}
+	}
+
+	render.JSON(w, r, options)
+}
+
+func Update(w http.ResponseWriter, r *http.Request) {
+	var input gen.Option
+	if err := render.DecodeJSON(r.Body, &input); err != nil {
+		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	queries := getQueriesFromCtx(r)
+
+	version, err := queries.UpdateOption(r.Context(), gen.UpdateOptionParams{
+		ID:      input.ID,
+		Version: input.Version,
+		Name:    input.Name,
+	})
+	if err != nil {
+		errorsMap := services.MapPgErrorToValidationErrors(err, optionConstraints)
+
+		if len(errorsMap) > 0 {
+			// On renvoie un 400 avec le détail des champs
+			services.InvalidRequestError(w, r, "erreur de validation des données de l'option", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
+			return
+		}
+
+		if errors.Is(err, pgx.ErrNoRows) {
+			// CONFLIT DÉTECTÉ
+			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
+			return
+		}
+
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	slog.Debug("Option mise à jour", "id", input.ID)
+
+	input.Version = version
+	render.JSON(w, r, input)
+
+}
+
+type BulkDeleteRequest struct {
+	IDs []int32 `json:"ids"`
+}
+
+func Delete(w http.ResponseWriter, r *http.Request) {
+	var input BulkDeleteRequest
+	if err := render.DecodeJSON(r.Body, &input); err != nil {
+		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	queries := getQueriesFromCtx(r)
+
+	err := queries.DeleteOption(r.Context(), input.IDs)
+	if err != nil {
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+
+	slog.Debug("Supression des options", "ids", input.IDs)
+
+	w.WriteHeader(http.StatusNoContent)
+
+}

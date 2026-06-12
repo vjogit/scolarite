@@ -1,0 +1,80 @@
+package option
+
+import (
+	"context"
+	"cyb-react/pkg/services"
+	"cyb-react/pkg/structure/option/gen"
+	"log/slog"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+)
+
+func RouteOption(r chi.Router) {
+
+	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+		CreateOption(w, r)
+	})
+
+	r.Route("/{optionID}", func(r chi.Router) {
+		r.With(OptionUse).Get("/", FetchOption)
+		r.With(OptionUse).Put("/", Update)
+		r.Delete("/", Delete)
+	})
+
+	r.Get("/", FetchOptionsByPromotionID)
+
+}
+
+func OptionUse(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if optionID := chi.URLParam(r, "optionID"); optionID != "" {
+
+			id, err := strconv.Atoi(optionID)
+			if err != nil {
+				services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				return
+			}
+
+			queries := getQueriesFromCtx(r)
+			option, err := queries.FetchOptionById(context.Background(), int32(id))
+			if err == pgx.ErrNoRows {
+				services.InvalidRequestError(w, r, "Option introuvable", services.NOT_FOUND, nil)
+				return
+			}
+			if err != nil {
+				services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				return
+			}
+
+			ctx := setOptionFromCtx(r, &option)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
+		services.InvalidRequestError(w, r, "pas d'id utilisateur", services.MISSING_PARAM, nil)
+	})
+}
+
+var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
+	pgCtx := services.GetPgCtx(r.Context())
+	return gen.New(pgCtx.Db)
+}
+
+var OptionContextKey = &services.ContextKey{Name: "option key"}
+
+func GetOptionFromCtx(r *http.Request) *gen.Option {
+	option, ok := r.Context().Value(OptionContextKey).(*gen.Option)
+	if ok {
+		return option
+	}
+	slog.Warn("contexte option inconnue")
+	return nil
+}
+
+func setOptionFromCtx(r *http.Request, option *gen.Option) context.Context {
+	return context.WithValue(r.Context(), OptionContextKey, option)
+}

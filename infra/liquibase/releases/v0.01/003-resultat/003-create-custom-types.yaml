@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-create-custom-types
+      author: dev
+      comment: "Création des domaines PostgreSQL my_null_float et my_null_string, utilisés par la fonction jury"
+      changes:
+        - sql:
+            splitStatements: false
+            dbms: postgresql
+            sql: |
+              CREATE DOMAIN public.my_null_float AS DOUBLE PRECISION
+                  DEFAULT NULL;
+
+              CREATE DOMAIN public.my_null_string AS TEXT
+                  DEFAULT NULL;
+
+              CREATE DOMAIN public.my_null_bool AS BOOLEAN
+                  DEFAULT NULL;
+
+              CREATE DOMAIN public.my_null_integer AS INTEGER
+                  DEFAULT NULL;
+
+      rollback:
+        - sql:
+            sql: |
+              DROP DOMAIN IF EXISTS public.my_null_float;
+              DROP DOMAIN IF EXISTS public.my_null_string;
+              DROP DOMAIN IF EXISTS public.my_null_bool;

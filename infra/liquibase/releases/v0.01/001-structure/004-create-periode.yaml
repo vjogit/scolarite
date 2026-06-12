@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-periode
+      author: dev
+      comment: "Création de la table periode (FK → option)"
+      changes:
+        - createTable:
+            tableName: periode
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: debut
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fin
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: option_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_periode_option
+                    referencedTableName: option
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE periode ADD CONSTRAINT chk_periode_name_length CHECK (length(name) > 0);
+              ALTER TABLE periode ADD CONSTRAINT chk_periode_dates CHECK (fin > debut);
+
+      rollback:
+        - dropTable:
+            tableName: periode
+            cascadeConstraints: true

@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-note
+      author: dev
+      comment: "Création de la table note (FK → user + controle)"
+      changes:
+        - createTable:
+            tableName: note
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: note
+                  type: REAL
+              - column:
+                  name: remarque
+                  type: TEXT
+              - column:
+                  name: is_validated
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: not_evaluated
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notes_users
+                    referencedTableName: user
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: controle_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_notes_controles
+                    referencedTableName: controle
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - addUniqueConstraint:
+            tableName: note
+            schemaName: public
+            columnNames: controle_id, user_id
+            constraintName: uk_note_controle_user
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public.note ADD CONSTRAINT chk_note_positive CHECK (note >= 0);
+
+      rollback:
+        - dropTable:
+            tableName: note
+            schemaName: public
+            cascadeConstraints: true

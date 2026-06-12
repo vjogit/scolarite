@@ -1,0 +1,174 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-reservation-associations
+      author: dev
+      comment: "Tables de jointure N-N avec colonne horaire dénormalisée pour les contraintes d'exclusion anti-chevauchement"
+
+      changes:
+        # ── reservation_intervenant ──────────────────────────────────────
+        - createTable:
+            tableName: reservation_intervenant
+            schemaName: public
+            columns:
+              - column:
+                  name: reservation_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: horaire
+                  type: tstzrange
+                  remarks: "Dénormalisé depuis reservation.horaire — maintenu par trigger"
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: reservation_intervenant_pkey
+            tableName: reservation_intervenant
+            schemaName: public
+            columnNames: reservation_id, user_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_ri_reservation
+            baseTableSchemaName: public
+            baseTableName: reservation_intervenant
+            baseColumnNames: reservation_id
+            referencedTableSchemaName: public
+            referencedTableName: reservation
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_ri_user
+            baseTableSchemaName: public
+            baseTableName: reservation_intervenant
+            baseColumnNames: user_id
+            referencedTableSchemaName: public
+            referencedTableName: user
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_ri_user_id
+            tableName: reservation_intervenant
+            schemaName: public
+            columns:
+              - column:
+                  name: user_id
+
+        # ── reservation_salle ────────────────────────────────────────────
+        - createTable:
+            tableName: reservation_salle
+            schemaName: public
+            columns:
+              - column:
+                  name: reservation_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: salle_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: horaire
+                  type: tstzrange
+                  remarks: "Dénormalisé depuis reservation.horaire — maintenu par trigger"
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: reservation_salle_pkey
+            tableName: reservation_salle
+            schemaName: public
+            columnNames: reservation_id, salle_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_rs_reservation
+            baseTableSchemaName: public
+            baseTableName: reservation_salle
+            baseColumnNames: reservation_id
+            referencedTableSchemaName: public
+            referencedTableName: reservation
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_rs_salle
+            baseTableSchemaName: public
+            baseTableName: reservation_salle
+            baseColumnNames: salle_id
+            referencedTableSchemaName: public
+            referencedTableName: salle
+            referencedColumnNames: id
+            onDelete: RESTRICT
+
+        - createIndex:
+            indexName: idx_rs_salle_id
+            tableName: reservation_salle
+            schemaName: public
+            columns:
+              - column:
+                  name: salle_id
+
+        # ── reservation_groupe ───────────────────────────────────────────
+        - createTable:
+            tableName: reservation_groupe
+            schemaName: public
+            columns:
+              - column:
+                  name: reservation_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: groupe_id
+                  type: integer
+                  constraints:
+                    nullable: false
+              - column:
+                  name: horaire
+                  type: tstzrange
+                  remarks: "Dénormalisé depuis reservation.horaire — maintenu par trigger"
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: reservation_groupe_pkey
+            tableName: reservation_groupe
+            schemaName: public
+            columnNames: reservation_id, groupe_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_rg_reservation
+            baseTableSchemaName: public
+            baseTableName: reservation_groupe
+            baseColumnNames: reservation_id
+            referencedTableSchemaName: public
+            referencedTableName: reservation
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_rg_groupe
+            baseTableSchemaName: public
+            baseTableName: reservation_groupe
+            baseColumnNames: groupe_id
+            referencedTableSchemaName: public
+            referencedTableName: groupe
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_rg_groupe_id
+            tableName: reservation_groupe
+            schemaName: public
+            columns:
+              - column:
+                  name: groupe_id

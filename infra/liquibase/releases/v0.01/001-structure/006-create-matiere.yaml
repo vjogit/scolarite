@@ -1,0 +1,62 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-matiere
+      author: dev
+      comment: "Création de la table matiere (FK → unite_enseignement)"
+      changes:
+        - createTable:
+            tableName: matiere
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: heure
+                  type: REAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: coeff
+                  type: REAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: color
+                  type: text
+                  constraints:
+                    nullable: true
+              - column:
+                  name: unite_enseignement_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_matiere_ue
+                    referencedTableName: unite_enseignement
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE matiere ADD CONSTRAINT chk_matiere_name_length CHECK (length(name) > 0);
+              ALTER TABLE matiere ADD CONSTRAINT chk_matiere_heure_positive CHECK (heure >= 0);
+              ALTER TABLE matiere ADD CONSTRAINT chk_matiere_coeff_positive CHECK (coeff >= 0);
+
+      rollback:
+        - dropTable:
+            tableName: matiere
+            cascadeConstraints: true

@@ -1,0 +1,15 @@
+/front/node_modules
+/front/dist
+/front/.vite
+/front/src/api
+/back/pkg/docsgen
+**/__debug*
+**/*.lock.hcl
+**/*.tfstate*
+**/terraform-provider-*
+**/*.terraform
+/infra/liquibase/liquibase_libs
+/back/**/gen/*
+**/*.log
+
+

@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-unite-enseignement
+      author: dev
+      comment: "Création de la table unite_enseignement (FK → periode)"
+      changes:
+        - createTable:
+            tableName: unite_enseignement
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ects
+                  type: REAL
+                  constraints:
+                    nullable: false
+              - column:
+                  name: academique
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: periode_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_ue_periode
+                    referencedTableName: periode
+                    referencedColumnNames: id
+                    deleteCascade: true
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE unite_enseignement ADD CONSTRAINT chk_ue_ects_positive CHECK (ects >= 0);
+
+      rollback:
+        - dropTable:
+            tableName: unite_enseignement
+            cascadeConstraints: true

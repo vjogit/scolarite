@@ -1,0 +1,94 @@
+databaseChangeLog:
+  - changeSet:
+      id: 014-create-jury-result
+      author: dev
+      comment: "Table jury_result : snapshot des résultats délibérés par élève et par période. Alimente le GPA cumulé inter-promotions et gère les redoublants (compte_cumul = false)."
+      changes:
+        - createTable:
+            tableName: jury_result
+            schemaName: public
+            columns:
+              - column:
+                  name: user_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_jury_result_user
+                    referencedTableName: user
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: periode_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_jury_result_periode
+                    referencedTableName: periode
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: unite_enseignement_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_jury_result_ue
+                    referencedTableName: unite_enseignement
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: grade
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: gpa_index
+                  type: INTEGER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: ects
+                  type: REAL
+                  constraints:
+                    nullable: true
+              - column:
+                  # false = période non prise en compte dans le cumulé (ex: année échouée du redoublant)
+                  name: compte_cumul
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: delibere_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            tableName: jury_result
+            schemaName: public
+            columnNames: user_id, periode_id, unite_enseignement_id
+            constraintName: pk_jury_result
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE public.jury_result
+                ADD CONSTRAINT chk_jury_result_grade
+                CHECK (grade IN ('A','B','C','D','E','F','N.E.'));
+
+              ALTER TABLE public.jury_result
+                ADD CONSTRAINT chk_jury_result_gpa_index
+                CHECK (gpa_index BETWEEN 0 AND 5);
+
+              CREATE INDEX idx_jury_result_user_periode
+                ON public.jury_result (user_id, periode_id);
+
+              CREATE INDEX idx_jury_result_periode
+                ON public.jury_result (periode_id);
+
+      rollback:
+        - dropTable:
+            tableName: jury_result
+            schemaName: public
+            cascadeConstraints: true

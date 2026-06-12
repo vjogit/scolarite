@@ -1,0 +1,91 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-reservation
+      author: dev
+      comment: "Création de la table reservation avec tstzrange pour la gestion native des intervalles de temps"
+      changes:
+        - createTable:
+            tableName: reservation
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: integer
+                  autoIncrement: true
+                  generationType: BY DEFAULT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: reservation_pkey
+                    nullable: false
+              - column:
+                  name: version
+                  type: integer
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: horaire
+                  type: tstzrange
+                  remarks: "Intervalle horodaté du cours (ex: [2024-09-02 08:00, 2024-09-02 10:00))"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: periode_id
+                  type: integer
+                  remarks: "Période pédagogique à laquelle appartient cette réservation"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: matiere_id
+                  type: integer
+                  remarks: "Nullable : une réservation peut ne pas être liée à une matière (réunion, événement...)"
+              - column:
+                  name: type_cours
+                  type: text
+                  remarks: "CM, TD, TP, EXAMEN, RATTRAPAGE"
+              - column:
+                  name: is_distanciel
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reservation_periode
+            baseTableSchemaName: public
+            baseTableName: reservation
+            baseColumnNames: periode_id
+            referencedTableSchemaName: public
+            referencedTableName: periode
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_reservation_matiere
+            baseTableSchemaName: public
+            baseTableName: reservation
+            baseColumnNames: matiere_id
+            referencedTableSchemaName: public
+            referencedTableName: matiere
+            referencedColumnNames: id
+            onDelete: SET NULL
+
+        - createIndex:
+            indexName: idx_reservation_periode
+            tableName: reservation
+            schemaName: public
+            columns:
+              - column:
+                  name: periode_id
+
+        - createIndex:
+            indexName: idx_reservation_horaire
+            tableName: reservation
+            schemaName: public
+            indexType: gist
+            columns:
+              - column:
+                  name: horaire

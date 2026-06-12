@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-sync-trigger
+      author: dev
+      comment: "Trigger de synchronisation du champ horaire dénormalisé dans les tables de jointure (INSERT et UPDATE)"
+      changes:
+        - sql:
+            splitStatements: false
+            sql: |
+              CREATE OR REPLACE FUNCTION public.sync_reservation_horaire()
+              RETURNS TRIGGER AS $$
+              BEGIN
+                  -- INSERT : on peuple horaire dans les tables de jointure dès la création
+                  -- UPDATE : on propage uniquement si l'horaire a changé
+                  IF (TG_OP = 'INSERT') OR (TG_OP = 'UPDATE' AND NEW.horaire <> OLD.horaire) THEN
+                      UPDATE public.reservation_salle
+                          SET horaire = NEW.horaire
+                          WHERE reservation_id = NEW.id;
+
+                      UPDATE public.reservation_intervenant
+                          SET horaire = NEW.horaire
+                          WHERE reservation_id = NEW.id;
+
+                      UPDATE public.reservation_groupe
+                          SET horaire = NEW.horaire
+                          WHERE reservation_id = NEW.id;
+                  END IF;
+                  RETURN NEW;
+              END;
+              $$ LANGUAGE plpgsql;
+
+              CREATE TRIGGER trg_sync_reservation_horaire
+              AFTER INSERT OR UPDATE ON public.reservation
+              FOR EACH ROW
+              EXECUTE FUNCTION public.sync_reservation_horaire();
+
+      rollback:
+        - sql:
+            splitStatements: false
+            sql: |
+              DROP TRIGGER IF EXISTS trg_sync_reservation_horaire ON public.reservation;
+              DROP FUNCTION IF EXISTS public.sync_reservation_horaire();

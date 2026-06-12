@@ -1,0 +1,5 @@
+webdfd:
+  url: "http://webdfd.mines-ales.fr:80"
+
+postgres:
+  url: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/scolarite"

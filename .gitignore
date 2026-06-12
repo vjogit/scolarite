@@ -1,0 +1,43 @@
+# ── Binaires / compilation ────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+**/__*bin*
+back/programme-import
+
+# ── Go ────────────────────────────────────────────────────────────────────────
+*.test
+*.out
+*.coverprofile
+coverage.*
+profile.cov
+go.work
+go.work.sum
+# vendor/
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+front/.vite/
+front/dist/
+front/node_modules/
+
+# ── Infrastructure ────────────────────────────────────────────────────────────
+infra/data/
+
+# ── Code généré ───────────────────────────────────────────────────────────────
+**/gen/
+
+# ── Fichiers de données ───────────────────────────────────────────────────────
+back/cmd/programme-import/data/
+**/*.xlsx
+**/*.docx
+**/*.jar
+**/*.log
+
+# ── Environnement / secrets ───────────────────────────────────────────────────
+.env
+
+# ── Éditeurs / IDE ────────────────────────────────────────────────────────────
+.idea/
+.vscode/

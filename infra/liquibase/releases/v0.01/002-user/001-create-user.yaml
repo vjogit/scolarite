@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-user
+      author: dev
+      comment: "Création de la table user avec contrainte sur les rôles"
+      changes:
+        - createTable:
+            tableName: user
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: firstName
+                  type: TEXT
+              - column:
+                  name: lastName
+                  type: TEXT
+              - column:
+                  name: email
+                  type: TEXT
+                  constraints:
+                    unique: true
+              - column:
+                  name: keycloak_id
+                  type: TEXT
+                  constraints:
+                    unique: true
+              - column:
+                  name: roles
+                  type: "TEXT[]"
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public."user" ADD CONSTRAINT chk_user_roles CHECK (roles <@ ARRAY['ADMIN'::text, 'PROF'::text, 'ELEVE'::text, 'GESTIONNAIRE'::text]);
+
+      rollback:
+        - dropTable:
+            tableName: user
+            schemaName: public
+            cascadeConstraints: true
