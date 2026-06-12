@@ -21,5 +21,5 @@ echo "--- 🐳 Build et lancement des containers ---"
 docker compose -f compose.yaml down 2>/dev/null || true
 docker compose -f compose.yaml up --build -d
 
-echo "--- ✅ Application disponible sur http://10.20.2.5:9021 ---"
+echo "--- ✅ Application disponible sur https://10.20.2.5:9021 ---"
 echo "--- 🐛 Delve disponible sur localhost:2345 ---"
