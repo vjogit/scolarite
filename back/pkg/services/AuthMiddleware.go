@@ -4,12 +4,19 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"sync"
 
 	"github.com/coreos/go-oidc"
 )
+
+// KeycloakSubCtxKey is the context key for the Keycloak subject (user ID).
+var KeycloakSubCtxKey = &ContextKey{"keycloak sub"}
+
+// KeycloakRolesCtxKey is the context key for the Keycloak realm roles.
+var KeycloakRolesCtxKey = &ContextKey{"keycloak roles"}
 
 func hasAllowedRole(userRoles []string, allowedRoles []string) bool {
 	for _, r := range userRoles {
@@ -72,7 +79,7 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 
 			idToken, err := v.Verify(r.Context(), rawToken)
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("token verification failed", "err", err)
 				http.Error(w, "Jeton invalide ou expiré", http.StatusUnauthorized)
 				return
 			}
@@ -93,8 +100,8 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), "keycloak_sub", claims.Subject)
-			ctx = context.WithValue(ctx, "keycloak_roles", claims.RealmAccess.Roles)
+			ctx := context.WithValue(r.Context(), KeycloakSubCtxKey, claims.Subject)
+			ctx = context.WithValue(ctx, KeycloakRolesCtxKey, claims.RealmAccess.Roles)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

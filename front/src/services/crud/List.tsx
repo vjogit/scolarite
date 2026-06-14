@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import type { Datasource } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
-import { Box, Button, darken, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, darken, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -231,7 +231,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     sessionStorage.setItem(storageKey, String(isEditMode));
   }, [isEditMode]);
 
-  if (isError) return <div>Erreur lors du chargement</div>;
+  if (isError) return <Alert severity="error">Erreur lors du chargement</Alert>;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>

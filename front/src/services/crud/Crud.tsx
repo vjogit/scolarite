@@ -5,6 +5,7 @@ import { Form } from "./Form";
 import type { CrudMode, Datasource } from "./def";
 import type { DefaultValues, FieldValues } from "react-hook-form";
 import { CrudProvider } from "./CrudContext";
+import { Alert, Skeleton } from "@mui/material";
 
 
 interface Props<D extends FieldValues> {
@@ -32,14 +33,14 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
         return <Form datasource={datasource} initialData={datasource.emptyValue} mode="create" />;
     }
 
-    if (isLoading) return <p>Chargement des données...</p>;
-    if (error) return <p>Erreur lors de la récupération.</p>;
+    if (isLoading) return <Skeleton variant="rounded" height={400} />;
+    if (error) return <Alert severity="error">Erreur lors de la récupération.</Alert>;
 
     if (mode === 'show') {
-        if (!data) return <p>Données introuvables.</p>;
+        if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="show" />;
     } else if (mode === 'edit') {
-        if (!data) return <p>Données introuvables.</p>;
+        if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="edit" />;
     } else {
         return <p>Page non trouvée</p>;
