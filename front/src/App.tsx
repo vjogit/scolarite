@@ -193,7 +193,7 @@ export default function App() {
               }
               }
             >
-              <Outlet />
+              {!loading && <Outlet />}
             </ReactRouterAppProvider>
           </LocalizationProvider>
         </QueryClientProvider>

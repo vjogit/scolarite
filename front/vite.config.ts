@@ -40,6 +40,11 @@ export default defineConfig(() => {
         target: 'http://10.20.2.2:8080',
         changeOrigin: true,
         cookieDomainRewrite: 'localhost',
+        headers: {
+          'X-Forwarded-Host': 'localhost:5173',
+          'X-Forwarded-Proto': 'https',
+          'X-Forwarded-Port': '5173',
+        },
         configure: (proxy) => {
           proxy.on('proxyRes', (proxyRes) => {
             const cookies = proxyRes.headers['set-cookie'];
