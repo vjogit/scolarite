@@ -47,14 +47,10 @@ RUN addgroup -S scolarite && adduser -S scolarite -G scolarite
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 COPY infra/run/build/nginx.conf /etc/nginx/nginx.conf
 
-RUN mkdir -p /etc/nginx/ssl && \
-    openssl req -x509 -newkey rsa:4096 \
-      -keyout /etc/nginx/ssl/nginx.key \
-      -out    /etc/nginx/ssl/nginx.crt \
-      -days 3650 -nodes \
-      -subj "/CN=10.20.2.5" \
-      -addext "subjectAltName=IP:10.20.2.5,IP:127.0.0.1" && \
-    chown -R scolarite:scolarite /etc/nginx/ssl
+RUN mkdir -p /etc/nginx/ssl
+COPY infra/run/build/ssl/nginx.crt /etc/nginx/ssl/nginx.crt
+COPY infra/run/build/ssl/nginx.key /etc/nginx/ssl/nginx.key
+RUN chown -R scolarite:scolarite /etc/nginx/ssl
 
 RUN chown -R scolarite:scolarite /usr/share/nginx/html /var/log/nginx /var/lib/nginx && \
     mkdir -p /tmp/client_body /tmp/proxy /tmp/fastcgi /tmp/uwsgi /tmp/scgi && \

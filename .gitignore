@@ -35,6 +35,10 @@ back/cmd/programme-import/data/
 **/*.jar
 **/*.log
 
+# ── Certificats locaux (générés par mkcert) ───────────────────────────────────
+infra/run/build/ssl/
+front/cert/
+
 # ── Environnement / secrets ───────────────────────────────────────────────────
 .env
 

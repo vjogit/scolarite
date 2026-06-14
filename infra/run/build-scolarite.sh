@@ -10,6 +10,11 @@ BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 case "$TARGET" in
     nginx)
         IMAGE_NAME="scolarite-nginx"
+        if [ ! -f ./build/ssl/nginx.crt ] || [ ! -f ./build/ssl/nginx.key ]; then
+            echo "--- 🔐 Génération des certificats mkcert pour nginx ---"
+            mkdir -p ./build/ssl
+            mkcert -key-file ./build/ssl/nginx.key -cert-file ./build/ssl/nginx.crt 10.20.2.5
+        fi
         ;;
     *)
         IMAGE_NAME="scolarite-backend"

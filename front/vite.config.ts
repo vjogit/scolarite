@@ -1,15 +1,25 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'; // Importez le visualizer
 import fs from 'fs'
 
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd())
-  console.log(`[vite] mode: ${mode}`)
-  console.log(`[vite] VITE_API_URL:      ${env.VITE_API_URL}`)
-  console.log(`[vite] VITE_KEYCLOAK_URL: ${env.VITE_KEYCLOAK_URL}`)
+export default defineConfig(() => {
+  console.log('\x1b[1m\x1b[31m')
+  console.log('╔══════════════════════════════════════════════════════════════╗')
+  console.log('║  ⚠  SETUP REQUIS AU PREMIER LANCEMENT                       ║')
+  console.log('║                                                              ║')
+  console.log('║  1) Générer les certificats HTTPS :                          ║')
+  console.log('║     mkdir -p cert                                            ║')
+  console.log('║     mkcert -key-file cert/localhost-key.pem \\               ║')
+  console.log('║            -cert-file cert/localhost.pem localhost           ║')
+  console.log('║                                                              ║')
+  console.log('║  2) Ajouter les exceptions de certificat dans Firefox :      ║')
+  console.log('║     → https://10.20.2.5:9021  (accepter, puis)              ║')
+  console.log('║     → https://localhost:5173   (accepter)                    ║')
+  console.log('╚══════════════════════════════════════════════════════════════╝')
+  console.log('\x1b[0m')
   return {
   plugins: [
     react(),
