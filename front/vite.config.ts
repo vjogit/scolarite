@@ -13,11 +13,7 @@ export default defineConfig(() => {
   console.log('║  1) Générer les certificats HTTPS :                          ║')
   console.log('║     mkdir -p cert                                            ║')
   console.log('║     mkcert -key-file cert/localhost-key.pem \\               ║')
-  console.log('║            -cert-file cert/localhost.pem localhost           ║')
-  console.log('║                                                              ║')
-  console.log('║  2) Ajouter les exceptions de certificat dans Firefox :      ║')
-  console.log('║     → https://10.20.2.5:9021  (accepter, puis)              ║')
-  console.log('║     → https://localhost:5173   (accepter)                    ║')
+  console.log('║            -cert-file cert/localhost.pem localhost 10.20.2.1 ║')
   console.log('╚══════════════════════════════════════════════════════════════╝')
   console.log('\x1b[0m')
   return {
@@ -31,7 +27,7 @@ export default defineConfig(() => {
     }),
   ],
   server: {
-    host: '0.0.0.0',
+    host: '10.20.2.1',
     https: {
       key: fs.readFileSync('./cert/localhost-key.pem'),
       cert: fs.readFileSync('./cert/localhost.pem'),
