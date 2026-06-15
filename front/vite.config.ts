@@ -8,11 +8,11 @@ import fs from 'fs'
 export default defineConfig(() => {
   console.log('\x1b[1m\x1b[31m')
   console.log('╔══════════════════════════════════════════════════════════════╗')
-  console.log('║  ⚠  SETUP REQUIS AU PREMIER LANCEMENT                       ║')
+  console.log('║  ⚠  SETUP REQUIS AU PREMIER LANCEMENT                        ║')
   console.log('║                                                              ║')
   console.log('║  1) Générer les certificats HTTPS :                          ║')
   console.log('║     mkdir -p cert                                            ║')
-  console.log('║     mkcert -key-file cert/localhost-key.pem \\               ║')
+  console.log('║     mkcert -key-file cert/localhost-key.pem \\                ║')
   console.log('║            -cert-file cert/localhost.pem localhost 10.20.2.1 ║')
   console.log('╚══════════════════════════════════════════════════════════════╝')
   console.log('\x1b[0m')
