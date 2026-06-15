@@ -75,6 +75,11 @@ func NewGenerator(templatePath string) (*Generator, error) {
 	return &Generator{templateBytes: b}, nil
 }
 
+// NewGeneratorFromBytes crée un générateur à partir de bytes déjà chargés (ex: embed).
+func NewGeneratorFromBytes(data []byte) *Generator {
+	return &Generator{templateBytes: data}
+}
+
 // Generate produit un bulletin rempli et l'écrit dans outputPath.
 func (g *Generator) Generate(b Bulletin, outputPath string) error {
 	data, err := g.GenerateBytes(b)

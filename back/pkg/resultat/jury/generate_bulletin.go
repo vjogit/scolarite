@@ -3,6 +3,7 @@ package jury
 import (
 	"archive/zip"
 	"cyb-react/pkg/services"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,7 +14,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-const templatePath = "/home/vjo/projets/cybema/cyb-react/back/pkg/resultat/jury/template_bulletin.docx"
+//go:embed template_bulletin.docx
+var templateBulletinBytes []byte
 
 // BulletinParams contient les informations fournies par la secrétaire pour personnaliser les bulletins.
 type BulletinParams struct {
@@ -56,11 +58,7 @@ func GenerateJuryBulletins(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Le générateur lit le template une seule fois pour tous les bulletins
-	gen, err := NewGenerator(templatePath)
-	if err != nil {
-		services.InternalServerError(w, r, "Erreur lors de la lecture du template", services.INTERNAL_ERROR, err)
-		return
-	}
+	gen := NewGeneratorFromBytes(templateBulletinBytes)
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"bulletins_jury_%s.zip\"", periodeID))
