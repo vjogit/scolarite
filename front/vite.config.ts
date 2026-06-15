@@ -31,6 +31,7 @@ export default defineConfig(() => {
     }),
   ],
   server: {
+    host: '0.0.0.0',
     https: {
       key: fs.readFileSync('./cert/localhost-key.pem'),
       cert: fs.readFileSync('./cert/localhost.pem'),
@@ -39,9 +40,9 @@ export default defineConfig(() => {
       '/auth/': {
         target: 'http://10.20.2.2:8080',
         changeOrigin: true,
-        cookieDomainRewrite: 'localhost',
+        cookieDomainRewrite: '10.20.2.1',
         headers: {
-          'X-Forwarded-Host': 'localhost:5173',
+          'X-Forwarded-Host': '10.20.2.1:5173',
           'X-Forwarded-Proto': 'https',
           'X-Forwarded-Port': '5173',
         },

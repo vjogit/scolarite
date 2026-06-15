@@ -36,6 +36,7 @@ export const getKeycloak = () => {
 
         keycloakInstance.init({
             onLoad: 'login-required',
+            
         }).then(() => {
             console.log("Keycloak initialized");
             notifyObservers(keycloakInstance!);
