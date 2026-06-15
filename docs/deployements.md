@@ -33,7 +33,7 @@ mkcert -key-file cert/localhost-key.pem \
 
 Le certificat couvre :
 - `localhost` — accès navigateur classique
-- `10.20.2.1` — IP du host sur le bridge Docker (`keycloak-postgres_scolarite-net`), nécessaire pour que le backend (container) puisse valider les tokens en contactant Vite
+- `10.20.2.1` — IP du host sur le bridge Docker (`infra-scolarite_scolarite-net`), nécessaire pour que le backend (container) puisse valider les tokens en contactant Vite
 
 Les fichiers `cert/` sont dans `.gitignore` et doivent être régénérés sur chaque nouvelle machine.
 

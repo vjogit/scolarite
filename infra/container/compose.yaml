@@ -1,4 +1,4 @@
-name: keycloak-postgres
+name: infra-scolarite
 services:
 
   auth-service:

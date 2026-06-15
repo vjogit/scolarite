@@ -7,9 +7,9 @@ ENV_FILE="$SCRIPT_DIR/../../../.vscode/secrets-local.env"
 CONFIG="$SCRIPT_DIR/config.yaml"
 IMPORT_DIR="$SCRIPT_DIR"
 MARIADB_CONTAINER="mariadb-import"
-DOCKER_NETWORK="keycloak-postgres_scolarite-net"
-KC_IP="10.20.2.2"    # IP fixe du container keycloak dans keycloak-postgres_scolarite-net
-PG_IP="10.20.2.3"    # IP fixe du container postgres dans keycloak-postgres_scolarite-net
+DOCKER_NETWORK="infra-scolarite_scolarite-net"
+KC_IP="10.20.2.2"    # IP fixe du container keycloak dans infra-scolarite_scolarite-net
+PG_IP="10.20.2.3"    # IP fixe du container postgres dans infra-scolarite_scolarite-net
 MARIADB_IP="10.20.2.10"  # IP fixe du container mariadb éphémère sur le même réseau
 
 cleanup() {

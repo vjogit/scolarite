@@ -53,21 +53,21 @@ func main() {
 
 	// L'initialisation devient beaucoup plus claire
 	parsers := map[string]Parser{
-		// "FORMATION CONTINUE DIPLOMANTE": newParser(promo.ParseFCD, exercice.StrategyPatternFCD),
-		// "EERIE":             newParser(promo.ParseEERIE, exercice.StrategyPatternEERIE),
-		// "CMGD":              newParser(promo.ParseCMGD, exercice.StrategyPatternCMGD),
-		// "LGEI":              newParser(promo.ParseLGEI, exercice.StrategyPatternLGEI),
-		// "CYCLE D'OUVERTURE": newParser(promo.ParseOuverture, exercice.StrategyPatternCYCLEDOUVERTURE),
-		// "BAT":               newParser(promo.ParseBAT, exercice.StrategyPatternBAT),
-		"INFRES": newParser(promo.ParseINFRES, exercice.StrategyPatternINFRES),
-		// "MECATRONIQUE":      newParser(promo.ParseMECATRONIQUE, exercice.StrategyPatternMECATRONIQUE),
+		"FORMATION CONTINUE DIPLOMANTE": newParser(promo.ParseFCD, exercice.StrategyPatternFCD),
+		"EERIE":                         newParser(promo.ParseEERIE, exercice.StrategyPatternEERIE),
+		"CMGD":                          newParser(promo.ParseCMGD, exercice.StrategyPatternCMGD),
+		"LGEI":                          newParser(promo.ParseLGEI, exercice.StrategyPatternLGEI),
+		"CYCLE D'OUVERTURE":             newParser(promo.ParseOuverture, exercice.StrategyPatternCYCLEDOUVERTURE),
+		"BAT":                           newParser(promo.ParseBAT, exercice.StrategyPatternBAT),
+		"INFRES":                        newParser(promo.ParseINFRES, exercice.StrategyPatternINFRES),
+		"MECATRONIQUE":                  newParser(promo.ParseMECATRONIQUE, exercice.StrategyPatternMECATRONIQUE),
 
-		// // rien a faire a priori. Ne peux pas ventiler a minima des controles dans les UE.
+		// rien a faire a priori. Ne peux pas ventiler a minima des controles dans les UE.
 
-		// "GRADUATE SCHOOL": newParser(promo.ParseGraduateSchool, exercice.StrategySimple),
-		// "NUCLEAIRE":       newParser(promo.ParseNUCLEAIRE, exercice.StrategySimple),
-		// "MASTER":          newParser(promo.ParseMASTER, exercice.StrategySimple),
-		// "CESSEM":          newParser(promo.ParseCESSEM, exercice.StrategySimple),
+		"GRADUATE SCHOOL": newParser(promo.ParseGraduateSchool, exercice.StrategySimple),
+		"NUCLEAIRE":       newParser(promo.ParseNUCLEAIRE, exercice.StrategySimple),
+		"MASTER":          newParser(promo.ParseMASTER, exercice.StrategySimple),
+		"CESSEM":          newParser(promo.ParseCESSEM, exercice.StrategySimple),
 	}
 
 	// Injection du flag de sauvegarde dans le contexte

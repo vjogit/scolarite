@@ -35,4 +35,4 @@ services:
 networks:
   scolarite-net:
     external: true
-    name: keycloak-postgres_scolarite-net
+    name: infra-scolarite_scolarite-net
