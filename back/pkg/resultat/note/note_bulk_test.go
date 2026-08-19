@@ -2,6 +2,7 @@ package note
 
 import (
 	"context"
+	"cyb-react/pkg/services"
 	"fmt"
 	"log"
 	"math/rand/v2"
@@ -11,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const connParams = "postgres://postgres:root@localhost:5432/scolarite"
+const connParamsDefaut = "postgres://postgres:root@localhost:5432/scolarite"
 
 func createDeterministeRnd() *rand.PCG {
 	// Définir une graine fixe (seed)
@@ -59,9 +60,11 @@ type NoteRow struct {
 
 func TestBulkNotes(t *testing.T) {
 	ctx := context.Background()
-	conn, err := pgx.Connect(ctx, connParams)
+	conn, err := pgx.Connect(ctx, services.IntegrationDBURL(connParamsDefaut))
 	if err != nil {
-		log.Fatal(err)
+		// Un log.Fatal ici tuerait le binaire de test, et avec lui tous les
+		// autres tests du paquet.
+		t.Skipf("base de test inaccessible : %v", err)
 	}
 	// Début de la transaction
 	tx, err := conn.Begin(context.Background())
