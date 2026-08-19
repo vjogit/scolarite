@@ -8,11 +8,11 @@ KEYCLOAK_DIR=./infra/keycloak
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep restart-local-keep reset-db _pg-up _keycloak-down _keycloak-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset
+.PHONY: start-local-reset start-local-keep restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset
 
 
 
-start-local-reset: _pg-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
+start-local-reset: _purge _pg-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
 	@echo "--- ✅ Infra locale démarrée (BD recréée) ---"
 
 start-local-keep: _pg-up _keycloak-up keycloak liquibase gen_sql start-scolarite
@@ -24,6 +24,26 @@ restart-local-keep: stop-local _sleep start-local-keep
 
 _sleep:
 	sleep 5
+
+# Rase l'infra locale : conteneurs, réseaux et volumes de données.
+#
+# Ciblage par projet et non par fichier : c'est le seul moyen d'atteindre une
+# stack lancée depuis un compose.yaml depuis déplacé ou supprimé, dont les
+# conteneurs continuent de tourner. La commande sort en 0 si rien ne
+# correspond, elle est donc sans effet sur une machine déjà propre.
+#
+# --remove-orphans est indispensable : « scolarite » ne déclare plus que
+# backend et nginx, les conteneurs db et keycloak d'une ancienne disposition
+# survivraient et retiendraient le réseau 10.20.2.0/24, que
+# infra/container/compose.yaml redemande à l'identique (les services y ont des
+# IP statiques, le sous-réseau ne peut pas flotter).
+#
+# Ordre imposé : « scolarite » attache le réseau en external, il doit partir
+# avant « infra-scolarite » qui le possède.
+_purge:
+	@echo "--- 🧹 Purge de l'infra locale (conteneurs, réseaux, volumes) ---"
+	docker compose -p scolarite down -v --remove-orphans
+	docker compose -p infra-scolarite down -v --remove-orphans
 
 _pg-up:
 	@echo "--- 🐳 Démarrage de PostgreSQL ---"
@@ -84,8 +104,11 @@ start-scolarite :
 	$(RUN_DIR)/build-scolarite.sh local
 	$(RUN_DIR)/start-scolarite-local.sh	
 
+# Ordre inversé par rapport à la version d'origine : backend et nginx
+# attachent le réseau en external, ils doivent partir avant les conteneurs qui
+# le possèdent. Pas de -v ici, start-local-keep s'appuie sur le volume.
 stop-local:
-	@echo "--- 🛑 Arrêt des conteneurs Docker ---"
-	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) down
 	@echo "--- 🛑 Arrêt de l'application scolarite ---"
-	SECRETS_FILE_LOCAL=$(abspath $(SECRETS_FILE_LOCAL)) docker compose -f $(RUN_DIR)/compose.yaml down
+	SECRETS_FILE_LOCAL=$(abspath $(SECRETS_FILE_LOCAL)) docker compose -f $(RUN_DIR)/compose.yaml down --remove-orphans
+	@echo "--- 🛑 Arrêt des conteneurs Docker ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) down --remove-orphans
