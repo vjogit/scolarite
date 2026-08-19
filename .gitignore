@@ -45,3 +45,7 @@ front/cert/
 # ── Éditeurs / IDE ────────────────────────────────────────────────────────────
 .idea/
 .vscode/
+
+# ── Outillage local ───────────────────────────────────────────────────────────
+# Captures et journaux déposés par le serveur MCP Playwright
+.playwright-mcp/
