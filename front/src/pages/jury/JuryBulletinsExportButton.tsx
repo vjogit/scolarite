@@ -5,6 +5,7 @@ import { useNotifications } from '@toolpad/core/useNotifications';
 import ArticleIcon from '@mui/icons-material/Article';
 import { ENDPOINT_JURY } from './def';
 import { type BulletinParams, JuryBulletinsExportModal } from './JuryBulletinsExportModal';
+import { notifyError, notifySuccess } from '../../services/notify';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bouton d'export des bulletins ZIP
@@ -43,11 +44,11 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
             link.remove();
             window.URL.revokeObjectURL(url);
 
-            notifications.show('Export des bulletins réussi', { severity: 'success', autoHideDuration: 5000 });
+            notifySuccess(notifications, 'Export des bulletins réussi.');
             setOpen(false);
         } catch (err) {
             console.error(err);
-            notifications.show("Erreur lors de l'export des bulletins", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'export des bulletins.");
         } finally {
             setLoading(false);
         }

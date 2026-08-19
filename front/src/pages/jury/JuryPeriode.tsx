@@ -20,6 +20,8 @@ import { JuryBulletinsExportButton } from './JuryBulletinsExportButton';
 import { DelibererButton } from './DelibererButton';
 import { DelibererBulkDialog, type BulkStudent } from './DelibererBulkDialog';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { notifyError, notifySuccess } from '../../services/notify';
+import { formatNombre } from '../../services/format';
 import GavelIcon from '@mui/icons-material/Gavel';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -87,6 +89,12 @@ const IntegerCell = memo(({ value }: { value: number | null | undefined }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EMPTY_STUDENTS: StudentEntry[] = [];
+
+/** « 1 élève délibéré. » / « 12 élèves délibérés. » */
+function messageDeliberationGroupee(nombre: number): string {
+    const pluriel = nombre > 1 ? 's' : '';
+    return `${formatNombre.format(nombre)} élève${pluriel} délibéré${pluriel}.`;
+}
 
 const TABLE_THEME = (theme: any) => ({
     baseBackgroundColor:
@@ -410,12 +418,12 @@ export const JuryPeriode = () => {
         setBulkLoading(true);
         try {
             await apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/bulk`, { users: entries });
-            notifications.show(`${entries.length} élève(s) délibéré(s)`, { severity: 'success', autoHideDuration: 4000 });
+            notifySuccess(notifications, messageDeliberationGroupee(entries.length));
             queryClient.invalidateQueries({ queryKey: ['jury-deliberations', periodeId] });
             setRowSelection({});
             setBulkDialogOpen(false);
         } catch {
-            notifications.show('Erreur lors de la délibération groupée', { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, 'Erreur lors de la délibération groupée.');
         } finally {
             setBulkLoading(false);
         }

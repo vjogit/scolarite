@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
 import { PERIODE, STRUCTURE } from "../structure/def";
+import { notifyError, notifySuccess } from '../../services/notify';
 
 // ─── Composant dédié pour le bouton Import ───────────────────────────────────
 // Encapsule les hooks (useRef, useCallback, useParams…) dans un vrai composant
@@ -30,11 +31,11 @@ export function PeriodeImportButton() {
             await apiInstance.post(`/api/v0/structure/option/${optionId}/import`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            notifications.show('Import réussi', { severity: 'success', autoHideDuration: 5000 });
+            notifySuccess(notifications, 'Import du programme réussi.');
             queryClient.invalidateQueries({ queryKey: [STRUCTURE, PERIODE, optionId] });
         } catch (error) {
             console.error(error);
-            notifications.show("Erreur lors de l'import", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'import.");
         } finally {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';

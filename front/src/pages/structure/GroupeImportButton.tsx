@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE } from './def';
+import { notifyError, notifyPartialSuccess } from '../../services/notify';
 
 interface ImportResult {
     added: number;
@@ -40,13 +41,10 @@ export function GroupeImportButton({ groupeId }: Props) {
                 message += ` Emails introuvables : ${not_found.join(', ')}`;
             }
 
-            notifications.show(message, {
-                severity: not_found?.length > 0 ? 'warning' : 'success',
-                autoHideDuration: 8000,
-            });
+            notifyPartialSuccess(notifications, message, !(not_found?.length > 0));
             queryClient.invalidateQueries({ queryKey: ['groupe-users', groupeId] });
         } catch {
-            notifications.show("Erreur lors de l'import", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'import.");
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_BASE, NOTE } from './def';
+import { notifyError, notifySuccess } from '../../services/notify';
 
 interface ImportFicheResult {
     controle_id: number;
@@ -36,13 +37,13 @@ export function FicheImportButton({ controleId }: Props) {
             );
 
             const { created, updated } = res.data;
-            notifications.show(
+            notifySuccess(
+                notifications,
                 `${created} note(s) créée(s), ${updated} note(s) mise(s) à jour.`,
-                { severity: 'success', autoHideDuration: 6000 },
             );
             queryClient.invalidateQueries({ queryKey: [NOTE, 'controle', String(controleId)] });
         } catch {
-            notifications.show("Erreur lors de l'import de la fiche", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'import de la fiche.");
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

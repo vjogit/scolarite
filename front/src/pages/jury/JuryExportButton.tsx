@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { ENDPOINT_JURY } from './def';
+import { notifyError, notifySuccess } from '../../services/notify';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Bouton d'export Excel
@@ -39,10 +40,10 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
             link.remove();
             window.URL.revokeObjectURL(url);
 
-            notifications.show('Export réussi', { severity: 'success', autoHideDuration: 5000 });
+            notifySuccess(notifications, 'Export réussi.');
         } catch (err) {
             console.error(err);
-            notifications.show("Erreur lors de l'export", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'export.");
         }
     }, [periodeId, notifications]);
 

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type Datasource } from './def';
 import { fieldErrorsFor, messageForError } from '../errorMessages';
+import { notifyError, notifySuccess } from '../notify';
+import { messageCreation, messageEnregistrement } from './entityMessages';
 
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -37,9 +39,15 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
   const mutation = useMutation({
     // Choix dynamique de la fonction API
     mutationFn: mode === 'edit' ? datasource.update : datasource.create,
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: datasource.queryKey });
-      navigate(rootPath);
+      // On annonce l'état réel renvoyé par le serveur, pas les valeurs saisies :
+      // le libellé a pu être normalisé côté API.
+      notifySuccess(
+        notifications,
+        mode === 'edit' ? messageEnregistrement(datasource, saved) : messageCreation(datasource, saved),
+      );
+      navigate(rootPath, { state: { highlightId: datasource.getId(saved) } });
     },
     onError: (error) => {
       const fields = fieldErrorsFor(error);
@@ -49,7 +57,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
         });
         return;
       }
-      notifications.show(messageForError(error), { severity: 'error', autoHideDuration: 5000 });
+      notifyError(notifications, messageForError(error));
     }
   });
 

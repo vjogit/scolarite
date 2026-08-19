@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import type { Datasource, DeleteImpact, DeleteImpactEntry } from './def';
 import { messageForError } from '../errorMessages';
+import { formatNombre } from '../format';
 
 /** Au-delà de ce nombre de descendants, la saisie de confirmation est exigée. */
 const SEUIL_CONFIRMATION = 100;
@@ -30,8 +31,6 @@ const MAX_NOMS_AFFICHES = 5;
 
 /** Mot à recopier lorsque plusieurs objets sont sélectionnés. */
 const MOT_CONFIRMATION = 'CONFIRMER';
-
-const formatNombre = new Intl.NumberFormat('fr-FR');
 
 /** « 3 promotions », « 1 847 notes ». */
 function formatEntry(entry: DeleteImpactEntry): string {
@@ -119,12 +118,12 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
     const titre = (() => {
         if (selectedRows.length === 1) {
-            const libelle = datasource.deleteEntityLabel ? `${datasource.deleteEntityLabel} ` : '';
+            const libelle = datasource.entityLabel ? `${datasource.entityLabel} ` : '';
             return `Supprimer ${libelle}« ${noms[0]} » ?`;
         }
         // Sans libellé explicite, on conserve le mot neutre déjà utilisé par la
         // modale d'origine : certains titres de liste ne sont pas des pluriels.
-        const pluriel = datasource.deleteEntityLabelPlural ?? 'éléments';
+        const pluriel = datasource.entityLabelPlural ?? 'éléments';
         return `Supprimer ${formatNombre.format(selectedRows.length)} ${pluriel} ?`;
     })();
 

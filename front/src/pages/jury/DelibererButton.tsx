@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_DELIBERER } from './def';
+import { notifyError, notifySuccess, notifyUndone } from '../../services/notify';
 
 interface Props {
     periodeId: string;
@@ -32,12 +33,12 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`, { compte_cumul: compteCumul }),
         onSuccess: () => {
-            notifications.show(`Délibération enregistrée pour ${userName}`, { severity: 'success', autoHideDuration: 4000 });
+            notifySuccess(notifications, `Délibération enregistrée pour ${userName}.`);
             queryClient.invalidateQueries({ queryKey: deliberationKey });
             setOpen(false);
         },
         onError: () => {
-            notifications.show('Erreur lors de la délibération', { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, 'Erreur lors de la délibération.');
         },
     });
 
@@ -45,11 +46,11 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.delete(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`),
         onSuccess: () => {
-            notifications.show(`Délibération annulée pour ${userName}`, { severity: 'warning', autoHideDuration: 4000 });
+            notifyUndone(notifications, `Délibération annulée pour ${userName}.`);
             queryClient.invalidateQueries({ queryKey: deliberationKey });
         },
         onError: () => {
-            notifications.show("Erreur lors de l'annulation", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'annulation.");
         },
     });
 

@@ -81,9 +81,16 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
     /** Entité de haut niveau : la modale exige de retaper le nom avant suppression. */
     deleteRequiresNameConfirmation?: boolean
     /** Libellé singulier avec article, ex. "la formation", affiché dans la modale. */
-    deleteEntityLabel?: string
+    entityLabel?: string
     /** Libellé pluriel sans article, ex. "périodes". À défaut, `title` en minuscules. */
-    deleteEntityLabelPlural?: string
+    entityLabelPlural?: string
+    /**
+     * Genre grammatical de l'entité, pour accorder les messages de succès
+     * (« créée » / « créé »). Inutile quand `entityLabel` porte un article non
+     * élidé — « la formation » et « le groupe » se déduisent seuls. À renseigner
+     * uniquement en cas d'élision, ex. "l'option" → 'f'.
+     */
+    entityGender?: 'm' | 'f'
     first?: boolean
     isAction: boolean
     isReadOnly?: boolean

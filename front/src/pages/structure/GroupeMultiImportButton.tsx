@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import DriveFolderUploadIcon from '@mui/icons-material/DriveFolderUpload';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
+import { notifyError, notifyPartialSuccess } from '../../services/notify';
 
 interface ImportGroupeResult {
     nom: string;
@@ -49,13 +50,10 @@ export function GroupeMultiImportButton({ optionId }: Props) {
                 message += ` Emails introuvables : ${allNotFound.join(', ')}`;
             }
 
-            notifications.show(message, {
-                severity: allNotFound.length > 0 ? 'warning' : 'success',
-                autoHideDuration: 8000,
-            });
+            notifyPartialSuccess(notifications, message, allNotFound.length === 0);
             queryClient.invalidateQueries({ queryKey: [STRUCTURE, GROUPE, optionId] });
         } catch {
-            notifications.show("Erreur lors de l'import multi-groupes", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'import multi-groupes.");
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

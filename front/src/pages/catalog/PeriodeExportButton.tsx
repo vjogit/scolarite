@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
+import { notifyError } from '../../services/notify';
 
 export function PeriodeExportButton() {
     const { optionId } = useParams();
@@ -31,7 +32,7 @@ export function PeriodeExportButton() {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error(error);
-            notifications.show("Erreur lors de l'export", { severity: 'error', autoHideDuration: 5000 });
+            notifyError(notifications, "Erreur lors de l'export.");
         }
     }, [optionId, notifications]);
 

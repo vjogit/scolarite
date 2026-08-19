@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import type { Datasource } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
-import { Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
+import { alpha, Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -14,6 +14,8 @@ import { useState, useEffect, useCallback } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { blockingMessageFor, messageForError } from '../errorMessages';
+import { notifyError, notifySuccess } from '../notify';
+import { messageSuppression } from './entityMessages';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
 
@@ -22,13 +24,36 @@ interface Props<D extends FieldValues> {
   datasource: Datasource<D>
 }
 
+/** Durée de la mise en évidence de la ligne revenant d'un enregistrement. */
+const HIGHLIGHT_MS = 2000;
+
+/** État de navigation posé par le formulaire au retour sur la liste. */
+function highlightIdFromState(state: unknown): number | null {
+  if (typeof state !== 'object' || state === null) return null;
+  const value = (state as Record<string, unknown>).highlightId;
+  return typeof value === 'number' ? value : null;
+}
+
+/** Identifiants à supprimer, accompagnés des noms à annoncer au succès. */
+interface DeleteVariables {
+  ids: number[];
+  noms: string[];
+}
+
 
 export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const { rootPath, workflow } = useCrudContext();
   const storageKey = `${workflow}_crud_edit_mode `
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const notifications = useNotifications();
+  // Ligne à mettre en évidence au retour d'un enregistrement. Lue au montage :
+  // liste et formulaire sont des routes distinctes, la liste est donc remontée
+  // à chaque retour. Éviter un setState dans l'effet évite un rendu en cascade.
+  const [highlightId, setHighlightId] = useState<number | null>(
+    () => highlightIdFromState(location.state),
+  );
   // État pour gérer la visibilité de la modale et les lignes sélectionnées
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<MRT_Row<D>[]>([]);
@@ -55,18 +80,21 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     queryFn: datasource.fetchAll
   });
 
-  // DELETE : Mutation pour supprimer
+  // DELETE : Mutation pour supprimer.
+  // Les noms transitent par les variables de mutation : la modale se ferme et
+  // vide `selectedRows` avant la résolution, ils ne seraient plus lisibles dans
+  // `onSuccess`.
   const mutation = useMutation({
-    mutationFn: datasource.delete,
-    onSuccess: () => {
+    mutationFn: ({ ids }: DeleteVariables) => datasource.delete(ids),
+    onSuccess: (_result, { noms }) => {
       // Invalide le cache et force un rafraîchissement automatique de la liste
       queryClient.invalidateQueries({ queryKey: datasource.queryKey });
+      notifySuccess(notifications, messageSuppression(datasource, noms));
     },
     onError: (error) => {
       // Le serveur peut refuser la suppression (409 BUSINESS_CONFLICT) même si
       // la modale l'a autorisée : le message doit remonter à l'utilisateur.
-      const message = blockingMessageFor(error) ?? messageForError(error);
-      notifications.show(message, { severity: 'error', autoHideDuration: 7000 });
+      notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
     },
   });
 
@@ -80,9 +108,10 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   // Exécute la suppression réelle
   const handleConfirmDelete = (table: MRT_TableInstance<D>) => {
     const ids = selectedRows.map(row => datasource.getId(row.original));
+    const noms = selectedRows.map(row => datasource.getName(row.original));
 
     // Un seul appel API, un seul onSuccess, un seul fetchAll
-    mutation.mutate(ids);
+    mutation.mutate({ ids, noms });
 
     table.resetRowSelection();
     handleClose();
@@ -229,7 +258,43 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
         overflow: 'auto',
       },
     },
+    // La ligne peut être absente de la vue (pagination, filtre, tri) : on ne
+    // touche alors à rien. Déplacer la table à l'insu de l'utilisateur serait
+    // pire que l'absence de mise en évidence, l'état de table étant persisté.
+    muiTableBodyRowProps: ({ row }) => {
+      if (highlightId === null || datasource.getId(row.original) !== highlightId) return {};
+      return {
+        sx: (theme) => ({
+          backgroundColor: alpha(
+            theme.palette.primary.main,
+            theme.palette.mode === 'dark' ? 0.24 : 0.14,
+          ),
+          transition: theme.transitions.create('background-color', {
+            duration: theme.transitions.duration.standard,
+          }),
+          '@media (prefers-reduced-motion: reduce)': {
+            transition: 'none',
+          },
+        }),
+      };
+    },
   });
+
+  // L'identifiant est consommé une seule fois : on l'efface de l'historique
+  // aussitôt lu, pour qu'un rechargement ou un retour navigateur ne rejoue pas
+  // la mise en évidence.
+  useEffect(() => {
+    if (highlightIdFromState(location.state) === null) return;
+    void navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [location, navigate]);
+
+  // Minuterie séparée : la remettre dans l'effet ci-dessus la ferait annuler
+  // par le `navigate` de consommation, qui change immédiatement `location`.
+  useEffect(() => {
+    if (highlightId === null) return;
+    const timer = setTimeout(() => { setHighlightId(null); }, HIGHLIGHT_MS);
+    return () => { clearTimeout(timer); };
+  }, [highlightId]);
 
   useEffect(() => {
     if (!isEditMode) {
