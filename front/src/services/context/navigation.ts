@@ -7,7 +7,7 @@
  */
 
 import type { DescripteurWorkflow } from './workflows';
-import { NIVEAUX, estNiveau, type ContexteHierarchique } from './niveaux';
+import { NIVEAUX, estNiveau, type ContexteHierarchique, type Niveau } from './niveaux';
 
 /** Un segment d'URL est un identifiant s'il n'est fait que de chiffres. */
 function estIdentifiant(segment: string): boolean {
@@ -80,6 +80,35 @@ export function fusionnerContexte(
     }
 
     return fusion;
+}
+
+/**
+ * Le contexte obtenu en imposant une valeur à un niveau.
+ *
+ * Les niveaux au-dessus sont conservés, celui-ci prend la nouvelle valeur, et
+ * tout ce qui est en dessous disparaît : ces identifiants décrivent une autre
+ * branche de la hiérarchie. C'est le raisonnement que `fusionnerContexte`
+ * applique déjà quand l'URL contredit la mémoire, exprimé ici pour lui seul —
+ * une bascule de sélecteur n'a pas de mémoire à fusionner.
+ */
+export function remplacerNiveau(
+    contexte: ContexteHierarchique,
+    niveau: Niveau,
+    identifiant: string,
+): ContexteHierarchique {
+    const remplace: ContexteHierarchique = {};
+
+    for (const courant of NIVEAUX) {
+        if (courant === niveau) {
+            remplace[courant] = identifiant;
+            break;
+        }
+        const valeur = contexte[courant];
+        if (valeur === undefined) break;
+        remplace[courant] = valeur;
+    }
+
+    return remplace;
 }
 
 /**
