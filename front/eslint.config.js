@@ -3,11 +3,11 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
-import { globalIgnores } from 'eslint/config'
+import { defineConfig, globalIgnores } from 'eslint/config'
 import reactX from 'eslint-plugin-react-x'
 import reactDom from 'eslint-plugin-react-dom'
 
-export default tseslint.defineConfig([
+export default defineConfig([
   globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],
@@ -19,7 +19,7 @@ export default tseslint.defineConfig([
       reactDom.configs.recommended,
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs['recommended-latest'],
+      reactHooks.configs.flat['recommended-latest'],
       reactRefresh.configs.vite,
          // Remove tseslint.configs.recommended and replace with this
       ...tseslint.configs.recommendedTypeChecked,
@@ -31,6 +31,15 @@ export default tseslint.defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+      // Les configs *TypeChecked ci-dessus exigent les infos de type.
+      parserOptions: {
+        projectService: {
+          // `env.d.ts` vit à la racine et n'est inclus par aucun tsconfig
+          // (`tsconfig.app.json` ne couvre que `src`).
+          allowDefaultProject: ['env.d.ts'],
+        },
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
 ])
