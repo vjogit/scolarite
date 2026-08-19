@@ -6,6 +6,7 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_BASE, NOTE } from './def';
 import { notifyError, notifySuccess } from '../../services/notify';
+import { fileMessageFor, messageForError } from '../../services/errorMessages';
 
 interface ImportFicheResult {
     controle_id: number;
@@ -42,8 +43,10 @@ export function FicheImportButton({ controleId }: Props) {
                 `${created} note(s) créée(s), ${updated} note(s) mise(s) à jour.`,
             );
             queryClient.invalidateQueries({ queryKey: [NOTE, 'controle', String(controleId)] });
-        } catch {
-            notifyError(notifications, "Erreur lors de l'import de la fiche.");
+        } catch (error) {
+            // Le serveur nomme la ligne et la valeur en cause quand il refuse un
+            // fichier : ce message vaut mieux que le libellé générique.
+            notifyError(notifications, fileMessageFor(error) ?? messageForError(error));
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

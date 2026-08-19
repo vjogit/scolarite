@@ -10,11 +10,14 @@ import { ENDPOINT_NOTE_PERIODE, NOTE } from './def';
 import { NoteChartButton, useNoteChart } from './NoteChartButton';
 import { NoteChartModal } from './NoteChartModal';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { createNoteField } from './noteField';
 
 export const notePeriodeSchema = z.object({
     id: z.number(),
     version: z.number(),
-    note: z.number().min(0, "La note doit être positive").nullable().optional(),
+    // Ce champ n'est pas une note mais un GPA : il s'exprime sur echelle_gpa
+    // (0 à 4 ici), pas sur le barème. Aucune borne haute ne lui est applicable.
+    note: createNoteField(),
     remarque: z.string().nullish(),
     controle_id: z.number().optional(),
     matiere_id: z.number().optional(),

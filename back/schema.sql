@@ -646,6 +646,7 @@ CREATE TABLE public.note (
     not_evaluated boolean DEFAULT false NOT NULL,
     user_id integer NOT NULL,
     controle_id integer NOT NULL,
+    CONSTRAINT chk_note_max_absolu CHECK ((note <= (1000)::double precision)),
     CONSTRAINT chk_note_positive CHECK ((note >= (0)::double precision))
 );
 
@@ -718,7 +719,10 @@ CREATE TABLE public.promotion (
     matiere_eliminatoire boolean,
     value_matiere_eliminatoire double precision,
     formation_id integer NOT NULL,
+    bareme real DEFAULT 20 NOT NULL,
+    CONSTRAINT chk_promotion_bareme_positive CHECK ((bareme > (0)::double precision)),
     CONSTRAINT chk_promotion_dates CHECK ((fin > debut)),
+    CONSTRAINT chk_promotion_echelle_bareme CHECK ((echelle[1] <= bareme)),
     CONSTRAINT chk_promotion_echelle_desc CHECK (((echelle[1] > echelle[2]) AND (echelle[2] > echelle[3]) AND (echelle[3] > echelle[4]) AND (echelle[4] > echelle[5]))),
     CONSTRAINT chk_promotion_echelle_gpa CHECK (((echelle_gpa[1] > echelle_gpa[2]) AND (echelle_gpa[2] > echelle_gpa[3]) AND (echelle_gpa[3] > echelle_gpa[4]) AND (echelle_gpa[4] > echelle_gpa[5]) AND (echelle_gpa[5] > echelle_gpa[6]))),
     CONSTRAINT chk_promotion_echelle_len CHECK ((array_length(echelle, 1) = 5)),

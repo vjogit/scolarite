@@ -72,3 +72,18 @@ SELECT 1 FROM unite_enseignement WHERE id = $1;
 -- name: CheckPeriodeExists :one
 SELECT 1 FROM periode WHERE id = $1;
 
+
+
+-- Barème de la promotion dont dépend un contrôle. Remonte la chaîne
+-- controle → matiere → ue → periode → option → promotion. Lu une fois par
+-- requête d'écriture (et une seule fois par import), la borne étant ensuite
+-- appliquée en mémoire.
+-- name: FetchBaremeByControleID :one
+SELECT prom.bareme
+FROM public.controle c
+JOIN public.matiere m             ON m.id  = c.matiere_id
+JOIN public.unite_enseignement ue ON ue.id = m.unite_enseignement_id
+JOIN public.periode pe            ON pe.id = ue.periode_id
+JOIN public.option o              ON o.id  = pe.option_id
+JOIN public.promotion prom        ON prom.id = o.promotion_id
+WHERE c.id = @controle_id;

@@ -9,10 +9,13 @@ import { NoteChartModal } from './NoteChartModal';
 import { ENDPOINT_NOTE_UE, NOTE } from './def';
 import { NoteChartButton, useNoteChart } from './NoteChartButton';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { createNoteField } from './noteField';
 
 const noteUeSchema = z.object({
 
-    note: z.number().min(0, "La note doit être positive").nullable().optional(),
+    // Moyenne d'UE : même unité que les notes, mais champ en lecture seule et
+    // barème non chargé par cet écran.
+    note: createNoteField(),
     a_matiere_eliminatoire: z.boolean(),
     grade_lettre: z.string(),
     unite_enseignement_id: z.number(),

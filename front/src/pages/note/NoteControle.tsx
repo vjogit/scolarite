@@ -3,7 +3,7 @@ import { useParams } from 'react-router';
 import { useMemo } from "react";
 import { z } from 'zod';
 import { useWatch } from 'react-hook-form';
-import { TextField, FormControlLabel, Switch, Typography, Box } from "@mui/material";
+import { TextField, FormControlLabel, Switch, Typography, Box, Skeleton } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
 import { Controller } from 'react-hook-form';
 import type { MRT_Cell, MRT_ColumnDef } from 'material-react-table';
@@ -15,11 +15,12 @@ import { useRootPath } from '../../services/crud/useRootPath';
 import { useQuery } from '@tanstack/react-query';
 import { apiInstance } from '../../services/api';
 import type { Controle } from './Controle';
+import { bornesNote, createNoteField, libelleNote } from './noteField';
 
-const noteControleSchema = z.object({
+const createNoteControleSchema = (bareme?: number) => z.object({
     id: z.number(),
     version: z.number(),
-    note: z.number().min(0, "La note doit être positive").nullable().optional(),
+    note: createNoteField(bareme),
     remarque: z.string().nullish(),
     is_validated: z.boolean().default(false),
     not_evaluated: z.boolean().default(false),
@@ -43,9 +44,9 @@ const noteControleSchema = z.object({
     path: ["note"],
 });
 
-export type NoteControle = z.infer<typeof noteControleSchema>;
+export type NoteControle = z.infer<ReturnType<typeof createNoteControleSchema>>;
 
-const createNoteMatiereFields = (isRattrapage: boolean) =>
+const createNoteMatiereFields = (isRattrapage: boolean, bareme?: number) =>
     ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<NoteControle>) => {
         const notEvaluated = useWatch({ control, name: 'not_evaluated' });
         return (
@@ -82,14 +83,14 @@ const createNoteMatiereFields = (isRattrapage: boolean) =>
 
                 <TextField
                     {...register("note", { valueAsNumber: true })}
-                    label="Note"
+                    label={libelleNote(bareme)}
                     variant="outlined"
                     fullWidth
                     type="number"
                     disabled={isReadOnly || notEvaluated}
                     error={!!errors.note}
                     helperText={errors.note?.message}
-                    slotProps={{ htmlInput: { step: "0.01" } }}
+                    slotProps={{ htmlInput: { step: "0.01", ...bornesNote(bareme) } }}
                     sx={{ mb: 2 }}
                 />
                 {isRattrapage && (
@@ -152,12 +153,12 @@ const createNoteMatiereColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteCont
     { accessorKey: 'remarque', header: 'Remarque' },
 ];
 
-export const noteControleViewConfig = (controleId: string, isRattrapage: boolean): ViewConfig<NoteControle> => {
+export const noteControleViewConfig = (controleId: string, isRattrapage: boolean, bareme?: number): ViewConfig<NoteControle> => {
     return {
-        schema: noteControleSchema,
+        schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
         columns: createNoteMatiereColumns(isRattrapage),
-        render: createNoteMatiereFields(isRattrapage),
+        render: createNoteMatiereFields(isRattrapage, bareme),
     }
 };
 export const createNoteControleRepository = (controleId: string) => {
@@ -175,13 +176,16 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteControle>();
     const rootPath = useRootPath(mode);
 
-    const { data: controle } = useQuery<Controle>({
+    // Le contrôle porte is_rattrapage et le barème de sa promotion : un seul
+    // appel, celui qui existait déjà, suffit à alimenter les deux.
+    const { data: controle, isLoading: controleLoading } = useQuery<Controle>({
         queryKey: ['controle', controleId],
         queryFn: () => apiInstance.get<Controle>(`${ENDPOINT_CONTROLE}/${controleId}`).then(r => r.data),
         enabled: !!controleId,
     });
 
     const isRattrapage = controle?.is_rattrapage ?? false;
+    const bareme = controle?.bareme;
 
     if (!controleId) return (
         <Typography>Le paramètre matiereId est obligatoire</Typography>
@@ -189,8 +193,8 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
 
     const datasource = useMemo((): Datasource<NoteControle> => ({
         ...createNoteControleRepository(controleId),
-        ...noteControleViewConfig(controleId, isRattrapage),
-        title: "Notes du controle",
+        ...noteControleViewConfig(controleId, isRattrapage, bareme),
+        title: "Notes du contrôle",
         isAction,
         renderRowActions,
         isTopToolbar,
@@ -200,8 +204,13 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
                 <NoteChartButton onClick={() => handleOpenChart(table)} />
             </Box>
         )
-    }), [rootPath, workflow, isRattrapage]);
+    }), [rootPath, workflow, isRattrapage, bareme]);
 
+    // On attend le contrôle avant de monter le formulaire : sans le barème, le
+    // schéma validerait sur la seule borne basse et le champ annoncerait une
+    // plage qu'on ne connaît pas encore. C'est aussi ce qui évite que les
+    // colonnes changent après coup, une fois is_rattrapage connu.
+    if (controleLoading) return <Skeleton variant="rounded" height={400} />;
 
     return (
         <>

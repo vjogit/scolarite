@@ -48,6 +48,8 @@ const promotionSchema = z.object({
         }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1]))),
         z.array(z.number())
     ]),
+    bareme: z.number({ message: "Le barème est requis" })
+        .positive("Le barème doit être strictement positif"),
     matiere_eliminatoire: z.boolean().nullable().optional(),
     value_matiere_eliminatoire: z.number().min(0, "La note doit être positive").nullable().optional(),
     formation_id: z.number(),
@@ -62,6 +64,14 @@ const promotionSchema = z.object({
 }, {
     message: "La note éliminatoire est requise si l'option est activée.",
     path: ["value_matiere_eliminatoire"],
+}).refine((data) => {
+    // Miroir de la contrainte SQL chk_promotion_echelle_bareme. echelle est déjà
+    // validée décroissante par ailleurs : son premier seuil en est le maximum.
+    const seuils = Array.isArray(data.echelle) ? data.echelle : [];
+    return seuils.length === 0 || seuils[0] <= data.bareme;
+}, {
+    message: "Les seuils de l'échelle ne peuvent pas dépasser le barème",
+    path: ["echelle"],
 });
 
 export type Promotion = z.infer<typeof promotionSchema>;
@@ -172,6 +182,19 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             }}
         />
 
+        <TextField
+            {...register("bareme", { valueAsNumber: true })}
+            label="Barème"
+            variant="outlined"
+            fullWidth
+            type="number"
+            disabled={isReadOnly}
+            error={!!errors.bareme}
+            helperText={errors.bareme?.message ?? "Note maximale de la promotion. Les seuils de l'échelle s'expriment sur ce barème."}
+            slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
+            sx={{ mb: 2 }}
+        />
+
         <FormControlLabel
             control={
                 <Controller
@@ -237,7 +260,7 @@ export const promotionColumns: MRT_ColumnDef<Promotion>[] = [
 export const createPromotionViewConfig = (formationId: string): ViewConfig<Promotion> => {
     return {
         schema: promotionSchema,
-        emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId) },
+        emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), bareme: 20 },
         columns: promotionColumns,
         render: PromotionFields,
     }

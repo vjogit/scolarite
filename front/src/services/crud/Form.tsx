@@ -87,7 +87,15 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
     <LocalizationProvider dateAdapter={AdapterDayjs}>
 
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
+        {/*
+          noValidate : les bornes natives (min/max sur les champs numériques)
+          bloqueraient la soumission avant que zod ne s'exécute, et le
+          navigateur afficherait sa propre bulle — dans sa langue, et non le
+          message du schéma rendu en helper text comme partout ailleurs.
+          Elles restent posées pour borner les flèches de l'incrémenteur ;
+          l'arbitrage de la validité, lui, revient à zod.
+        */}
+        <form noValidate onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
           <h2>
             {mode === 'show' ? 'Détails' : mode === 'edit' ? 'Modifier' : 'Ajouter'}
           </h2>

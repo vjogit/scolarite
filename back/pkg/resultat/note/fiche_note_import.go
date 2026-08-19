@@ -91,6 +91,14 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r).WithTx(tx)
 
+	// Barème lu une seule fois pour tout le fichier : la borne est ensuite
+	// comparée en mémoire, ligne par ligne, sans jointure supplémentaire.
+	bareme, err := fetchBareme(r.Context(), queries, controleID)
+	if err != nil {
+		services.InternalServerError(w, r, "barème du contrôle introuvable", services.NO_INFORMATION, nil)
+		return
+	}
+
 	// Charger les notes existantes pour ce contrôle (map userID → note)
 	existingNotes, err := queries.FetchNotesByControleID(r.Context(), controleID)
 	if err != nil {
@@ -106,7 +114,7 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 
 	// Les données commencent à la ligne 14 (index 13), après l'en-tête ligne 13
 	const firstDataRow = 13
-	for _, row := range rows[firstDataRow:] {
+	for offset, row := range rows[firstDataRow:] {
 		if len(row) == 0 {
 			continue
 		}
@@ -116,6 +124,19 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 		}
 
 		noteVal, notEvaluated := parseNote(row)
+
+		// Une seule ligne hors barème annule tout l'import : le rollback
+		// différé garantit qu'aucune note du fichier n'est écrite. On désigne
+		// la ligne et la valeur pour que le fichier soit corrigeable sans
+		// relecture intégrale.
+		if message := validateNote(noteVal, bareme); message != "" {
+			ligne := firstDataRow + offset + 1 // numéro de ligne tel qu'affiché dans le tableur
+			services.InvalidRequestError(w, r,
+				fmt.Sprintf("Ligne %d : la note %s est refusée. %s. Aucune note n'a été importée.",
+					ligne, formatDecimal(*noteVal), message),
+				services.INVALID_FILE, nil)
+			return
+		}
 
 		if existing, exists := noteByUserID[int32(userID)]; exists {
 			_, err = queries.UpdateNote(r.Context(), gen.UpdateNoteParams{
@@ -128,7 +149,10 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 				Version:      existing.Version,
 			})
 			if err != nil {
-				services.InternalServerError(w, r, fmt.Sprintf("mise à jour note user_id=%d: %v", userID, err), services.NO_INFORMATION, nil)
+				slog.Error("import fiche : mise à jour impossible", "controle_id", controleID, "user_id", userID, "error", err)
+				services.InternalServerError(w, r,
+					fmt.Sprintf("échec de la mise à jour de la note de l'élève %d. Aucune note n'a été importée.", userID),
+					services.NO_INFORMATION, nil)
 				return
 			}
 			result.Updated++
@@ -142,7 +166,10 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 				NotEvaluated: notEvaluated,
 			})
 			if err != nil {
-				services.InternalServerError(w, r, fmt.Sprintf("création note user_id=%d: %v", userID, err), services.NO_INFORMATION, nil)
+				slog.Error("import fiche : création impossible", "controle_id", controleID, "user_id", userID, "error", err)
+				services.InternalServerError(w, r,
+					fmt.Sprintf("échec de la création de la note de l'élève %d. Aucune note n'a été importée.", userID),
+					services.NO_INFORMATION, nil)
 				return
 			}
 			result.Created++

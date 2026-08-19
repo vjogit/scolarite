@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-note-max
+      author: dev
+      comment: "Garde-fou d'absurdité sur note : une contrainte CHECK ne peut pas lire promotion.bareme (pas de sous-requête autorisée), la borne réelle est appliquée par le handler Go. Ce plafond large n'attrape que les valeurs manifestement fausses écrites hors de l'application."
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE public.note ADD CONSTRAINT chk_note_max_absolu CHECK (note <= 1000);
+
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public.note DROP CONSTRAINT IF EXISTS chk_note_max_absolu;

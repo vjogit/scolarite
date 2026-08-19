@@ -55,6 +55,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				return gen.Promotion{
 					Name:        "Promo 2026",
 					FormationID: formationID,
+					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -72,6 +73,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				return gen.Promotion{
 					Name:        "", // Violates chk_promotion_name_length
 					FormationID: formationID,
+					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -90,6 +92,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				return gen.Promotion{
 					Name:        "Promo Invalide",
 					FormationID: formationID,
+					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(-24 * time.Hour), Valid: true}, // Violates chk_promotion_dates
 				}
@@ -112,6 +115,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				return gen.Promotion{
 					Name:        "Promo Doublon", // Violates promotions_name_key
 					FormationID: formationID,
+					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -130,6 +134,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				return gen.Promotion{
 					Name:        "Promo sans formation",
 					FormationID: formationID, // Violates fk_promotions_formation
+					Bareme:      20,          // chk_promotion_bareme_positive : le zéro-valeur serait refusé
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}

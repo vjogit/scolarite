@@ -26,6 +26,14 @@ var promotionConstraints = map[string]services.ConstraintRule{
 		Field:   "echelle",
 		Message: "L'échelle doit être décroissante",
 	},
+	"chk_promotion_bareme_positive": {
+		Field:   "bareme",
+		Message: "Le barème doit être strictement positif",
+	},
+	"chk_promotion_echelle_bareme": {
+		Field:   "echelle",
+		Message: "Les seuils de l'échelle ne peuvent pas dépasser le barème",
+	},
 }
 
 func CreatePromotion(w http.ResponseWriter, r *http.Request) {
@@ -44,6 +52,7 @@ func CreatePromotion(w http.ResponseWriter, r *http.Request) {
 		FormationID:              input.FormationID,
 		EchelleGpa:               input.EchelleGpa,
 		Echelle:                  input.Echelle,
+		Bareme:                   input.Bareme,
 		MatiereEliminatoire:      input.MatiereEliminatoire,
 		ValueMatiereEliminatoire: input.ValueMatiereEliminatoire,
 	})
@@ -135,6 +144,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		Fin:                      input.Fin,
 		EchelleGpa:               input.EchelleGpa,
 		Echelle:                  input.Echelle,
+		Bareme:                   input.Bareme,
 		MatiereEliminatoire:      input.MatiereEliminatoire,
 		ValueMatiereEliminatoire: input.ValueMatiereEliminatoire,
 	})

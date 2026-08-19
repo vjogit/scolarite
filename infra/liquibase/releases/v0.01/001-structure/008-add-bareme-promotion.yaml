@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-bareme-promotion
+      author: dev
+      comment: "Ajout du barème sur promotion : borne haute des notes, exprimée dans la même unité que echelle (défaut 20 pour les données existantes)"
+      changes:
+        - addColumn:
+            tableName: promotion
+            columns:
+              - column:
+                  name: bareme
+                  type: REAL
+                  defaultValueNumeric: 20
+                  constraints:
+                    nullable: false
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_bareme_positive CHECK (bareme > 0);
+              -- echelle est déjà contrainte strictement décroissante (chk_promotion_echelle_desc) :
+              -- echelle[1] en est donc le maximum. Un seuil au-dessus du barème serait inatteignable.
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_echelle_bareme CHECK (echelle[1] <= bareme);
+
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE promotion DROP CONSTRAINT IF EXISTS chk_promotion_echelle_bareme;
+              ALTER TABLE promotion DROP CONSTRAINT IF EXISTS chk_promotion_bareme_positive;
+        - dropColumn:
+            tableName: promotion
+            columnName: bareme

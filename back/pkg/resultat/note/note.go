@@ -16,6 +16,9 @@ import (
 var noteConstraints = map[string]services.ConstraintRule{
 	"chk_note_positive":  {Field: "note", Message: "La note doit être positive"},
 	"fk_notes_controles": {Field: "controle_id", Message: "Le contrôle n'existe pas"},
+	// Filet de sécurité en base : la borne réelle est le barème de la
+	// promotion, appliquée par validateNote avant l'écriture.
+	"chk_note_max_absolu": {Field: "note", Message: "La note dépasse la valeur maximale autorisée"},
 }
 
 func CreateNote(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +29,20 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	queries := getQueriesFromCtx(r)
+
+	bareme, err := fetchBareme(r.Context(), queries, input.ControleID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
+			return
+		}
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+	if message := validateNote(input.Note, bareme); message != "" {
+		services.InvalidRequestError(w, r, "erreur de validation des données de la note", services.VALIDATION_ERROR, noteFieldError(message))
+		return
+	}
 
 	id, err := queries.CreateNote(r.Context(), gen.CreateNoteParams{
 		Note:         input.Note,
@@ -266,6 +283,28 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	queries := getQueriesFromCtx(r)
+
+	// Le contrôle est lu depuis la note en base (middleware NoteUse) et non
+	// depuis le corps de la requête : le rattachement d'une note ne se modifie
+	// pas, et le barème doit être celui de la note réellement visée.
+	controleID := input.ControleID
+	if existing := getNoteFromCtx(r); existing != nil {
+		controleID = existing.ControleID
+	}
+
+	bareme, err := fetchBareme(r.Context(), queries, controleID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
+			return
+		}
+		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		return
+	}
+	if message := validateNote(input.Note, bareme); message != "" {
+		services.InvalidRequestError(w, r, "erreur de validation", services.VALIDATION_ERROR, noteFieldError(message))
+		return
+	}
 
 	version, err := queries.UpdateNote(r.Context(), gen.UpdateNoteParams{
 		ID:           input.ID,

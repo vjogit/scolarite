@@ -9,11 +9,14 @@ import { NoteChartModal } from './NoteChartModal';
 import { ENDPOINT_NOTE_MATIERE, NOTE } from './def';
 import { NoteChartButton, useNoteChart } from './NoteChartButton';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { createNoteField } from './noteField';
 
 export const noteMatiereSchema = z.object({
     id: z.number(),
     version: z.number(),
-    note: z.number().min(0, "La note doit être positive").nullable().optional(),
+    // Moyenne pondérée, donc bien dans l'unité du barème — mais le champ est
+    // en lecture seule et l'écran ne charge pas la promotion : pas de borne haute.
+    note: createNoteField(),
     matiere_id: z.number(),
     user_id: z.number({
         message: "Veuillez sélectionner un élève"

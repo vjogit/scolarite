@@ -120,6 +120,29 @@ export function blockingMessageFor(err: unknown): string | null {
   return null;
 }
 
+// Message rédigé par le serveur pour un fichier refusé. L'import de notes
+// désigne la ligne et la valeur fautives : le libellé générique d'INVALID_FILE
+// obligerait l'utilisateur à parcourir son fichier à l'aveugle. Volontairement
+// restreint à ce code — les autres familles peuvent transporter des messages
+// techniques qui n'ont rien à faire sous les yeux d'un utilisateur.
+function fileMessageFromPayload(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const p = payload as Record<string, unknown>;
+  if (p['code'] !== 'INVALID_FILE') return null;
+  const message = p['message'];
+  return typeof message === 'string' && message.length > 0 ? message : null;
+}
+
+export function fileMessageFor(err: unknown): string | null {
+  if (axios.isAxiosError(err)) {
+    return fileMessageFromPayload(err.response?.data);
+  }
+  if (isWrappedApiError(err)) {
+    return fileMessageFromPayload(err.payload);
+  }
+  return null;
+}
+
 export function fieldErrorsFor(err: unknown): Record<string, string> | null {
   if (axios.isAxiosError(err)) {
     return fieldErrorsFromPayload(err.response?.data);

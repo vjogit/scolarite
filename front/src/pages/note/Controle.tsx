@@ -24,6 +24,10 @@ const controleSchema = z.object({
     is_rattrapage: z.boolean().default(false),
     remarque: z.string().nullable().optional(),
     matiere_id: z.number(),
+    // Renvoyé par GET /resultat/controle/{id} uniquement : le barème appartient
+    // à la promotion, il n'est pas saisi ici. Optionnel car la liste des
+    // contrôles d'une matière ne le rapporte pas.
+    bareme: z.number().optional(),
 });
 
 export type Controle = z.infer<typeof controleSchema>;

@@ -65,8 +65,8 @@ var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 
 var ControleContextKey = &services.ContextKey{Name: "controle key"}
 
-func getControleFromCtx(r *http.Request) *gen.Controle {
-	controle, ok := r.Context().Value(ControleContextKey).(*gen.Controle)
+func getControleFromCtx(r *http.Request) *gen.FetchControleByIdRow {
+	controle, ok := r.Context().Value(ControleContextKey).(*gen.FetchControleByIdRow)
 	if ok {
 		return controle
 	}
@@ -74,6 +74,6 @@ func getControleFromCtx(r *http.Request) *gen.Controle {
 	return nil
 }
 
-func setControleFromCtx(r *http.Request, controle *gen.Controle) context.Context {
+func setControleFromCtx(r *http.Request, controle *gen.FetchControleByIdRow) context.Context {
 	return context.WithValue(r.Context(), ControleContextKey, controle)
 }
