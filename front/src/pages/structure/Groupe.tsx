@@ -67,7 +67,7 @@ export function GroupeDefaultAction({ groupeId, rootPath }: { groupeId: number; 
     );
 }
 
-export function CrudGroupe({ mode, workflow, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
+export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
 
@@ -94,10 +94,11 @@ export function CrudGroupe({ mode, workflow, isAction, isTopToolbar, renderRowAc
         ...createGroupeViewConfig(optionId),
         title: "Groupes",
         isAction,
+        isReadOnly,
         isTopToolbar,
         renderRowActions: renderRowActions ?? defaultRenderRowActions,
         renderTopToolbarCustomActions: renderTopToolbarCustomActions ?? defaultRenderTopToolbar,
-    }), [optionId, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions, defaultRenderRowActions, defaultRenderTopToolbar]);
+    }), [optionId, isAction, isReadOnly, isTopToolbar, renderRowActions, renderTopToolbarCustomActions, defaultRenderRowActions, defaultRenderTopToolbar]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

@@ -51,7 +51,7 @@ function CustomCrudPeriode({ mode }: CrudComponentProps) {
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
             <Tooltip title="Jury">
-                <IconButton onClick={() => navigate(`${location.pathname}/${(row.original as any).id}/${JURY}`)}>
+                <IconButton onClick={() => navigate(`${location.pathname}/${row.getValue('id')}/${JURY}`)}>
                     <BalanceIcon />
                 </IconButton>
             </Tooltip>
