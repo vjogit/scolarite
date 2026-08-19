@@ -150,7 +150,8 @@ func (s *JuryService) fetchRemplacements(ctx context.Context) ([]RemplacementEnt
 		ueNom  string
 	}
 	indexMap := make(map[key]int)
-	var result []RemplacementEntry
+	// Allouée d'emblée, pour la même raison que `Hierarchie.UEs`.
+	result := make([]RemplacementEntry, 0)
 
 	for _, r := range rows {
 		k := key{r.UserID, r.UeNom}
@@ -194,12 +195,20 @@ func (s *JuryService) getHierarchy(ctx context.Context) (*Hierarchie, error) {
 		matieresByUe[m.UeID] = append(matieresByUe[m.UeID], m.MatiereNom)
 	}
 
+	// Tranche allouée même vide : une tranche nil se sérialise en `null`, et le
+	// client attend un tableau. Une période sans UE est un état normal — elle
+	// vient d'être créée — et ne doit pas faire tomber l'écran de jury.
+	hierarchy.UEs = make([]Ue, 0, len(ues))
 	for _, ue := range ues {
+		matieres := matieresByUe[ue.ID]
+		if matieres == nil {
+			matieres = []string{}
+		}
 		hierarchy.UEs = append(hierarchy.UEs, Ue{
 			ID:       ue.ID,
 			Nom:      ue.Name,
 			ECTS:     ue.Ects,
-			Matieres: matieresByUe[ue.ID],
+			Matieres: matieres,
 		})
 	}
 
