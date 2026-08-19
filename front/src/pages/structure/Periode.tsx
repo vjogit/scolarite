@@ -152,7 +152,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
     const datasource = useMemo((): Datasource<Periode> => ({
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
-        title: "Periodes",
+        title: "Périodes",
         entityLabel: "la période",
         entityLabelPlural: "périodes",
         isAction,

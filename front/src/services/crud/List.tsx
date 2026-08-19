@@ -9,6 +9,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { usePersistentTableState } from './usePersistentTableState';
+import { parentListPath } from './useRootPath';
 import { useCrudContext } from './CrudContext';
 import { useState, useEffect, useCallback } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -23,6 +24,9 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 interface Props<D extends FieldValues> {
   datasource: Datasource<D>
 }
+
+/** Encombrement d'une `IconButton` MUI de densité par défaut, en pixels. */
+const BOUTON_RETOUR_PX = 40;
 
 /** Durée de la mise en évidence de la ligne revenant d'un enregistrement. */
 const HIGHLIGHT_MS = 2000;
@@ -43,6 +47,8 @@ interface DeleteVariables {
 
 export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const { rootPath, workflow } = useCrudContext();
+  // Source unique de vérité : le bouton retour n'existe que si un parent existe.
+  const parentPath = parentListPath(rootPath);
   const storageKey = `${workflow}_crud_edit_mode `
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -311,16 +317,19 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
-        {!datasource?.first && (
-          <>
-            <Tooltip title="Retour">
-              <IconButton onClick={() => navigate(rootPath.split('/').slice(0, -2).join('/'))}>
-                <ArrowBackIcon />
-              </IconButton>
-            </Tooltip>
-            <Typography variant="h6" sx={{ flex: 1 }}>{datasource.title}</Typography>
-          </>
+        {parentPath ? (
+          <Tooltip title="Retour">
+            <IconButton aria-label="Retour" onClick={() => navigate(parentPath)}>
+              <ArrowBackIcon />
+            </IconButton>
+          </Tooltip>
+        ) : (
+          // Sans parent, la place du bouton reste réservée : le titre garde la
+          // même abscisse d'un écran à l'autre. `BOUTON_RETOUR_PX` est la taille
+          // d'une `IconButton` de densité par défaut (icône 24 + 2 × 8 de marge).
+          <Box aria-hidden sx={{ width: BOUTON_RETOUR_PX, flexShrink: 0 }} />
         )}
+        <Typography variant="h6" sx={{ flex: 1 }}>{datasource.title}</Typography>
 
       </Box>
       <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>

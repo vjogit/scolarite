@@ -48,3 +48,30 @@ function extractRootPath(urlPath: string, mode: CrudMode): string {
     // 5. On reconstruit l'URL
     return segments.join('/');
 }
+
+/** Un segment d'URL est un identifiant s'il n'est fait que de chiffres. */
+function isIdSegment(segment: string): boolean {
+    return /^\d+$/.test(segment);
+}
+
+/**
+ * Chemin de la liste parente, ou `null` quand il n'y en a pas.
+ *
+ * Toute imbrication de la hiérarchie CRUD prend la forme
+ * `…/parent/:parentId/enfant` : un parent existe donc si et seulement si
+ * l'avant-dernier segment est un identifiant. Retirer la paire
+ * `:parentId/enfant` redonne alors la liste parente. À la racine d'un
+ * workflow — `/user_workflow/user`, `/catalog_context/formation` — cet
+ * avant-dernier segment est le nom du workflow : pas de parent.
+ */
+export function parentListPath(rootPath: string): string | null {
+    const segments = rootPath.split('/');
+    const penultieme = segments[segments.length - 2];
+
+    if (penultieme === undefined || !isIdSegment(penultieme)) return null;
+
+    const parent = segments.slice(0, -2).join('/');
+
+    // Garde-fou : on ne navigue jamais vers une chaîne vide.
+    return parent === '' ? null : parent;
+}

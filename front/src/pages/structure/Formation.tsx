@@ -95,7 +95,6 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
         entityLabel: "la formation",
         entityLabelPlural: "formations",
         deleteRequiresNameConfirmation: true,
-        first: true,
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,

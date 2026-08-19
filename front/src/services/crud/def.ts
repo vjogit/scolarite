@@ -91,7 +91,6 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
      * uniquement en cas d'élision, ex. "l'option" → 'f'.
      */
     entityGender?: 'm' | 'f'
-    first?: boolean
     isAction: boolean
     isReadOnly?: boolean
     renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, isEditMode: boolean }) => ReactNode

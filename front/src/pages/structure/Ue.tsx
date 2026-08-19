@@ -135,7 +135,7 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, rend
     const datasource = useMemo((): Datasource<Ue> => ({
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
-        title: "Ues",
+        title: "UE",
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
