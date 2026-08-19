@@ -11,11 +11,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/fr';
 import { setupAxiosInterceptors } from './services/api';
-import { CATALOG_WORKFLOW } from './pages/catalog/CatalogLayout';
+import { ContexteHierarchieProvider } from './services/context/ContexteProvider';
+import { possedeUnRole } from './services/context/workflows';
+import { CATALOG_WORKFLOW } from './pages/catalog/def';
 import { NOTE_ELEVE, NOTE_WORKFLOW } from './pages/note/def';
 import { CERTIFICATION_WORKFLOW } from './pages/certification/def';
 import { JURY_WORKFLOW } from './pages/jury/def';
-import { PROGRAMME_WORKFLOW } from './pages/programme/ProgrammeLayout';
+import { PROGRAMME_WORKFLOW } from './pages/programme/def';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { SALLE_WORKFLOW } from './pages/salle/def';
 import SchoolIcon from '@mui/icons-material/School';
@@ -190,10 +192,16 @@ export default function App() {
               localeText={{
                 accountSignInLabel: "Connexion",
                 accountSignOutLabel: "Deconexion",
-              }
-              }
+              }}
             >
-              {!loading && <Outlet />}
+              {/* Le contexte résout des noms par l'API : il ne se monte qu'une
+                  fois l'intercepteur d'authentification en place, en même temps
+                  que les écrans — sinon ses requêtes partent sans jeton. */}
+              {!loading && (
+                <ContexteHierarchieProvider>
+                  <Outlet />
+                </ContexteHierarchieProvider>
+              )}
             </ReactRouterAppProvider>
           </LocalizationProvider>
         </QueryClientProvider>
@@ -208,7 +216,7 @@ const filterNavigationByRoles = (
   userRoles: string[] | undefined
 ): NavigationItemWithRoles[] => {
   return navigation
-    .filter(item => !item.requiredRoles || item.requiredRoles.some(role => userRoles?.includes(role)))
+    .filter(item => possedeUnRole(userRoles, item.requiredRoles))
     .map(item => ({
       ...item,
       children: item.children

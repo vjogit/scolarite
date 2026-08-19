@@ -28,3 +28,9 @@ export interface ReservationDetail {
     intervenants: IntervenantRef[];
     groupes: GroupeRef[];
 }
+
+/**
+ * Nom du workflow Programme. Défini ici et non dans `ProgrammeLayout` : les
+ * descripteurs de `services/context` en ont besoin, et le layout les importe.
+ */
+export const PROGRAMME_WORKFLOW = 'programme_context';

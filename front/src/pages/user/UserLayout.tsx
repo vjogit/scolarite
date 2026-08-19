@@ -1,31 +1,11 @@
-import { useEffect } from 'react';
-import { Outlet, useLocation, Navigate } from 'react-router';
-import { Box } from '@mui/material';
-import { USER, USER_WORKFLOW } from './def';
-
-const STORAGE_KEY = 'user_last_path';
-
-
+import { WorkflowIndex, WorkflowLayoutSimple } from '../../services/context/WorkflowLayout';
+import { WORKFLOW_USER } from '../../services/context/workflows';
+import { USER } from './def';
 
 export function UserLayout() {
-    const location = useLocation();
-
-    useEffect(() => {
-        if (!location.pathname.endsWith(`/${USER_WORKFLOW}`)) {
-            sessionStorage.setItem(STORAGE_KEY, location.pathname);
-        }
-    }, [location]);
-
-    return (
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-            <Outlet />
-        </Box>
-    );
+    return <WorkflowLayoutSimple />;
 }
 
 export function UserIndex() {
-    const lastPath = sessionStorage.getItem(STORAGE_KEY);
-    const target = lastPath || USER;
-
-    return <Navigate to={target} replace />;
+    return <WorkflowIndex workflow={WORKFLOW_USER} cheminParDefaut={USER} />;
 }
