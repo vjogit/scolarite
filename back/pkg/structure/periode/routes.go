@@ -18,6 +18,10 @@ func RoutePeriode(r chi.Router) {
 		CreatePeriode(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {periodeID}.
+	r.Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{periodeID}", func(r chi.Router) {
 		r.With(PeriodeUse).Get("/", FetchPeriode)
 		r.With(PeriodeUse).Put("/", Update)

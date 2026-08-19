@@ -18,6 +18,10 @@ func RouteFormation(r chi.Router) {
 		CreateFormation(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {formationID}.
+	r.Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{formationID}", func(r chi.Router) {
 		r.With(FormationUse).Get("/", FetchFormation)
 		r.With(FormationUse).Put("/", Update)

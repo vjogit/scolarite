@@ -18,6 +18,10 @@ func RoutePromotion(r chi.Router) {
 		CreatePromotion(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {promotionID}.
+	r.Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{promotionID}", func(r chi.Router) {
 		r.With(PromotionUse).Get("/", FetchPromotion)
 		r.With(PromotionUse).Put("/", Update)

@@ -10,7 +10,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate, useParams } from 'react-router';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { ECHELLE_KEYS, IsValidEchelle } from './service';
-import { ENDPOINT_PROMOTION, OPTION, PROMOTION, STRUCTURE } from './def';
+import { ENDPOINT_PROMOTION, OPTION, PROMOTION, STRUCTURE, ENDPOINT_PROMOTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 
 const echelleRegexReelsLettresFixes = /^(a=[0-9]+(\.[0-9]+)?)(,b=[0-9]+(\.[0-9]+)?)(,c=[0-9]+(\.[0-9]+)?)(,d=[0-9]+(\.[0-9]+)?)(,e=[0-9]+(\.[0-9]+)?)(,f=[0-9]+(\.[0-9]+)?)$/;
@@ -247,6 +247,7 @@ export const createPromotionViewConfig = (formationId: string): ViewConfig<Promo
 export const createPromotionRepository = (formationId: string) => {
     return createRepository<Promotion>({
         endpoint: `${ENDPOINT_PROMOTION}`,
+        deleteImpactEndpoint: `${ENDPOINT_PROMOTION_DELETE_IMPACT}`,
         queryKey: [STRUCTURE, PROMOTION, formationId],
         queryParams: `?formation_id=${formationId}`,
         getId: (data: Promotion) => data.id,
@@ -285,6 +286,9 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId),
         title: "Promotions",
+        deleteEntityLabel: "la promotion",
+        deleteEntityLabelPlural: "promotions",
+        deleteRequiresNameConfirmation: true,
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,

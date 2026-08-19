@@ -96,6 +96,30 @@ export function messageForError(err: unknown): string {
   return 'Une erreur est survenue.';
 }
 
+// Message précis d'un conflit métier : le serveur renvoie details.reason avec
+// un message déjà rédigé (ex. période avec jury délibéré). Le libellé générique
+// de BUSINESS_CONFLICT parle de créneaux, il serait trompeur dans ce cas.
+function blockingMessageFromPayload(payload: unknown): string | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const p = payload as Record<string, unknown>;
+  if (p['code'] !== 'BUSINESS_CONFLICT') return null;
+  const details = p['details'];
+  if (typeof details !== 'object' || details === null) return null;
+  if (typeof (details as Record<string, unknown>)['reason'] !== 'string') return null;
+  const message = p['message'];
+  return typeof message === 'string' && message.length > 0 ? message : null;
+}
+
+export function blockingMessageFor(err: unknown): string | null {
+  if (axios.isAxiosError(err)) {
+    return blockingMessageFromPayload(err.response?.data);
+  }
+  if (isWrappedApiError(err)) {
+    return blockingMessageFromPayload(err.payload);
+  }
+  return null;
+}
+
 export function fieldErrorsFor(err: unknown): Record<string, string> | null {
   if (axios.isAxiosError(err)) {
     return fieldErrorsFromPayload(err.response?.data);

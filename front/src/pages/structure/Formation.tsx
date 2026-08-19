@@ -4,7 +4,7 @@ import { Box, IconButton, TextField, Tooltip } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate } from 'react-router';
-import { ENDPOINT_FORMATION, FORMATION, PROMOTION, STRUCTURE } from './def';
+import { ENDPOINT_FORMATION, FORMATION, PROMOTION, STRUCTURE, ENDPOINT_FORMATION_DELETE_IMPACT } from './def';
 import { useCallback, useMemo, type ReactNode } from 'react';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { Crud } from '../../services/crud/Crud';
@@ -59,6 +59,7 @@ export const formationViewConfig: ViewConfig<Formation> = {
 // Partie statique : à l'extérieur du composant
 export const formationRepository = createRepository<Formation>({
     endpoint: `${ENDPOINT_FORMATION}`,
+    deleteImpactEndpoint: `${ENDPOINT_FORMATION_DELETE_IMPACT}`,
     queryKey: [STRUCTURE, FORMATION],
     getId: (data: Formation) => data.id,
 });
@@ -91,6 +92,9 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
         ...formationRepository,
         ...formationViewConfig,
         title: "Formations",
+        deleteEntityLabel: "la formation",
+        deleteEntityLabelPlural: "formations",
+        deleteRequiresNameConfirmation: true,
         first: true,
         isAction,
         isReadOnly,

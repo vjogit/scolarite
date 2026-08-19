@@ -10,7 +10,7 @@ import { Controller } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
-import { ENDPOINT_PERIODE, PERIODE, STRUCTURE, UES } from './def';
+import { ENDPOINT_PERIODE, PERIODE, STRUCTURE, UES, ENDPOINT_PERIODE_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 
 const periodeSchema = z.object({
@@ -115,6 +115,7 @@ export const createPeriodeViewConfig = (optionId: string): ViewConfig<Periode> =
 export const createPeriodeRepository = (optionId: string) => {
     return createRepository<Periode>({
         endpoint: `${ENDPOINT_PERIODE}`,
+        deleteImpactEndpoint: `${ENDPOINT_PERIODE_DELETE_IMPACT}`,
         queryParams: `?option_id=${optionId}`,
         queryKey: [STRUCTURE, PERIODE, optionId],
         getId: (data: Periode) => data.id,
@@ -152,6 +153,8 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
         title: "Periodes",
+        deleteEntityLabel: "la période",
+        deleteEntityLabelPlural: "périodes",
         isAction,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
         isTopToolbar,

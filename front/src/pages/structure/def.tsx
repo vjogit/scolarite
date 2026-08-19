@@ -21,3 +21,11 @@ export const ENDPOINT_GROUPE = `${ENDPOINT_STRUCTURE}/${GROUPE}`
 
 
 
+
+// Analyse d'impact avant suppression (POST, corps { ids: [...] }).
+// Seules les entités structurantes l'exposent : les entités feuilles n'en ont
+// pas besoin et la modale dégrade proprement en son absence.
+export const ENDPOINT_FORMATION_DELETE_IMPACT = `${ENDPOINT_FORMATION}/delete-impact`
+export const ENDPOINT_PROMOTION_DELETE_IMPACT = `${ENDPOINT_PROMOTION}/delete-impact`
+export const ENDPOINT_OPTION_DELETE_IMPACT = `${ENDPOINT_OPTION}/delete-impact`
+export const ENDPOINT_PERIODE_DELETE_IMPACT = `${ENDPOINT_PERIODE}/delete-impact`

@@ -177,9 +177,23 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	err := queries.DeletePromotion(r.Context(), input.IDs)
+	// Blocage métier : une période déjà délibérée (résultats dans jury_result)
+	// ne doit jamais être détruite, y compris via la cascade d'un parent.
+	nbPeriodesDeliberees, err := queries.CountPromotionJuryDeliberePeriodes(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		slog.Error("suppression : contrôle du jury impossible", "ids", input.IDs, "error", err)
+		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
+		return
+	}
+	if nbPeriodesDeliberees > 0 {
+		services.ConflictError(w, r, services.JuryDelibereMessage(nbPeriodesDeliberees), services.BUSINESS_CONFLICT,
+			map[string]interface{}{"reason": services.ReasonJuryDelibere})
+		return
+	}
+
+	if err := queries.DeletePromotion(r.Context(), input.IDs); err != nil {
+		slog.Error("suppression impossible", "entite", "promotion", "ids", input.IDs, "error", err)
+		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
 		return
 	}
 

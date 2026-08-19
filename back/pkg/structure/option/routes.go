@@ -18,6 +18,10 @@ func RouteOption(r chi.Router) {
 		CreateOption(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {optionID}.
+	r.Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{optionID}", func(r chi.Router) {
 		r.With(OptionUse).Get("/", FetchOption)
 		r.With(OptionUse).Put("/", Update)

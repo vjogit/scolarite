@@ -6,7 +6,7 @@ import { Crud } from "../../services/crud/Crud";
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useNavigate, useParams } from 'react-router';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
-import { ENDPOINT_OPTION,  OPTION, PERIODE, STRUCTURE } from './def';
+import { ENDPOINT_OPTION,  OPTION, PERIODE, STRUCTURE, ENDPOINT_OPTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 
 
@@ -64,6 +64,7 @@ export const createOptionViewConfig = (promotionId: string): ViewConfig<Option> 
 export const createOptionRepository = (promotionId: string) => {
     return createRepository<Option>({
         endpoint: `${ENDPOINT_OPTION}`,
+        deleteImpactEndpoint: `${ENDPOINT_OPTION_DELETE_IMPACT}`,
         queryParams: `?promotion_id=${promotionId}`,
         queryKey: [STRUCTURE,OPTION, promotionId],
         getId: (data: Option) => data.id,
@@ -104,6 +105,8 @@ export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, 
         ...createOptionRepository(promotionId),
         ...createOptionViewConfig(promotionId),
         title: "Options",
+        deleteEntityLabel: "l'option",
+        deleteEntityLabelPlural: "options",
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,

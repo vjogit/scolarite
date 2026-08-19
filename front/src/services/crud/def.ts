@@ -25,14 +25,48 @@ export interface RenderProps<D extends FieldValues> {
     setValue: UseFormSetValue<D>
 }
 
+/** Objet directement visé par une suppression. */
+export interface DeleteImpactItem {
+    id: number;
+    name: string;
+}
+
+/** Décompte de descendants pour une entité, libellé déjà accordé en nombre. */
+export interface DeleteImpactEntry {
+    entity: string;
+    label: string;
+    count: number;
+}
+
+/** Raison métier interdisant la suppression. */
+export interface DeleteImpactBlocking {
+    reason: string;
+    message: string;
+}
+
+/** Réponse de l'endpoint d'analyse d'impact (POST .../delete-impact). */
+export interface DeleteImpact {
+    items: DeleteImpactItem[];
+    /** Entités réellement supprimées en cascade, ordre hiérarchique, compte > 0. */
+    cascade: DeleteImpactEntry[];
+    /** Objets conservés mais dont la référence est mise à NULL. */
+    detached: DeleteImpactEntry[];
+    /** Non vide : la suppression doit être refusée. */
+    blocking: DeleteImpactBlocking[];
+}
+
 export interface Repository<D extends FieldValues> {
     queryKey: QueryKey;
     getId: (data: D) => number;
+    /** Libellé lisible de l'objet, utilisé par la modale de suppression. */
+    getName: (data: D) => string;
     update: (data: D) => Promise<D>;
     create: (data: D) => Promise<D>;
     fetch: (ids: string | undefined) => Promise<D>;
     fetchAll: () => Promise<D[]>;
     delete: (id: number[]) => Promise<{ success: boolean }>;
+    /** Absent si l'entité n'expose pas d'endpoint d'analyse d'impact. */
+    deleteImpact?: (ids: number[]) => Promise<DeleteImpact>;
 }
 
 export interface ViewConfig<D extends FieldValues> {
@@ -44,6 +78,12 @@ export interface ViewConfig<D extends FieldValues> {
 
 export interface Datasource<D extends FieldValues> extends Repository<D>, ViewConfig<D> {
     title: string
+    /** Entité de haut niveau : la modale exige de retaper le nom avant suppression. */
+    deleteRequiresNameConfirmation?: boolean
+    /** Libellé singulier avec article, ex. "la formation", affiché dans la modale. */
+    deleteEntityLabel?: string
+    /** Libellé pluriel sans article, ex. "périodes". À défaut, `title` en minuscules. */
+    deleteEntityLabelPlural?: string
     first?: boolean
     isAction: boolean
     isReadOnly?: boolean
@@ -57,15 +97,43 @@ interface RepositoryConfig<D extends FieldValues> {
     queryParams?: string;
     queryKey: QueryKey;
     getId: (data: D) => number;
+    /** Par défaut : le champ `name` de l'objet, sinon `#<id>`. */
+    getName?: (data: D) => string;
+    /** Endpoint d'analyse d'impact. Omis, la modale reste sans décompte. */
+    deleteImpactEndpoint?: string;
 }
 
 export function createRepository<T extends FieldValues>(
     config: RepositoryConfig<T>
 ): Repository<T> {
     const endpoint = config.endpoint
+
+    // Par défaut on affiche le champ `name`, présent sur toutes les entités
+    // de structure ; à défaut, l'identifiant technique.
+    const getName = config.getName ?? ((data: T) => {
+        const name: unknown = data['name'];
+        return typeof name === 'string' && name.length > 0 ? name : `#${config.getId(data)}`;
+    });
+
+    const deleteImpactEndpoint = config.deleteImpactEndpoint;
+
     return {
         queryKey: config.queryKey,
         getId: config.getId,
+        getName,
+
+        // Analyse d'impact avant suppression : uniquement si l'entité
+        // expose l'endpoint correspondant côté serveur.
+        ...(deleteImpactEndpoint ? {
+            deleteImpact: async (ids: number[]): Promise<DeleteImpact> => {
+                try {
+                    const rep = await apiInstance.post<DeleteImpact>(deleteImpactEndpoint, { ids });
+                    return rep.data;
+                } catch (error) {
+                    throw handleAxiosError(error);
+                }
+            },
+        } : {}),
 
         // Récupérer tous les éléments
         fetchAll: async () => {

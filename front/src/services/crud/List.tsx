@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import type { Datasource } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
-import { Alert, Box, Button, darken, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -12,6 +12,9 @@ import { usePersistentTableState } from './usePersistentTableState';
 import { useCrudContext } from './CrudContext';
 import { useState, useEffect, useCallback } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNotifications } from '@toolpad/core/useNotifications';
+import { blockingMessageFor, messageForError } from '../errorMessages';
+import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 
 
 
@@ -25,6 +28,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const storageKey = `${workflow}_crud_edit_mode `
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const notifications = useNotifications();
   // État pour gérer la visibilité de la modale et les lignes sélectionnées
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<MRT_Row<D>[]>([]);
@@ -57,6 +61,12 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     onSuccess: () => {
       // Invalide le cache et force un rafraîchissement automatique de la liste
       queryClient.invalidateQueries({ queryKey: datasource.queryKey });
+    },
+    onError: (error) => {
+      // Le serveur peut refuser la suppression (409 BUSINESS_CONFLICT) même si
+      // la modale l'a autorisée : le message doit remonter à l'utilisateur.
+      const message = blockingMessageFor(error) ?? messageForError(error);
+      notifications.show(message, { severity: 'error', autoHideDuration: 7000 });
     },
   });
 
@@ -251,33 +261,14 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <MaterialReactTable table={table} />
       </Box>
-      {/* Modale de confirmation MUI */}
-      <Dialog
+      {/* Modale de confirmation : nomme les objets et détaille la cascade */}
+      <DeleteConfirmDialog
         open={open}
+        datasource={datasource}
+        selectedRows={selectedRows}
         onClose={handleClose}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">
-          {"Confirmer la suppression"}
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Êtes-vous sûr de vouloir supprimer {selectedRows.length} élément(s) ?
-            Cette action est irréversible.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Annuler</Button>
-          <Button
-            onClick={() => handleConfirmDelete(table)}
-            color="error"
-            autoFocus
-          >
-            Supprimer
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onConfirm={() => handleConfirmDelete(table)}
+      />
     </Box>
   )
 
