@@ -34,16 +34,22 @@ matieres_brutes AS (
 ),
 matieres_finales AS (
     -- 3. Application des règles : N.E. > rattrapage > moyenne S1
+    --
+    -- Un rattrapage validé vaut le seuil « E » de la promotion : echelle[5],
+    -- le dernier seuil de l'échelle, celui qui sépare E de F. C'est la note
+    -- plancher d'une validation. Cette valeur était écrite 8.0 en dur, ce qui
+    -- ne valait que pour une promotion notée sur 20 dont l'échelle finit à 8.
     SELECT
-        user_id,
-        matiere_coeff,
-        has_not_evaluated,
+        mb.user_id,
+        mb.matiere_coeff,
+        mb.has_not_evaluated,
         CASE
-            WHEN has_not_evaluated      THEN NULL
-            WHEN nb_rattrapages_valides > 0 THEN 8.0::float
-            ELSE moyenne_s1
+            WHEN mb.has_not_evaluated          THEN NULL
+            WHEN mb.nb_rattrapages_valides > 0 THEN cr.echelle[5]::float
+            ELSE mb.moyenne_s1
         END AS moyenne_finale_matiere
-    FROM matieres_brutes
+    FROM matieres_brutes mb
+    CROSS JOIN context_rules cr
 ),
 ue_calc AS (
     -- 4. Calcul de l'UE, propagation N.E., vérification de la règle d'élimination
