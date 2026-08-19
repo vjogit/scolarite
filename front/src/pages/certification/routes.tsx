@@ -1,36 +1,52 @@
-
-import { createCrudRoutes, type CrudComponentProps } from "../../services/crud/routes";
-import { CrudPromotion, type Promotion } from "../structure/Promotion";
+/**
+ * Routes du workflow Certifications.
+ *
+ * Le seul workflow qui ne descend pas toute la hiérarchie : `WORKFLOW_CERTIFICATION`
+ * s'arrête à la promotion, sous laquelle deux écrans frères se greffent.
+ */
 
 import { useState, type ReactNode, type MouseEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Box, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
-import type { MRT_Row } from 'material-react-table';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-import { TOEIC, MOBILITE, CERTIFICATION_WORKFLOW } from "./def";
-import { FORMATION, PROMOTION } from "../structure/def";
-import { CrudMobiliteInternationale } from "./MobiliteInternationale";
-import { CrudFormation } from "../structure/Formation";
-import { CrudToeic } from "./Toic";
+import type { MRT_Row } from 'material-react-table';
+
+import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
+import { WORKFLOW_CERTIFICATION } from '../../services/context/workflows';
+import type { CrudComponentProps } from '../../services/crud/routes';
+
+import { FORMATION, PROMOTION } from '../structure/def';
+import { CrudFormation } from '../structure/Formation';
+import { CrudPromotion, type Promotion } from '../structure/Promotion';
+import { TOEIC, MOBILITE, CERTIFICATION_WORKFLOW } from './def';
+import { CrudToeic } from './Toic';
+import { CrudMobiliteInternationale } from './MobiliteInternationale';
+
+/** Niveau traversé pour atteindre la promotion : pas de barre d'outils. */
+const TRAVERSEE: ReglagesNiveau = {
+    workflow: CERTIFICATION_WORKFLOW,
+    isAction: true,
+    isTopToolbar: false,
+};
+
+/** Les deux écrans terminaux, eux, portent leur propre barre d'outils. */
+const CERTIFICATION: ReglagesNiveau = {
+    workflow: CERTIFICATION_WORKFLOW,
+    isAction: true,
+    isTopToolbar: true,
+};
 
 export function createCertificationHierarchyRoutes() {
-    const formationPath = FORMATION;
-    const promotionPath = `${formationPath}/:formationId/${PROMOTION}`;
-    const toeicPath = `${promotionPath}/:promotionId/${TOEIC}`;
-    const voyagePath = `${promotionPath}/:promotionId/${MOBILITE}`;
-
-    return [
-        createCrudRoutes(formationPath, CustomCrudFormation),
-        createCrudRoutes(promotionPath, CustomCrudPromotion,),
-
-        createCrudRoutes(toeicPath, CustomCrudToeic),
-        createCrudRoutes(voyagePath, CustomMobiliteInternationale),
-
-    ];
-}
-
-function CustomCrudFormation({ mode }: CrudComponentProps) {
-    return <CrudFormation workflow={CERTIFICATION_WORKFLOW} mode={mode} isAction={true} isTopToolbar={false} />;
+    return creerRoutesHierarchie(WORKFLOW_CERTIFICATION, {
+        niveaux: {
+            [FORMATION]: enrober(CrudFormation, TRAVERSEE),
+            [PROMOTION]: CustomCrudPromotion,
+        },
+        greffes: [
+            { segment: TOEIC, parent: PROMOTION, composant: enrober(CrudToeic, CERTIFICATION) },
+            { segment: MOBILITE, parent: PROMOTION, composant: enrober(CrudMobiliteInternationale, CERTIFICATION) },
+        ],
+    });
 }
 
 function CustomCrudPromotion({ mode }: CrudComponentProps) {
@@ -83,20 +99,3 @@ function CertificationMenu({ row }: { row: MRT_Row<Promotion> }) {
         </>
     );
 }
-
-
-function CustomCrudToeic({ mode }: CrudComponentProps) {
-    return <CrudToeic workflow={CERTIFICATION_WORKFLOW}
-        mode={mode}
-        isAction={true}
-        isTopToolbar={true} />;
-}
-
-function CustomMobiliteInternationale({ mode }: CrudComponentProps) {
-    return <CrudMobiliteInternationale workflow={CERTIFICATION_WORKFLOW}
-        mode={mode}
-        isAction={true}
-        isTopToolbar={true} />;
-}
-
-

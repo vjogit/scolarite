@@ -1,77 +1,85 @@
-// Helper pour générer toute la hiérarchie pour un contexte donné
-
-import { createCrudRoutes, type CrudComponentProps } from "../../services/crud/routes";
-
-import { CrudNoteMatiere } from "../note/NoteMatiere";
-import { CrudNoteUniteEnseignement } from "../note/NoteUniteEnseignement";
-import { CrudFormation } from "../structure/Formation";
-import { CrudMatiere, type Matiere } from "../structure/Matiere";
-import { CrudOption } from "../structure/Options";
-import { CrudPeriode, PeriodeDefaultAction, type Periode } from "../structure/Periode";
-import { CrudPromotion } from "../structure/Promotion";
-import { CrudUe, UeDefaultAction, type Ue } from "../structure/Ue";
+/**
+ * Routes du workflow Notes.
+ *
+ * Le cas limite du lot : au-delà de la descente hiérarchique décrite par
+ * `WORKFLOW_NOTE`, le workflow prolonge la structure (UE, matière, contrôle)
+ * puis greffe un écran de notes sous chacun de ces quatre derniers niveaux.
+ * Ce sont quatre greffes de même segment `note` sur quatre parents distincts.
+ */
 
 import { useCallback, type ReactNode } from 'react';
 import { Box, Tooltip, IconButton } from '@mui/material';
-
-import { CONTROLE, NOTE, NOTE_WORKFLOW } from "./def";
-import { CrudControle, type Controle } from "./Controle";
-import { CrudNoteControle } from "./NoteControle";
-
-
-import type { MRT_Row } from 'material-react-table';
 import GradingIcon from '@mui/icons-material/Grading';
-import { useNavigate } from 'react-router';
-
-import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE } from "../structure/def";
-import type { FieldValues } from "react-hook-form";
-import { CrudNotePeriode } from "./NotePeriode";
-import { useRootPath } from "../../services/crud/useRootPath";
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import { useNavigate } from 'react-router';
+import type { MRT_Row } from 'material-react-table';
+import type { FieldValues } from 'react-hook-form';
 
+import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
+import { WORKFLOW_NOTE } from '../../services/context/workflows';
+import type { CrudComponentProps } from '../../services/crud/routes';
+import { useRootPath } from '../../services/crud/useRootPath';
 
+import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE } from '../structure/def';
+import { CrudFormation } from '../structure/Formation';
+import { CrudPromotion } from '../structure/Promotion';
+import { CrudOption } from '../structure/Options';
+import { CrudPeriode, PeriodeDefaultAction, type Periode } from '../structure/Periode';
+import { CrudUe, UeDefaultAction, type Ue } from '../structure/Ue';
+import { CrudMatiere, type Matiere } from '../structure/Matiere';
+
+import { CONTROLE, NOTE, NOTE_WORKFLOW } from './def';
+import { CrudControle, type Controle } from './Controle';
+import { CrudNotePeriode } from './NotePeriode';
+import { CrudNoteUniteEnseignement } from './NoteUniteEnseignement';
+import { CrudNoteMatiere } from './NoteMatiere';
+import { CrudNoteControle } from './NoteControle';
+
+/**
+ * On consulte la structure depuis les notes, on ne la modifie pas.
+ * `isReadOnly` est ici la propriété critique : le mode édition est mémorisé
+ * pour tout le workflow, et l'écran des contrôles permet de l'activer.
+ */
+const TRAVERSEE: ReglagesNiveau = {
+    workflow: NOTE_WORKFLOW,
+    isAction: true,
+    isReadOnly: true,
+    isTopToolbar: false,
+};
+
+/** Écrans de notes en consultation : aucune action de ligne. */
+const NOTES_CONSULTEES: ReglagesNiveau = {
+    workflow: NOTE_WORKFLOW,
+    isAction: false,
+    isTopToolbar: true,
+};
+
+/** Seul l'écran des notes d'un contrôle expose les actions de ligne. */
+const NOTES_SAISIES: ReglagesNiveau = {
+    workflow: NOTE_WORKFLOW,
+    isAction: true,
+    isTopToolbar: true,
+};
 
 export function createNoteHierarchyRoutes() {
-    const formationPath = FORMATION;
-    const promotionPath = `${formationPath}/:formationId/${PROMOTION}`;
-    const optionPath = `${promotionPath}/:promotionId/${OPTION}`;
-    const periodePath = `${optionPath}/:optionId/${PERIODE}`;
-    const uePath = `${periodePath}/:periodeId/${UES}`;
-    const matierePath = `${uePath}/:ueId/${MATIERE}`;
-    const controlePath = `${matierePath}/:matiereId/${CONTROLE}`;
+    return creerRoutesHierarchie(WORKFLOW_NOTE, {
+        niveaux: {
+            [FORMATION]: enrober(CrudFormation, TRAVERSEE),
+            [PROMOTION]: enrober(CrudPromotion, TRAVERSEE),
+            [OPTION]: enrober(CrudOption, TRAVERSEE),
+            [PERIODE]: CustomCrudPeriode,
+        },
+        greffes: [
+            { segment: UES, parent: PERIODE, composant: CustomCrudUe },
+            { segment: MATIERE, parent: UES, composant: CustomCrudMatiere },
+            { segment: CONTROLE, parent: MATIERE, composant: CustomCrudControle },
 
-    const periodeNotePath = `${periodePath}/:periodeId/${NOTE}`;
-    const ueNotePath = `${uePath}/:ueId/${NOTE}`;
-    const matiereNotePath = `${matierePath}/:matiereId/${NOTE}`;
-    const controleNotePath = `${controlePath}/:controleId/${NOTE}`;
-
-
-    return [
-        createCrudRoutes(formationPath, CustomCrudFormation),
-        createCrudRoutes(promotionPath, CustomCrudPromotion),
-        createCrudRoutes(optionPath, CustomCrudOption),
-        createCrudRoutes(periodePath, CustomCrudPeriode),
-        createCrudRoutes(uePath, CustomCrudUe),
-        createCrudRoutes(matierePath, CustomCrudMatiere),
-        createCrudRoutes(controlePath, CustomCrudControle),
-
-        createCrudRoutes(periodeNotePath, CustomCrudNotePeriode),
-        createCrudRoutes(ueNotePath, CustomCrudNoteUniteEnseignement),
-        createCrudRoutes(matiereNotePath, CustomCrudNoteMatiere),
-        createCrudRoutes(controleNotePath, CustomCrudNoteControle),
-    ];
-}
-
-function CustomCrudFormation({ mode }: CrudComponentProps) {
-    return <CrudFormation workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={false} />;
-}
-
-function CustomCrudPromotion({ mode }: CrudComponentProps) {
-    return <CrudPromotion workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={false} />;
-}
-
-function CustomCrudOption({ mode }: CrudComponentProps) {
-    return <CrudOption workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={false} />;
+            { segment: NOTE, parent: PERIODE, composant: enrober(CrudNotePeriode, NOTES_CONSULTEES) },
+            { segment: NOTE, parent: UES, composant: enrober(CrudNoteUniteEnseignement, NOTES_CONSULTEES) },
+            { segment: NOTE, parent: MATIERE, composant: enrober(CrudNoteMatiere, NOTES_CONSULTEES) },
+            { segment: NOTE, parent: CONTROLE, composant: enrober(CrudNoteControle, NOTES_SAISIES) },
+        ],
+    });
 }
 
 function CustomCrudPeriode({ mode }: CrudComponentProps) {
@@ -145,20 +153,3 @@ function NoteDefaultAction<T extends FieldValues>({ row }: { row: MRT_Row<T> }):
 
     )
 }
-
-function CustomCrudNotePeriode({ mode }: CrudComponentProps) {
-    return <CrudNotePeriode workflow={NOTE_WORKFLOW} mode={mode} isAction={false} isTopToolbar={true} />;
-}
-
-function CustomCrudNoteUniteEnseignement({ mode }: CrudComponentProps) {
-    return <CrudNoteUniteEnseignement workflow={NOTE_WORKFLOW} mode={mode} isAction={false} isTopToolbar={true} />;
-}
-
-function CustomCrudNoteMatiere({ mode }: CrudComponentProps) {
-    return <CrudNoteMatiere workflow={NOTE_WORKFLOW} mode={mode} isAction={false} isTopToolbar={true} />;
-}
-
-function CustomCrudNoteControle({ mode }: CrudComponentProps) {
-    return <CrudNoteControle workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isTopToolbar={true} />;
-}
-
