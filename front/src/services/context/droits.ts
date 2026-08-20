@@ -13,7 +13,7 @@
 
 import { useCallback } from 'react';
 import { useSession } from '../../SessionContext';
-import { possedeUnRole } from './workflows';
+import { possedeTousLesRoles, possedeUnRole } from './workflows';
 
 /** Ce qu'un écran doit déclarer pour qu'on puisse statuer sur son écriture. */
 export interface CibleEcriture {
@@ -32,6 +32,13 @@ export function useDroits() {
         [roles],
     );
 
+    // Sémantique ET : tous les rôles donnés. Sert à la corbeille, réservée aux
+    // porteurs des huit rôles fonctionnels (le composite ADMIN, sans le tester).
+    const possedeTous = useCallback(
+        (rolesRequis: readonly string[]) => possedeTousLesRoles(roles, rolesRequis),
+        [roles],
+    );
+
     // Sans `roleEcriture` déclaré, aucune écriture : c'est le défaut sûr, qui
     // couvre les écrans purement calculés dépourvus de route d'écriture.
     const peutEcrire = useCallback(
@@ -42,5 +49,5 @@ export function useDroits() {
         [roles],
     );
 
-    return { possedeRole, peutEcrire };
+    return { possedeRole, possedeTous, peutEcrire };
 }

@@ -2,7 +2,7 @@ import { StrictMode, useContext } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import { createBrowserRouter, RouterProvider } from 'react-router';
-import { Role, USER_WORKFLOW } from './pages/user/def.tsx';
+import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from './pages/user/def.tsx';
 import Layout from './layouts/dashboard';
 import { CatalogLayout, CatalogIndex, CATALOG_WORKFLOW } from './pages/catalog/CatalogLayout.tsx';
 
@@ -27,19 +27,25 @@ import { SalleIndex, SalleLayout } from './pages/salle/SalleLayout.tsx';
 import { createSalleRoutes } from './pages/salle/routes.tsx';
 import { PROGRAMME_WORKFLOW, ProgrammeIndex, ProgrammeLayout } from './pages/programme/ProgrammeLayout.tsx';
 import { createProgrammeHierarchyRoutes } from './pages/programme/routes.tsx';
+import { CORBEILLE_WORKFLOW } from './pages/corbeille/def.ts';
+import { CorbeillePage } from './pages/corbeille/Corbeille.tsx';
 
 
 
 
-const RoleGuard = ({ children, roles }: { children: React.ReactNode, roles: string[] }) => {
+const RoleGuard = ({ children, roles, requireAll }: { children: React.ReactNode, roles: readonly string[], requireAll?: boolean }) => {
   const { session } = useContext(SessionContext);
 
   if (!session?.user) {
     return null;
   }
 
+  // `requireAll` : sémantique ET, réservée à la corbeille (composite ADMIN,
+  // exprimé par les huit rôles fonctionnels sans tester son nom).
   const userRoles = session.user.roles || [];
-  const hasRole = roles.some(r => userRoles.includes(r));
+  const hasRole = requireAll
+    ? roles.every(r => userRoles.includes(r))
+    : roles.some(r => userRoles.includes(r));
 
   if (!hasRole) {
     return <div>Accès non autorisé</div>;
@@ -104,6 +110,10 @@ const routes = [
                 element: <RoleGuard roles={[Role.CONSULTATION]}><NoteEleveDetail /></RoleGuard>,
               },
             ]
+          },
+          {
+            path: CORBEILLE_WORKFLOW,
+            element: <RoleGuard roles={ROLES_FONCTIONNELS} requireAll><CorbeillePage /></RoleGuard>,
           },
           {
             path: 'planning',

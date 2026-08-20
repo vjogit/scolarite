@@ -26,9 +26,9 @@ SELECT
              ELSE 0 END
     ) / NULLIF(SUM(jr.ects) FILTER (WHERE jr.gpa_index IS NOT NULL AND jr.ects IS NOT NULL AND ue.academique = TRUE), 0))::float AS gpa_academique_periode
 FROM public.jury_result jr
-JOIN public.periode p ON p.id = jr.periode_id
-JOIN public.option o ON o.id = p.option_id
-JOIN public.promotion prom ON prom.id = o.promotion_id
+JOIN public.periode_active p ON p.id = jr.periode_id
+JOIN public.option_active o ON o.id = p.option_id
+JOIN public.promotion_active prom ON prom.id = o.promotion_id
 JOIN public.unite_enseignement ue ON ue.id = jr.unite_enseignement_id
 WHERE jr.user_id = @user_id
 GROUP BY jr.periode_id, p.name, p.debut
@@ -56,7 +56,7 @@ FROM public.note n
 JOIN public.controle c   ON n.controle_id = c.id
 JOIN public.matiere m    ON c.matiere_id = m.id
 JOIN public.unite_enseignement ue ON m.unite_enseignement_id = ue.id
-JOIN public.periode p    ON ue.periode_id = p.id
+JOIN public.periode_active p    ON ue.periode_id = p.id
 WHERE n.user_id = @user_id
 ORDER BY p.debut, ue.name, m.name, c.is_rattrapage;
 
@@ -70,7 +70,7 @@ SELECT 1 FROM matiere WHERE id = $1;
 SELECT 1 FROM unite_enseignement WHERE id = $1;
 
 -- name: CheckPeriodeExists :one
-SELECT 1 FROM periode WHERE id = $1;
+SELECT 1 FROM periode_active WHERE id = $1;
 
 
 
@@ -83,7 +83,7 @@ SELECT prom.bareme
 FROM public.controle c
 JOIN public.matiere m             ON m.id  = c.matiere_id
 JOIN public.unite_enseignement ue ON ue.id = m.unite_enseignement_id
-JOIN public.periode pe            ON pe.id = ue.periode_id
-JOIN public.option o              ON o.id  = pe.option_id
-JOIN public.promotion prom        ON prom.id = o.promotion_id
+JOIN public.periode_active pe            ON pe.id = ue.periode_id
+JOIN public.option_active o              ON o.id  = pe.option_id
+JOIN public.promotion_active prom        ON prom.id = o.promotion_id
 WHERE c.id = @controle_id;

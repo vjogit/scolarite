@@ -20,23 +20,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var cfg services.Config = services.Config{
-	Database: services.DatabaseConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "postgres",
-		Password: "root",
-		Name:     "scolarite_tu",
-	},
-}
-
 // setupTestDB initialise la DB de test et configure le routeur avec les middlewares nécessaires.
 func setupTestDB(t *testing.T) (*pgxpool.Pool, *chi.Mux) {
 	pool := services.GetIntegrationDBPool(t)
 
-	// Configuration du routeur et injection du contexte DB via middleware
+	// Configuration du routeur et injection du contexte DB : le pool des tests
+	// d'intégration (qui honore TEST_DB_URL) est posé tel quel dans le
+	// contexte, comme le ferait DatabaseMiddleware.
 	r := chi.NewRouter()
-	r.Use(services.DatabaseMiddleware(&cfg.Database))
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := context.WithValue(req.Context(), services.PgCtxKey, &services.Postgres{Db: pool})
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	})
 
 	// Rôles injectés comme le ferait AuthMiddleware : lecture et écriture du domaine.
 	r.Use(func(next http.Handler) http.Handler {
@@ -81,7 +78,7 @@ func fixturesHelper(t *testing.T, pool *pgxpool.Pool) (int32, int32, int32, int3
 	require.NoError(t, err)
 
 	var promoID int32
-	err = pool.QueryRow(ctx, "INSERT INTO promotion (name, formation_id, debut, fin, echelle_gpa) VALUES ('Promo Test', $1, NOW(), NOW() + interval '1 year', '{}') RETURNING id", formationID).Scan(&promoID)
+	err = pool.QueryRow(ctx, "INSERT INTO promotion (name, formation_id, debut, fin, echelle_gpa, echelle) VALUES ('Promo Test', $1, NOW(), NOW() + interval '1 year', '{4,3,2,1,0.5,0}', '{16,14,12,10,8}') RETURNING id", formationID).Scan(&promoID)
 	require.NoError(t, err)
 
 	var optionID int32
@@ -93,7 +90,7 @@ func fixturesHelper(t *testing.T, pool *pgxpool.Pool) (int32, int32, int32, int3
 
 	// 2. Création UE / Matière
 	var ueID int32
-	err = pool.QueryRow(ctx, "INSERT INTO unite_enseignement (name, ects, periode_id, echelle) VALUES ('UE Test', 5, $1, '{}') RETURNING id", periodeID).Scan(&ueID)
+	err = pool.QueryRow(ctx, "INSERT INTO unite_enseignement (name, ects, periode_id) VALUES ('UE Test', 5, $1) RETURNING id", periodeID).Scan(&ueID)
 	require.NoError(t, err)
 
 	err = pool.QueryRow(ctx, "INSERT INTO matiere (name, heure, coeff, unite_enseignement_id) VALUES ('Maths', 10, 1, $1) RETURNING id", ueID).Scan(&matiereID)

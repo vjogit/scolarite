@@ -105,27 +105,43 @@ export function messageEnregistrement<D extends FieldValues>(datasource: Datasou
     return phraseSingulier(datasource, datasource.getName(data), 'enregistré');
 }
 
+/** « mis »/« mise »/« mises » : participe irrégulier, hors des helpers en +e/+es. */
+function accorderMis(genre: Genre, pluriel: boolean): string {
+    if (genre === 'f') return pluriel ? 'mises' : 'mise';
+    return 'mis';
+}
+
 /**
  * « Période « Semestre 5 » supprimée. » / « 3 périodes supprimées. »
+ * Pour une entité à corbeille : « … mise en corbeille. » — le message de
+ * succès dit la même chose que la modale, une mise en corbeille restaurable.
  * Les noms sont ceux capturés au moment de la demande de suppression.
  */
 export function messageSuppression<D extends FieldValues>(
     datasource: Datasource<D>,
     noms: string[],
 ): string {
+    const corbeille = datasource.suppressionEnCorbeille === true;
+    const entite = analyserLibelle(datasource);
+
     if (noms.length === 1) {
-        return phraseSingulier(datasource, noms[0], 'supprimé');
+        if (!corbeille) {
+            return phraseSingulier(datasource, noms[0], 'supprimé');
+        }
+        if (!entite) return `« ${noms[0]} » mis en corbeille.`;
+        return `${entite.nom} « ${noms[0]} » ${accorderMis(entite.genre, false)} en corbeille.`;
     }
 
     const nombre = formatNombre.format(noms.length);
-    const entite = analyserLibelle(datasource);
     const pluriel = datasource.entityLabelPlural;
 
     if (entite && pluriel) {
-        return `${nombre} ${pluriel} ${accorderPluriel('supprimé', entite.genre)}.`;
+        return corbeille
+            ? `${nombre} ${pluriel} ${accorderMis(entite.genre, true)} en corbeille.`
+            : `${nombre} ${pluriel} ${accorderPluriel('supprimé', entite.genre)}.`;
     }
 
     // Sans genre sûr, le mot neutre déjà employé par la modale de suppression :
     // masculin, donc accordable sans risque.
-    return `${nombre} éléments supprimés.`;
+    return corbeille ? `${nombre} éléments mis en corbeille.` : `${nombre} éléments supprimés.`;
 }

@@ -1,6 +1,7 @@
 package option
 
 import (
+	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/option/gen"
 	"errors"
@@ -19,7 +20,7 @@ var optionConstraints = map[string]services.ConstraintRule{
 }
 
 func CreateOption(w http.ResponseWriter, r *http.Request) {
-	var input gen.Option
+	var input gen.OptionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -62,7 +63,7 @@ func FetchOptionsByPromotionID(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	var options []gen.Option
+	var options []gen.OptionActive
 	var err error
 	var fIDStr string
 
@@ -97,14 +98,14 @@ func FetchOptionsByPromotionID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if options == nil {
-		options = []gen.Option{}
+		options = []gen.OptionActive{}
 	}
 
 	render.JSON(w, r, options)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	var input gen.Option
+	var input gen.OptionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -170,7 +171,10 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := queries.DeleteOption(r.Context(), input.IDs); err != nil {
+	// Suppression logique propagée : l'entité et sa descendance structurelle
+	// partent en corbeille, restaurables jusqu'à purge.
+	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
+		corbeille.RacineOption, input.IDs, services.SubFromCtx(r)); err != nil {
 		slog.Error("suppression impossible", "entite", "option", "ids", input.IDs, "error", err)
 		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
 		return

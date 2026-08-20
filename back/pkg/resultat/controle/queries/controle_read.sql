@@ -21,7 +21,7 @@ SELECT
 FROM public.controle c
 JOIN public.matiere m             ON m.id  = c.matiere_id
 JOIN public.unite_enseignement ue ON ue.id = m.unite_enseignement_id
-JOIN public.periode pe            ON pe.id = ue.periode_id
-JOIN public.option o              ON o.id  = pe.option_id
-JOIN public.promotion prom        ON prom.id = o.promotion_id
+JOIN public.periode_active pe            ON pe.id = ue.periode_id
+JOIN public.option_active o              ON o.id  = pe.option_id
+JOIN public.promotion_active prom        ON prom.id = o.promotion_id
 WHERE c.id = @id;

@@ -157,6 +157,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
         roleEcriture: Role.STRUCTURE_ECRITURE,
         entityLabel: "la période",
         entityLabelPlural: "périodes",
+        suppressionEnCorbeille: true,
         isAction,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
         isTopToolbar,

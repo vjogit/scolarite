@@ -1,6 +1,7 @@
 package periode
 
 import (
+	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/periode/gen"
 	"errors"
@@ -20,7 +21,7 @@ var periodeConstraints = map[string]services.ConstraintRule{
 }
 
 func CreatePeriode(w http.ResponseWriter, r *http.Request) {
-	var input gen.Periode
+	var input gen.PeriodeActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -65,7 +66,7 @@ func FetchPeriodesByOptionID(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	var periodes []gen.Periode
+	var periodes []gen.PeriodeActive
 	var err error
 	var fIDStr string
 
@@ -100,14 +101,14 @@ func FetchPeriodesByOptionID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if periodes == nil {
-		periodes = []gen.Periode{}
+		periodes = []gen.PeriodeActive{}
 	}
 
 	render.JSON(w, r, periodes)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	var input gen.Periode
+	var input gen.PeriodeActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -175,7 +176,10 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := queries.DeletePeriode(r.Context(), input.IDs); err != nil {
+	// Suppression logique propagée : l'entité et sa descendance structurelle
+	// partent en corbeille, restaurables jusqu'à purge.
+	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
+		corbeille.RacinePeriode, input.IDs, services.SubFromCtx(r)); err != nil {
 		slog.Error("suppression impossible", "entite", "periode", "ids", input.IDs, "error", err)
 		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
 		return

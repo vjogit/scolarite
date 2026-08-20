@@ -15,4 +15,4 @@ JOIN public."user" u ON m.user_id = u.id
 WHERE m.id = @id;
 
 -- name: CheckPromotionExistsMobilite :one
-SELECT 1 FROM public.promotion WHERE id = @id;
+SELECT 1 FROM public.promotion_active WHERE id = @id;

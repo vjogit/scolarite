@@ -1,10 +1,10 @@
 -- name: FetchPeriodeNamesByIds :many
-SELECT id, name FROM public.periode WHERE id = ANY(@ids::int[]) ORDER BY id;
+SELECT id, name FROM public.periode_active WHERE id = ANY(@ids::int[]) ORDER BY id;
 
 -- Analyse d'impact d'une suppression en masse de périodes.
 -- name: PeriodeDeleteImpact :one
 WITH periode_c AS (
-    SELECT id FROM public.periode WHERE id = ANY(@ids::int[])
+    SELECT id FROM public.periode_active WHERE id = ANY(@ids::int[])
 ),
 ue_c AS (
     SELECT ue.id FROM public.unite_enseignement ue JOIN periode_c pe ON ue.periode_id = pe.id
@@ -40,6 +40,6 @@ SELECT
           AND NOT EXISTS (SELECT 1 FROM reservation_c rc WHERE rc.id = r.id))::bigint AS reservation_detachee_count;
 
 -- name: CountPeriodeJuryDeliberePeriodes :one
-SELECT count(*)::bigint FROM public.periode pe
+SELECT count(*)::bigint FROM public.periode_active pe
 WHERE pe.id = ANY(@ids::int[])
   AND EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id);

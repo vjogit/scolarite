@@ -80,6 +80,12 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
     title: string
     /** Entité de haut niveau : la modale exige de retaper le nom avant suppression. */
     deleteRequiresNameConfirmation?: boolean
+    /**
+     * Entité à suppression logique : la suppression est une mise en corbeille
+     * restaurable par un administrateur, et la modale le dit. Les entités sans
+     * ce marqueur restent en suppression physique, au discours « irréversible ».
+     */
+    suppressionEnCorbeille?: boolean
     /** Libellé singulier avec article, ex. "la formation", affiché dans la modale. */
     entityLabel?: string
     /** Libellé pluriel sans article, ex. "périodes". À défaut, `title` en minuscules. */

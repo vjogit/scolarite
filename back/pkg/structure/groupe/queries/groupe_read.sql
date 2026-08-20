@@ -1,5 +1,5 @@
 -- name: CheckOptionExists :one
-SELECT 1 FROM public.option WHERE id = $1;
+SELECT 1 FROM public.option_active WHERE id = $1;
 
 -- name: FetchGroupeById :one
 SELECT id, version, name, option_id FROM groupe WHERE id = $1;

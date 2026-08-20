@@ -1,0 +1,22 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-unicite-partielle
+      author: dev
+      comment: "L'unicité des noms de formation et de promotion ne porte plus que sur les lignes actives : une « L3 Info » en corbeille n'empêche pas d'en recréer une. La restauration d'un homonyme viole l'index partiel et se traduit en 409 côté serveur. Liquibase ne modélise pas l'index partiel : SQL brut."
+      changes:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE formation DROP CONSTRAINT formation_name_key;
+              ALTER TABLE promotion DROP CONSTRAINT promotion_name_key;
+              CREATE UNIQUE INDEX uk_formation_name_active ON formation (name) WHERE deleted_at IS NULL;
+              CREATE UNIQUE INDEX uk_promotion_name_active ON promotion (name) WHERE deleted_at IS NULL;
+
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              DROP INDEX uk_formation_name_active;
+              DROP INDEX uk_promotion_name_active;
+              ALTER TABLE formation ADD CONSTRAINT formation_name_key UNIQUE (name);
+              ALTER TABLE promotion ADD CONSTRAINT promotion_name_key UNIQUE (name);

@@ -30,7 +30,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 	// Helper pour créer une formation et retourner son ID
 	createTestFormation := func(t *testing.T) int32 {
 		var formationID int32
-		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Test").Scan(&formationID)
+		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) WHERE deleted_at IS NULL DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Test").Scan(&formationID)
 		require.NoError(t, err, "La création de la formation de test a échoué")
 		return formationID
 	}
@@ -56,6 +56,8 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 					Name:        "Promo 2026",
 					FormationID: formationID,
 					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
+					EchelleGpa:  []float32{4, 3, 2, 1, 0.5, 0},
+					Echelle:     []float32{16, 14, 12, 10, 8},
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -74,6 +76,8 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 					Name:        "", // Violates chk_promotion_name_length
 					FormationID: formationID,
 					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
+					EchelleGpa:  []float32{4, 3, 2, 1, 0.5, 0},
+					Echelle:     []float32{16, 14, 12, 10, 8},
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -93,6 +97,8 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 					Name:        "Promo Invalide",
 					FormationID: formationID,
 					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
+					EchelleGpa:  []float32{4, 3, 2, 1, 0.5, 0},
+					Echelle:     []float32{16, 14, 12, 10, 8},
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(-24 * time.Hour), Valid: true}, // Violates chk_promotion_dates
 				}
@@ -106,7 +112,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				_, err := pool.Exec(context.Background(), "TRUNCATE TABLE formation, promotion CASCADE")
 				require.NoError(t, err)
 				fID := createTestFormation(t)
-				_, err = pool.Exec(context.Background(), "INSERT INTO promotion (name, version, debut, fin, formation_id) VALUES ($1, 1, $2, $3, $4)",
+				_, err = pool.Exec(context.Background(), "INSERT INTO promotion (name, version, debut, fin, echelle_gpa, echelle, formation_id) VALUES ($1, 1, $2, $3, '{4,3,2,1,0.5,0}', '{16,14,12,10,8}', $4)",
 					"Promo Doublon", time.Now(), time.Now().Add(time.Hour), fID)
 				require.NoError(t, err)
 				return fID
@@ -116,6 +122,8 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 					Name:        "Promo Doublon", // Violates promotions_name_key
 					FormationID: formationID,
 					Bareme:      20, // chk_promotion_bareme_positive : le zéro-valeur serait refusé
+					EchelleGpa:  []float32{4, 3, 2, 1, 0.5, 0},
+					Echelle:     []float32{16, 14, 12, 10, 8},
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}
@@ -135,6 +143,8 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 					Name:        "Promo sans formation",
 					FormationID: formationID, // Violates fk_promotions_formation
 					Bareme:      20,          // chk_promotion_bareme_positive : le zéro-valeur serait refusé
+					EchelleGpa:  []float32{4, 3, 2, 1, 0.5, 0},
+					Echelle:     []float32{16, 14, 12, 10, 8},
 					Debut:       pgtype.Timestamptz{Time: now, Valid: true},
 					Fin:         pgtype.Timestamptz{Time: now.Add(24 * time.Hour), Valid: true},
 				}

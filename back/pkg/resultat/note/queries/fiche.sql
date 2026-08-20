@@ -12,10 +12,10 @@ SELECT
 FROM public.controle c
 JOIN public.matiere m              ON m.id  = c.matiere_id
 JOIN public.unite_enseignement ue  ON ue.id = m.unite_enseignement_id
-JOIN public.periode pe             ON pe.id = ue.periode_id
-JOIN public.option o               ON o.id  = pe.option_id
-JOIN public.promotion pr           ON pr.id = o.promotion_id
-JOIN public.formation f            ON f.id  = pr.formation_id
+JOIN public.periode_active pe             ON pe.id = ue.periode_id
+JOIN public.option_active o               ON o.id  = pe.option_id
+JOIN public.promotion_active pr           ON pr.id = o.promotion_id
+JOIN public.formation_active f            ON f.id  = pr.formation_id
 LEFT JOIN LATERAL (
     SELECT ri.user_id
     FROM public.reservation r
@@ -34,8 +34,8 @@ SELECT DISTINCT
 FROM public."user" u
 JOIN public.groupe_user gu        ON gu.user_id   = u.id
 JOIN public.groupe g              ON g.id         = gu.groupe_id
-JOIN public.option o              ON o.id         = g.option_id
-JOIN public.periode pe            ON pe.option_id = o.id
+JOIN public.option_active o              ON o.id         = g.option_id
+JOIN public.periode_active pe            ON pe.option_id = o.id
 JOIN public.unite_enseignement ue ON ue.periode_id = pe.id
 JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 JOIN public.controle c            ON c.matiere_id = m.id
@@ -64,8 +64,8 @@ SELECT DISTINCT
 FROM public."user" u
 JOIN public.groupe_user gu        ON gu.user_id   = u.id
 JOIN public.groupe g              ON g.id         = gu.groupe_id
-JOIN public.option o              ON o.id         = g.option_id
-JOIN public.periode pe            ON pe.option_id = o.id
+JOIN public.option_active o              ON o.id         = g.option_id
+JOIN public.periode_active pe            ON pe.option_id = o.id
 JOIN public.unite_enseignement ue ON ue.periode_id = pe.id
 JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 JOIN public.controle c            ON c.matiere_id = m.id

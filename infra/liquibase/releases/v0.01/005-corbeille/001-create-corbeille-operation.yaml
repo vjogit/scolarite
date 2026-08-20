@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-corbeille-operation
+      author: dev
+      comment: "Table des opérations de mise en corbeille : une ligne par suppression logique, portant l'auteur et la date. Les lignes marquées des quatre tables structurantes la référencent ; la racine d'une opération est la ligne dont la table est racine_type."
+      changes:
+        - createTable:
+            tableName: corbeille_operation
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: racine_type
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: deleted_by
+                  type: TEXT
+                  constraints:
+                    nullable: false
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE corbeille_operation ADD CONSTRAINT chk_corbeille_racine_type
+                CHECK (racine_type IN ('formation', 'promotion', 'option', 'periode'));
+
+      rollback:
+        - dropTable:
+            tableName: corbeille_operation
+            cascadeConstraints: true

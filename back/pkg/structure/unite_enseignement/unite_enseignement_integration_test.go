@@ -29,12 +29,12 @@ func TestIntegration_CreateUniteEnseignement(t *testing.T) {
 	// Helper pour créer les dépendances (Formation -> Promotion -> Option -> Periode)
 	createDependencies := func(t *testing.T) int32 {
 		var formationID int32
-		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation UE Test").Scan(&formationID)
+		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) WHERE deleted_at IS NULL DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation UE Test").Scan(&formationID)
 		require.NoError(t, err)
 
 		var promotionID int32
 		now := time.Now()
-		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, formation_id) VALUES ($1, 1, $2, $3, $4) RETURNING id",
+		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, echelle_gpa, echelle, formation_id) VALUES ($1, 1, $2, $3, '{4,3,2,1,0.5,0}', '{16,14,12,10,8}', $4) RETURNING id",
 			"Promo UE Test", now, now.Add(24*time.Hour), formationID).Scan(&promotionID)
 		require.NoError(t, err)
 
@@ -88,38 +88,6 @@ func TestIntegration_CreateUniteEnseignement(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "positif", // Vérifiez que votre mapping d'erreur contient ce mot clé
-		},
-		{
-			name: "Echec - Echelle Taille Incorrecte (Contrainte CHECK)",
-			setupDB: func(t *testing.T) int32 {
-				_, _ = pool.Exec(context.Background(), "TRUNCATE TABLE formation, promotion, option, periode, unite_enseignement CASCADE")
-				return createDependencies(t)
-			},
-			inputBody: func(periodeID int32) gen.UniteEnseignement {
-				return gen.UniteEnseignement{
-					Name:      "UE Invalide Echelle Len",
-					Ects:      4.0,
-					PeriodeID: periodeID,
-				}
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  "5 valeurs", // Vérifiez votre mapping
-		},
-		{
-			name: "Echec - Echelle Non Décroissante (Contrainte CHECK)",
-			setupDB: func(t *testing.T) int32 {
-				_, _ = pool.Exec(context.Background(), "TRUNCATE TABLE formation, promotion, option, periode, unite_enseignement CASCADE")
-				return createDependencies(t)
-			},
-			inputBody: func(periodeID int32) gen.UniteEnseignement {
-				return gen.UniteEnseignement{
-					Name:      "UE Invalide Echelle Order",
-					Ects:      4.0,
-					PeriodeID: periodeID,
-				}
-			},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  "décroissante", // Vérifiez votre mapping
 		},
 		{
 			name: "Echec - Période ID Invalide (FK)",

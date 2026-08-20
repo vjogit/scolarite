@@ -72,8 +72,8 @@ var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 
 var PeriodeContextKey = &services.ContextKey{Name: "periode key"}
 
-func getPeriodeFromCtx(r *http.Request) *gen.Periode {
-	periode, ok := r.Context().Value(PeriodeContextKey).(*gen.Periode)
+func getPeriodeFromCtx(r *http.Request) *gen.PeriodeActive {
+	periode, ok := r.Context().Value(PeriodeContextKey).(*gen.PeriodeActive)
 	if ok {
 		return periode
 	}
@@ -81,6 +81,6 @@ func getPeriodeFromCtx(r *http.Request) *gen.Periode {
 	return nil
 }
 
-func setPeriodeFromCtx(r *http.Request, periode *gen.Periode) context.Context {
+func setPeriodeFromCtx(r *http.Request, periode *gen.PeriodeActive) context.Context {
 	return context.WithValue(r.Context(), PeriodeContextKey, periode)
 }

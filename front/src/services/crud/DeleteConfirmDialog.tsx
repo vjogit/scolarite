@@ -186,9 +186,18 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                         {selectedRows.length === 1
                                             ? <>« {noms[0]} » contient </>
                                             : 'La sélection contient '}
-                                        <strong>{joinFr(impact.cascade.map(formatEntry))}</strong>. Tout
-                                        sera définitivement supprimé.
+                                        <strong>{joinFr(impact.cascade.map(formatEntry))}</strong>.{' '}
+                                        {datasource.suppressionEnCorbeille
+                                            ? 'Tout partira en corbeille.'
+                                            : 'Tout sera définitivement supprimé.'}
                                     </Typography>
+                                </Alert>
+                            )}
+
+                            {datasource.suppressionEnCorbeille && (
+                                <Alert severity="info">
+                                    La suppression est restaurable : un administrateur peut tout
+                                    rétablir depuis la corbeille, jusqu'à purge définitive.
                                 </Alert>
                             )}
 

@@ -72,8 +72,8 @@ var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 
 var OptionContextKey = &services.ContextKey{Name: "option key"}
 
-func GetOptionFromCtx(r *http.Request) *gen.Option {
-	option, ok := r.Context().Value(OptionContextKey).(*gen.Option)
+func GetOptionFromCtx(r *http.Request) *gen.OptionActive {
+	option, ok := r.Context().Value(OptionContextKey).(*gen.OptionActive)
 	if ok {
 		return option
 	}
@@ -81,6 +81,6 @@ func GetOptionFromCtx(r *http.Request) *gen.Option {
 	return nil
 }
 
-func setOptionFromCtx(r *http.Request, option *gen.Option) context.Context {
+func setOptionFromCtx(r *http.Request, option *gen.OptionActive) context.Context {
 	return context.WithValue(r.Context(), OptionContextKey, option)
 }

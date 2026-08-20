@@ -38,9 +38,9 @@ gpa_delibere AS (
             END
         ) / NULLIF(SUM(jr.ects), 0))::float AS gpa_periode
     FROM public.jury_result jr
-    JOIN public.periode p      ON p.id    = jr.periode_id
-    JOIN public.option o       ON o.id    = p.option_id
-    JOIN public.promotion prom ON prom.id = o.promotion_id
+    JOIN public.periode_active p      ON p.id    = jr.periode_id
+    JOIN public.option_active o       ON o.id    = p.option_id
+    JOIN public.promotion_active prom ON prom.id = o.promotion_id
     WHERE jr.periode_id = @periode_id
     GROUP BY jr.user_id
 )

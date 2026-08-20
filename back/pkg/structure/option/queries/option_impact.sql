@@ -1,16 +1,16 @@
 -- name: FetchOptionNamesByIds :many
-SELECT id, name FROM public.option WHERE id = ANY(@ids::int[]) ORDER BY id;
+SELECT id, name FROM public.option_active WHERE id = ANY(@ids::int[]) ORDER BY id;
 
 -- Analyse d'impact d'une suppression en masse d'options.
 -- name: OptionDeleteImpact :one
 WITH option_c AS (
-    SELECT id FROM public.option WHERE id = ANY(@ids::int[])
+    SELECT id FROM public.option_active WHERE id = ANY(@ids::int[])
 ),
 groupe_c AS (
     SELECT g.id FROM public.groupe g JOIN option_c o ON g.option_id = o.id
 ),
 periode_c AS (
-    SELECT pe.id FROM public.periode pe JOIN option_c o ON pe.option_id = o.id
+    SELECT pe.id FROM public.periode_active pe JOIN option_c o ON pe.option_id = o.id
 ),
 ue_c AS (
     SELECT ue.id FROM public.unite_enseignement ue JOIN periode_c pe ON ue.periode_id = pe.id
@@ -54,6 +54,6 @@ SELECT
           AND NOT EXISTS (SELECT 1 FROM reservation_c rc WHERE rc.id = r.id))::bigint AS reservation_detachee_count;
 
 -- name: CountOptionJuryDeliberePeriodes :one
-SELECT count(*)::bigint FROM public.periode pe
+SELECT count(*)::bigint FROM public.periode_active pe
 WHERE pe.option_id = ANY(@ids::int[])
   AND EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id);

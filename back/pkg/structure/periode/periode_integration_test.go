@@ -30,12 +30,12 @@ func TestIntegration_CreatePeriode(t *testing.T) {
 	// Helper pour créer les dépendances (Formation -> Promotion -> Option)
 	createDependencies := func(t *testing.T) int32 {
 		var formationID int32
-		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Periode Test").Scan(&formationID)
+		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) WHERE deleted_at IS NULL DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Periode Test").Scan(&formationID)
 		require.NoError(t, err)
 
 		var promotionID int32
 		now := time.Now()
-		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, formation_id) VALUES ($1, 1, $2, $3, $4) RETURNING id",
+		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, echelle_gpa, echelle, formation_id) VALUES ($1, 1, $2, $3, '{4,3,2,1,0.5,0}', '{16,14,12,10,8}', $4) RETURNING id",
 			"Promo Periode Test", now, now.Add(24*time.Hour), formationID).Scan(&promotionID)
 		require.NoError(t, err)
 

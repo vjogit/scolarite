@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-vues-actives
+      author: dev
+      comment: "Vues des lignes actives des quatre entités structurantes. Toute requête de LECTURE passe par elles : une table nue dans un *_read.sql est un bug de filtrage. Elles ne portent que les colonnes métier — deleted_at et delete_op_id ne sortent jamais vers l'API."
+      changes:
+        - createView:
+            viewName: formation_active
+            replaceIfExists: true
+            selectQuery: >-
+              SELECT id, version, name
+              FROM formation WHERE deleted_at IS NULL
+        - createView:
+            viewName: promotion_active
+            replaceIfExists: true
+            selectQuery: >-
+              SELECT id, version, name, debut, fin, echelle_gpa, echelle,
+                     matiere_eliminatoire, value_matiere_eliminatoire, formation_id, bareme
+              FROM promotion WHERE deleted_at IS NULL
+        - createView:
+            viewName: option_active
+            replaceIfExists: true
+            selectQuery: >-
+              SELECT id, version, name, promotion_id
+              FROM option WHERE deleted_at IS NULL
+        - createView:
+            viewName: periode_active
+            replaceIfExists: true
+            selectQuery: >-
+              SELECT id, version, name, debut, fin, option_id
+              FROM periode WHERE deleted_at IS NULL
+
+      rollback:
+        - dropView: { viewName: formation_active }
+        - dropView: { viewName: promotion_active }
+        - dropView: { viewName: option_active }
+        - dropView: { viewName: periode_active }

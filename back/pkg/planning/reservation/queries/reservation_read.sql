@@ -10,6 +10,7 @@ SELECT
     )::real             AS heures_consommees
 FROM matiere m
 JOIN unite_enseignement ue ON ue.id = m.unite_enseignement_id
+JOIN periode_active pa ON pa.id = ue.periode_id
 LEFT JOIN reservation res ON res.matiere_id = m.id AND res.periode_id = @periode_id
 WHERE ue.periode_id = @periode_id
 GROUP BY m.id, m.name, ue.name, m.heure
@@ -24,6 +25,7 @@ SELECT
         0
     )::real             AS heures_consommees
 FROM reservation
+JOIN periode_active pa ON pa.id = reservation.periode_id
 WHERE periode_id = @periode_id
   AND matiere_id IS NULL
 ORDER BY ue_name, matiere_name;
@@ -47,6 +49,7 @@ SELECT
     json_agg(DISTINCT jsonb_build_object('id', g.id, 'name', g.name, 'option_id', g.option_id))
         FILTER (WHERE g.id IS NOT NULL) AS groupes
 FROM reservation r
+JOIN periode_active pa ON pa.id = r.periode_id
 LEFT JOIN public.matiere m ON m.id = r.matiere_id
 LEFT JOIN reservation_salle       rs ON rs.reservation_id = r.id
 LEFT JOIN salle                   s  ON s.id              = rs.salle_id
@@ -76,6 +79,7 @@ SELECT
     json_agg(DISTINCT jsonb_build_object('id', g.id, 'name', g.name, 'option_id', g.option_id))
         FILTER (WHERE g.id IS NOT NULL) AS groupes
 FROM reservation r
+JOIN periode_active pa ON pa.id = r.periode_id
 LEFT JOIN public.matiere m ON m.id = r.matiere_id
 LEFT JOIN reservation_salle       rs ON rs.reservation_id = r.id
 LEFT JOIN salle                   s  ON s.id              = rs.salle_id
@@ -102,6 +106,7 @@ SELECT
     json_agg(DISTINCT jsonb_build_object('id', u.id, 'firstName', u."firstName", 'lastName', u."lastName"))
         FILTER (WHERE u.id IS NOT NULL) AS intervenants
 FROM reservation r
+JOIN periode_active pa ON pa.id = r.periode_id
 JOIN reservation_groupe           rg ON rg.reservation_id = r.id
 LEFT JOIN reservation_salle       rs ON rs.reservation_id = r.id
 LEFT JOIN salle                   s  ON s.id              = rs.salle_id
@@ -127,6 +132,7 @@ SELECT
     json_agg(DISTINCT jsonb_build_object('id', g.id, 'name', g.name))
         FILTER (WHERE g.id IS NOT NULL) AS groupes
 FROM reservation r
+JOIN periode_active pa ON pa.id = r.periode_id
 JOIN reservation_intervenant      ri ON ri.reservation_id = r.id
 LEFT JOIN reservation_salle       rs ON rs.reservation_id = r.id
 LEFT JOIN salle                   s  ON s.id              = rs.salle_id

@@ -3,9 +3,9 @@ WITH context_rules AS (
     -- 1. Récupération des règles de la promotion
     SELECT prom.echelle, prom.matiere_eliminatoire, prom.value_matiere_eliminatoire
     FROM public.unite_enseignement ue
-    JOIN public.periode p ON ue.periode_id = p.id
-    JOIN public.option o ON p.option_id = o.id
-    JOIN public.promotion prom ON o.promotion_id = prom.id
+    JOIN public.periode_active p ON ue.periode_id = p.id
+    JOIN public.option_active o ON p.option_id = o.id
+    JOIN public.promotion_active prom ON o.promotion_id = prom.id
     WHERE ue.id = @unite_enseignement_id LIMIT 1
 ),
 matieres_brutes AS (

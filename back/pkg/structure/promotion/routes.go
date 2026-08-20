@@ -72,8 +72,8 @@ var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 
 var PromotionContextKey = &services.ContextKey{Name: "promotion key"}
 
-func getPromotionFromCtx(r *http.Request) *gen.Promotion {
-	promotion, ok := r.Context().Value(PromotionContextKey).(*gen.Promotion)
+func getPromotionFromCtx(r *http.Request) *gen.PromotionActive {
+	promotion, ok := r.Context().Value(PromotionContextKey).(*gen.PromotionActive)
 	if ok {
 		return promotion
 	}
@@ -81,6 +81,6 @@ func getPromotionFromCtx(r *http.Request) *gen.Promotion {
 	return nil
 }
 
-func setPromotionFromCtx(r *http.Request, promotion *gen.Promotion) context.Context {
+func setPromotionFromCtx(r *http.Request, promotion *gen.PromotionActive) context.Context {
 	return context.WithValue(r.Context(), PromotionContextKey, promotion)
 }

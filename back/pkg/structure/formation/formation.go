@@ -1,6 +1,7 @@
 package formation
 
 import (
+	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/formation/gen"
 	"errors"
@@ -14,11 +15,13 @@ import (
 // Définition des contraintes spécifiques au domaine "Formation"
 var formationConstraints = map[string]services.ConstraintRule{
 	"chk_formation_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
-	"formation_name_key":        {Field: "name", Message: "Cette valeur est déjà utilisée"},
+	// Index d'unicité partiel (lignes actives seules) : une formation en
+	// corbeille ne bloque pas la réutilisation de son nom.
+	"uk_formation_name_active": {Field: "name", Message: "Cette valeur est déjà utilisée"},
 }
 
 func CreateFormation(w http.ResponseWriter, r *http.Request) {
-	var input gen.Formation
+	var input gen.FormationActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -63,14 +66,14 @@ func FetchAllFormation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if users == nil {
-		users = []gen.Formation{}
+		users = []gen.FormationActive{}
 	}
 
 	render.JSON(w, r, users)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	var input gen.Formation
+	var input gen.FormationActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -135,7 +138,10 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := queries.DeleteFormation(r.Context(), input.IDs); err != nil {
+	// Suppression logique propagée : la formation et toute sa descendance
+	// structurelle partent en corbeille, restaurables jusqu'à purge.
+	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
+		corbeille.RacineFormation, input.IDs, services.SubFromCtx(r)); err != nil {
 		slog.Error("suppression impossible", "entite", "formation", "ids", input.IDs, "error", err)
 		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
 		return

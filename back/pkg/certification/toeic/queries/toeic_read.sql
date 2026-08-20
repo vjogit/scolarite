@@ -7,7 +7,7 @@ JOIN public."user" u ON t.user_id = u.id
 WHERE promotion_id = @promotion_id;
 
 -- name: CheckPromotionExists :one
-SELECT 1 FROM public.promotion WHERE id = @id;
+SELECT 1 FROM public.promotion_active WHERE id = @id;
 
 -- name: FetchToeicById :one
 SELECT t.id, t.score, t.date_passage, 

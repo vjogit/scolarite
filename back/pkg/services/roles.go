@@ -25,6 +25,20 @@ const (
 	RoleAdmin                  = "ADMIN" // attribuable, jamais testé
 )
 
+// RolesFonctionnels est la liste des huit rôles que le composite ADMIN
+// contient côté Keycloak. Exiger chacun d'eux (RequireAllRoles) équivaut à
+// exiger ADMIN sans jamais tester son nom — conformément au modèle ci-dessus.
+var RolesFonctionnels = []string{
+	RoleConsultation,
+	RoleStructureEcriture,
+	RoleNotesEcriture,
+	RoleJuryEcriture,
+	RoleProgrammeEcriture,
+	RoleSallesEcriture,
+	RoleCertificationEcriture,
+	RoleUtilisateursEcriture,
+}
+
 // AssignableRoles est la liste fermée des rôles que l'application accepte
 // d'attribuer à un utilisateur. Toute entrée hors de cette liste est refusée :
 // une entrée libre permettrait à un porteur d'UTILISATEURS_ECRITURE de
@@ -68,4 +82,30 @@ func RequireRole(allowedRoles ...string) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// RequireAllRoles n'autorise la requête que si le jeton porte TOUS les rôles
+// donnés (sémantique ET, à l'inverse de RequireRole). Avec RolesFonctionnels,
+// c'est l'expression du composite ADMIN sans test de son nom : seules les
+// routes de la corbeille l'utilisent.
+func RequireAllRoles(requiredRoles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userRoles := RolesFromCtx(r)
+			for _, role := range requiredRoles {
+				if !slices.Contains(userRoles, role) {
+					AuthorizationError(w, r, "droit insuffisant", INSUFFICIENT_RIGHTS, nil)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// SubFromCtx retourne le sujet Keycloak (l'identifiant de l'utilisateur) posé
+// dans le contexte par AuthMiddleware, ou une chaîne vide sans lui.
+func SubFromCtx(r *http.Request) string {
+	sub, _ := r.Context().Value(KeycloakSubCtxKey).(string)
+	return sub
 }

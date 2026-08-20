@@ -314,6 +314,7 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         entityLabel: "la promotion",
         entityLabelPlural: "promotions",
         deleteRequiresNameConfirmation: true,
+        suppressionEnCorbeille: true,
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,

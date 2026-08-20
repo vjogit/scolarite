@@ -5,9 +5,9 @@ WITH context_rules AS (
     SELECT prom.echelle
     FROM public.matiere m
     JOIN public.unite_enseignement ue ON ue.id   = m.unite_enseignement_id
-    JOIN public.periode p             ON p.id    = ue.periode_id
-    JOIN public.option o              ON o.id    = p.option_id
-    JOIN public.promotion prom        ON prom.id = o.promotion_id
+    JOIN public.periode_active p             ON p.id    = ue.periode_id
+    JOIN public.option_active o              ON o.id    = p.option_id
+    JOIN public.promotion_active prom        ON prom.id = o.promotion_id
     WHERE m.id = @matiere_id
     LIMIT 1
 ),

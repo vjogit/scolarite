@@ -1,7 +1,7 @@
 import { Outlet } from 'react-router';
 import { type Authentication, type NavigationItem } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
-import { Role, USER_WORKFLOW } from './pages/user/def';
+import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from './pages/user/def';
 import SessionContext, { type Session } from './SessionContext';
 import React from 'react';
 import { getKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
@@ -12,7 +12,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import 'dayjs/locale/fr';
 import { setupAxiosInterceptors } from './services/api';
 import { ContexteHierarchieProvider } from './services/context/ContexteProvider';
-import { possedeUnRole } from './services/context/workflows';
+import { possedeTousLesRoles, possedeUnRole } from './services/context/workflows';
 import { CATALOG_WORKFLOW } from './pages/catalog/def';
 import { NOTE_ELEVE, NOTE_WORKFLOW } from './pages/note/def';
 import { CERTIFICATION_WORKFLOW } from './pages/certification/def';
@@ -20,6 +20,7 @@ import { JURY_WORKFLOW } from './pages/jury/def';
 import { PROGRAMME_WORKFLOW } from './pages/programme/def';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { SALLE_WORKFLOW } from './pages/salle/def';
+import { CORBEILLE_WORKFLOW } from './pages/corbeille/def';
 import SchoolIcon from '@mui/icons-material/School';
 import GradingIcon from '@mui/icons-material/Grading';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
@@ -29,11 +30,14 @@ import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import DateRangeIcon from '@mui/icons-material/DateRange';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 
 
 type NavigationItemWithRoles = NavigationItem & {
   requiredRoles?: string[];
+  /** Sémantique ET : tous ces rôles sont exigés (corbeille = composite ADMIN). */
+  requiresAllRoles?: readonly string[];
   children?: NavigationItemWithRoles[]
 };
 
@@ -82,6 +86,14 @@ const NAVIGATION: NavigationItemWithRoles[] = [
     title: 'Utilisateur',
     icon: <ManageAccountsIcon />,
     requiredRoles: [Role.CONSULTATION],
+  },
+  {
+    segment: CORBEILLE_WORKFLOW,
+    title: 'Corbeille',
+    icon: <DeleteOutlineIcon />,
+    // Réservée aux porteurs de tous les rôles fonctionnels — le composite
+    // ADMIN, sans jamais tester son nom.
+    requiresAllRoles: ROLES_FONCTIONNELS,
   },
   {
     segment: 'planning',
@@ -216,7 +228,8 @@ const filterNavigationByRoles = (
   userRoles: string[] | undefined
 ): NavigationItemWithRoles[] => {
   return navigation
-    .filter(item => possedeUnRole(userRoles, item.requiredRoles))
+    .filter(item => possedeUnRole(userRoles, item.requiredRoles)
+      && possedeTousLesRoles(userRoles, item.requiresAllRoles))
     .map(item => ({
       ...item,
       children: item.children

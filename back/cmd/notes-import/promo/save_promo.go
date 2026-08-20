@@ -74,12 +74,12 @@ func ensureFormation(ctx context.Context, db *pgxpool.Pool, name string) (int32,
 		WITH ins AS (
 			INSERT INTO formation (name) 
 			VALUES ($1) 
-			ON CONFLICT (name) DO NOTHING 
+			ON CONFLICT (name) WHERE deleted_at IS NULL DO NOTHING 
 			RETURNING id
 		)
 		SELECT id FROM ins
 		UNION ALL
-		SELECT id FROM formation WHERE name = $1
+		SELECT id FROM formation WHERE name = $1 AND deleted_at IS NULL
 		LIMIT 1;
 	`
 	err := db.QueryRow(ctx, query, name).Scan(&id)
@@ -92,12 +92,12 @@ func ensurePromotion(ctx context.Context, db *pgxpool.Pool, name string, formati
 		WITH ins AS (
 			INSERT INTO promotion (name, formation_id, debut, fin, echelle_gpa, echelle) 
 			VALUES ($1, $2, $3, $4, $5, '{16,14,12,10,8}') 
-			ON CONFLICT (name) DO NOTHING 
+			ON CONFLICT (name) WHERE deleted_at IS NULL DO NOTHING 
 			RETURNING id
 		)
 		SELECT id FROM ins
 		UNION ALL
-		SELECT id FROM promotion WHERE name = $1
+		SELECT id FROM promotion WHERE name = $1 AND deleted_at IS NULL
 		LIMIT 1;
 	`
 	gpa := [...]float64{4, 3.5, 3, 2.5, 2, 0}

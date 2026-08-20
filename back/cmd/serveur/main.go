@@ -2,6 +2,7 @@ package main
 
 import (
 	"cyb-react/pkg/certification"
+	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/planning"
 	"cyb-react/pkg/resultat"
 	"cyb-react/pkg/services"
@@ -81,6 +82,11 @@ func main() {
 	r.Route("/api/v0/planning", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		planning.RoutePlanning(r)
+	})
+
+	r.Route("/api/v0/corbeille", func(r chi.Router) {
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
+		corbeille.RouteCorbeille(r)
 	})
 
 	slog.Info("Serveur démarré", "host", cfg.Server.Port, "port", cfg.Server.Host)

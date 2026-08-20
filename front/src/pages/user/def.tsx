@@ -19,6 +19,21 @@ export const Role = {
     UTILISATEURS_ECRITURE: 'UTILISATEURS_ECRITURE',
 } as const;
 
+// Les huit rôles fonctionnels que le composite ADMIN contient — miroir de
+// services.RolesFonctionnels côté serveur. Posséder chacun d'eux équivaut à
+// posséder ADMIN sans jamais tester son nom : c'est la condition d'accès à la
+// corbeille.
+export const ROLES_FONCTIONNELS: readonly string[] = [
+    Role.CONSULTATION,
+    Role.STRUCTURE_ECRITURE,
+    Role.NOTES_ECRITURE,
+    Role.JURY_ECRITURE,
+    Role.PROGRAMME_ECRITURE,
+    Role.SALLES_ECRITURE,
+    Role.CERTIFICATION_ECRITURE,
+    Role.UTILISATEURS_ECRITURE,
+];
+
 export const AVAILABLE_ROLES = [
     { id: Role.ADMIN, label: 'Administrateur' },
     { id: Role.CONSULTATION, label: 'Consultation' },

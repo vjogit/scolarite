@@ -55,7 +55,7 @@ func SeedStructureFixture(t *testing.T, pool *pgxpool.Pool, suffixe string) Stru
 	ctx := context.Background()
 	f := StructureFixture{}
 
-	_, err := pool.Exec(ctx, `TRUNCATE TABLE formation, public."user", salle CASCADE`)
+	_, err := pool.Exec(ctx, `TRUNCATE TABLE formation, public."user", salle, corbeille_operation CASCADE`)
 	if err != nil {
 		t.Fatalf("truncate impossible : %v", err)
 	}

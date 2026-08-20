@@ -1,6 +1,7 @@
 package promotion
 
 import (
+	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/promotion/gen"
 	"errors"
@@ -15,7 +16,7 @@ import (
 // Définition des contraintes spécifiques au domaine "Promotion"
 var promotionConstraints = map[string]services.ConstraintRule{
 	"chk_promotion_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
-	"promotion_name_key":        {Field: "name", Message: "Cette valeur est déjà utilisée"},
+	"uk_promotion_name_active": {Field: "name", Message: "Cette valeur est déjà utilisée"},
 	"chk_promotion_dates":       {Field: "fin", Message: "La date de fin doit être après la date de début"},
 	"fk_promotion_formation":    {Field: "formation_id", Message: "La formation spécifiée n'existe pas"},
 	"chk_promotion_echelle_len": {
@@ -37,7 +38,7 @@ var promotionConstraints = map[string]services.ConstraintRule{
 }
 
 func CreatePromotion(w http.ResponseWriter, r *http.Request) {
-	var input gen.Promotion
+	var input gen.PromotionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -86,7 +87,7 @@ func FetchPromotionsByFormationID(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	var promotions []gen.Promotion
+	var promotions []gen.PromotionActive
 	var err error
 	var fIDStr string
 
@@ -121,14 +122,14 @@ func FetchPromotionsByFormationID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if promotions == nil {
-		promotions = []gen.Promotion{}
+		promotions = []gen.PromotionActive{}
 	}
 
 	render.JSON(w, r, promotions)
 }
 
 func Update(w http.ResponseWriter, r *http.Request) {
-	var input gen.Promotion
+	var input gen.PromotionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
@@ -201,7 +202,10 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := queries.DeletePromotion(r.Context(), input.IDs); err != nil {
+	// Suppression logique propagée : l'entité et sa descendance structurelle
+	// partent en corbeille, restaurables jusqu'à purge.
+	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
+		corbeille.RacinePromotion, input.IDs, services.SubFromCtx(r)); err != nil {
 		slog.Error("suppression impossible", "entite", "promotion", "ids", input.IDs, "error", err)
 		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
 		return

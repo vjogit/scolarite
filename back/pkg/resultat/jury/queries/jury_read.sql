@@ -4,7 +4,7 @@ WHERE periode_id = @periode_id order by name ;
 
 
 -- name: FetchPeriodeById :one
-SELECT * FROM periode WHERE id = @id;
+SELECT * FROM periode_active WHERE id = @id;
 
 
 -- name: Get_gpa_ues_by_periode_v5 :many
@@ -30,8 +30,8 @@ SELECT t.user_id::integer, MAX(t.score)::integer AS score
 FROM public.toeic t
 WHERE t.promotion_id = (
     SELECT o.promotion_id
-    FROM public.periode p
-    JOIN public.option o ON p.option_id = o.id
+    FROM public.periode_active p
+    JOIN public.option_active o ON p.option_id = o.id
     WHERE p.id = @periode_id
 )
 GROUP BY t.user_id;
@@ -41,8 +41,8 @@ SELECT m.user_id::integer, BOOL_OR(m.est_valide)::boolean AS est_valide
 FROM public.mobilite_internationale m
 WHERE m.promotion_id = (
     SELECT o.promotion_id
-    FROM public.periode p
-    JOIN public.option o ON p.option_id = o.id
+    FROM public.periode_active p
+    JOIN public.option_active o ON p.option_id = o.id
     WHERE p.id = @periode_id
 )
 GROUP BY m.user_id;
@@ -51,7 +51,7 @@ GROUP BY m.user_id;
 SELECT
     m.unite_enseignement_id::integer AS ue_id,
     m.name::text                     AS matiere_nom
-FROM public.periode p
+FROM public.periode_active p
 JOIN public.unite_enseignement ue ON ue.periode_id           = p.id
 JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 WHERE p.id = @periode_id
@@ -64,7 +64,7 @@ SELECT
     u."lastName"::text     AS last_name,
     ue.name::text          AS ue_nom,
     m.name::text           AS matiere_nom
-FROM public.periode p
+FROM public.periode_active p
 JOIN public.unite_enseignement ue ON ue.periode_id           = p.id
 JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 JOIN public.controle c            ON c.matiere_id            = m.id
@@ -83,8 +83,8 @@ SELECT
     u."lastName"::text     AS last_name,
     ue.name::text          AS ue_nom,
     m.name::text           AS matiere_nom
-FROM public.periode p
-JOIN public.option o              ON p.option_id             = o.id
+FROM public.periode_active p
+JOIN public.option_active o              ON p.option_id             = o.id
 JOIN public.unite_enseignement ue ON ue.periode_id           = p.id
 JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 JOIN public.controle c            ON c.matiere_id            = m.id

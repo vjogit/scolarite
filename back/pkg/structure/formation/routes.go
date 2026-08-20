@@ -73,8 +73,8 @@ var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 
 var FormationContextKey = &services.ContextKey{Name: "formation key"}
 
-func getFormationFromCtx(r *http.Request) *gen.Formation {
-	formation, ok := r.Context().Value(FormationContextKey).(*gen.Formation)
+func getFormationFromCtx(r *http.Request) *gen.FormationActive {
+	formation, ok := r.Context().Value(FormationContextKey).(*gen.FormationActive)
 	if ok {
 		return formation
 	}
@@ -82,6 +82,6 @@ func getFormationFromCtx(r *http.Request) *gen.Formation {
 	return nil
 }
 
-func setFormationFromCtx(r *http.Request, formation *gen.Formation) context.Context {
+func setFormationFromCtx(r *http.Request, formation *gen.FormationActive) context.Context {
 	return context.WithValue(r.Context(), FormationContextKey, formation)
 }

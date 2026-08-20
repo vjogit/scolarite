@@ -29,12 +29,12 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 	// Helper pour créer les dépendances (Formation -> Promotion -> Option -> Periode -> UE)
 	createDependencies := func(t *testing.T) int32 {
 		var formationID int32
-		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Matiere Test").Scan(&formationID)
+		err := pool.QueryRow(context.Background(), "INSERT INTO formation (name, version) VALUES ($1, 1) ON CONFLICT (name) WHERE deleted_at IS NULL DO UPDATE SET name = EXCLUDED.name RETURNING id", "Formation Matiere Test").Scan(&formationID)
 		require.NoError(t, err)
 
 		var promotionID int32
 		now := time.Now()
-		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, formation_id) VALUES ($1, 1, $2, $3, $4) RETURNING id",
+		err = pool.QueryRow(context.Background(), "INSERT INTO promotion (name, version, debut, fin, echelle_gpa, echelle, formation_id) VALUES ($1, 1, $2, $3, '{4,3,2,1,0.5,0}', '{16,14,12,10,8}', $4) RETURNING id",
 			"Promo Matiere Test", now, now.Add(24*time.Hour), formationID).Scan(&promotionID)
 		require.NoError(t, err)
 
@@ -49,9 +49,9 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 		require.NoError(t, err)
 
 		var ueID int32
-		// On insère une UE valide (ECTS positifs, Echelle de 5 valeurs décroissantes)
-		err = pool.QueryRow(context.Background(), "INSERT INTO unite_enseignement (name, version, ects, echelle, periode_id) VALUES ($1, 1, $2, $3, $4) RETURNING id",
-			"UE Matiere Test", 6.0, []float32{20, 16, 12, 8, 4}, periodeID).Scan(&ueID)
+		// On insère une UE valide (ECTS positifs)
+		err = pool.QueryRow(context.Background(), "INSERT INTO unite_enseignement (name, version, ects, periode_id) VALUES ($1, 1, $2, $3) RETURNING id",
+			"UE Matiere Test", 6.0, periodeID).Scan(&ueID)
 		require.NoError(t, err)
 
 		return ueID

@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-deleted-columns
+      author: dev
+      comment: "Suppression logique des quatre entités structurantes : deleted_at marque la ligne, delete_op_id la rattache à son opération de corbeille. Les deux vont ensemble (CHECK) : une ligne est soit active (les deux NULL), soit en corbeille (les deux posés)."
+      changes:
+        - addColumn:
+            tableName: formation
+            columns:
+              - column: { name: deleted_at, type: TIMESTAMPTZ }
+              - column:
+                  name: delete_op_id
+                  type: INTEGER
+                  constraints:
+                    foreignKeyName: fk_formation_delete_op
+                    referencedTableName: corbeille_operation
+                    referencedColumnNames: id
+        - addColumn:
+            tableName: promotion
+            columns:
+              - column: { name: deleted_at, type: TIMESTAMPTZ }
+              - column:
+                  name: delete_op_id
+                  type: INTEGER
+                  constraints:
+                    foreignKeyName: fk_promotion_delete_op
+                    referencedTableName: corbeille_operation
+                    referencedColumnNames: id
+        - addColumn:
+            tableName: option
+            columns:
+              - column: { name: deleted_at, type: TIMESTAMPTZ }
+              - column:
+                  name: delete_op_id
+                  type: INTEGER
+                  constraints:
+                    foreignKeyName: fk_option_delete_op
+                    referencedTableName: corbeille_operation
+                    referencedColumnNames: id
+        - addColumn:
+            tableName: periode
+            columns:
+              - column: { name: deleted_at, type: TIMESTAMPTZ }
+              - column:
+                  name: delete_op_id
+                  type: INTEGER
+                  constraints:
+                    foreignKeyName: fk_periode_delete_op
+                    referencedTableName: corbeille_operation
+                    referencedColumnNames: id
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE formation ADD CONSTRAINT chk_formation_deleted_coherent CHECK ((deleted_at IS NULL) = (delete_op_id IS NULL));
+              ALTER TABLE promotion ADD CONSTRAINT chk_promotion_deleted_coherent CHECK ((deleted_at IS NULL) = (delete_op_id IS NULL));
+              ALTER TABLE option ADD CONSTRAINT chk_option_deleted_coherent CHECK ((deleted_at IS NULL) = (delete_op_id IS NULL));
+              ALTER TABLE periode ADD CONSTRAINT chk_periode_deleted_coherent CHECK ((deleted_at IS NULL) = (delete_op_id IS NULL));
+
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE formation DROP CONSTRAINT chk_formation_deleted_coherent;
+              ALTER TABLE promotion DROP CONSTRAINT chk_promotion_deleted_coherent;
+              ALTER TABLE option DROP CONSTRAINT chk_option_deleted_coherent;
+              ALTER TABLE periode DROP CONSTRAINT chk_periode_deleted_coherent;
+        - dropColumn: { tableName: formation, columnName: delete_op_id }
+        - dropColumn: { tableName: formation, columnName: deleted_at }
+        - dropColumn: { tableName: promotion, columnName: delete_op_id }
+        - dropColumn: { tableName: promotion, columnName: deleted_at }
+        - dropColumn: { tableName: option, columnName: delete_op_id }
+        - dropColumn: { tableName: option, columnName: deleted_at }
+        - dropColumn: { tableName: periode, columnName: delete_op_id }
+        - dropColumn: { tableName: periode, columnName: deleted_at }

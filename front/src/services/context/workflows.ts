@@ -154,3 +154,16 @@ export function possedeUnRole(
     if (!rolesRequis || rolesRequis.length === 0) return true;
     return rolesRequis.some(role => rolesUtilisateur?.includes(role));
 }
+
+/**
+ * Variante ET de possedeUnRole : tous les rôles requis doivent être portés.
+ * Avec ROLES_FONCTIONNELS, c'est l'expression du composite ADMIN sans test de
+ * son nom — seule la corbeille l'exige.
+ */
+export function possedeTousLesRoles(
+    rolesUtilisateur: string[] | undefined,
+    rolesRequis: readonly string[] | undefined,
+): boolean {
+    if (!rolesRequis || rolesRequis.length === 0) return true;
+    return rolesRequis.every(role => rolesUtilisateur?.includes(role));
+}
