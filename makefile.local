@@ -8,14 +8,14 @@ KEYCLOAK_DIR=./infra/keycloak
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset
+.PHONY: start-local-reset start-local-keep restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset
 
 
 
-start-local-reset: _purge _pg-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
+start-local-reset: _purge _pg-up _mailpit-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
 	@echo "--- ✅ Infra locale démarrée (BD recréée) ---"
 
-start-local-keep: _pg-up _keycloak-up keycloak liquibase gen_sql start-scolarite
+start-local-keep: _pg-up _mailpit-up _keycloak-up keycloak liquibase gen_sql start-scolarite
 	@echo "--- ✅ Infra locale démarrée (BD conservée) ---"
 
 restart-local-reset: stop-local _sleep start-local-reset
@@ -64,6 +64,13 @@ reset-db:
 	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE USER $(SCOLARITE_USER) WITH PASSWORD '$(SCOLARITE_PASSWORD)';"
 	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "CREATE DATABASE $(SCOLARITE_DB) WITH OWNER = $(SCOLARITE_USER);"
 	@docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -c "GRANT ALL PRIVILEGES ON DATABASE $(SCOLARITE_DB) TO $(SCOLARITE_USER);"
+
+# [DEV-LOCAL] Mailpit : SMTP factice requis par le parcours de création de
+# compte (courriel UPDATE_PASSWORD). Arrêt et purge couverts par stop-local
+# et _purge, qui agissent sur toute la composition.
+_mailpit-up:
+	@echo "--- 📬 Démarrage de Mailpit ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(SECRETS_FILE_LOCAL) up -d mail-service
 
 _keycloak-down:
 	@echo "--- 🛑 Arrêt de Keycloak ---"

@@ -22,6 +22,21 @@ services:
       scolarite-net:
         ipv4_address: 10.20.2.2
 
+  # [DEV-LOCAL] Serveur SMTP de développement : capte les courriels envoyés
+  # par Keycloak (définition de mot de passe) sans jamais rien délivrer.
+  # Interface web publiée sur l'hôte (http://localhost:8025, aussi joignable
+  # via http://10.20.2.6:8025) pour consultation navigateur et Playwright.
+  # À exclure lors du chantier de séparation des environnements.
+  mail-service:
+    container_name: mailpit
+    image: axllent/mailpit:latest
+    restart: always
+    ports:
+      - "8025:8025" # interface web, exposée à l'hôte
+    networks:
+      scolarite-net:
+        ipv4_address: 10.20.2.6
+
   db:
     image: postgres:16.10-alpine
     container_name: postgres-16.10-alpine
