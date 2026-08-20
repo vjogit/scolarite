@@ -110,7 +110,12 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, render
     const datasource = useMemo((): Datasource<NotePeriode> => ({
         ...createNotePeriodeRepository(periodeId),
         ...createNotePeriodeViewConfig(periodeId),
-        title: "GPA de la période",
+        // « GPA délibéré » et non « Notes de la période » : cet axe n'est pas
+        // de même nature que ceux de matière et d'UE. Il ne montre pas une note
+        // calculée depuis les copies mais le relevé arrêté par le jury, seul
+        // habilité à valider un semestre. Le titre le dit plutôt que de le
+        // laisser deviner à celui qui lit une colonne « Non délibéré ».
+        title: "GPA délibéré",
         isAction,
         renderRowActions,
         isTopToolbar,
