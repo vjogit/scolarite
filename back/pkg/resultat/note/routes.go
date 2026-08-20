@@ -29,6 +29,7 @@ func RouteNote(r chi.Router) {
 	r.Get("/fiche/export", fetchFicheExport)
 	r.Post("/fiche/import", ImportFiche)
 	r.Get("/controle", fetchControle)
+	r.Get("/grille", fetchGrille)
 	r.Get("/matiere", fetchMatiere)
 	r.Get("/periode", fetchPeriode)
 	r.Get("/ue", fetchUE)

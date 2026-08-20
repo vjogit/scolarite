@@ -85,6 +85,21 @@ function isWrappedApiError(err: unknown): err is { payload?: unknown } {
   return typeof err === 'object' && err !== null && 'payload' in err;
 }
 
+// Code d'erreur porté par la réponse, quand elle en porte un.
+//
+// `messageForError` suffit à afficher une erreur ; certains appelants doivent
+// en plus la router — la grille de saisie traite un conflit de version
+// autrement qu'un échec réseau, sur la seule ligne concernée.
+export function codeFor(err: unknown): ApiErrorCode | null {
+  if (axios.isAxiosError(err)) {
+    return codeFromPayload(err.response?.data);
+  }
+  if (isWrappedApiError(err)) {
+    return codeFromPayload(err.payload);
+  }
+  return null;
+}
+
 export function messageForError(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const code = codeFromPayload(err.response?.data);

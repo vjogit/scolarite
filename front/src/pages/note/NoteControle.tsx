@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiInstance } from '../../services/api';
 import type { Controle } from './Controle';
 import { bornesNote, createNoteField, libelleNote } from './noteField';
+import { GrilleNotes } from './GrilleNotes';
 
 const createNoteControleSchema = (bareme?: number) => z.object({
     id: z.number(),
@@ -172,7 +173,7 @@ export const createNoteControleRepository = (controleId: string) => {
 
 export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, renderRowActions }: CrudProps<NoteControle>) {
 
-    const { controleId } = useParams();
+    const { controleId, optionId } = useParams();
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteControle>();
     const rootPath = useRootPath(mode);
 
@@ -211,6 +212,22 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
     // plage qu'on ne connaît pas encore. C'est aussi ce qui évite que les
     // colonnes changent après coup, une fois is_rattrapage connu.
     if (controleLoading) return <Skeleton variant="rounded" height={400} />;
+
+    // La liste des notes du contrôle laisse place à la grille de saisie : elle
+    // était alimentée par les notes existantes, la grille l'est par l'effectif.
+    // Les autres modes restent servis par le formulaire page entière, qui garde
+    // sa route et son fil d'Ariane pour l'édition détaillée d'une note.
+    if (mode === 'list') {
+        return (
+            <GrilleNotes
+                controleId={controleId}
+                optionId={optionId}
+                controle={controle}
+                isRattrapage={isRattrapage}
+                bareme={bareme}
+            />
+        );
+    }
 
     return (
         <>
