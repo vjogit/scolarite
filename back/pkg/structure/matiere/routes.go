@@ -13,18 +13,20 @@ import (
 )
 
 func RouteMatiere(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleStructureEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateMatiere(w, r)
 	})
 
 	r.Route("/{matiereID}", func(r chi.Router) {
-		r.With(MatiereUse).Get("/", FetchMatiere)
-		r.With(MatiereUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, MatiereUse).Get("/", FetchMatiere)
+		r.With(ecriture, MatiereUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchMatieresByUniteEnseignementID)
+	r.With(lecture).Get("/", FetchMatieresByUniteEnseignementID)
 
 }
 

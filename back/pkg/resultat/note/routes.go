@@ -13,26 +13,29 @@ import (
 )
 
 func RouteNote(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleNotesEcriture)
 
-	r.Post("/controle", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/controle", func(w http.ResponseWriter, r *http.Request) {
 		CreateNote(w, r)
 	})
 
 	r.Route("/controle/{noteID}", func(r chi.Router) {
-		r.With(NoteUse).Get("/", FetchNote)
-		r.With(NoteUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, NoteUse).Get("/", FetchNote)
+		r.With(ecriture, NoteUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/eleve", fetchNotesByUser)
-	r.Get("/eleve/gpa", fetchGpaByUser)
-	r.Get("/fiche/export", fetchFicheExport)
-	r.Post("/fiche/import", ImportFiche)
-	r.Get("/controle", fetchControle)
-	r.Get("/grille", fetchGrille)
-	r.Get("/matiere", fetchMatiere)
-	r.Get("/periode", fetchPeriode)
-	r.Get("/ue", fetchUE)
+	r.With(lecture).Get("/eleve", fetchNotesByUser)
+	r.With(lecture).Get("/eleve/gpa", fetchGpaByUser)
+	// L'export de fiche est une lecture ; l'import écrit des notes.
+	r.With(lecture).Get("/fiche/export", fetchFicheExport)
+	r.With(ecriture).Post("/fiche/import", ImportFiche)
+	r.With(lecture).Get("/controle", fetchControle)
+	r.With(lecture).Get("/grille", fetchGrille)
+	r.With(lecture).Get("/matiere", fetchMatiere)
+	r.With(lecture).Get("/periode", fetchPeriode)
+	r.With(lecture).Get("/ue", fetchUE)
 }
 
 func NoteUse(next http.Handler) http.Handler {

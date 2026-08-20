@@ -5,7 +5,7 @@ SELECT * FROM "user";
 SELECT * FROM "user" WHERE id = @id;
 
 -- name: SearchUsers :many
-SELECT id, "firstName", "lastName", email, version, roles
+SELECT id, "firstName", "lastName", email, version, type_personne
 FROM "user"
 WHERE 
     (@q::text = '' OR "lastName" ILIKE @q || '%' OR "firstName" ILIKE @q || '%')

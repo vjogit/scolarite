@@ -105,8 +105,8 @@ func SeedStructureFixture(t *testing.T, pool *pgxpool.Pool, suffixe string) Stru
 		"Controle 2 "+suffixe, f.MatiereID)
 
 	for i := 1; i <= 2; i++ {
-		id := exec(`INSERT INTO public."user" (version, "firstName", "lastName", email, keycloak_id, roles)
-			VALUES (1, $1, $2, $3, $4, '{ELEVE}') RETURNING id`,
+		id := exec(`INSERT INTO public."user" (version, "firstName", "lastName", email, keycloak_id, type_personne)
+			VALUES (1, $1, $2, $3, $4, 'ELEVE') RETURNING id`,
 			"Prenom", "Nom", "eleve"+suffixe+string(rune('0'+i))+"@example.org", "kc-"+suffixe+string(rune('0'+i)))
 		f.UserIDs = append(f.UserIDs, id)
 	}

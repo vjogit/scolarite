@@ -36,7 +36,12 @@ export const getKeycloak = () => {
 
         keycloakInstance.init({
             onLoad: 'login-required',
-            
+            // PKCE S256 : exigé par le client Keycloak (pkce_code_challenge_method),
+            // un code d'autorisation intercepté est inutilisable sans le verifier.
+            pkceMethod: 'S256',
+            // Redirection restreinte à la racine : les valid_redirect_uris du
+            // client n'autorisent plus le joker "/*".
+            redirectUri: window.location.origin + '/',
         }).then(() => {
             console.log("Keycloak initialized");
             notifyObservers(keycloakInstance!);

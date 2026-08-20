@@ -13,22 +13,24 @@ import (
 )
 
 func RoutePeriode(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleStructureEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreatePeriode(w, r)
 	})
 
-	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Analyse d'impact, en lecture seule malgré le POST, appelée avant toute suppression.
 	// Déclarée avant la route paramétrée pour ne pas être captée par {periodeID}.
-	r.Post("/delete-impact", DeleteImpact)
+	r.With(lecture).Post("/delete-impact", DeleteImpact)
 
 	r.Route("/{periodeID}", func(r chi.Router) {
-		r.With(PeriodeUse).Get("/", FetchPeriode)
-		r.With(PeriodeUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, PeriodeUse).Get("/", FetchPeriode)
+		r.With(ecriture, PeriodeUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchPeriodesByOptionID)
+	r.With(lecture).Get("/", FetchPeriodesByOptionID)
 
 }
 

@@ -41,7 +41,7 @@ JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
 JOIN public.controle c            ON c.matiere_id = m.id
 WHERE c.id = @controle_id
   AND g.id = @groupe_id
-  AND 'ELEVE' = ANY(u.roles)
+  AND u.type_personne = 'ELEVE'
 ORDER BY 2, 3;
 
 -- name: FetchGrilleControle :many
@@ -72,5 +72,5 @@ JOIN public.controle c            ON c.matiere_id = m.id
 LEFT JOIN public.note n           ON n.user_id = u.id AND n.controle_id = c.id
 WHERE c.id = @controle_id
   AND g.id = @groupe_id
-  AND 'ELEVE' = ANY(u.roles)
+  AND u.type_personne = 'ELEVE'
 ORDER BY 2, 3;

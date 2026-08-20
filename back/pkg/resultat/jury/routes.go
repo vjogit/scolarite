@@ -9,15 +9,20 @@ import (
 )
 
 func RouteJury(r chi.Router) {
-	r.Get("/excel/{periodeID}", GenerateJury)
-	r.Get("/data/{periodeID}", GetStatsJury)
-	r.Post("/bulletins/{periodeID}", GenerateJuryBulletins)
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleJuryEcriture)
+
+	r.With(lecture).Get("/excel/{periodeID}", GenerateJury)
+	r.With(lecture).Get("/data/{periodeID}", GetStatsJury)
+	// Génération d'un ZIP de bulletins : une lecture malgré le POST, rien n'est écrit en base.
+	r.With(lecture).Post("/bulletins/{periodeID}", GenerateJuryBulletins)
 
 	r.Route("/periode/{periodeID}/deliberer", func(r chi.Router) {
-		r.Get("/", FetchDeliberations)
-		r.Post("/bulk", DelibererBulk)
-		r.Post("/{userID}", DelibererEleve)
-		r.Delete("/{userID}", AnnulerDeliberation)
+		// Consulter les délibérations est une lecture ; délibérer ou annuler, une écriture.
+		r.With(lecture).Get("/", FetchDeliberations)
+		r.With(ecriture).Post("/bulk", DelibererBulk)
+		r.With(ecriture).Post("/{userID}", DelibererEleve)
+		r.With(ecriture).Delete("/{userID}", AnnulerDeliberation)
 	})
 }
 

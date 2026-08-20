@@ -3,11 +3,14 @@ package services
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-oidc"
 )
@@ -27,6 +30,12 @@ func hasAllowedRole(userRoles []string, allowedRoles []string) bool {
 	return false
 }
 
+// AuthMiddleware vérifie le jeton Bearer contre Keycloak (découverte OIDC puis
+// signature via le JWKS) et pose le sujet et les rôles du realm dans le
+// contexte. Si allowedRoles est non vide, il exige de plus qu'AU MOINS UN de
+// ces rôles soit porté (sémantique OU : les rôles ne se cumulent pas).
+// L'autorisation fine par sous-groupe de routes s'appuie sur RequireRole, qui
+// relit les rôles posés ici.
 func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handler) http.Handler {
 	oidcBase := cfg.Host
 	if cfg.Issuer != "" {
@@ -34,10 +43,32 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 	}
 	issuer := fmt.Sprintf("%s/%s", oidcBase, cfg.Realm)
 
+	// Ce client récupère la configuration OIDC et le JWKS — les clés qui
+	// valident chaque jeton. La vérification TLS par défaut est donc
+	// indispensable : la désactiver permettrait à un intermédiaire de servir
+	// son propre JWKS et de forger des jetons valides. Quand l'issuer est
+	// servi par une CA interne (mkcert en local), elle est chargée
+	// explicitement dans RootCAs via keycloak.ca_cert — jamais
+	// d'InsecureSkipVerify.
 	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
+		Timeout: 10 * time.Second,
+	}
+	if cfg.CaCert != "" {
+		if pem, err := os.ReadFile(cfg.CaCert); err != nil {
+			slog.Error("CA interne illisible, poursuite avec les CA système", "path", cfg.CaCert, "err", err)
+		} else {
+			pool, err := x509.SystemCertPool()
+			if err != nil || pool == nil {
+				pool = x509.NewCertPool()
+			}
+			if !pool.AppendCertsFromPEM(pem) {
+				slog.Error("CA interne invalide, poursuite avec les CA système", "path", cfg.CaCert)
+			} else {
+				httpClient.Transport = &http.Transport{
+					TLSClientConfig: &tls.Config{RootCAs: pool},
+				}
+			}
+		}
 	}
 
 	var (

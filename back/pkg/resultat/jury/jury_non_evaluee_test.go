@@ -100,7 +100,7 @@ func creerFixtureJury(t *testing.T, ctx context.Context, tx pgx.Tx) fixtureJury 
 	require.NoError(t, err)
 
 	// Bruno : 5 au partiel, rattrapage validé. Il ne suit pas la seconde UE.
-	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Bruno', 'JuryRatt', 'bruno.jury@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&f.eleveRattrape)
+	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Bruno', 'JuryRatt', 'bruno.jury@test.com', 'ELEVE') RETURNING id`).Scan(&f.eleveRattrape)
 	require.NoError(t, err)
 	_, err = tx.Exec(ctx, `INSERT INTO public.note (note, not_evaluated, is_validated, user_id, controle_id) VALUES (5, false, false, $1, $2)`,
 		f.eleveRattrape, ctrlNormal)
@@ -110,7 +110,7 @@ func creerFixtureJury(t *testing.T, ctx context.Context, tx pgx.Tx) fixtureJury 
 	require.NoError(t, err)
 
 	// Chloé : non évaluée dans une matière, 16 dans l'autre.
-	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Chloé', 'JuryNE', 'chloe.jury@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&f.eleveNonEvalue)
+	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Chloé', 'JuryNE', 'chloe.jury@test.com', 'ELEVE') RETURNING id`).Scan(&f.eleveNonEvalue)
 	require.NoError(t, err)
 	_, err = tx.Exec(ctx, `INSERT INTO public.note (note, not_evaluated, is_validated, user_id, controle_id) VALUES (NULL, true, false, $1, $2)`,
 		f.eleveNonEvalue, ctrlNE)

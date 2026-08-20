@@ -13,18 +13,20 @@ import (
 )
 
 func RouteToeic(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleCertificationEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateToeic(w, r)
 	})
 
 	r.Route("/{toeicID}", func(r chi.Router) {
-		r.With(ToeicUse).Get("/", FetchToeic)
-		r.With(ToeicUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, ToeicUse).Get("/", FetchToeic)
+		r.With(ecriture, ToeicUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchToeicsByPromotionID)
+	r.With(lecture).Get("/", FetchToeicsByPromotionID)
 }
 
 func ToeicUse(next http.Handler) http.Handler {

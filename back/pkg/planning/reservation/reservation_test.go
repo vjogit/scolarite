@@ -38,6 +38,15 @@ func setupTestDB(t *testing.T) (*pgxpool.Pool, *chi.Mux) {
 	r := chi.NewRouter()
 	r.Use(services.DatabaseMiddleware(&cfg.Database))
 
+	// Rôles injectés comme le ferait AuthMiddleware : lecture et écriture du domaine.
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			ctx := context.WithValue(req.Context(), services.KeycloakRolesCtxKey,
+				[]string{services.RoleConsultation, services.RoleProgrammeEcriture})
+			next.ServeHTTP(w, req.WithContext(ctx))
+		})
+	})
+
 	// Montage des routes
 	RouteReservation(r)
 
@@ -95,7 +104,7 @@ func fixturesHelper(t *testing.T, pool *pgxpool.Pool) (int32, int32, int32, int3
 	require.NoError(t, err)
 
 	// 4. Création Intervenant (User)
-	err = pool.QueryRow(ctx, `INSERT INTO "user" ("firstName", "lastName", email, roles, version) VALUES ('John', 'Doe', 'john@test.com2', '{}', 1) RETURNING id`).Scan(&intervenantID)
+	err = pool.QueryRow(ctx, `INSERT INTO "user" ("firstName", "lastName", email, type_personne, version) VALUES ('John', 'Doe', 'john@test.com2', 'AGENT', 1) RETURNING id`).Scan(&intervenantID)
 	require.NoError(t, err)
 
 	return periodeID, matiereID, salleID, intervenantID

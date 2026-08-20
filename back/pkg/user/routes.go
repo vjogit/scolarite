@@ -13,27 +13,33 @@ import (
 )
 
 func RouteUser(r chi.Router, cfg *services.KeycloakConfig) {
+	// La lecture reste ouverte à CONSULTATION : elle alimente les sélecteurs
+	// d'élèves dans toute l'application (grille de saisie comprise).
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleUtilisateursEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateUser(w, r, cfg)
 	})
 
-	r.Post("/import", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/import", func(w http.ResponseWriter, r *http.Request) {
 		ImportUsers(w, r, cfg)
 	})
 
 	r.Route("/{userID}", func(r chi.Router) {
-		r.With(UserUse).Get("/", FetchUser)
-		r.With(UserUse).Put("/", func(w http.ResponseWriter, r *http.Request) {
+		r.With(lecture, UserUse).Get("/", func(w http.ResponseWriter, r *http.Request) {
+			FetchUser(w, r, cfg)
+		})
+		r.With(ecriture, UserUse).Put("/", func(w http.ResponseWriter, r *http.Request) {
 			Update(w, r, cfg)
 		})
-		r.Delete("/", func(w http.ResponseWriter, r *http.Request) {
+		r.With(ecriture).Delete("/", func(w http.ResponseWriter, r *http.Request) {
 			Delete(w, r, cfg)
 		})
 	})
 
-	r.Get("/", FetchAllUser)
-	r.Get("/search", SearchUsers)
+	r.With(lecture).Get("/", FetchAllUser)
+	r.With(lecture).Get("/search", SearchUsers)
 }
 
 func UserUse(next http.Handler) http.Handler {

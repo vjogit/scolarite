@@ -14,15 +14,18 @@ import (
 )
 
 func RouteMobilite(r chi.Router) {
-	r.Post("/", CreateMobilite)
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleCertificationEcriture)
+
+	r.With(ecriture).Post("/", CreateMobilite)
 
 	r.Route("/{mobiliteID}", func(r chi.Router) {
-		r.With(MobiliteUse).Get("/", FetchMobilite)
-		r.With(MobiliteUse).Put("/", UpdateMobilite)
-		r.Delete("/", DeleteMobilite)
+		r.With(lecture, MobiliteUse).Get("/", FetchMobilite)
+		r.With(ecriture, MobiliteUse).Put("/", UpdateMobilite)
+		r.With(ecriture).Delete("/", DeleteMobilite)
 	})
 
-	r.Get("/", FetchMobilitesByPromotionID)
+	r.With(lecture).Get("/", FetchMobilitesByPromotionID)
 }
 
 func MobiliteUse(next http.Handler) http.Handler {

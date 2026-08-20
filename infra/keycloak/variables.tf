@@ -22,3 +22,14 @@ variable "keycloak_backend_client_id" {
   description = "Client ID du backend confidentiel, e.g. backend-api"
   type        = string
 }
+
+variable "keycloak_user" {
+  description = "Compte d'administration Keycloak utilisé par le provider (TF_VAR_keycloak_user)"
+  type        = string
+}
+
+variable "keycloak_password" {
+  description = "Mot de passe du compte d'administration Keycloak (TF_VAR_keycloak_password)"
+  type        = string
+  sensitive   = true
+}

@@ -13,22 +13,24 @@ import (
 )
 
 func RouteOption(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleStructureEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateOption(w, r)
 	})
 
-	// Analyse d'impact, en lecture seule, appelée avant toute suppression.
+	// Analyse d'impact, en lecture seule malgré le POST, appelée avant toute suppression.
 	// Déclarée avant la route paramétrée pour ne pas être captée par {optionID}.
-	r.Post("/delete-impact", DeleteImpact)
+	r.With(lecture).Post("/delete-impact", DeleteImpact)
 
 	r.Route("/{optionID}", func(r chi.Router) {
-		r.With(OptionUse).Get("/", FetchOption)
-		r.With(OptionUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, OptionUse).Get("/", FetchOption)
+		r.With(ecriture, OptionUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchOptionsByPromotionID)
+	r.With(lecture).Get("/", FetchOptionsByPromotionID)
 
 }
 

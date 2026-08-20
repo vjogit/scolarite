@@ -41,7 +41,6 @@ func ImportProfs(dbURL string) error {
 	}
 
 	queries := userGen.New(db)
-	role := "PROF"
 	created, skipped, duplicate := 0, 0, 0
 
 	for _, p := range profs {
@@ -66,11 +65,11 @@ func ImportProfs(dbURL string) error {
 		}
 
 		_, err = queries.CreateUser(ctx, userGen.CreateUserParams{
-			Firstname:  &p.PRENOM,
-			Lastname:   &p.NOM,
-			Email:      &p.MEL,
-			KeycloakID: nil,
-			Roles:      []string{role},
+			Firstname:    &p.PRENOM,
+			Lastname:     &p.NOM,
+			Email:        &p.MEL,
+			KeycloakID:   nil,
+			TypePersonne: "AGENT",
 		})
 		if err != nil {
 			log.Printf("[ERREUR] %s %s <%s> : %v", p.PRENOM, p.NOM, p.MEL, err)

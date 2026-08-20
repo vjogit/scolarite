@@ -69,7 +69,7 @@ func creerFixtureNonEvaluee(t *testing.T, ctx context.Context, tx pgx.Tx) fixtur
 		f.ueID).Scan(&f.matiereNotee)
 	require.NoError(t, err)
 
-	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Chloé', 'NonEvaluee', 'chloe.ne@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&f.userID)
+	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Chloé', 'NonEvaluee', 'chloe.ne@test.com', 'ELEVE') RETURNING id`).Scan(&f.userID)
 	require.NoError(t, err)
 
 	var ctrlNE, ctrlNote int32
@@ -142,7 +142,7 @@ func TestGpaDelibere_SansGpaNeRemontePasEnTeteDuClassement(t *testing.T) {
 
 	// Une camarade évaluée dans les deux matières, et délibérée.
 	var autreID int32
-	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Alice', 'Evaluee', 'alice.ev@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&autreID)
+	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Alice', 'Evaluee', 'alice.ev@test.com', 'ELEVE') RETURNING id`).Scan(&autreID)
 	require.NoError(t, err)
 
 	rows, err := tx.Query(ctx, `SELECT c.id FROM public.controle c
@@ -191,7 +191,7 @@ func TestMatiereNonSuivie_ExclueSansAnnulerLUe(t *testing.T) {
 
 	// Cet élève ne suit que la matière notée : aucune ligne sur l'autre.
 	var devID int32
-	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('David', 'Dev', 'david.dev@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&devID)
+	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('David', 'Dev', 'david.dev@test.com', 'ELEVE') RETURNING id`).Scan(&devID)
 	require.NoError(t, err)
 
 	var ctrlNote int32
@@ -231,9 +231,9 @@ func TestProvenance_NommeLaBrancheDeCalcul(t *testing.T) {
 	// Un élève rattrapé, et un élève dont la moyenne ordinaire vaut exactement
 	// echelle[5] = 8 : les deux affichent 8, seule la provenance les sépare.
 	var rattrapeID, pileAuSeuilID int32
-	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Bruno', 'Rattrape', 'bruno.prov@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&rattrapeID)
+	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Bruno', 'Rattrape', 'bruno.prov@test.com', 'ELEVE') RETURNING id`).Scan(&rattrapeID)
 	require.NoError(t, err)
-	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Sacha', 'Seuil', 'sacha.prov@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&pileAuSeuilID)
+	err = tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Sacha', 'Seuil', 'sacha.prov@test.com', 'ELEVE') RETURNING id`).Scan(&pileAuSeuilID)
 	require.NoError(t, err)
 
 	var ctrlNote int32
@@ -295,7 +295,7 @@ func TestProvenance_RemonteDeLaMatiereALUe(t *testing.T) {
 	f := creerFixtureNonEvaluee(t, ctx, tx)
 
 	var eleveID int32
-	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ('Bruno', 'UeRatt', 'bruno.ue@test.com', ARRAY['ELEVE']) RETURNING id`).Scan(&eleveID)
+	err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ('Bruno', 'UeRatt', 'bruno.ue@test.com', 'ELEVE') RETURNING id`).Scan(&eleveID)
 	require.NoError(t, err)
 
 	// Il suit les deux matières de l'UE ; l'une est rattrapée.

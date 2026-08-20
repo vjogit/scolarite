@@ -13,19 +13,22 @@ import (
 )
 
 func RouteGroupe(r chi.Router) {
-	r.Post("/", CreateGroupe)
-	r.Get("/", FetchGroupesByOptionID)
-	r.Post("/import-multi", ImportMultiGroupes)
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleStructureEcriture)
+
+	r.With(ecriture).Post("/", CreateGroupe)
+	r.With(lecture).Get("/", FetchGroupesByOptionID)
+	r.With(ecriture).Post("/import-multi", ImportMultiGroupes)
 
 	r.Route("/{groupeID}", func(r chi.Router) {
-		r.With(GroupeUse).Get("/", FetchGroupe)
-		r.With(GroupeUse).Put("/", UpdateGroupe)
-		r.Delete("/", DeleteGroupe)
+		r.With(lecture, GroupeUse).Get("/", FetchGroupe)
+		r.With(ecriture, GroupeUse).Put("/", UpdateGroupe)
+		r.With(ecriture).Delete("/", DeleteGroupe)
 
-		r.With(GroupeUse).Get("/user", FetchUsersInGroupe)
-		r.With(GroupeUse).Post("/user", AddUserToGroupe)
-		r.With(GroupeUse).Delete("/user/{userID}", RemoveUserFromGroupe)
-		r.With(GroupeUse).Post("/import", ImportOneGroupe)
+		r.With(lecture, GroupeUse).Get("/user", FetchUsersInGroupe)
+		r.With(ecriture, GroupeUse).Post("/user", AddUserToGroupe)
+		r.With(ecriture, GroupeUse).Delete("/user/{userID}", RemoveUserFromGroupe)
+		r.With(ecriture, GroupeUse).Post("/import", ImportOneGroupe)
 	})
 }
 

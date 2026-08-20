@@ -13,18 +13,21 @@ import (
 )
 
 func RouteControle(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	// Les contrôles (définitions d'épreuves) relèvent du domaine résultats.
+	ecriture := services.RequireRole(services.RoleNotesEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateControle(w, r)
 	})
 
 	r.Route("/{controleID}", func(r chi.Router) {
-		r.With(ControleUse).Get("/", FetchControle)
-		r.With(ControleUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, ControleUse).Get("/", FetchControle)
+		r.With(ecriture, ControleUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchControlesByMatiereID)
+	r.With(lecture).Get("/", FetchControlesByMatiereID)
 }
 
 func ControleUse(next http.Handler) http.Handler {

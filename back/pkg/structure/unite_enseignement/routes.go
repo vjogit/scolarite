@@ -13,18 +13,20 @@ import (
 )
 
 func RouteUniteEnseignement(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleStructureEcriture)
 
-	r.Post("/", func(w http.ResponseWriter, r *http.Request) {
+	r.With(ecriture).Post("/", func(w http.ResponseWriter, r *http.Request) {
 		CreateUniteEnseignement(w, r)
 	})
 
 	r.Route("/{ueID}", func(r chi.Router) {
-		r.With(UniteEnseignementUse).Get("/", FetchUniteEnseignement)
-		r.With(UniteEnseignementUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, UniteEnseignementUse).Get("/", FetchUniteEnseignement)
+		r.With(ecriture, UniteEnseignementUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchUniteEnseignementsByPeriodeID)
+	r.With(lecture).Get("/", FetchUniteEnseignementsByPeriodeID)
 
 }
 

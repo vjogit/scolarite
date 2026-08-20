@@ -13,17 +13,20 @@ import (
 )
 
 func RouteReservation(r chi.Router) {
+	lecture := services.RequireRole(services.RoleConsultation)
+	// Les réservations constituent la programmation des séances.
+	ecriture := services.RequireRole(services.RoleProgrammeEcriture)
 
-	r.Post("/", CreateReservation)
+	r.With(ecriture).Post("/", CreateReservation)
 
 	r.Route("/{reservationID}", func(r chi.Router) {
-		r.With(ReservationUse).Get("/", FetchReservation)
-		r.With(ReservationUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, ReservationUse).Get("/", FetchReservation)
+		r.With(ecriture, ReservationUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchReservationsByPeriode)
-	r.Get("/heures", FetchHeuresByPeriode)
+	r.With(lecture).Get("/", FetchReservationsByPeriode)
+	r.With(lecture).Get("/heures", FetchHeuresByPeriode)
 }
 
 func ReservationUse(next http.Handler) http.Handler {

@@ -10,18 +10,32 @@ import (
 	"strings"
 	"sync"
 
-	gocloak "github.com/Nerzal/gocloak/v13"
 	"github.com/go-chi/render"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/sync/errgroup"
 )
 
+// Format du fichier d'import (première feuille, ligne 1 = en-têtes) :
+//
+//	Nom | Prénom | Email | Nature | Rôles
+//
+//   - Nature : ELEVE ou AGENT (vide = AGENT). La nature est persistée en base,
+//     c'est elle qui distingue un élève d'un agent.
+//   - Rôles : liste séparée par des virgules, parmi services.AssignableRoles.
+//     Les rôles ne concernent que les agents et ne vont que dans Keycloak.
+//     Un élève ne doit en porter aucun.
+//
+// Il n'y a plus de colonne mot de passe : l'application n'en définit jamais.
+// Chaque agent créé reçoit un courriel Keycloak UPDATE_PASSWORD pour choisir
+// le sien. Un échec d'envoi n'annule pas la création : le compte est conservé
+// sans mot de passe utilisable et l'échec est signalé dans la réponse
+// (email_echecs), les autres comptes ne sont pas affectés.
 type UserImport struct {
-	FirstName string
-	LastName  string
-	Email     string
-	Password  string
-	Roles     []string
+	FirstName    string
+	LastName     string
+	Email        string
+	TypePersonne string
+	Roles        []string
 }
 
 type kcUserResult struct {
@@ -49,7 +63,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	// 2. Parsing du fichier Excel
 	xlsx, err := excelize.OpenReader(file)
 	if err != nil {
-		services.InvalidRequestError(w, r, "Format Excel invalide: "+err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "Format Excel invalide", services.NO_INFORMATION, nil)
 		return
 	}
 	defer xlsx.Close()
@@ -57,23 +71,38 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	sheetName := xlsx.GetSheetName(0)
 	rows, err := xlsx.GetRows(sheetName)
 	if err != nil {
-		services.InvalidRequestError(w, r, "Erreur lecture feuille Excel: "+err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "Erreur lecture feuille Excel", services.NO_INFORMATION, nil)
 		return
 	}
 
-	// Colonnes attendues : Nom | Prenom | Mail | Password | Roles
+	// Colonnes attendues : Nom | Prénom | Email | Nature | Rôles
 	var users []UserImport
-	for _, row := range rows[1:] { // Ignorer la ligne d'en-têtes
-		if len(row) < 5 {
+	var lignesInvalides []string
+	for i, row := range rows[1:] { // Ignorer la ligne d'en-têtes
+		numLigne := i + 2
+		get := func(col int) string {
+			if col < len(row) {
+				return strings.TrimSpace(row[col])
+			}
+			return ""
+		}
+		lastName := get(0)
+		firstName := get(1)
+		email := get(2)
+		natureRaw := get(3)
+		rolesRaw := get(4)
+
+		if lastName == "" && firstName == "" && email == "" {
+			continue // ligne vide
+		}
+		if email == "" {
+			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : email manquant", numLigne))
 			continue
 		}
-		lastName := strings.TrimSpace(row[0])
-		firstName := strings.TrimSpace(row[1])
-		email := strings.TrimSpace(row[2])
-		password := strings.TrimSpace(row[3])
-		rolesRaw := strings.TrimSpace(row[4])
 
-		if email == "" {
+		typePersonne, err := normalizeTypePersonne(natureRaw)
+		if err != nil {
+			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : %v", numLigne, err))
 			continue
 		}
 
@@ -83,30 +112,42 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 				roles = append(roles, role)
 			}
 		}
+		if err := validateRoles(roles); err != nil {
+			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : %v", numLigne, err))
+			continue
+		}
+		if typePersonne == TypePersonneEleve && len(roles) > 0 {
+			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : un élève ne porte pas de rôle applicatif", numLigne))
+			continue
+		}
 
 		users = append(users, UserImport{
-			FirstName: firstName,
-			LastName:  lastName,
-			Email:     email,
-			Password:  password,
-			Roles:     roles,
+			FirstName:    firstName,
+			LastName:     lastName,
+			Email:        email,
+			TypePersonne: typePersonne,
+			Roles:        roles,
 		})
+	}
+
+	if len(lignesInvalides) > 0 {
+		services.InvalidRequestError(w, r, "fichier d'import invalide", services.VALIDATION_ERROR,
+			map[string]interface{}{"lignes": lignesInvalides})
+		return
 	}
 
 	ctx := r.Context()
 
 	// 3. Auth Keycloak une seule fois pour tout l'import
-	parts := strings.Split(cfg.Realm, "/")
-	realm := parts[len(parts)-1]
-	kcClient := gocloak.NewClient(cfg.Host)
-
-	token, err := kcClient.LoginClient(ctx, cfg.Backend_client_id, cfg.Backend_client_secret, realm)
+	kcClient, accessToken, realm, err := newKeycloakAdminClient(ctx, cfg)
 	if err != nil {
-		services.InternalServerError(w, r, "Erreur auth Keycloak: "+err.Error(), services.NO_INFORMATION, nil)
+		slog.Error("auth Keycloak impossible pour l'import", "err", err)
+		services.InternalServerError(w, r, "Erreur auth Keycloak", services.NO_INFORMATION, nil)
 		return
 	}
 
-	// 4. Création Keycloak en parallèle (N workers)
+	// 4. Création Keycloak en parallèle (N workers) — agents uniquement :
+	// les élèves n'ont pas de compte Keycloak, seulement une ligne en base.
 	results := make([]kcUserResult, len(users))
 	var mu sync.Mutex
 	var createdKeycloakIDs []string
@@ -115,6 +156,9 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	sem := make(chan struct{}, importWorkers)
 
 	for i, u := range users {
+		if u.TypePersonne != TypePersonneAgent {
+			continue
+		}
 		i, u := i, u
 		g.Go(func() error {
 			select {
@@ -125,13 +169,13 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 			defer func() { <-sem }()
 
 			input := gen.User{
-				FirstName: &u.FirstName,
-				LastName:  &u.LastName,
-				Email:     &u.Email,
-				Roles:     u.Roles,
+				FirstName:    &u.FirstName,
+				LastName:     &u.LastName,
+				Email:        &u.Email,
+				TypePersonne: u.TypePersonne,
 			}
 
-			kcID, created, err := createKeycloakUserWithClient(gCtx, kcClient, token.AccessToken, realm, &input, u.Password)
+			kcID, created, err := createKeycloakUserWithClient(gCtx, kcClient, accessToken, realm, &input, u.Roles)
 			if err != nil {
 				return fmt.Errorf("Keycloak %s: %w", u.Email, err)
 			}
@@ -151,7 +195,8 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		for _, id := range createdKeycloakIDs {
 			_ = deleteKeycloakUser(context.Background(), id, cfg)
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		slog.Error("import Keycloak en échec", "err", err)
+		services.InternalServerError(w, r, "Erreur lors de la création des comptes", services.NO_INFORMATION, nil)
 		return
 	}
 
@@ -170,19 +215,23 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	qtx := gen.New(tx)
 
 	for i, u := range users {
-		kcID := results[i].kcID
+		var kcIDParam *string
+		if kcID := results[i].kcID; kcID != "" {
+			kcIDParam = &kcID
+		}
 		_, err = qtx.CreateUser(ctx, gen.CreateUserParams{
-			Firstname:  &u.FirstName,
-			Lastname:   &u.LastName,
-			Email:      &u.Email,
-			KeycloakID: &kcID,
-			Roles:      u.Roles,
+			Firstname:    &u.FirstName,
+			Lastname:     &u.LastName,
+			Email:        &u.Email,
+			KeycloakID:   kcIDParam,
+			TypePersonne: u.TypePersonne,
 		})
 		if err != nil {
 			for _, id := range createdKeycloakIDs {
 				_ = deleteKeycloakUser(context.Background(), id, cfg)
 			}
-			services.InternalServerError(w, r, "Erreur DB pour "+u.Email+": "+err.Error(), services.NO_INFORMATION, nil)
+			slog.Error("insertion user impossible pendant l'import", "email", u.Email, "err", err)
+			services.InternalServerError(w, r, "Erreur DB pour "+u.Email, services.NO_INFORMATION, nil)
 			return
 		}
 	}
@@ -195,9 +244,25 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		return
 	}
 
-	slog.Info("Import global terminé avec succès", "total", len(users))
+	// 6. Courriels UPDATE_PASSWORD, après commit : un échec d'envoi n'annule
+	// rien, il est signalé compte par compte dans la réponse. Ces comptes
+	// restent sans mot de passe utilisable jusqu'à un nouvel envoi.
+	var emailEchecs []string
+	for i, u := range users {
+		if results[i].kcID == "" || !results[i].created {
+			continue
+		}
+		if err := sendPasswordEmail(ctx, kcClient, accessToken, realm, results[i].kcID); err != nil {
+			slog.Error("envoi du courriel de définition de mot de passe impossible",
+				"email", u.Email, "err", err)
+			emailEchecs = append(emailEchecs, u.Email)
+		}
+	}
+
+	slog.Info("Import global terminé", "total", len(users), "email_echecs", len(emailEchecs))
 	render.Status(r, http.StatusCreated)
 	render.JSON(w, r, map[string]any{
-		"imported": len(users),
+		"imported":     len(users),
+		"email_echecs": emailEchecs,
 	})
 }

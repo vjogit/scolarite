@@ -53,7 +53,7 @@ func TestFetchGrilleControle_EffectifComplet(t *testing.T) {
 
 	creerEleve := func(prenom, nom, email string, groupeID int32) int32 {
 		var id int32
-		err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, roles) VALUES ($1, $2, $3, ARRAY['ELEVE']) RETURNING id`,
+		err := tx.QueryRow(ctx, `INSERT INTO public."user" ("firstName", "lastName", email, type_personne) VALUES ($1, $2, $3, 'ELEVE') RETURNING id`,
 			prenom, nom, email).Scan(&id)
 		require.NoError(t, err)
 		_, err = tx.Exec(ctx, `INSERT INTO public.groupe_user (groupe_id, user_id) VALUES ($1, $2)`, groupeID, id)

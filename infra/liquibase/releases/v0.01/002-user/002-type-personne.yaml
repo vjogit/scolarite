@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-type-personne
+      author: dev
+      comment: "Remplace la colonne roles (droits, désormais portés par Keycloak seul) par type_personne (nature de la personne, dont la base est la source de vérité)"
+      changes:
+        - addColumn:
+            tableName: user
+            schemaName: public
+            columns:
+              - column:
+                  name: type_personne
+                  type: TEXT
+                  defaultValue: AGENT
+                  constraints:
+                    nullable: false
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public."user" ADD CONSTRAINT chk_user_type_personne CHECK (type_personne IN ('ELEVE'::text, 'AGENT'::text));
+
+        # Reclassement des lignes locales existantes : l'ancien rôle ELEVE
+        # marquait la nature, pas un droit. Aucune autre reprise n'est requise.
+        - sql:
+            dbms: postgresql
+            sql: UPDATE public."user" SET type_personne = 'ELEVE' WHERE 'ELEVE' = ANY(roles);
+
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public."user" DROP CONSTRAINT chk_user_roles;
+
+        - dropColumn:
+            tableName: user
+            schemaName: public
+            columnName: roles
+
+      rollback:
+        - addColumn:
+            tableName: user
+            schemaName: public
+            columns:
+              - column:
+                  name: roles
+                  type: "TEXT[]"
+        - sql:
+            dbms: postgresql
+            sql: ALTER TABLE public."user" ADD CONSTRAINT chk_user_roles CHECK (roles <@ ARRAY['ADMIN'::text, 'PROF'::text, 'ELEVE'::text, 'GESTIONNAIRE'::text]);
+        - sql:
+            dbms: postgresql
+            sql: UPDATE public."user" SET roles = '{ELEVE}' WHERE type_personne = 'ELEVE';
+        - dropColumn:
+            tableName: user
+            schemaName: public
+            columnName: type_personne

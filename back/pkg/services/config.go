@@ -33,6 +33,11 @@ type KeycloakConfig struct {
 	Secret                string `yaml:"secret"`
 	Backend_client_id     string `yaml:"backend_client_id"`
 	Backend_client_secret string `yaml:"backend_client_secret"`
+	// CaCert : chemin d'un bundle PEM ajouté aux CA de confiance pour les
+	// appels OIDC (découverte + JWKS). Nécessaire quand l'issuer est servi
+	// avec un certificat d'une CA interne (mkcert en local). La vérification
+	// TLS reste toujours active : jamais d'InsecureSkipVerify.
+	CaCert string `yaml:"ca_cert"`
 }
 
 func LoadConfigYaml[T any](path string) (*T, error) {

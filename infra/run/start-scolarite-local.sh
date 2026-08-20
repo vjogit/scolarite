@@ -14,6 +14,12 @@ set +a
 mkdir -p "/home/vjo/.scolarite/conf"
 envsubst < ./config-local.yaml > "/home/vjo/.scolarite/conf/config.yaml"
 
+# [DEV-LOCAL] CA mkcert mise à disposition du backend (keycloak.ca_cert) :
+# la découverte OIDC vers l'issuer HTTPS reste vérifiée, sans InsecureSkipVerify.
+if command -v mkcert >/dev/null 2>&1; then
+    cp "$(mkcert -CAROOT)/rootCA.pem" "/home/vjo/.scolarite/conf/rootCA.pem"
+fi
+
 export VERSION=$(git -C "$PROJECT_ROOT" describe --tags --always --dirty 2>/dev/null || echo "dev")
 export BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 

@@ -13,15 +13,18 @@ import (
 )
 
 func RouteSalle(r chi.Router) {
-	r.Post("/", CreateSalle)
+	lecture := services.RequireRole(services.RoleConsultation)
+	ecriture := services.RequireRole(services.RoleSallesEcriture)
+
+	r.With(ecriture).Post("/", CreateSalle)
 
 	r.Route("/{salleID}", func(r chi.Router) {
-		r.With(SalleUse).Get("/", FetchSalle)
-		r.With(SalleUse).Put("/", Update)
-		r.Delete("/", Delete)
+		r.With(lecture, SalleUse).Get("/", FetchSalle)
+		r.With(ecriture, SalleUse).Put("/", Update)
+		r.With(ecriture).Delete("/", Delete)
 	})
 
-	r.Get("/", FetchAllSalle)
+	r.With(lecture).Get("/", FetchAllSalle)
 }
 
 func SalleUse(next http.Handler) http.Handler {

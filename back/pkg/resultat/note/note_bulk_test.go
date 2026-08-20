@@ -422,7 +422,7 @@ func ensureUsersExist(ctx context.Context, tx pgx.Tx, nbNotes int) error {
             "lastName" TEXT,
             email TEXT,
             version INTEGER,
-            roles TEXT[]
+            type_personne TEXT
         ) ON COMMIT DROP;`)
 		if err != nil {
 			return err
@@ -430,18 +430,18 @@ func ensureUsersExist(ctx context.Context, tx pgx.Tx, nbNotes int) error {
 		_, err = tx.CopyFrom(
 			ctx,
 			pgx.Identifier{"tmp_users"},
-			[]string{"id", "firstName", "lastName", "email", "version", "roles"},
+			[]string{"id", "firstName", "lastName", "email", "version", "type_personne"},
 			pgx.CopyFromSlice(len(missingUserIDs), func(i int) ([]interface{}, error) {
 				uid := missingUserIDs[i]
-				return []interface{}{uid, fmt.Sprintf("User%d", uid), "Test", fmt.Sprintf("user%d@test.com", uid), 1, []string{"ELEVE"}}, nil
+				return []interface{}{uid, fmt.Sprintf("User%d", uid), "Test", fmt.Sprintf("user%d@test.com", uid), 1, "ELEVE"}, nil
 			}),
 		)
 		if err != nil {
 			return err
 		}
 		_, err = tx.Exec(ctx, `
-        INSERT INTO "user" (id, "firstName", "lastName", email, version, roles)
-        SELECT id, "firstName", "lastName", email, version, roles FROM tmp_users;`)
+        INSERT INTO "user" (id, "firstName", "lastName", email, version, type_personne)
+        SELECT id, "firstName", "lastName", email, version, type_personne FROM tmp_users;`)
 		if err != nil {
 			return err
 		}

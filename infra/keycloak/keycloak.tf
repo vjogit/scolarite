@@ -1,9 +1,12 @@
 # 1. Configuration du Fournisseur Keycloak
+# Identifiants fournis par l'environnement : TF_VAR_keycloak_user /
+# TF_VAR_keycloak_password (alimentés depuis KEYCLOAK_ADMIN /
+# KEYCLOAK_ADMIN_PASSWORD dans le fichier de secrets local).
 provider "keycloak" {
   url       = "${var.keycloak_url}/auth"
   realm     = "master"
-  username  = "admin"
-  password  = "admin"
+  username  = var.keycloak_user
+  password  = var.keycloak_password
   client_id = "admin-cli"
   initial_login = "false"
 }
@@ -25,6 +28,16 @@ resource "keycloak_realm" "cyb_scolarite" {
     ]
     default_locale    = "fr"
   }
+
+  # [DEV-LOCAL] SMTP vers le conteneur Mailpit : il accepte tout, sans
+  # authentification ni TLS. À remplacer par le relais réel lors du chantier
+  # de séparation des environnements — aucun identifiant de production ici.
+  smtp_server {
+    host = "10.20.2.6"
+    port = "1025"
+    from = "no-reply@scolarite.local"
+    from_display_name = "Scolarité (local)"
+  }
 }
 
 resource "keycloak_openid_client" "spa_app" {
@@ -35,10 +48,18 @@ resource "keycloak_openid_client" "spa_app" {
   name = "Application SPA Scolarité"
   enabled = true
   standard_flow_enabled   = true
-  
-  valid_redirect_uris = [for url in var.frontend_urls : "${url}/*"]
+
+  # Client public : PKCE S256 obligatoire, sinon un code d'autorisation
+  # intercepté est échangeable contre un jeton. Le front l'active côté
+  # keycloak-js (pkceMethod: 'S256').
+  pkce_code_challenge_method = "S256"
+
+  # Redirections restreintes à la racine de chaque frontend : la SPA fixe
+  # explicitement redirectUri sur son origine (KeycloakContext.tsx), le
+  # joker "/*" n'est donc pas nécessaire.
+  valid_redirect_uris = [for url in var.frontend_urls : "${url}/"]
   web_origins         = var.frontend_urls
-  valid_post_logout_redirect_uris = [for url in var.frontend_urls : "${url}/*"]
+  valid_post_logout_redirect_uris = [for url in var.frontend_urls : "${url}/"]
 
 }
 
@@ -58,60 +79,118 @@ resource "keycloak_openid_audience_protocol_mapper" "audience_mapper" {
   included_client_audience = keycloak_openid_client.spa_app.client_id
 }
 
-# 4. Création des rôles de Realm "admin" et "eleve"
+# ==========================================================
+# 4. Rôles du realm — modèle « lecture globale, écritures ciblées »
+#
+# CONSULTATION donne la lecture de toute l'application. Chaque rôle
+# *_ECRITURE ouvre les écritures d'un domaine et contient CONSULTATION
+# (composite) : un porteur d'un rôle d'écriture peut toujours lire ce
+# qu'il est censé modifier. ADMIN est un composite des huit rôles
+# fonctionnels : le jeton d'un porteur d'ADMIN expose tous ces rôles
+# dans realm_access.roles, et le code applicatif ne teste jamais ADMIN.
+# ==========================================================
+resource "keycloak_role" "consultation_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "CONSULTATION"
+  description = "Lecture de toute l'application"
+}
+
+resource "keycloak_role" "structure_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "STRUCTURE_ECRITURE"
+  description = "Écriture : formations, promotions, options, périodes, UE, matières, groupes"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "notes_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "NOTES_ECRITURE"
+  description = "Écriture : notes et contrôles"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "jury_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "JURY_ECRITURE"
+  description = "Écriture : délibérations de jury"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "programme_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "PROGRAMME_ECRITURE"
+  description = "Écriture : réservations / programmation des séances"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "salles_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "SALLES_ECRITURE"
+  description = "Écriture : salles"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "certification_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "CERTIFICATION_ECRITURE"
+  description = "Écriture : TOEIC et mobilités internationales"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
+resource "keycloak_role" "utilisateurs_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "UTILISATEURS_ECRITURE"
+  description = "Écriture : gestion des utilisateurs"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
 resource "keycloak_role" "admin_role" {
   realm_id    = keycloak_realm.cyb_scolarite.id
   name        = "ADMIN"
-  description = "Rôle administrateur du Realm Scolarité"
-}
-resource "keycloak_role" "prof_role" {
-  realm_id    = keycloak_realm.cyb_scolarite.id
-  name        = "PROF"
-  description = "Rôle Professeur du Realm Scolarité"
-}
-resource "keycloak_role" "eleve_role" {
-  realm_id    = keycloak_realm.cyb_scolarite.id
-  name        = "ELEVE"
-  description = "Rôle élève (utilisateur standard) du Realm Scolarité"
-}
-
-resource "keycloak_role" "gestionnaire_role" {
-  realm_id    = keycloak_realm.cyb_scolarite.id
-  name        = "GESTIONNAIRE"
-  description = "Rôle gestionnaire du Realm Scolarité"
+  description = "Composite de tous les rôles fonctionnels — jamais testé par le code"
+  composite_roles = [
+    keycloak_role.consultation_role.id,
+    keycloak_role.structure_ecriture_role.id,
+    keycloak_role.notes_ecriture_role.id,
+    keycloak_role.jury_ecriture_role.id,
+    keycloak_role.programme_ecriture_role.id,
+    keycloak_role.salles_ecriture_role.id,
+    keycloak_role.certification_ecriture_role.id,
+    keycloak_role.utilisateurs_ecriture_role.id,
+  ]
 }
 
 
 
 # ==========================================================
-# 5. NOUVEAU : Création de l'utilisateur par défaut "foo"
+# 5. [DEV-LOCAL] Compte de départ "foo"
+# Nécessaire pour la première connexion sur un environnement vierge.
+# Mot de passe temporaire : Keycloak force son remplacement au premier
+# login. Identifiants documentés dans docs/deployements.md. À exclure
+# lors du chantier de séparation des environnements.
 # ==========================================================
 resource "keycloak_user" "default_user_foo" {
   realm_id = keycloak_realm.cyb_scolarite.id
   username = "foo"
-  enabled  = true 
+  enabled  = true
   first_name     = "Default"
   last_name      = "User"
+  email          = "foo@scolarite.local"
   email_verified = true
 
-  # Définition du mot de passe
   initial_password {
-    value     = "foo"
-    temporary = false # Le mot de passe ne sera pas forcé à changer au premier login
+    value     = "Demarrage-Scolarite-2026!"
+    temporary = true # remplacement forcé au premier login
   }
 }
 
-# ==========================================================
-# 6. NOUVEAU : Assignation des rôles "admin" et "eleve" à l'utilisateur "foo"
-# ==========================================================
+# [DEV-LOCAL] Rôle du compte de départ : ADMIN (composite) uniquement.
 resource "keycloak_user_roles" "foo_roles" {
   realm_id = keycloak_realm.cyb_scolarite.id
   user_id  = keycloak_user.default_user_foo.id
 
-  # Référence les IDs des rôles créés précédemment
   role_ids = [
-    keycloak_role.admin_role.id, 
-    keycloak_role.eleve_role.id,
+    keycloak_role.admin_role.id,
   ]
 }
 

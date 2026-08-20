@@ -716,8 +716,8 @@ CREATE TABLE public."user" (
     "lastName" text,
     email text,
     keycloak_id text,
-    roles text[],
-    CONSTRAINT chk_user_roles CHECK ((roles <@ ARRAY['ADMIN'::text, 'PROF'::text, 'ELEVE'::text, 'GESTIONNAIRE'::text]))
+    type_personne text DEFAULT 'AGENT'::text NOT NULL,
+    CONSTRAINT chk_user_type_personne CHECK ((type_personne = ANY (ARRAY['ELEVE'::text, 'AGENT'::text])))
 );
 
 

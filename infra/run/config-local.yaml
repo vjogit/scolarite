@@ -16,3 +16,7 @@ keycloak:
   client: ${KC_CLIENT_ID}
   backend_client_id: ${KC_BACKEND_CLIENT_ID}
   backend_client_secret: ${KC_BACKEND_CLIENT_SECRET}
+  # [DEV-LOCAL] CA mkcert : l'issuer (vite/nginx) est servi avec un certificat
+  # mkcert que le conteneur ne connaît pas. La CA est copiée dans le dossier de
+  # conf par start-scolarite-local.sh. La vérification TLS reste active.
+  ca_cert: /opt/scolarite/conf/rootCA.pem

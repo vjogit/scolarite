@@ -54,27 +54,32 @@ func main() {
 	r.Use(middleware.Logger) // Log HTTP requests
 	r.Use(services.DatabaseMiddleware(&cfg.Database))
 
+	// AuthMiddleware sans rôle : authentification seule (jeton vérifié, rôles
+	// posés dans le contexte). L'autorisation est portée par chaque groupe de
+	// routes via services.RequireRole — lecture pour CONSULTATION, écritures
+	// par rôle de domaine. ADMIN n'est jamais testé : c'est un composite
+	// Keycloak qui expose tous les rôles fonctionnels dans le jeton.
 	r.Route("/api/v0/structure", func(r chi.Router) {
-		r.Use(services.AuthMiddleware(&cfg.Keycloak, "ADMIN"))
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		structure.RouteStructure(r)
 	})
 
 	r.Route("/api/v0/resultat", func(r chi.Router) {
-		r.Use(services.AuthMiddleware(&cfg.Keycloak, "ADMIN"))
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		resultat.RouteResultat(r)
 	})
 	r.Route("/api/v0/certification", func(r chi.Router) {
-		r.Use(services.AuthMiddleware(&cfg.Keycloak, "ADMIN"))
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		certification.RouteToeic(r)
 	})
 
 	r.Route("/api/v0/user", func(r chi.Router) {
-		r.Use(services.AuthMiddleware(&cfg.Keycloak, "ADMIN"))
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		user.RouteUser(r, &cfg.Keycloak)
 	})
 
 	r.Route("/api/v0/planning", func(r chi.Router) {
-		r.Use(services.AuthMiddleware(&cfg.Keycloak, "ADMIN"))
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		planning.RoutePlanning(r)
 	})
 
