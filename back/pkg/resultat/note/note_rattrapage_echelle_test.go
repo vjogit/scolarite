@@ -85,14 +85,10 @@ func TestRattrapageValide_SuitLeSeuilEDeLEchelle(t *testing.T) {
 		require.Equal(t, "E", stats[0].GradeLettre)
 	})
 
-	t.Run("GPA de période", func(t *testing.T) {
-		gpa, err := queries.FetchNotesByPeriodeID(ctx, periodeID)
-		require.NoError(t, err)
-		require.Len(t, gpa, 1)
-		require.NotNil(t, gpa[0].Note)
-		// UE au grade E → gpa_index 5 → echelle_gpa[5] = 2.
-		// Avec le littéral 8, la moyenne d'UE tombait sous echelle[5] : grade F,
-		// gpa_index 0, et un GPA de 0.
-		require.Equal(t, float64(2), *gpa[0].Note)
-	})
+	// Le GPA de période n'est plus calculé ici : il vient du relevé de jury.
+	// La conséquence du seuil sur le GPA — UE au grade E → gpa_index 5 →
+	// echelle_gpa[5] = 2, là où le littéral 8 donnait un grade F et un GPA nul —
+	// est vérifiée par TestRattrapageEchelle_GpaVientDuJury, dans le paquet
+	// jury, sur get_gpa_ues_by_periode_v5.
+	_ = periodeID
 }

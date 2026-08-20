@@ -43,6 +43,7 @@ matieres_finales AS (
         mb.user_id,
         mb.matiere_coeff,
         mb.has_not_evaluated,
+        mb.nb_rattrapages_valides > 0 AS est_rattrapee,
         CASE
             WHEN mb.has_not_evaluated          THEN NULL
             WHEN mb.nb_rattrapages_valides > 0 THEN cr.echelle[5]::float
@@ -53,9 +54,19 @@ matieres_finales AS (
 ),
 ue_calc AS (
     -- 4. Calcul de l'UE, propagation N.E., vérification de la règle d'élimination
+    --
+    -- Le test porte sur `moyenne_finale_matiere IS NULL` et non sur
+    -- `has_not_evaluated` : il couvre le N.E. et tout autre cas où la matière
+    -- ne produit aucune moyenne — par exemple un rattrapage non validé sans
+    -- contrôle normal noté. C'est aussi ce qui rend la moyenne d'UE sûre :
+    -- `SUM` écarte les NULL du numérateur mais garde leur coefficient au
+    -- dénominateur, si bien qu'une matière sans moyenne diluait le résultat.
+    -- Une élève évaluée 16 dans sa seule matière notée s'affichait 5.33.
+    -- L'UE ne peut plus être calculée sur un dénominateur incomplet.
     SELECT
         mf.user_id,
-        BOOL_OR(mf.has_not_evaluated) AS is_not_evaluated,
+        BOOL_OR(mf.moyenne_finale_matiere IS NULL) AS is_not_evaluated,
+        BOOL_OR(mf.est_rattrapee)                  AS a_matiere_rattrapee,
         (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) / NULLIF(SUM(mf.matiere_coeff), 0))::float AS moyenne_ue,
         BOOL_OR(
             cr.matiere_eliminatoire IS TRUE
@@ -70,8 +81,15 @@ SELECT
     u.id AS user_id,
     u."firstName",
     u."lastName",
-    uc.moyenne_ue::my_null_float AS note,
-    uc.est_elimine::my_null_bool AS a_matiere_eliminatoire,
+    -- Une UE non évaluée n'a pas de note : elle ne vaut pas la moyenne de ses
+    -- seules matières évaluées. Le grade disait déjà « N.E. » pendant que la
+    -- colonne note affichait un nombre — deux verdicts contradictoires sur la
+    -- même ligne.
+    CASE WHEN uc.is_not_evaluated THEN NULL ELSE uc.moyenne_ue END::my_null_float AS note,
+    -- Idem : sans moyenne complète, on ne sait pas si une matière est
+    -- éliminatoire. `BOOL_OR` écartait les comparaisons NULL et concluait
+    -- « non », ce qui est une affirmation qu'on ne peut pas soutenir.
+    CASE WHEN uc.is_not_evaluated THEN NULL ELSE uc.est_elimine END::my_null_bool AS a_matiere_eliminatoire,
 
     CASE
         WHEN uc.is_not_evaluated                THEN 'N.E.'
@@ -82,7 +100,18 @@ SELECT
         WHEN uc.moyenne_ue >= cr.echelle[4]     THEN 'D'
         WHEN uc.moyenne_ue >= cr.echelle[5]     THEN 'E'
         ELSE 'F'
-    END AS grade_lettre
+    END AS grade_lettre,
+
+    -- D'où vient la moyenne ci-dessus. Voir note_read_matiere.sql : la colonne
+    -- ne calcule rien, elle nomme le calcul. Ici « rattrapage » signifie qu'au
+    -- moins une matière de l'UE a été portée au seuil « E » par un rattrapage
+    -- validé, et que la moyenne d'UE en hérite — elle ne correspond donc pas
+    -- entièrement aux copies rendues.
+    CASE
+        WHEN uc.is_not_evaluated   THEN 'non_evaluee'
+        WHEN uc.a_matiere_rattrapee THEN 'rattrapage'
+        ELSE 'moyenne'
+    END AS provenance
 
 FROM ue_calc uc
 JOIN public."user" u ON uc.user_id = u.id

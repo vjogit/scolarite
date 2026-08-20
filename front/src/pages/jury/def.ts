@@ -63,6 +63,32 @@ export interface JuryResult {
   delibere_at: string;
 }
 
+/**
+ * Grade rendu par la fonction de jury pour une UE dont une matière au moins
+ * n'a pas de moyenne. Même littéral que `GRADE_NON_EVALUE` côté serveur.
+ */
+export const GRADE_NON_EVALUE = 'N.E.';
+
+/**
+ * Les UE non évaluées d'un élève, nommées.
+ *
+ * Un dossier qui en porte une n'est pas délibérable : l'élève repassera en jury
+ * quand ses notes seront complètes. Le serveur refuse déjà la délibération ;
+ * cette fonction sert à le dire avant l'envoi plutôt qu'après le 409, et à
+ * nommer les UE en cause.
+ */
+export function uesNonEvaluees(
+    statsUe: JuryData['statsUe'],
+    ues: readonly Ue[],
+    userID: number,
+): string[] {
+    const parUe = statsUe[userID];
+    if (!parUe) return [];
+    return ues
+        .filter(ue => parUe[ue.id]?.grade_lettre === GRADE_NON_EVALUE)
+        .map(ue => ue.nom);
+}
+
 // JuryData contient toutes les données nécessaires
 export interface JuryData {
   // En Go, le pointeur *Hierarchie indique qu'il peut être nul

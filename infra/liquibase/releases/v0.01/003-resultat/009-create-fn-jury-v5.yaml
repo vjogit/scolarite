@@ -1,14 +1,14 @@
 databaseChangeLog:
   - changeSet:
-      id: 015-create-fn-jury-v4
+      id: 016-create-fn-jury-v5
       author: dev
-      comment: "Fonction get_gpa_ues_by_periode_v4 : calcul GPA période courante (dynamique) + GPA cumulé depuis jury_result (snapshot délibéré). Remplace periodes_concernees multi-périodes par une lecture de jury_result pour les périodes passées, permettant la gestion des redoublants et du parcours inter-promotions."
+      comment: "Fonction get_gpa_ues_by_periode_v5 : aligne le jury sur les écrans Notes. Le rattrapage validé s'applique désormais au niveau matière (seuil echelle[5]) et non plus au niveau UE, une UE dont une matière n'a pas de moyenne devient non évaluée au lieu d'être calculée sur un dénominateur incomplet, une seule UE non évaluée annule le GPA de la période, et le dénominateur ECTS compte toutes les UE suivies."
       changes:
         - sql:
             splitStatements: false
             dbms: postgresql
             sql: |
-             CREATE OR REPLACE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer)
+             CREATE OR REPLACE FUNCTION public.get_gpa_ues_by_periode_v5(p_periode_id integer)
               RETURNS TABLE (
                   user_id                     integer,
                   first_name                  public.my_null_string,
@@ -82,13 +82,20 @@ databaseChangeLog:
                      OR (c.is_rattrapage = TRUE  AND n.is_validated IS NOT NULL)
                   GROUP BY n.user_id, m.id, m.unite_enseignement_id, ue.periode_id, m.coeff
               ),
+              -- Le rattrapage validé vaut le seuil « E » de la promotion, appliqué
+              -- ICI, au niveau de la matière — comme le fait note_read_ue.sql.
+              -- La v4 l'appliquait au niveau de l'UE et laissait la matière à sa
+              -- moyenne S1, si bien qu'une matière rattrapée restait sous le
+              -- seuil éliminatoire et faisait échouer l'UE : le même élève
+              -- ressortait E côté Notes et F côté Jury.
               matieres_finales AS (
                   SELECT
                       user_id, matiere_id, unite_enseignement_id, periode_id,
                       matiere_coeff, moyenne_s1, nb_rattrapages_valides,
                       nb_total_rattrapages, has_not_evaluated,
-                      CASE WHEN has_not_evaluated
-                          THEN NULL
+                      CASE
+                          WHEN has_not_evaluated          THEN NULL
+                          WHEN nb_rattrapages_valides > 0 THEN (SELECT echelle[5]::float FROM context_rules)
                           ELSE moyenne_s1
                       END AS moyenne_finale_matiere
                   FROM matieres_brutes
@@ -101,14 +108,9 @@ databaseChangeLog:
                       ue.ects,
                       ue.academique,
                       cr.echelle,
-                      BOOL_OR(mf.has_not_evaluated)                                  AS is_not_evaluated,
-                      CASE
-                          WHEN SUM(mf.nb_total_rattrapages) > 0
-                           AND SUM(mf.nb_rattrapages_valides) = SUM(mf.nb_total_rattrapages)
-                              THEN cr.echelle[5]::float
-                          ELSE (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) /
-                               NULLIF(SUM(mf.matiere_coeff), 0))::float
-                      END                                                              AS moyenne_ue,
+                      BOOL_OR(mf.moyenne_finale_matiere IS NULL)                      AS is_not_evaluated,
+                      (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) /
+                       NULLIF(SUM(mf.matiere_coeff), 0))::float                        AS moyenne_ue,
                       BOOL_OR(
                           cr.matiere_eliminatoire IS TRUE
                           AND mf.moyenne_finale_matiere < cr.value_matiere_eliminatoire
@@ -128,7 +130,8 @@ databaseChangeLog:
                       uc.unite_enseignement_id,
                       uc.ects,
                       uc.academique,
-                      uc.moyenne_ue,
+                      uc.is_not_evaluated,
+                      CASE WHEN uc.is_not_evaluated THEN NULL ELSE uc.moyenne_ue END   AS moyenne_ue,
                       CASE
                           WHEN uc.is_not_evaluated                 THEN NULL
                           WHEN uc.moyenne_ue IS NULL               THEN NULL
@@ -157,20 +160,27 @@ databaseChangeLog:
                   SELECT
                       ug.user_id,
                       SUM(ug.ects) FILTER (WHERE ug.gpa_index > 0)                    AS total_ects_valides,
-                      SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL)             AS total_ects_periode,
-                      (SUM(
+                      -- Dénominateur : toutes les UE que l'élève suit, non évaluées
+                      -- comprises. La v4 les écartait, si bien qu'une élève à qui
+                      -- il manquait une UE de 6 ECTS lisait « 4 / 4 », soit 100 %
+                      -- validés. Une UE que l'élève ne suit pas ne produit aucune
+                      -- ligne et reste, elle, hors du décompte.
+                      SUM(ug.ects)                                                    AS total_ects_periode,
+                      -- Une seule UE non évaluée annule le GPA : le semestre n'est
+                      -- pas terminé, l'élève repassera en jury une fois complet.
+                      CASE WHEN BOOL_OR(ug.is_not_evaluated) THEN NULL ELSE (SUM(
                           CASE WHEN ug.gpa_index IS NULL THEN 0
                                WHEN ug.gpa_index = 0    THEN 0
                                ELSE cr.echelle_gpa[ug.gpa_index]
                           END * ug.ects
-                      ) / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL), 0))::float AS gpa_periode,
-                      (SUM(
+                      ) / NULLIF(SUM(ug.ects), 0)) END::float AS gpa_periode,
+                      CASE WHEN BOOL_OR(ug.is_not_evaluated) THEN NULL ELSE (SUM(
                           CASE WHEN ug.gpa_index IS NULL THEN 0
                                WHEN ug.gpa_index = 0    THEN 0
                                ELSE cr.echelle_gpa[ug.gpa_index]
                           END * ug.ects
                       ) FILTER (WHERE ug.academique = TRUE)
-                      / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL AND ug.academique = TRUE), 0))::float AS gpa_academique_periode
+                      / NULLIF(SUM(ug.ects) FILTER (WHERE ug.academique = TRUE), 0)) END::float AS gpa_academique_periode
                   FROM ues_with_gpa_index ug
                   CROSS JOIN context_rules cr
                   GROUP BY ug.user_id
@@ -233,9 +243,9 @@ databaseChangeLog:
               JOIN gpa_par_periode gpp   ON gpp.user_id = gc.user_id
               JOIN ues_with_gpa_index ug ON ug.user_id  = gc.user_id
               JOIN public."user" u       ON u.id        = gc.user_id
-              ORDER BY gc.gpa_cumule DESC, u."lastName";
+              ORDER BY gc.gpa_cumule DESC NULLS LAST, u."lastName";
               $$;
 
       rollback:
         - sql:
-            sql: DROP FUNCTION IF EXISTS public.get_gpa_ues_by_periode_v4(integer);
+            sql: DROP FUNCTION IF EXISTS public.get_gpa_ues_by_periode_v5(integer);

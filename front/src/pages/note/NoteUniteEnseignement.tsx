@@ -71,7 +71,7 @@ const noteUeColumns: MRT_ColumnDef<NoteUe>[] = [
         }
     },
     { accessorKey: 'grade_lettre', header: 'Grade' },
-    { accessorFn: (data) => data.a_matiere_eliminatoire ? 'Oui' : '-', header: 'Matiere eliminatoire' },
+    { accessorFn: (data) => data.a_matiere_eliminatoire ? 'Oui' : '-', header: 'Matière éliminatoire' },
 ]
 
 export const createNoteUeViewConfig = (ueId: string): ViewConfig<NoteUe> => {

@@ -218,7 +218,7 @@ func (s *JuryService) getHierarchy(ctx context.Context) (*Hierarchie, error) {
 // fetchElevesStats récupère depuis la DB les données GPA et notes par UE de chaque étudiant
 func (s *JuryService) fetchElevesStats(ctx context.Context) (map[int32]JuryStat, map[int32]map[int32]UeStat, error) {
 	//rows, err := s.queries.FetchGpaAndUesByPeriodeID(ctx, s.periodeID)
-	rows, err := s.queries.Get_gpa_ues_by_periode_v3(ctx, s.periodeID)
+	rows, err := s.queries.Get_gpa_ues_by_periode_v5(ctx, s.periodeID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("erreur lors de la récupération des notes: %v", err)
 	}

@@ -37,203 +37,7 @@ CREATE DOMAIN public.my_null_string AS text;
 
 
 
-CREATE FUNCTION public.get_gpa_ues_by_periode_v3(p_periode_id integer) RETURNS TABLE(user_id integer, first_name public.my_null_string, last_name public.my_null_string, gpa_periode public.my_null_float, gpa_academique_periode public.my_null_float, total_ects_valides public.my_null_float, total_ects_periode public.my_null_float, gpa_cumule public.my_null_float, total_ects_valides_cumule public.my_null_float, total_ects_cumule public.my_null_float, unite_enseignement_id integer, moyenne_ue public.my_null_float, grade_lettre public.my_null_string, ects_ue public.my_null_float)
-    LANGUAGE sql STABLE
-    AS $$
- WITH
- periode_courante AS (
-     SELECT
-         p.id                            AS periode_id,
-         p.debut                         AS periode_debut,
-         o.promotion_id,
-         prom.matiere_eliminatoire,
-         prom.value_matiere_eliminatoire,
-         prom.echelle_gpa,
-         prom.echelle
-     FROM public.periode p
-     JOIN public.option o       ON p.option_id    = o.id
-     JOIN public.promotion prom ON o.promotion_id = prom.id
-     WHERE p.id = p_periode_id
-     LIMIT 1
- ),
- periodes_concernees AS (
-     SELECT p.id AS periode_id
-     FROM public.periode p
-     JOIN public.option o     ON p.option_id    = o.id
-     JOIN periode_courante pc ON o.promotion_id = pc.promotion_id
-     WHERE p.debut <= pc.periode_debut
- ),
- context_rules AS (
-     SELECT
-         matiere_eliminatoire,
-         value_matiere_eliminatoire,
-         echelle_gpa,
-         echelle
-     FROM periode_courante
- ),
- matieres_brutes AS (
-     SELECT
-         n.user_id,
-         m.id                                                             AS matiere_id,
-         m.unite_enseignement_id,
-         ue.periode_id,
-         m.coeff                                                          AS matiere_coeff,
-         (SUM(n.note * c.coeff) FILTER (WHERE c.is_rattrapage = FALSE
-                                          AND n.not_evaluated = FALSE) /
-          NULLIF(SUM(c.coeff)   FILTER (WHERE c.is_rattrapage = FALSE
-                                          AND n.not_evaluated = FALSE), 0)
-         )::float                                                         AS moyenne_s1,
-         COUNT(n.id) FILTER (WHERE c.is_rattrapage = TRUE
-                                 AND n.is_validated = TRUE)               AS nb_rattrapages_valides,
-         COUNT(n.id) FILTER (WHERE c.is_rattrapage = TRUE)               AS nb_total_rattrapages,
-         BOOL_OR(n.not_evaluated)
-             FILTER (WHERE c.is_rattrapage = FALSE)                      AS has_not_evaluated
-     FROM periodes_concernees pc
-     JOIN public.unite_enseignement ue ON ue.periode_id          = pc.periode_id
-     JOIN public.matiere m             ON m.unite_enseignement_id = ue.id
-     JOIN public.controle c            ON c.matiere_id           = m.id
-     JOIN public.note n                ON n.controle_id          = c.id
-     WHERE (c.is_rattrapage = FALSE AND (n.note IS NOT NULL OR n.not_evaluated = TRUE))
-        OR (c.is_rattrapage = TRUE  AND n.is_validated IS NOT NULL)
-     GROUP BY n.user_id, m.id, m.unite_enseignement_id, ue.periode_id, m.coeff
- ),
- matieres_finales AS (
-     SELECT
-         user_id,
-         matiere_id,
-         unite_enseignement_id,
-         periode_id,
-         matiere_coeff,
-         moyenne_s1,
-         nb_rattrapages_valides,
-         nb_total_rattrapages,
-         has_not_evaluated,
-         CASE WHEN has_not_evaluated
-             THEN NULL
-             ELSE moyenne_s1
-         END                                                              AS moyenne_finale_matiere
-     FROM matieres_brutes
- ),
- ues_calc AS (
-     SELECT
-         mf.user_id,
-         mf.periode_id,
-         mf.unite_enseignement_id,
-         ue.ects,
-         ue.academique,
-         cr.echelle,
-         BOOL_OR(mf.has_not_evaluated)                                  AS is_not_evaluated,
-         CASE
-             WHEN SUM(mf.nb_total_rattrapages) > 0
-              AND SUM(mf.nb_rattrapages_valides) = SUM(mf.nb_total_rattrapages)
-                 THEN cr.echelle[5]::float
-             ELSE (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) /
-                  NULLIF(SUM(mf.matiere_coeff), 0))::float
-         END                                                              AS moyenne_ue,
-         BOOL_OR(
-             cr.matiere_eliminatoire IS TRUE
-             AND mf.moyenne_finale_matiere < cr.value_matiere_eliminatoire
-         )                                                                AS est_elimine
-     FROM matieres_finales mf
-     JOIN public.unite_enseignement ue ON mf.unite_enseignement_id = ue.id
-     CROSS JOIN context_rules cr
-     GROUP BY
-         mf.user_id, mf.periode_id, mf.unite_enseignement_id,
-         ue.ects, ue.academique, cr.echelle,
-         cr.matiere_eliminatoire, cr.value_matiere_eliminatoire
- ),
- ues_with_gpa_index AS (
-     SELECT
-         uc.user_id,
-         uc.periode_id,
-         uc.unite_enseignement_id,
-         uc.ects,
-         uc.academique,
-         uc.moyenne_ue,
-         CASE
-             WHEN uc.is_not_evaluated                 THEN NULL
-             WHEN uc.moyenne_ue IS NULL               THEN NULL
-             WHEN uc.est_elimine                      THEN 0
-             WHEN uc.moyenne_ue >= uc.echelle[1]      THEN 1
-             WHEN uc.moyenne_ue >= uc.echelle[2]      THEN 2
-             WHEN uc.moyenne_ue >= uc.echelle[3]      THEN 3
-             WHEN uc.moyenne_ue >= uc.echelle[4]      THEN 4
-             WHEN uc.moyenne_ue >= uc.echelle[5]      THEN 5
-             ELSE 0
-         END AS gpa_index,
-         CASE
-             WHEN uc.is_not_evaluated                 THEN 'N.E.'
-             WHEN uc.moyenne_ue IS NULL               THEN NULL
-             WHEN uc.est_elimine                      THEN 'F'
-             WHEN uc.moyenne_ue >= uc.echelle[1]      THEN 'A'
-             WHEN uc.moyenne_ue >= uc.echelle[2]      THEN 'B'
-             WHEN uc.moyenne_ue >= uc.echelle[3]      THEN 'C'
-             WHEN uc.moyenne_ue >= uc.echelle[4]      THEN 'D'
-             WHEN uc.moyenne_ue >= uc.echelle[5]      THEN 'E'
-             ELSE 'F'
-         END AS grade_lettre
-     FROM ues_calc uc
- ),
- gpa_par_periode AS (
-     SELECT
-         ug.user_id,
-         ug.periode_id,
-         SUM(ug.ects) FILTER (WHERE ug.gpa_index > 0)                    AS total_ects_valides,
-         SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL)             AS total_ects_periode,
-         (SUM(
-             CASE WHEN ug.gpa_index IS NULL THEN 0
-                  WHEN ug.gpa_index = 0    THEN 0
-                  ELSE cr.echelle_gpa[ug.gpa_index]
-             END * ug.ects
-         ) / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL), 0))::float AS gpa_periode,
-         (SUM(
-             CASE WHEN ug.gpa_index IS NULL THEN 0
-                  WHEN ug.gpa_index = 0    THEN 0
-                  ELSE cr.echelle_gpa[ug.gpa_index]
-             END * ug.ects
-         ) FILTER (WHERE ug.academique = TRUE)
-         / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL AND ug.academique = TRUE), 0))::float AS gpa_academique_periode
-     FROM ues_with_gpa_index ug
-     CROSS JOIN context_rules cr
-     GROUP BY ug.user_id, ug.periode_id
- ),
- gpa_cumule AS (
-     SELECT
-         user_id,
-         SUM(total_ects_valides)                                          AS total_ects_valides_cumule,
-         SUM(total_ects_periode)                                          AS total_ects_cumule,
-         (SUM(gpa_periode * total_ects_periode) /
-          NULLIF(SUM(total_ects_periode), 0))::float                      AS gpa_cumule
-     FROM gpa_par_periode
-     GROUP BY user_id
- )
- SELECT
-     u.id::integer,
-     u."firstName"::public.my_null_string,
-     u."lastName"::public.my_null_string,
-     gpp.gpa_periode::public.my_null_float,
-     gpp.gpa_academique_periode::public.my_null_float,
-     gpp.total_ects_valides::public.my_null_float,
-     gpp.total_ects_periode::public.my_null_float,
-     gc.gpa_cumule::public.my_null_float,
-     gc.total_ects_valides_cumule::public.my_null_float,
-     gc.total_ects_cumule::public.my_null_float,
-     ug.unite_enseignement_id::integer,
-     ug.moyenne_ue::public.my_null_float,
-     ug.grade_lettre::public.my_null_string,
-     ug.ects::public.my_null_float AS ects_ue
- FROM gpa_cumule gc
- JOIN gpa_par_periode gpp   ON gpp.user_id    = gc.user_id
-                          AND gpp.periode_id = p_periode_id
- JOIN ues_with_gpa_index ug ON ug.user_id     = gc.user_id
-                          AND ug.periode_id  = p_periode_id
- JOIN public."user" u       ON u.id           = gc.user_id
- ORDER BY gc.gpa_cumule DESC, u."lastName";
- $$;
-
-
-
-CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS TABLE(user_id integer, first_name public.my_null_string, last_name public.my_null_string, gpa_periode public.my_null_float, gpa_academique_periode public.my_null_float, total_ects_valides public.my_null_float, total_ects_periode public.my_null_float, gpa_cumule public.my_null_float, total_ects_valides_cumule public.my_null_float, total_ects_cumule public.my_null_float, unite_enseignement_id integer, moyenne_ue public.my_null_float, grade_lettre public.my_null_string, ects_ue public.my_null_float)
+CREATE FUNCTION public.get_gpa_ues_by_periode_v5(p_periode_id integer) RETURNS TABLE(user_id integer, first_name public.my_null_string, last_name public.my_null_string, gpa_periode public.my_null_float, gpa_academique_periode public.my_null_float, total_ects_valides public.my_null_float, total_ects_periode public.my_null_float, gpa_cumule public.my_null_float, total_ects_valides_cumule public.my_null_float, total_ects_cumule public.my_null_float, unite_enseignement_id integer, moyenne_ue public.my_null_float, grade_lettre public.my_null_string, ects_ue public.my_null_float)
     LANGUAGE sql STABLE
     AS $$
  WITH
@@ -290,13 +94,20 @@ CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS T
         OR (c.is_rattrapage = TRUE  AND n.is_validated IS NOT NULL)
      GROUP BY n.user_id, m.id, m.unite_enseignement_id, ue.periode_id, m.coeff
  ),
+ -- Le rattrapage validé vaut le seuil « E » de la promotion, appliqué
+ -- ICI, au niveau de la matière — comme le fait note_read_ue.sql.
+ -- La v4 l'appliquait au niveau de l'UE et laissait la matière à sa
+ -- moyenne S1, si bien qu'une matière rattrapée restait sous le
+ -- seuil éliminatoire et faisait échouer l'UE : le même élève
+ -- ressortait E côté Notes et F côté Jury.
  matieres_finales AS (
      SELECT
          user_id, matiere_id, unite_enseignement_id, periode_id,
          matiere_coeff, moyenne_s1, nb_rattrapages_valides,
          nb_total_rattrapages, has_not_evaluated,
-         CASE WHEN has_not_evaluated
-             THEN NULL
+         CASE
+             WHEN has_not_evaluated          THEN NULL
+             WHEN nb_rattrapages_valides > 0 THEN (SELECT echelle[5]::float FROM context_rules)
              ELSE moyenne_s1
          END AS moyenne_finale_matiere
      FROM matieres_brutes
@@ -309,14 +120,9 @@ CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS T
          ue.ects,
          ue.academique,
          cr.echelle,
-         BOOL_OR(mf.has_not_evaluated)                                  AS is_not_evaluated,
-         CASE
-             WHEN SUM(mf.nb_total_rattrapages) > 0
-              AND SUM(mf.nb_rattrapages_valides) = SUM(mf.nb_total_rattrapages)
-                 THEN cr.echelle[5]::float
-             ELSE (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) /
-                  NULLIF(SUM(mf.matiere_coeff), 0))::float
-         END                                                              AS moyenne_ue,
+         BOOL_OR(mf.moyenne_finale_matiere IS NULL)                      AS is_not_evaluated,
+         (SUM(mf.moyenne_finale_matiere * mf.matiere_coeff) /
+          NULLIF(SUM(mf.matiere_coeff), 0))::float                        AS moyenne_ue,
          BOOL_OR(
              cr.matiere_eliminatoire IS TRUE
              AND mf.moyenne_finale_matiere < cr.value_matiere_eliminatoire
@@ -336,7 +142,8 @@ CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS T
          uc.unite_enseignement_id,
          uc.ects,
          uc.academique,
-         uc.moyenne_ue,
+         uc.is_not_evaluated,
+         CASE WHEN uc.is_not_evaluated THEN NULL ELSE uc.moyenne_ue END   AS moyenne_ue,
          CASE
              WHEN uc.is_not_evaluated                 THEN NULL
              WHEN uc.moyenne_ue IS NULL               THEN NULL
@@ -365,20 +172,27 @@ CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS T
      SELECT
          ug.user_id,
          SUM(ug.ects) FILTER (WHERE ug.gpa_index > 0)                    AS total_ects_valides,
-         SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL)             AS total_ects_periode,
-         (SUM(
+         -- Dénominateur : toutes les UE que l'élève suit, non évaluées
+         -- comprises. La v4 les écartait, si bien qu'une élève à qui
+         -- il manquait une UE de 6 ECTS lisait « 4 / 4 », soit 100 %
+         -- validés. Une UE que l'élève ne suit pas ne produit aucune
+         -- ligne et reste, elle, hors du décompte.
+         SUM(ug.ects)                                                    AS total_ects_periode,
+         -- Une seule UE non évaluée annule le GPA : le semestre n'est
+         -- pas terminé, l'élève repassera en jury une fois complet.
+         CASE WHEN BOOL_OR(ug.is_not_evaluated) THEN NULL ELSE (SUM(
              CASE WHEN ug.gpa_index IS NULL THEN 0
                   WHEN ug.gpa_index = 0    THEN 0
                   ELSE cr.echelle_gpa[ug.gpa_index]
              END * ug.ects
-         ) / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL), 0))::float AS gpa_periode,
-         (SUM(
+         ) / NULLIF(SUM(ug.ects), 0)) END::float AS gpa_periode,
+         CASE WHEN BOOL_OR(ug.is_not_evaluated) THEN NULL ELSE (SUM(
              CASE WHEN ug.gpa_index IS NULL THEN 0
                   WHEN ug.gpa_index = 0    THEN 0
                   ELSE cr.echelle_gpa[ug.gpa_index]
              END * ug.ects
          ) FILTER (WHERE ug.academique = TRUE)
-         / NULLIF(SUM(ug.ects) FILTER (WHERE ug.gpa_index IS NOT NULL AND ug.academique = TRUE), 0))::float AS gpa_academique_periode
+         / NULLIF(SUM(ug.ects) FILTER (WHERE ug.academique = TRUE), 0)) END::float AS gpa_academique_periode
      FROM ues_with_gpa_index ug
      CROSS JOIN context_rules cr
      GROUP BY ug.user_id
@@ -441,7 +255,7 @@ CREATE FUNCTION public.get_gpa_ues_by_periode_v4(p_periode_id integer) RETURNS T
  JOIN gpa_par_periode gpp   ON gpp.user_id = gc.user_id
  JOIN ues_with_gpa_index ug ON ug.user_id  = gc.user_id
  JOIN public."user" u       ON u.id        = gc.user_id
- ORDER BY gc.gpa_cumule DESC, u."lastName";
+ ORDER BY gc.gpa_cumule DESC NULLS LAST, u."lastName";
  $$;
 
 

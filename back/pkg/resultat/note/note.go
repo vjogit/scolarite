@@ -263,13 +263,13 @@ func fetchPeriode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	notes, err := queries.FetchNotesByPeriodeID(r.Context(), int32(pID))
+	notes, err := queries.FetchGpaDelibereByPeriodeID(r.Context(), int32(pID))
 	if err != nil {
 		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
 		return
 	}
 	if notes == nil {
-		notes = []gen.FetchNotesByPeriodeIDRow{}
+		notes = []gen.FetchGpaDelibereByPeriodeIDRow{}
 	}
 
 	render.JSON(w, r, notes)

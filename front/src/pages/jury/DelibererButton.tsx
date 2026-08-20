@@ -19,9 +19,14 @@ interface Props {
     isDelibere: boolean;
     /** undefined tant que la liste des délibérations n'est pas chargée */
     compteCumulActuel?: boolean;
+    /**
+     * UE non évaluées de l'élève. Non vide, le dossier est incomplet et la
+     * délibération est refusée — ici comme au serveur.
+     */
+    uesNonEvaluees?: readonly string[];
 }
 
-export function DelibererButton({ periodeId, userId, userName, isDelibere, compteCumulActuel }: Props) {
+export function DelibererButton({ periodeId, userId, userName, isDelibere, compteCumulActuel, uesNonEvaluees = [] }: Props) {
     const [open, setOpen] = useState(false);
     const [compteCumul, setCompteCumul] = useState(compteCumulActuel ?? true);
     const notifications = useNotifications();
@@ -70,6 +75,36 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         disabled={annuler.isPending}
                     >
                         {annuler.isPending ? <CircularProgress size={16} /> : <UndoIcon fontSize="small" />}
+                    </IconButton>
+                </span>
+            </Tooltip>
+        );
+    }
+
+    // Dossier incomplet : le bouton reste visible mais inerte, et l'infobulle
+    // nomme les UE en cause. Laisser cliquer pour n'obtenir qu'un 409 ferait
+    // porter au serveur une explication que l'écran a déjà sous la main.
+    if (uesNonEvaluees.length > 0) {
+        return (
+            <Tooltip
+                title={
+                    <>
+                        Délibération impossible : dossier incomplet.
+                        <br />
+                        {uesNonEvaluees.length > 1 ? 'Unités non évaluées' : 'Unité non évaluée'} :{' '}
+                        {uesNonEvaluees.join(', ')}.
+                        <br />
+                        {userName} repassera en jury une fois ses notes complètes.
+                    </>
+                }
+            >
+                <span>
+                    <IconButton
+                        size="small"
+                        disabled
+                        aria-label={`Délibération impossible pour ${userName} : dossier incomplet`}
+                    >
+                        <GavelIcon fontSize="small" />
                     </IconButton>
                 </span>
             </Tooltip>

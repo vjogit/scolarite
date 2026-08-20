@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 017-drop-fn-jury-v3-v4
+      author: dev
+      comment: >-
+        Suppression des fonctions de jury v3 et v4, remplacées par la v5.
+        Les trois coexistaient et ne calculaient pas la même chose : l'écran de
+        jury, l'export Excel et les bulletins lisaient la v3 pendant que la
+        délibération lisait la v4, si bien qu'un même élève pouvait être affiché
+        validé et délibéré recalé. La v5 est désormais le seul calcul, et ce
+        changeset retire les deux autres des bases déjà migrées — leurs
+        changesets de création ont été retirés du changelog, une base neuve ne
+        les crée donc jamais et ce DROP n'y trouve rien à faire.
+      changes:
+        - sql:
+            splitStatements: false
+            dbms: postgresql
+            sql: |
+              DROP FUNCTION IF EXISTS public.get_gpa_ues_by_periode_v4(integer);
+              DROP FUNCTION IF EXISTS public.get_gpa_ues_by_periode_v3(integer);
+
+      # Irréversible par nature : le corps des fonctions supprimées n'est pas
+      # conservé ici. Revenir en arrière suppose de reprendre les changesets
+      # 005 et 007 dans l'historique du dépôt.
+      rollback:
+        - empty

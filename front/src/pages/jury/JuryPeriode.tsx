@@ -2,6 +2,7 @@ import { Box, Button, Chip, darken, Tooltip, Typography } from '@mui/material';
 import { useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JuryData, JuryResult, StudentEntry } from './def';
+import { uesNonEvaluees } from './def';
 import { apiInstance } from '../../services/api';
 import { handleAxiosError } from '../../services/crud/def';
 import { messageForError } from '../../services/errorMessages';
@@ -176,6 +177,20 @@ export const JuryPeriode = () => {
     const nbDeliberes = deliberationByUser.size;
     const nbTotal = data?.students?.length ?? 0;
 
+    // userID → UE non évaluées. Un dossier incomplet ne se délibère pas : le
+    // serveur le refuse, l'écran doit le dire avant l'envoi et nommer les UE.
+    const dossiersIncomplets = useMemo(() => {
+        const map = new Map<number, string[]>();
+        if (!data?.hierarchy) return map;
+        for (const eleve of data.students) {
+            const ues = uesNonEvaluees(data.statsUe, data.hierarchy.ues, eleve.userID);
+            if (ues.length > 0) map.set(eleve.userID, ues);
+        }
+        return map;
+    }, [data]);
+
+    const nbIncomplets = dossiersIncomplets.size;
+
     // ── Colonnes ──────────────────────────────────────────────────────────────
     const columns = useMemo<MRT_ColumnDef<StudentEntry>[]>(() => {
         if (!data?.hierarchy) return [];
@@ -193,6 +208,7 @@ export const JuryPeriode = () => {
                     if (!periodeId) return null;
                     const info = deliberationByUser.get(row.original.userID);
                     const nom = `${row.original.juryStat.lastName ?? ''} ${row.original.juryStat.firstName ?? ''}`.trim();
+                    const incompletes = dossiersIncomplets.get(row.original.userID);
                     return (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             {info?.delibere ? (
@@ -202,6 +218,18 @@ export const JuryPeriode = () => {
                                     color={info.compteCumul ? 'success' : 'warning'}
                                     sx={{ fontSize: '0.68rem', height: 20 }}
                                 />
+                            ) : incompletes ? (
+                                // « En attente » dirait qu'il ne manque qu'une décision.
+                                // Ici c'est une note qui manque, et le jury doit le voir.
+                                <Tooltip title={`Non évaluée : ${incompletes.join(', ')}`}>
+                                    <Chip
+                                        label="Incomplet"
+                                        size="small"
+                                        color="warning"
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.68rem', height: 20 }}
+                                    />
+                                </Tooltip>
                             ) : (
                                 <Chip label="En attente" size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
                             )}
@@ -211,6 +239,7 @@ export const JuryPeriode = () => {
                                 userName={nom}
                                 isDelibere={info?.delibere ?? false}
                                 compteCumulActuel={info?.compteCumul}
+                                uesNonEvaluees={incompletes}
                             />
                         </Box>
                     );
@@ -396,7 +425,7 @@ export const JuryPeriode = () => {
         ];
 
         return [...baseCols, ...ueCols, ...endCols];
-    }, [data, deliberationByUser, periodeId]);
+    }, [data, deliberationByUser, dossiersIncomplets, periodeId]);
 
     // ── Données mémoïsées — évite un nouveau [] à chaque render ─────────────
     const students = useMemo(() => data?.students ?? EMPTY_STUDENTS, [data?.students]);
@@ -406,11 +435,12 @@ export const JuryPeriode = () => {
         return Object.keys(rowSelection)
             .map(idx => students[Number(idx)])
             .filter(s => s && !deliberationByUser.get(s.userID)?.delibere)
+            .filter(s => !dossiersIncomplets.has(s.userID))
             .map(s => ({
                 userId: s.userID,
                 name: `${s.juryStat.lastName ?? ''} ${s.juryStat.firstName ?? ''}`.trim(),
             }));
-    }, [rowSelection, students, deliberationByUser]);
+    }, [rowSelection, students, deliberationByUser, dossiersIncomplets]);
 
     // ── Handler délibération bulk ─────────────────────────────────────────────
     const handleBulkConfirm = useCallback(async (entries: { user_id: number; compte_cumul: boolean }[]) => {
@@ -443,6 +473,16 @@ export const JuryPeriode = () => {
                     color={nbDeliberes === nbTotal && nbTotal > 0 ? 'success' : 'default'}
                     variant={nbDeliberes === nbTotal && nbTotal > 0 ? 'filled' : 'outlined'}
                 />
+                {nbIncomplets > 0 && (
+                    <Tooltip title="Ces élèves ont au moins une unité d'enseignement non évaluée. Ils repasseront en jury une fois leurs notes complètes.">
+                        <Chip
+                            label={`${nbIncomplets} dossier${nbIncomplets > 1 ? 's' : ''} incomplet${nbIncomplets > 1 ? 's' : ''}`}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                        />
+                    </Tooltip>
+                )}
                 {selectedStudents.length > 0 && (
                     <Button
                         size="small"
@@ -457,7 +497,7 @@ export const JuryPeriode = () => {
                 <JuryBulletinsExportButton periodeId={periodeId} />
             </Box>
         );
-    }, [periodeId, data, nbDeliberes, nbTotal, selectedStudents]);
+    }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents]);
 
     // ── Props de lignes mémoïsées ─────────────────────────────────────────────
     const rowProps = useCallback(({ row }: { row: MRT_Row<StudentEntry> }) => ({
@@ -483,7 +523,9 @@ export const JuryPeriode = () => {
         state: { isLoading, rowSelection },
         onRowSelectionChange: setRowSelection,
 
-        enableRowSelection: true,
+        // Un dossier incomplet n'est pas délibérable : sa case reste inerte
+        // plutôt que d'être silencieusement retirée de la sélection.
+        enableRowSelection: (row: MRT_Row<StudentEntry>) => !dossiersIncomplets.has(row.original.userID),
         enableColumnPinning: true,
         initialState: {
             density: 'compact',

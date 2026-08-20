@@ -13,27 +13,18 @@ import { useRootPath } from '../../services/crud/useRootPath';
 import { createNoteField } from './noteField';
 
 export const notePeriodeSchema = z.object({
-    id: z.number(),
-    version: z.number(),
     // Ce champ n'est pas une note mais un GPA : il s'exprime sur echelle_gpa
     // (0 à 4 ici), pas sur le barème. Aucune borne haute ne lui est applicable.
+    // Il vaut null tant que le jury n'a pas délibéré : c'est le jury qui valide
+    // un semestre, la période ne le recalcule pas.
     note: createNoteField(),
-    remarque: z.string().nullish(),
-    controle_id: z.number().optional(),
-    matiere_id: z.number().optional(),
-    unite_enseignement_id: z.number().optional(),
-    periode_id: z.number().optional(),
+    /** false tant que l'élève n'est pas passé en jury pour cette période. */
+    delibere: z.boolean(),
     user_id: z.number({
         message: "Veuillez sélectionner un élève"
     }),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
-}).refine(data => {
-    const fkCount = [data.controle_id, data.matiere_id, data.unite_enseignement_id, data.periode_id].filter(v => v != null).length;
-    return fkCount === 1;
-}, {
-    message: "Une note doit être associée à exactement un élément (contrôle, matière, UE, ou période).",
-    path: ["user_id"], // Attach error to a visible field
 });
 
 export type NotePeriode = z.infer<typeof notePeriodeSchema>;
@@ -52,7 +43,7 @@ export const NotePeriodeFields = ({ register, errors, getValues }: RenderProps<N
             />
             <TextField
                 {...register("note", { valueAsNumber: true })}
-                label="Gpa"
+                label="GPA"
                 variant="outlined"
                 fullWidth
                 type="number"
@@ -73,18 +64,22 @@ const notePeriodeColumns: MRT_ColumnDef<NotePeriode>[] = [
     },
     {
         accessorKey: 'note',
-        header: 'Gpa',
-        // On personnalise uniquement le rendu visuel de la cellule
-        Cell: ({ cell }) => {
+        header: 'GPA',
+        // Une cellule vide confondrait deux situations distinctes : l'élève
+        // n'est pas encore passé en jury, ou il l'est sans GPA calculable.
+        // Seul le jury valide un semestre, l'attente est donc l'état normal
+        // avant délibération et doit se lire comme tel.
+        Cell: ({ row, cell }) => {
+            if (!row.original.delibere) return 'Non délibéré';
             const valeur = cell.getValue<number | null>();
-            return valeur != null ? valeur.toFixed(2) : 'N.E.';
+            return valeur != null ? valeur.toFixed(2) : '—';
         }
     },
 ]
 
 export const createNotePeriodeViewConfig = (periodeId: string): ViewConfig<NotePeriode> => {
     return {
-        emptyValue: { id: -1, version: -1, periode_id: parseInt(periodeId) },
+        emptyValue: { periode_id: parseInt(periodeId) } as never,
         schema: notePeriodeSchema,
         columns: notePeriodeColumns,
         render: NotePeriodeFields,
@@ -97,7 +92,7 @@ export const createNotePeriodeRepository = (periodeId: string) => {
         endpoint: `${ENDPOINT_NOTE_PERIODE}`,
         queryParams: `?periode_id=${periodeId}`,
         queryKey: [NOTE, 'periode', periodeId],
-        getId: (data: NotePeriode) => data.id,
+        getId: (data: NotePeriode) => data.user_id,
     })
 }
 
@@ -115,7 +110,7 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, render
     const datasource = useMemo((): Datasource<NotePeriode> => ({
         ...createNotePeriodeRepository(periodeId),
         ...createNotePeriodeViewConfig(periodeId),
-        title: "Notes de la période",
+        title: "GPA de la période",
         isAction,
         renderRowActions,
         isTopToolbar,

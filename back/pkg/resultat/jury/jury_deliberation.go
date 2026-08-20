@@ -25,6 +25,37 @@ type DelibererResponse struct {
 	NbUes     int   `json:"nb_ues"`
 }
 
+// GRADE_NON_EVALUE est le grade rendu par la fonction de jury pour une UE dont
+// une matière au moins n'a pas de moyenne.
+const GRADE_NON_EVALUE = "N.E."
+
+// uesNonEvaluees liste les UE non évaluées d'un élève parmi les lignes déjà
+// calculées pour la période.
+//
+// Un dossier incomplet ne se délibère pas : l'élève repassera en jury quand ses
+// notes seront complètes, et le jury doit le voir plutôt que de statuer sur un
+// GPA que la période laisse volontairement vide.
+func uesNonEvaluees[T any](rows []T, userID int32, cle func(T) (int32, *string, int32)) []int32 {
+	var ues []int32
+	for _, row := range rows {
+		id, grade, ueID := cle(row)
+		if id != userID || grade == nil || *grade != GRADE_NON_EVALUE {
+			continue
+		}
+		ues = append(ues, ueID)
+	}
+	return ues
+}
+
+func messageDossierIncomplet(ues []int32) string {
+	if len(ues) == 1 {
+		return "Délibération impossible : une unité d'enseignement n'est pas évaluée. " +
+			"L'élève repassera en jury lorsque ses notes seront complètes."
+	}
+	return fmt.Sprintf("Délibération impossible : %d unités d'enseignement ne sont pas évaluées. "+
+		"L'élève repassera en jury lorsque ses notes seront complètes.", len(ues))
+}
+
 func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 	periodeID, err := strconv.Atoi(chi.URLParam(r, "periodeID"))
 	if err != nil || periodeID <= 0 {
@@ -54,9 +85,20 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r).WithTx(tx)
 
 	// Calcul dynamique des résultats actuels de l'élève
-	rows, err := queries.Get_gpa_ues_by_periode_v4(r.Context(), int32(periodeID))
+	rows, err := queries.Get_gpa_ues_by_periode_v5(r.Context(), int32(periodeID))
 	if err != nil {
 		services.InternalServerError(w, r, fmt.Sprintf("calcul GPA: %v", err), services.NO_INFORMATION, nil)
+		return
+	}
+
+	// Un dossier portant une UE non évaluée n'est pas délibérable. Le contrôle
+	// précède toute écriture : rien ne doit entrer dans jury_result pour un
+	// élève dont le semestre n'est pas terminé.
+	if ues := uesNonEvaluees(rows, int32(userID), func(row gen.Get_gpa_ues_by_periode_v5Row) (int32, *string, int32) {
+		return row.UserID, row.GradeLettre, row.UniteEnseignementID
+	}); len(ues) > 0 {
+		services.ConflictError(w, r, messageDossierIncomplet(ues), services.BUSINESS_CONFLICT,
+			map[string]any{"unites_enseignement_non_evaluees": ues})
 		return
 	}
 
@@ -166,7 +208,7 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r).WithTx(tx)
 
 	// Récupérer toutes les lignes GPA de la période en une seule requête
-	rows, err := queries.Get_gpa_ues_by_periode_v4(r.Context(), int32(periodeID))
+	rows, err := queries.Get_gpa_ues_by_periode_v5(r.Context(), int32(periodeID))
 	if err != nil {
 		services.InternalServerError(w, r, fmt.Sprintf("calcul GPA: %v", err), services.NO_INFORMATION, nil)
 		return
@@ -175,6 +217,18 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	// Compter les UE écrites par userID
 	nbUesByUser := make(map[int32]int, len(req.Users))
 	var errs []string
+
+	// Les dossiers incomplets sortent de la sélection avant toute écriture, et
+	// sont signalés un par un : une délibération groupée doit dire qui elle a
+	// écarté, sans quoi l'assistante croirait la promotion entièrement statuée.
+	for _, u := range req.Users {
+		if ues := uesNonEvaluees(rows, u.UserID, func(row gen.Get_gpa_ues_by_periode_v5Row) (int32, *string, int32) {
+			return row.UserID, row.GradeLettre, row.UniteEnseignementID
+		}); len(ues) > 0 {
+			errs = append(errs, fmt.Sprintf("élève %d : %s", u.UserID, messageDossierIncomplet(ues)))
+			delete(userMap, u.UserID)
+		}
+	}
 
 	for _, row := range rows {
 		entry, ok := userMap[row.UserID]
@@ -214,8 +268,13 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Vérifier que chaque élève demandé a bien des données
+	// Vérifier que chaque élève demandé a bien des données. Les dossiers
+	// incomplets ont quitté `userMap` plus haut avec leur propre message : les
+	// recompter ici les signalerait deux fois, sous un motif inexact.
 	for _, u := range req.Users {
+		if _, retenu := userMap[u.UserID]; !retenu {
+			continue
+		}
 		if nbUesByUser[u.UserID] == 0 {
 			errs = append(errs, fmt.Sprintf("aucune donnée pour l'élève %d", u.UserID))
 		}

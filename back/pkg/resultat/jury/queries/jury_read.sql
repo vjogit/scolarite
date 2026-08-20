@@ -7,22 +7,7 @@ WHERE periode_id = @periode_id order by name ;
 SELECT * FROM periode WHERE id = @id;
 
 
--- name: GetGpaUesByPeriode :many
-SELECT 
-    user_id::int4, 
-    first_name::my_null_string, 
-    last_name::my_null_string, 
-    gpa_periode::my_null_float, 
-    total_ects_periode::my_null_float, 
-    gpa_cumule::my_null_float, 
-    total_ects_cumule::my_null_float, 
-    unite_enseignement_id::int4, 
-    moyenne_ue::my_null_float, 
-    grade_lettre::my_null_string, 
-    ects_ue::my_null_float
-FROM public.get_gpa_ues_by_periode(@periode_id);
-
--- name: Get_gpa_ues_by_periode_v4 :many
+-- name: Get_gpa_ues_by_periode_v5 :many
 SELECT
     user_id                    ::integer,
     first_name                 ::my_null_string,
@@ -38,31 +23,7 @@ SELECT
     moyenne_ue                 ::my_null_float,
     grade_lettre               ::my_null_string,
     ects_ue                    ::my_null_float
-FROM get_gpa_ues_by_periode_v4(@periode_id);
-
--- name: Get_gpa_ues_by_periode_v3 :many
-SELECT 
-    user_id                    ::integer,
-    first_name                 ::my_null_string,
-    last_name                  ::my_null_string,
-    gpa_periode                ::my_null_float,
-    gpa_academique_periode     ::my_null_float,
-    total_ects_valides         ::my_null_float,
-    total_ects_periode         ::my_null_float,
-    gpa_cumule                 ::my_null_float,
-    total_ects_valides_cumule  ::my_null_float,
-    total_ects_cumule          ::my_null_float,
-    unite_enseignement_id      ::integer,
-    moyenne_ue                 ::my_null_float,
-    grade_lettre               ::my_null_string,
-    ects_ue                    ::my_null_float
-FROM get_gpa_ues_by_periode_v3(@periode_id);
-
-
-
--- user_id , first_name , last_name , gpa_periode , total_ects_periode , gpa_cumule ,
--- total_ects_cumule , unite_enseignement_id , moyenne_ue , grade_lettre , ects_ue
-
+FROM get_gpa_ues_by_periode_v5(@periode_id);
 
 -- name: FetchToeicScoresByPeriodeID :many
 SELECT t.user_id::integer, MAX(t.score)::integer AS score

@@ -60,7 +60,29 @@ SELECT
         WHEN ng.has_not_evaluated          THEN NULL::my_null_float
         WHEN ng.nb_rattrapages_valides > 0 THEN cr.echelle[5]::my_null_float
         ELSE ng.moyenne_s1::my_null_float
-    END AS note
+    END AS note,
+
+    -- 5. D'où vient la valeur ci-dessus.
+    --
+    -- Les trois branches produisent un nombre que rien ne distinguait à
+    -- l'écran : la note d'un rattrapage validé est un seuil, elle ne
+    -- correspond à aucune copie — un élève noté 5 puis rattrapé à 11 s'affiche
+    -- 8. Le cas « non évaluée » se déduisait d'un NULL, celui du rattrapage
+    -- n'était pas déductible du tout, une moyenne ordinaire pouvant tomber
+    -- exactement sur echelle[5]. D'où cette colonne : elle n'entre dans aucun
+    -- calcul, elle nomme celui qui a eu lieu.
+    --
+    -- L'ordre des branches suit celui du calcul, à une addition près :
+    -- moyenne_s1 peut être NULL sans qu'aucun contrôle ne soit non évalué —
+    -- un rattrapage non validé et aucun contrôle normal noté, par exemple.
+    -- La valeur est alors absente elle aussi, et l'annoncer « moyenne »
+    -- promettrait un nombre qui n'existe pas.
+    CASE
+        WHEN ng.has_not_evaluated          THEN 'non_evaluee'
+        WHEN ng.nb_rattrapages_valides > 0 THEN 'rattrapage'
+        WHEN ng.moyenne_s1 IS NULL         THEN 'non_evaluee'
+        ELSE 'moyenne'
+    END AS provenance
 
 FROM notes_groupees ng
 CROSS JOIN context_rules cr
