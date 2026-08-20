@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
+	"cyb-react/pkg/templates"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,8 +14,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/xuri/excelize/v2"
 )
-
-const templateNotePath = "/home/vjo/projets/cybema/cyb-react/back/pkg/templates/Template_note.xlsx"
 
 type FicheData struct {
 	Formation   string
@@ -130,7 +129,7 @@ func fetchFicheData(r *http.Request, controleID int, groupeID int) (*gen.FetchIn
 }
 
 func generateFiche(d *FicheData) (*bytes.Buffer, error) {
-	f, err := excelize.OpenFile(templateNotePath)
+	f, err := excelize.OpenReader(bytes.NewReader(templates.TemplateNote))
 	if err != nil {
 		return nil, fmt.Errorf("ouverture Template_note.xlsx: %w", err)
 	}
