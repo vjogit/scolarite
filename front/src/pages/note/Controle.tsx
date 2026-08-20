@@ -1,16 +1,17 @@
 import { z } from 'zod';
 import { Box, FormControlLabel, IconButton, Switch, TextField, Tooltip, Typography } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import type { MRT_ColumnDef, MRT_Row, MRT_TableInstance } from 'material-react-table';
 import { Controller } from 'react-hook-form';
 import { ENDPOINT_CONTROLE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { FicheExportModal } from './FicheExportModal';
 import { FicheImportButton } from './FicheImportButton';
+import { Role } from '../user/def';
 
 
 const controleSchema = z.object({
@@ -155,13 +156,15 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, renderRow
         ...createControleRepository(matiereId),
         ...createControleViewConfig(matiereId),
         title: "Contrôles",
+        roleEcriture: Role.NOTES_ECRITURE,
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-        renderRowActions: ({ row, table, defaultActions, isEditMode }: { row: MRT_Row<Controle>, table: any, defaultActions: any, isEditMode: boolean }) => (
+        renderRowActions: ({ row, table, defaultActions, peutEcrire }: { row: MRT_Row<Controle>, table: MRT_TableInstance<Controle>, defaultActions: ReactNode, peutEcrire: boolean }) => (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {renderRowActions ? renderRowActions({ row, table, defaultActions, isEditMode }) : defaultActions}
-                <FicheImportButton controleId={row.original.id} />
+                {renderRowActions ? renderRowActions({ row, table, defaultActions, peutEcrire }) : defaultActions}
+                {/* L'import écrit des notes ; l'export reste une lecture. */}
+                {peutEcrire && <FicheImportButton controleId={row.original.id} />}
                 <Tooltip title="Exporter la fiche">
                     <IconButton onClick={() => handleExportOpen(row.original.id)}>
                         <FileDownloadIcon />

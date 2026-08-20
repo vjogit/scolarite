@@ -11,6 +11,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
 import { useCrudContext } from './CrudContext';
+import { useDroits } from '../context/droits';
 import { useState, useEffect, useCallback } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNotifications } from '@toolpad/core/useNotifications';
@@ -46,10 +47,9 @@ interface DeleteVariables {
 
 
 export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
-  const { rootPath, workflow } = useCrudContext();
+  const { rootPath } = useCrudContext();
   // Source unique de vérité : le bouton retour n'existe que si un parent existe.
   const parentPath = parentListPath(rootPath);
-  const storageKey = `${workflow}_crud_edit_mode `
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,10 +63,10 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   // État pour gérer la visibilité de la modale et les lignes sélectionnées
   const [open, setOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<MRT_Row<D>[]>([]);
-  const [isEditMode, setIsEditMode] = useState(() => {
-    if (datasource.isReadOnly) return false;
-    return sessionStorage.getItem(storageKey) === 'true';
-  });
+  // Les actions d'écriture découlent des rôles réels, pas d'un mode : un
+  // utilisateur sans le rôle d'écriture de l'écran ne voit aucune d'entre elles.
+  const { peutEcrire } = useDroits();
+  const ecritureAutorisee = peutEcrire(datasource);
   // 2. Dans le composant, remplacer les 4 useState + 4 useEffect par :
   const {
     columnFilters, setColumnFilters,
@@ -137,18 +137,18 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
 
     const defaultActions = (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        {!(isEditMode && datasource.isAction) && (
-          <Tooltip title="Voir">
-            <span>
-              <IconButton onClick={() => navigate(`${rootPath}/${datasource.getId(row.original)}`)}>
-                <VisibilityIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
+        {/* « Voir » est toujours présent : consulter le détail d'une ligne ne
+            dépend d'aucun droit d'écriture. */}
+        <Tooltip title="Voir">
+          <span>
+            <IconButton onClick={() => navigate(`${rootPath}/${datasource.getId(row.original)}`)}>
+              <VisibilityIcon />
+            </IconButton>
+          </span>
+        </Tooltip>
 
-        {(isEditMode && datasource.isAction) && (
-          <Tooltip title="Editer">
+        {ecritureAutorisee && (
+          <Tooltip title="Éditer">
             <span>
               <IconButton onClick={() => navigate(`${rootPath}/${datasource.getId(row.original)}/edit`)}>
                 <EditIcon />
@@ -161,55 +161,46 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
 
     // Si la datasource fournit une fonction personnalisée, on l'utilise en lui passant les actions par défaut
     if (datasource.renderRowActions) {
-      return datasource.renderRowActions({ row, table, defaultActions, isEditMode });
+      return datasource.renderRowActions({ row, table, defaultActions, peutEcrire: ecritureAutorisee });
     }
 
     return defaultActions;
-  }, [datasource, isEditMode, navigate, rootPath]);
+  }, [datasource, ecritureAutorisee, navigate, rootPath]);
 
   const renderTopToolbarCustomActions = useCallback(({ table }: { table: MRT_TableInstance<D> }) => {
     if (!datasource.isTopToolbar) return null
 
     const defaultActions = (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
-        {datasource.isAction && !datasource.isReadOnly && (
+        {datasource.isAction && ecritureAutorisee && (
           <>
-            <Tooltip title={isEditMode ? "Passer en consultation" : "Passer en édition"}>
-              <IconButton onClick={() => setIsEditMode(!isEditMode)}>
-                {isEditMode ? <VisibilityIcon /> : <EditIcon />}
-              </IconButton>
+            <Tooltip title="Ajouter">
+              <span>
+                <IconButton onClick={() => navigate(`${rootPath}/new`)}>
+                  <AddBoxIcon />
+                </IconButton>
+              </span>
             </Tooltip>
-            {isEditMode && (
-              <>
-                <Tooltip title="Add">
-                  <span>
-                    <IconButton onClick={() => navigate(`${rootPath}/new`)}>
-                      <AddBoxIcon />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-                <Tooltip title="Delete">
-                  <span>
-                    <IconButton
-                      color="error"
-                      onClick={() => handleOpenModal(table)}
-                      disabled={table.getSelectedRowModel().flatRows.length === 0}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </>
-            )}
+            <Tooltip title="Supprimer">
+              <span>
+                <IconButton
+                  color="error"
+                  onClick={() => handleOpenModal(table)}
+                  disabled={table.getSelectedRowModel().flatRows.length === 0}>
+                  <DeleteIcon />
+                </IconButton>
+              </span>
+            </Tooltip>
           </>
         )}
       </Box>
     );
 
     if (datasource.renderTopToolbarCustomActions) {
-      return datasource.renderTopToolbarCustomActions({ table, defaultActions, isEditMode });
+      return datasource.renderTopToolbarCustomActions({ table, defaultActions, peutEcrire: ecritureAutorisee });
     }
     return defaultActions;
-  }, [isEditMode, navigate, datasource, handleOpenModal]);
+  }, [ecritureAutorisee, navigate, datasource, handleOpenModal, rootPath]);
 
   const table = useMaterialReactTable({
     initialState: {
@@ -247,7 +238,9 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     enableRowActions: datasource.isAction,
     positionActionsColumn: 'last',
     renderRowActions,
-    enableRowSelection: isEditMode,
+    // La sélection de lignes ne sert qu'à la suppression : elle suit le droit
+    // d'écriture, pas un mode.
+    enableRowSelection: ecritureAutorisee,
     enableStickyHeader: true,
     enableStickyFooter: true,
     muiTablePaperProps: {
@@ -301,16 +294,6 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     const timer = setTimeout(() => { setHighlightId(null); }, HIGHLIGHT_MS);
     return () => { clearTimeout(timer); };
   }, [highlightId]);
-
-  useEffect(() => {
-    if (!isEditMode) {
-      table.resetRowSelection();
-    }
-  }, [isEditMode, table]);
-
-  useEffect(() => {
-    sessionStorage.setItem(storageKey, String(isEditMode));
-  }, [isEditMode]);
 
   if (isError) return <Alert severity="error">Erreur lors du chargement</Alert>;
 

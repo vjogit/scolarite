@@ -7,6 +7,7 @@ import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { ENDPOINT_MATIERE, MATIERE, STRUCTURE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 
 const matiereSchema = z.object({
@@ -122,6 +123,7 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
         ...createMatiereRepository(ueId),
         ...createMatiereViewConfig(ueId),
         title: "Matières",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         isAction,
         isReadOnly,
         renderRowActions,

@@ -42,38 +42,38 @@ const NAVIGATION: NavigationItemWithRoles[] = [
     segment: CATALOG_WORKFLOW,
     title: 'Formation',
     icon: <SchoolIcon />,
-    requiredRoles: [Role.ADMIN],
+    requiredRoles: [Role.CONSULTATION],
   },
   {
     segment: 'resultat',
     title: 'Resultat',
     icon: <GradingIcon />,
-    requiredRoles: [Role.ADMIN],
+    requiredRoles: [Role.CONSULTATION],
     children: [
       {
         segment: NOTE_WORKFLOW,
         title: 'Note',
         icon: <AnalyticsIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
       {
         segment: NOTE_ELEVE,
         title: 'Note eleve',
         icon: <AssignmentIndIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
 
       {
         segment: CERTIFICATION_WORKFLOW,
         title: 'Certification',
         icon: <WorkspacePremiumIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
       {
         segment: JURY_WORKFLOW,
         title: 'Jury',
         icon: <GavelIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
     ]
   },
@@ -81,25 +81,25 @@ const NAVIGATION: NavigationItemWithRoles[] = [
     segment: USER_WORKFLOW,
     title: 'Utilisateur',
     icon: <ManageAccountsIcon />,
-    requiredRoles: [Role.ADMIN],
+    requiredRoles: [Role.CONSULTATION],
   },
   {
     segment: 'planning',
     title: 'Planning',
     icon: <CalendarMonthIcon />,
-    requiredRoles: [Role.ADMIN],
+    requiredRoles: [Role.CONSULTATION],
     children: [
       {
         segment: PROGRAMME_WORKFLOW,
         title: 'Programme',
         icon: <DateRangeIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
       {
         segment: SALLE_WORKFLOW,
         title: 'Salle',
         icon: <MeetingRoomIcon />,
-        requiredRoles: [Role.ADMIN],
+        requiredRoles: [Role.CONSULTATION],
       },
     ]
   }

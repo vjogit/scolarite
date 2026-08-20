@@ -9,6 +9,7 @@ import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import PeopleIcon from '@mui/icons-material/People';
 import { GroupeMultiImportButton } from './GroupeMultiImportButton';
+import { Role } from '../user/def';
 
 
 const groupeSchema = z.object({
@@ -82,10 +83,10 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
         </Box>
     ), [rootPath]);
 
-    const defaultRenderTopToolbar = useCallback(({ defaultActions, isEditMode }: { defaultActions: ReactNode; isEditMode: boolean }): ReactNode => (
+    const defaultRenderTopToolbar = useCallback(({ defaultActions, peutEcrire }: { defaultActions: ReactNode; peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
-            {isEditMode && <GroupeMultiImportButton optionId={optionId} />}
+            {peutEcrire && <GroupeMultiImportButton optionId={optionId} />}
         </Box>
     ), [optionId]);
 
@@ -93,6 +94,7 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
         ...createGroupeRepository(optionId),
         ...createGroupeViewConfig(optionId),
         title: "Groupes",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         isAction,
         isReadOnly,
         isTopToolbar,

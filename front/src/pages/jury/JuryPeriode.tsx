@@ -24,6 +24,8 @@ import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
 import GavelIcon from '@mui/icons-material/Gavel';
+import { useDroits } from '../../services/context/droits';
+import { Role } from '../user/def';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constantes visuelles
@@ -139,6 +141,11 @@ export const JuryPeriode = () => {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
 
+    // Consulter la synthèse et exporter sont des lectures ; délibérer, annuler
+    // et la sélection qui y mène exigent le rôle d'écriture du jury.
+    const { possedeRole } = useDroits();
+    const peutDeliberer = possedeRole(Role.JURY_ECRITURE);
+
     const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
     const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
@@ -233,14 +240,16 @@ export const JuryPeriode = () => {
                             ) : (
                                 <Chip label="En attente" size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
                             )}
-                            <DelibererButton
-                                periodeId={periodeId}
-                                userId={row.original.userID}
-                                userName={nom}
-                                isDelibere={info?.delibere ?? false}
-                                compteCumulActuel={info?.compteCumul}
-                                uesNonEvaluees={incompletes}
-                            />
+                            {peutDeliberer && (
+                                <DelibererButton
+                                    periodeId={periodeId}
+                                    userId={row.original.userID}
+                                    userName={nom}
+                                    isDelibere={info?.delibere ?? false}
+                                    compteCumulActuel={info?.compteCumul}
+                                    uesNonEvaluees={incompletes}
+                                />
+                            )}
                         </Box>
                     );
                 },
@@ -425,7 +434,7 @@ export const JuryPeriode = () => {
         ];
 
         return [...baseCols, ...ueCols, ...endCols];
-    }, [data, deliberationByUser, dossiersIncomplets, periodeId]);
+    }, [data, deliberationByUser, dossiersIncomplets, periodeId, peutDeliberer]);
 
     // ── Données mémoïsées — évite un nouveau [] à chaque render ─────────────
     const students = useMemo(() => data?.students ?? EMPTY_STUDENTS, [data?.students]);
@@ -524,8 +533,12 @@ export const JuryPeriode = () => {
         onRowSelectionChange: setRowSelection,
 
         // Un dossier incomplet n'est pas délibérable : sa case reste inerte
-        // plutôt que d'être silencieusement retirée de la sélection.
-        enableRowSelection: (row: MRT_Row<StudentEntry>) => !dossiersIncomplets.has(row.original.userID),
+        // plutôt que d'être silencieusement retirée de la sélection. La
+        // sélection ne sert qu'à la délibération groupée : sans le droit
+        // d'écriture du jury, elle disparaît.
+        enableRowSelection: peutDeliberer
+            ? (row: MRT_Row<StudentEntry>) => !dossiersIncomplets.has(row.original.userID)
+            : false,
         enableColumnPinning: true,
         initialState: {
             density: 'compact',

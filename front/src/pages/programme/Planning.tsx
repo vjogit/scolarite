@@ -10,10 +10,10 @@ import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
-import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import PaletteIcon from '@mui/icons-material/Palette';
 import { apiInstance } from '../../services/api';
+import { useDroits } from '../../services/context/droits';
+import { Role } from '../user/def';
 import { ERROR_MESSAGES } from '../../services/errorMessages';
 import { ReservationDialog } from './ReservationDialog';
 import { HeuresPanel } from './HeuresPanel';
@@ -102,10 +102,9 @@ export function Planning() {
         },
     });
 
-    // ── Mode lecture/écriture ────────────────────────────────────────────────
-    const STORAGE_KEY = 'planning_edit_mode';
-    const [isEditMode, setIsEditMode] = useState(() => sessionStorage.getItem(STORAGE_KEY) === 'true');
-    useEffect(() => { sessionStorage.setItem(STORAGE_KEY, String(isEditMode)); }, [isEditMode]);
+    // ── Lecture/écriture : découle du rôle, plus d'un mode ──────────────────
+    const { possedeRole } = useDroits();
+    const isEditMode = possedeRole(Role.PROGRAMME_ECRITURE);
 
     const DATE_KEY = 'planning_date';
     const initialDate = sessionStorage.getItem(DATE_KEY) ?? undefined;
@@ -226,11 +225,6 @@ export function Planning() {
 
             {/* Boutons toggle */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start', mt: 2, mr: panelOpen ? 0 : 1, gap: 0.5 }}>
-                <Tooltip title={isEditMode ? 'Passer en consultation' : 'Passer en édition'} placement="left">
-                    <IconButton size="small" onClick={() => setIsEditMode(m => !m)}>
-                        {isEditMode ? <VisibilityIcon /> : <EditIcon />}
-                    </IconButton>
-                </Tooltip>
                 <Tooltip title={colorMode === 'type' ? 'Couleur par matière' : 'Couleur par type de cours'} placement="left">
                     <IconButton
                         size="small"

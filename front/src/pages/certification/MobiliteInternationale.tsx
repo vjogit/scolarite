@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { ENDPOINT_MOBILITE } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 const TYPE_MOBILITE_OPTIONS = [
     "Stage",
@@ -246,6 +247,7 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
         ...createPeriodeRepository(promotionId),
         ...createNotePeriodeViewConfig(promotionId),
         title: "Mobilité Internationale",
+        roleEcriture: Role.CERTIFICATION_ECRITURE,
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

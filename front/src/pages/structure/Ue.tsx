@@ -9,6 +9,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { ENDPOINT_UES, MATIERE, STRUCTURE, UES } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 
 const ueSchema = z.object({
@@ -136,6 +137,7 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, rend
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
         title: "UE",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         isAction,
         isReadOnly,
         renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,

@@ -53,7 +53,7 @@ function CustomCrudPeriode({ mode }: CrudComponentProps) {
     const navigate = useNavigate();
 
 
-    const renderRowActions = useCallback(({ row}: { row: MRT_Row<Periode>, defaultActions: ReactNode, isEditMode: boolean }): ReactNode => (
+    const renderRowActions = useCallback(({ row}: { row: MRT_Row<Periode>, defaultActions: ReactNode, peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <Tooltip title="Programme">
                 <IconButton onClick={() => navigate(`${location.pathname}/${row.getValue('id')}/${PROGRAMME}`)}>

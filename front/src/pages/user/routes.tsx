@@ -19,15 +19,15 @@ function CustomCrudUser({ mode }: CrudComponentProps) {
 
     const renderTopToolbar = ({
         defaultActions,
-        isEditMode,
+        peutEcrire,
     }: {
         defaultActions: ReactNode;
-        isEditMode: boolean;
+        peutEcrire: boolean;
     }) => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
             {/* Import : composant React autonome avec ses propres hooks */}
-            {isEditMode && <UserImportButton />}
+            {peutEcrire && <UserImportButton />}
         </Box>
     )
     return <CrudUser

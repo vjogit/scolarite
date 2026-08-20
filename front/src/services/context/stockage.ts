@@ -22,6 +22,17 @@ const ANCIENNES_CLES = [
     'certification_last_path',
     'salle_last_path',
     'user_last_path',
+    // Clés du mode édition, supprimé au profit d'actions conditionnées aux
+    // rôles. L'espace final des clés `*_crud_edit_mode ` vient du code
+    // d'origine : c'est bien ainsi qu'elles ont été écrites en session.
+    'catalog_context_crud_edit_mode ',
+    'note_workflow_crud_edit_mode ',
+    'jury_workflow_crud_edit_mode ',
+    'programme_context_crud_edit_mode ',
+    'certification_workflow_crud_edit_mode ',
+    'salle_workflow_crud_edit_mode ',
+    'user_workflow_crud_edit_mode ',
+    'planning_edit_mode',
 ];
 
 export interface EtatNavigation {

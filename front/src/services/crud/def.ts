@@ -11,9 +11,9 @@ export interface CrudProps<D extends FieldValues> {
     workflow: string;
     isAction: boolean
     isReadOnly?: boolean
-    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, isEditMode: boolean }) => ReactNode
+    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, peutEcrire: boolean }) => ReactNode
     isTopToolbar: boolean
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, isEditMode: boolean }) => React.ReactNode
+    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
 }
 
 export interface RenderProps<D extends FieldValues> {
@@ -93,9 +93,15 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
     entityGender?: 'm' | 'f'
     isAction: boolean
     isReadOnly?: boolean
-    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, isEditMode: boolean }) => ReactNode
+    /**
+     * Rôle d'écriture de l'entité, aligné sur la route serveur qu'elle frappe —
+     * jamais sur le workflow qui l'affiche. Absent : aucune écriture possible,
+     * le défaut des écrans purement calculés.
+     */
+    roleEcriture?: string
+    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, peutEcrire: boolean }) => ReactNode
     isTopToolbar: boolean
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, isEditMode: boolean }) => React.ReactNode
+    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
 }
 
 interface RepositoryConfig<D extends FieldValues> {

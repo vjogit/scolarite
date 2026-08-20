@@ -63,7 +63,7 @@ function CustomCrudOption({ mode }: CrudComponentProps) {
     }: {
         row: MRT_Row<Option>,
         defaultActions: ReactNode;
-        isEditMode: boolean;
+        peutEcrire: boolean;
     }) => {
         const navigate = useNavigate();
         const { rootPath } = useCrudContext();
@@ -88,15 +88,16 @@ function CustomCrudPeriode({ mode }: CrudComponentProps) {
 
     const renderTopToolbar = ({
         defaultActions,
-        isEditMode,
+        peutEcrire,
     }: {
         defaultActions: ReactNode;
-        isEditMode: boolean;
+        peutEcrire: boolean;
     }) => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
-            {/* Import : composant React autonome avec ses propres hooks */}
-            {isEditMode && <PeriodeImportButton />}
+            {/* Import : une écriture de structure ; l'export reste une lecture,
+                offerte à tous. */}
+            {peutEcrire && <PeriodeImportButton />}
             <PeriodeExportButton />
         </Box>
     )

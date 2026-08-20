@@ -32,6 +32,13 @@ export interface DescripteurWorkflow {
      * écrans frères : le premier fait office de défaut.
      */
     readonly ecransTerminaux: readonly string[];
+    /**
+     * Rôles donnant accès au workflow — c'est un droit de lecture. Toute
+     * lecture du serveur exige `CONSULTATION` : c'est donc la valeur partout.
+     * L'écriture ne se décide pas ici : elle est portée par chaque écran, via
+     * `roleEcriture` sur sa `Datasource`, car un même workflow traverse des
+     * entités aux rôles d'écriture différents.
+     */
     readonly rolesRequis: readonly string[];
 }
 
@@ -44,7 +51,7 @@ export const WORKFLOW_CATALOG: DescripteurWorkflow = {
     niveaux: HIERARCHIE_COMPLETE,
     // Sous la période, le catalogue enchaîne sur les unités d'enseignement.
     ecransTerminaux: [UES],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 export const WORKFLOW_NOTE: DescripteurWorkflow = {
@@ -53,7 +60,7 @@ export const WORKFLOW_NOTE: DescripteurWorkflow = {
     libelle: 'Notes',
     niveaux: HIERARCHIE_COMPLETE,
     ecransTerminaux: [NOTE],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 export const WORKFLOW_PROGRAMME: DescripteurWorkflow = {
@@ -62,7 +69,7 @@ export const WORKFLOW_PROGRAMME: DescripteurWorkflow = {
     libelle: 'Programme',
     niveaux: HIERARCHIE_COMPLETE,
     ecransTerminaux: [PROGRAMME],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 export const WORKFLOW_JURY: DescripteurWorkflow = {
@@ -71,7 +78,7 @@ export const WORKFLOW_JURY: DescripteurWorkflow = {
     libelle: 'Jury',
     niveaux: HIERARCHIE_COMPLETE,
     ecransTerminaux: [JURY],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 export const WORKFLOW_CERTIFICATION: DescripteurWorkflow = {
@@ -83,7 +90,7 @@ export const WORKFLOW_CERTIFICATION: DescripteurWorkflow = {
     // Deux écrans frères sous la promotion ; on retient le dernier visité,
     // TOEIC par défaut.
     ecransTerminaux: [TOEIC, MOBILITE],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 /** Workflows sans contexte hiérarchique : ni barre d'onglets, ni troncature. */
@@ -93,7 +100,7 @@ export const WORKFLOW_SALLE: DescripteurWorkflow = {
     libelle: 'Salles',
     niveaux: [],
     ecransTerminaux: [],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 export const WORKFLOW_USER: DescripteurWorkflow = {
@@ -102,7 +109,7 @@ export const WORKFLOW_USER: DescripteurWorkflow = {
     libelle: 'Utilisateurs',
     niveaux: [],
     ecransTerminaux: [],
-    rolesRequis: [Role.ADMIN],
+    rolesRequis: [Role.CONSULTATION],
 };
 
 /** Ordre d'affichage de la barre de navigation entre tâches. */

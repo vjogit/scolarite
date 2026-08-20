@@ -64,11 +64,16 @@ interface Props {
     groupeId: string;
     bareme?: number;
     isRattrapage: boolean;
+    /**
+     * Sans le rôle d'écriture des notes : champs désactivés, aucun
+     * enregistrement automatique. La grille reste visible.
+     */
+    lectureSeule: boolean;
     /** Remonte l'état affiché : compteur de progression et graphique. */
     onLignesChange: (lignes: LigneGrille[]) => void;
 }
 
-export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, onLignesChange }: Props) {
+export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, lectureSeule, onLignesChange }: Props) {
     const champNote = useMemo(() => createNoteField(bareme), [bareme]);
 
     const { data, isLoading, error } = useQuery<LigneGrilleServeur[]>({
@@ -205,6 +210,9 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
     }, [enregistrer]);
 
     const enregistrerSiModifiee = useCallback((userId: number) => {
+        // En lecture seule les champs sont désactivés ; ce garde couvre les
+        // chemins résiduels (relance, raccourcis) : rien ne part vers le serveur.
+        if (lectureSeule) return;
         const ligne = lignesRef.current.find(l => l.userId === userId);
         if (!ligne) return;
 
@@ -222,7 +230,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
 
         tentativesRef.current.set(userId, cle);
         planifier(userId, ligne.saisie);
-    }, [majLigne, planifier]);
+    }, [lectureSeule, majLigne, planifier]);
 
     const modifierSaisie = useCallback((userId: number, changement: Partial<SaisieLigne>) => {
         majLigne(userId, l => ({
@@ -347,7 +355,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
                                         onChange={(e) => { modifierSaisie(ligne.userId, { note: e.target.value }); }}
                                         onKeyDown={(e) => { surToucheNote(e, ligne.userId, index); }}
                                         onBlur={() => { enregistrerSiModifiee(ligne.userId); }}
-                                        disabled={ligne.saisie.notEvaluated}
+                                        disabled={lectureSeule || ligne.saisie.notEvaluated}
                                         // Le message vaut pour l'erreur comme pour le
                                         // conflit : le second n'était visible qu'en
                                         // infobulle, donc invisible au clavier.
@@ -372,6 +380,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
                                 <TableCell align="center">
                                     <Checkbox
                                         checked={ligne.saisie.notEvaluated}
+                                        disabled={lectureSeule}
                                         onChange={(e) => { basculerNonEvalue(ligne.userId, index, e.target.checked); }}
                                         slotProps={{ input: { 'aria-label': `Non évalué pour ${eleve}` } }}
                                     />
@@ -380,6 +389,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
                                     <TableCell align="center">
                                         <Checkbox
                                             checked={ligne.saisie.isValidated}
+                                            disabled={lectureSeule}
                                             onChange={(e) => {
                                                 modifierSaisie(ligne.userId, { isValidated: e.target.checked });
                                                 enregistrerSiModifiee(ligne.userId);
@@ -391,6 +401,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, o
                                 <TableCell>
                                     <TextField
                                         value={ligne.saisie.remarque}
+                                        disabled={lectureSeule}
                                         onChange={(e) => { modifierSaisie(ligne.userId, { remarque: e.target.value }); }}
                                         onBlur={() => { enregistrerSiModifiee(ligne.userId); }}
                                         size="small"

@@ -12,6 +12,7 @@ import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { ECHELLE_KEYS, IsValidEchelle } from './service';
 import { ENDPOINT_PROMOTION, OPTION, PROMOTION, STRUCTURE, ENDPOINT_PROMOTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 const echelleRegexReelsLettresFixes = /^(a=[0-9]+(\.[0-9]+)?)(,b=[0-9]+(\.[0-9]+)?)(,c=[0-9]+(\.[0-9]+)?)(,d=[0-9]+(\.[0-9]+)?)(,e=[0-9]+(\.[0-9]+)?)(,f=[0-9]+(\.[0-9]+)?)$/;
 const erreurEchelle_gpa = "Le format n'est pas correct (ex: a=4,b=3.5,c=3,d=2.5,e=2,f=0)" 
@@ -309,6 +310,7 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId),
         title: "Promotions",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         entityLabel: "la promotion",
         entityLabelPlural: "promotions",
         deleteRequiresNameConfirmation: true,

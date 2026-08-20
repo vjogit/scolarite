@@ -11,6 +11,7 @@ import dayjs from 'dayjs';
 import { ENDPOINT_TOEIC } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 // Schéma de validation pour le TOEIC
 const toeicSchema = z.object({
@@ -145,6 +146,7 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
         ...toeicDatasourceBase(promotionId),
         ...createToeicViewConfig(promotionId),
         title: "TOEIC",
+        roleEcriture: Role.CERTIFICATION_ECRITURE,
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

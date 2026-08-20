@@ -4,7 +4,7 @@ import { createRepository, type CrudProps, type Datasource, type RenderProps, ty
 import { Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, TextField } from "@mui/material";
 import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
-import { AVAILABLE_ROLES, ENDPOINT_USER, USER } from './def';
+import { AVAILABLE_ROLES, ENDPOINT_USER, Role, USER } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 
@@ -145,6 +145,7 @@ export function CrudUser({ mode, workflow, isAction, isTopToolbar, renderTopTool
         ...userDatasourceBase,
         ...userViewConfig,
         title: "Utilisateurs",
+        roleEcriture: Role.UTILISATEURS_ECRITURE,
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

@@ -12,6 +12,7 @@ import dayjs from 'dayjs';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { ENDPOINT_PERIODE, PERIODE, STRUCTURE, UES, ENDPOINT_PERIODE_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 const periodeSchema = z.object({
     id: z.number(),
@@ -153,6 +154,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
         title: "Périodes",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         entityLabel: "la période",
         entityLabelPlural: "périodes",
         isAction,

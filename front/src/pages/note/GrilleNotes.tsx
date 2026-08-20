@@ -31,6 +31,8 @@ import { GrilleNotesTable } from './GrilleNotesTable';
 import { analyserNote, estPourvue, type LigneGrille } from './ligneNote';
 import { createNoteField } from './noteField';
 import { formatNombre } from '../../services/format';
+import { useDroits } from '../../services/context/droits';
+import { Role } from '../user/def';
 
 /**
  * Le groupe choisi est mémorisé par contrôle, le temps de la session. Rouvrir
@@ -48,6 +50,11 @@ interface Props {
 }
 
 export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bareme }: Props) {
+    // Sans le rôle d'écriture des notes, la grille s'affiche en lecture seule :
+    // consulter les notes reste légitime, seule la saisie disparaît.
+    const { possedeRole } = useDroits();
+    const lectureSeule = !possedeRole(Role.NOTES_ECRITURE);
+
     const [groupeId, setGroupeId] = useState<string | null>(
         () => sessionStorage.getItem(cleGroupeMemorise(controleId)),
     );
@@ -138,9 +145,11 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         <Typography variant="body2" aria-label="Progression de la saisie">
                             Saisie : <strong>{pourvues}/{lignes.length}</strong>
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Entrée ou Tab enregistre la ligne et passe à l'élève suivant.
-                        </Typography>
+                        {!lectureSeule && (
+                            <Typography variant="caption" color="text.secondary">
+                                Entrée ou Tab enregistre la ligne et passe à l'élève suivant.
+                            </Typography>
+                        )}
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -150,7 +159,8 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                                 <FileDownloadIcon />
                             </IconButton>
                         </Tooltip>
-                        <FicheImportButton controleId={Number(controleId)} />
+                        {/* L'import écrit des notes ; l'export reste une lecture. */}
+                        {!lectureSeule && <FicheImportButton controleId={Number(controleId)} />}
                     </Box>
                 </Box>
 
@@ -175,6 +185,7 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         groupeId={groupeId}
                         bareme={bareme}
                         isRattrapage={isRattrapage}
+                        lectureSeule={lectureSeule}
                         onLignesChange={setLignes}
                     />
                 )}

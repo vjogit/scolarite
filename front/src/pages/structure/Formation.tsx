@@ -9,6 +9,7 @@ import { useCallback, useMemo, type ReactNode } from 'react';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { Crud } from '../../services/crud/Crud';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 
 const formationSchema = z.object({
@@ -92,6 +93,7 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
         ...formationRepository,
         ...formationViewConfig,
         title: "Formations",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         entityLabel: "la formation",
         entityLabelPlural: "formations",
         deleteRequiresNameConfirmation: true,

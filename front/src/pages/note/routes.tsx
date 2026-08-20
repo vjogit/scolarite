@@ -86,7 +86,7 @@ function CustomCrudPeriode({ mode }: CrudComponentProps) {
 
     const rootPath = useRootPath(mode);
 
-    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Periode>, defaultActions: ReactNode, isEditMode: boolean }): ReactNode => (
+    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Periode>, defaultActions: ReactNode, peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
             <NoteDefaultAction row={row} />
@@ -100,7 +100,7 @@ function CustomCrudPeriode({ mode }: CrudComponentProps) {
 function CustomCrudUe({ mode }: CrudComponentProps) {
     const rootPath = useRootPath(mode);
 
-    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Ue>, defaultActions: ReactNode, isEditMode: boolean }): ReactNode => (
+    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Ue>, defaultActions: ReactNode, peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
             <NoteDefaultAction row={row} />

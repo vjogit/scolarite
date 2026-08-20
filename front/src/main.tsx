@@ -58,7 +58,7 @@ const routes = [
         children: [
           {
             path: USER_WORKFLOW,
-            element: <RoleGuard roles={[Role.ADMIN]}><UserLayout /></RoleGuard>,
+            element: <RoleGuard roles={[Role.CONSULTATION]}><UserLayout /></RoleGuard>,
             children: [
               { index: true, Component: UserIndex },
               ...createUserRoutes()
@@ -66,7 +66,7 @@ const routes = [
           },
           {
             path: CATALOG_WORKFLOW,
-            element: <RoleGuard roles={[Role.ADMIN]}><CatalogLayout /></RoleGuard>,
+            element: <RoleGuard roles={[Role.CONSULTATION]}><CatalogLayout /></RoleGuard>,
             children: [
               { index: true, Component: CatalogIndex },
               ...createCatalogHierarchyRoutes()
@@ -77,7 +77,7 @@ const routes = [
             children: [
               {
                 path: NOTE_WORKFLOW,
-                element: <RoleGuard roles={[Role.ADMIN]}><NoteLayout /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><NoteLayout /></RoleGuard>,
                 children: [
                   { index: true, Component: NoteIndex },
                   ...createNoteHierarchyRoutes(),
@@ -85,7 +85,7 @@ const routes = [
               },
               {
                 path: CERTIFICATION_WORKFLOW,
-                element: <RoleGuard roles={[Role.ADMIN]}><CertificationLayout /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><CertificationLayout /></RoleGuard>,
                 children: [
                   { index: true, Component: CertificationIndex },
                   ...createCertificationHierarchyRoutes(),
@@ -93,7 +93,7 @@ const routes = [
               },
               {
                 path: JURY_WORKFLOW,
-                element: <RoleGuard roles={[Role.ADMIN]}><JuryLayout /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><JuryLayout /></RoleGuard>,
                 children: [
                   { index: true, Component: JuryIndex },
                   ...createJuryHierarchyRoutes(),
@@ -101,7 +101,7 @@ const routes = [
               },
               {
                 path: NOTE_ELEVE,
-                element: <RoleGuard roles={[Role.ADMIN]}><NoteEleveDetail /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><NoteEleveDetail /></RoleGuard>,
               },
             ]
           },
@@ -110,7 +110,7 @@ const routes = [
             children: [
               {
                 path: PROGRAMME_WORKFLOW,
-                element: <RoleGuard roles={[Role.ADMIN]}><ProgrammeLayout /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><ProgrammeLayout /></RoleGuard>,
                 children: [
                   { index: true, Component: ProgrammeIndex },
                   ...createProgrammeHierarchyRoutes()
@@ -118,7 +118,7 @@ const routes = [
               },
               {
                 path: SALLE_WORKFLOW,
-                element: <RoleGuard roles={[Role.ADMIN]}><SalleLayout /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><SalleLayout /></RoleGuard>,
                 children: [
                   { index: true, Component: SalleIndex },
                   ...createSalleRoutes(),

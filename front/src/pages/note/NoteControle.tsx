@@ -17,6 +17,7 @@ import { apiInstance } from '../../services/api';
 import type { Controle } from './Controle';
 import { bornesNote, createNoteField, libelleNote } from './noteField';
 import { GrilleNotes } from './GrilleNotes';
+import { Role } from '../user/def';
 
 const createNoteControleSchema = (bareme?: number) => z.object({
     id: z.number(),
@@ -196,6 +197,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
         ...createNoteControleRepository(controleId),
         ...noteControleViewConfig(controleId, isRattrapage, bareme),
         title: "Notes du contrôle",
+        roleEcriture: Role.NOTES_ECRITURE,
         isAction,
         renderRowActions,
         isTopToolbar,

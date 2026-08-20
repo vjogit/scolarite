@@ -10,6 +10,8 @@ import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { UserSelector } from '../../services/UserSelector';
 import { GroupeImportButton } from './GroupeImportButton';
+import { useDroits } from '../../services/context/droits';
+import { Role } from '../user/def';
 
 interface User {
     id: number;
@@ -37,6 +39,11 @@ export function GroupeUserPage() {
     const { groupeId } = useParams<{ groupeId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+
+    // Lister les membres est une lecture ; ajouter, retirer et importer
+    // écrivent la structure.
+    const { possedeRole } = useDroits();
+    const peutEcrire = possedeRole(Role.STRUCTURE_ECRITURE);
 
     const { control, handleSubmit, setValue, getValues, reset, formState: { errors } } =
         useForm<AddUserForm>({ defaultValues: ADD_USER_DEFAULT });
@@ -75,7 +82,7 @@ export function GroupeUserPage() {
         data: members,
         state: { isLoading },
         initialState: { density: 'compact' },
-        enableRowActions: true,
+        enableRowActions: peutEcrire,
         positionActionsColumn: 'last',
         enableRowVirtualization: true,
         rowVirtualizerOptions: { overscan: 5 },
@@ -125,30 +132,32 @@ export function GroupeUserPage() {
                     </IconButton>
                 </Tooltip>
                 <Typography variant="h6" sx={{ flex: 1 }}>Membres du groupe</Typography>
-                <GroupeImportButton groupeId={groupeId!} />
+                {peutEcrire && <GroupeImportButton groupeId={groupeId!} />}
             </Box>
 
-            <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mb: 2, flexShrink: 0 }}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Box sx={{ flex: 1 }}>
-                        <UserSelector
-                            control={control}
-                            errors={errors}
-                            getValues={getValues}
-                            setValue={setValue}
-                        />
+            {peutEcrire && (
+                <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mb: 2, flexShrink: 0 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                        <Box sx={{ flex: 1 }}>
+                            <UserSelector
+                                control={control}
+                                errors={errors}
+                                getValues={getValues}
+                                setValue={setValue}
+                            />
+                        </Box>
+                        <Button
+                            type="submit"
+                            variant="contained"
+                            startIcon={<PersonAddIcon />}
+                            disabled={addMutation.isPending}
+                            sx={{ mt: 0.5 }}
+                        >
+                            Ajouter
+                        </Button>
                     </Box>
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        startIcon={<PersonAddIcon />}
-                        disabled={addMutation.isPending}
-                        sx={{ mt: 0.5 }}
-                    >
-                        Ajouter
-                    </Button>
                 </Box>
-            </Box>
+            )}
 
             <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
                 <MaterialReactTable table={table} />

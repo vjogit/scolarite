@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router';
 import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
 import { ENDPOINT_OPTION,  OPTION, PERIODE, STRUCTURE, ENDPOINT_OPTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 
 const optionSchema = z.object({
@@ -105,6 +106,7 @@ export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, 
         ...createOptionRepository(promotionId),
         ...createOptionViewConfig(promotionId),
         title: "Options",
+        roleEcriture: Role.STRUCTURE_ECRITURE,
         entityLabel: "l'option",
         entityLabelPlural: "options",
         entityGender: 'f',

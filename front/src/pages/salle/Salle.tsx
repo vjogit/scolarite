@@ -7,6 +7,7 @@ import { Crud } from '../../services/crud/Crud';
 import { ENDPOINT_SALLE, SALLE,  TYPE_SALLE_OPTIONS } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { Role } from '../user/def';
 
 const salleSchema = z.object({
     id: z.number(),
@@ -128,6 +129,7 @@ export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToo
         ...salleDatasourceBase,
         ...salleViewConfig,
         title: 'Salles',
+        roleEcriture: Role.SALLES_ECRITURE,
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
