@@ -8,6 +8,17 @@ import type {
   MRT_DensityState,
 } from 'material-react-table';
 
+/**
+ * Colonnes techniques, masquées à l'ouverture de toutes les listes.
+ *
+ * `id` et `version` existent pour le serveur — clé primaire et verrou
+ * optimiste — et n'apprennent rien à qui lit une liste ; elles occupaient
+ * jusqu'ici les deux premières colonnes de chaque écran. Elles restent
+ * disponibles dans le menu « colonnes » de la barre d'outils, et le choix de
+ * les réafficher se persiste comme n'importe quel autre.
+ */
+const COLONNES_TECHNIQUES: MRT_VisibilityState = { id: false, version: false };
+
 export function usePersistentTableState(queryKey: QueryKey) {
   const key = JSON.stringify(queryKey);
   const filtersKey         = `${key}_col_filters`;
@@ -48,7 +59,10 @@ export function usePersistentTableState(queryKey: QueryKey) {
 
   const [columnVisibility, setColumnVisibility] = useState<MRT_VisibilityState>(() => {
     const saved = sessionStorage.getItem(columnVisKey);
-    return saved ? JSON.parse(saved) : {};
+    if (!saved) return COLONNES_TECHNIQUES;
+    // Le défaut ne vaut que pour les colonnes dont l'utilisateur n'a rien dit :
+    // un « id » réaffiché dans cette session le reste.
+    return { ...COLONNES_TECHNIQUES, ...(JSON.parse(saved) as MRT_VisibilityState) };
   });
 
   const [density, setDensity] = useState<MRT_DensityState>(() => {
