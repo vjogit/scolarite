@@ -102,6 +102,8 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
         ...createNoteMatiereRepository(matiereId),
         ...createNoteMatiereViewConfig(matiereId),
         title: "Notes de la matière",
+        entityLabel: "la note",
+        entityLabelPlural: "notes",
         isAction,
         actionsLigne,
         isTopToolbar,

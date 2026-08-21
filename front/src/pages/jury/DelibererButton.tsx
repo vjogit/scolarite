@@ -69,6 +69,10 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
             <Tooltip title="Annuler la délibération (correction possible)">
                 <span>
                     <IconButton
+                        // Le `Tooltip` nomme son enfant direct, ici le `<span>`
+                        // qui porte l'infobulle du bouton désactivé : sans cet
+                        // attribut, le bouton n'a aucun nom.
+                        aria-label={`Annuler la délibération de ${userName} (correction possible)`}
                         size="small"
                         color="warning"
                         onClick={() => annuler.mutate()}
@@ -114,7 +118,12 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
     return (
         <>
             <Tooltip title="Délibérer">
-                <IconButton size="small" color="primary" onClick={handleOpen}>
+                <IconButton
+                    aria-label={`Délibérer — ${userName}`}
+                    size="small"
+                    color="primary"
+                    onClick={handleOpen}
+                >
                     <GavelIcon fontSize="small" />
                 </IconButton>
             </Tooltip>

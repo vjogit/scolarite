@@ -10,16 +10,36 @@ import { createTheme, ThemeProvider, useColorScheme, type Theme } from '@mui/mat
 import { NotificationsProvider } from '@toolpad/core/useNotifications';
 import { useKeycloak } from '../KeycloakContext';
 
+/**
+ * Les trois commandes qu'`Autocomplete` dessine lui-même — ouvrir, fermer,
+ * effacer — tirent leur nom accessible de ces props, anglaises par défaut
+ * (« Open », « Close », « Clear »). Six `Autocomplete` sont montés dans
+ * l'application ; les nommer un par un multiplierait les endroits où la même
+ * chaîne devrait rester juste. Le thème est le seul endroit qui les tient
+ * tous.
+ */
+const COMPOSANTS_FR = {
+  MuiAutocomplete: {
+    defaultProps: {
+      openText: 'Ouvrir la liste',
+      closeText: 'Fermer la liste',
+      clearText: 'Effacer',
+    },
+  },
+} as const;
+
 export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
   },
+  components: COMPOSANTS_FR,
 });
 
 export const lightTheme = createTheme({
   palette: {
     mode: 'light',
   },
+  components: COMPOSANTS_FR,
 })
 
 function CustomActions() {

@@ -248,6 +248,8 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
         ...createNotePeriodeViewConfig(promotionId),
         title: "Mobilité Internationale",
         roleEcriture: Role.CERTIFICATION_ECRITURE,
+        entityLabel: "la mobilité",
+        entityLabelPlural: "mobilités",
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

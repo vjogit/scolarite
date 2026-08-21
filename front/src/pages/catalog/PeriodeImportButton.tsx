@@ -14,6 +14,9 @@ import { notifyError, notifySuccess } from '../../services/notify';
 // React afin de pouvoir être rendu depuis renderTopToolbarCustomActions.
 
 
+/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
+const LIBELLE = 'Importer le programme depuis Excel';
+
 export function PeriodeImportButton() {
     const { optionId } = useParams();
     const notifications = useNotifications();
@@ -45,8 +48,8 @@ export function PeriodeImportButton() {
 
     return (
         <>
-            <Tooltip title="Import">
-                <IconButton onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={LIBELLE}>
+                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import {
@@ -81,6 +81,7 @@ function PurgeDialog({
     enCours: boolean;
 }) {
     const [saisie, setSaisie] = useState('');
+    const saisieRef = useRef<HTMLInputElement>(null);
 
     const phraseAttendue =
         operation?.items.length === 1 ? operation.items[0].name : MOT_CONFIRMATION;
@@ -92,7 +93,16 @@ function PurgeDialog({
     };
 
     return (
-        <Dialog open={operation !== null} onClose={fermer} maxWidth="sm" fullWidth>
+        <Dialog
+            open={operation !== null}
+            onClose={fermer}
+            maxWidth="sm"
+            fullWidth
+            // La saisie est le geste attendu, et elle existe dès l'ouverture :
+            // le piège à focus de MUI reprendrait la main sur un `autoFocus`.
+            // Même contournement que dans `UnsavedChangesDialog`.
+            slotProps={{ transition: { onEntered: () => { saisieRef.current?.focus(); } } }}
+        >
             <DialogTitle>
                 {operation ? `Purger ${titreOperation(operation)} ?` : ''}
             </DialogTitle>
@@ -114,6 +124,7 @@ function PurgeDialog({
                             Pour confirmer, saisissez <strong>{phraseAttendue}</strong> :
                         </Typography>
                         <TextField
+                            inputRef={saisieRef}
                             value={saisie}
                             onChange={(event) => { setSaisie(event.target.value); }}
                             size="small"
@@ -125,7 +136,7 @@ function PurgeDialog({
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={fermer} autoFocus>
+                <Button onClick={fermer}>
                     Annuler
                 </Button>
                 <Button
@@ -253,7 +264,13 @@ export function CorbeillePage() {
                 La purge est définitive.
             </Typography>
 
-            {operations.length === 0 && <Alert severity="info">La corbeille est vide.</Alert>}
+            {/* Rien à créer dans une corbeille : le message se suffit, et dit
+                d'où viendra ce qui s'y trouvera. */}
+            {operations.length === 0 && (
+                <Alert severity="info">
+                    La corbeille est vide. Les suppressions restaurables apparaîtront ici.
+                </Alert>
+            )}
 
             <Stack spacing={2}>
                 {operations.map((op) => (

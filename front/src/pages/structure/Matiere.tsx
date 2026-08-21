@@ -124,6 +124,8 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
         ...createMatiereViewConfig(ueId),
         title: "Matières",
         roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: "la matière",
+        entityLabelPlural: "matières",
         isAction,
         isReadOnly,
         actionsLigne,

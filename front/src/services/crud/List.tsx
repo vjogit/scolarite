@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import type { Datasource } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
+import { MRT_Localization_FR } from 'material-react-table/locales/fr';
 import { alpha, Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -15,7 +16,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { blockingMessageFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
-import { messageSuppression } from './entityMessages';
+import { libelleCreation, messageListeVide, messageSuppression } from './entityMessages';
+import { EtatVideTable } from './EtatVideTable';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { actionsDeLaLigne, cibleAction, estNavigation, type ActionLigne } from './actions';
 import { MenuActionsLigne } from './MenuActionsLigne';
@@ -164,20 +166,27 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const renderTopToolbarCustomActions = useCallback(({ table }: { table: MRT_TableInstance<D> }) => {
     if (!datasource.isTopToolbar) return null
 
+    // `aria-label` explicite sur le bouton, et non sur le `Tooltip` : celui-ci
+    // pose son nom sur son enfant direct, ici le `<span>` qui permet
+    // l'infobulle sur un bouton désactivé. Sans cet attribut, les deux
+    // commandes présentes sur toutes les listes n'ont aucun nom accessible.
     const defaultActions = (
       <Box sx={{ display: 'flex', gap: '1rem' }}>
         {datasource.isAction && ecritureAutorisee && (
           <>
-            <Tooltip title="Ajouter">
+            <Tooltip title={libelleCreation(datasource)}>
               <span>
-                <IconButton onClick={() => navigate(`${rootPath}/new`)}>
+                <IconButton
+                  aria-label={libelleCreation(datasource)}
+                  onClick={() => navigate(`${rootPath}/new`)}>
                   <AddBoxIcon />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Supprimer">
+            <Tooltip title="Supprimer la sélection">
               <span>
                 <IconButton
+                  aria-label="Supprimer la sélection"
                   color="error"
                   onClick={() => handleOpenModal(table)}
                   disabled={table.getSelectedRowModel().flatRows.length === 0}>
@@ -196,7 +205,24 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     return defaultActions;
   }, [ecritureAutorisee, navigate, datasource, handleOpenModal, rootPath]);
 
+  // L'invite de création reprend mot pour mot les conditions du bouton
+  // « Ajouter » de la barre — `ecritureAutorisee` couvre déjà `isReadOnly` —
+  // et vise la même route. Un compte en consultation voit le message seul.
+  const renderEmptyRowsFallback = useCallback(({ table }: { table: MRT_TableInstance<D> }) => (
+    <EtatVideTable
+      table={table}
+      message={messageListeVide(datasource)}
+      action={datasource.isAction && ecritureAutorisee
+        ? { libelle: libelleCreation(datasource), onClick: () => { void navigate(`${rootPath}/new`); } }
+        : undefined}
+    />
+  ), [datasource, ecritureAutorisee, navigate, rootPath]);
+
   const table = useMaterialReactTable({
+    // Les commandes internes de la table — recherche, filtres, colonnes,
+    // densité, plein écran, pagination — tirent d'ici leurs infobulles et
+    // leurs noms accessibles, anglais par défaut.
+    localization: MRT_Localization_FR,
     initialState: {
       isLoading,
       density: 'compact', // 'compact' | 'comfortable' | 'spacious'
@@ -229,6 +255,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
         darken(theme.palette.background.default, 0.05) : theme.palette.background.default,
     }),
     renderTopToolbarCustomActions,
+    renderEmptyRowsFallback,
     enableRowActions: datasource.isAction,
     positionActionsColumn: 'last',
     renderRowActions,

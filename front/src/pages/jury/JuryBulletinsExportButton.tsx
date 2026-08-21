@@ -15,6 +15,9 @@ interface JuryBulletinsExportButtonProps {
     periodeId: string;
 }
 
+/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
+const LIBELLE = 'Exporter les bulletins (ZIP)';
+
 export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButtonProps) {
     const notifications = useNotifications();
     const [open, setOpen] = useState(false);
@@ -56,8 +59,8 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
 
     return (
         <>
-            <Tooltip title="Exporter les bulletins (ZIP)">
-                <IconButton onClick={() => setOpen(true)} size="small" color="secondary">
+            <Tooltip title={LIBELLE}>
+                <IconButton aria-label={LIBELLE} onClick={() => setOpen(true)} size="small" color="secondary">
                     <ArticleIcon fontSize="small" />
                 </IconButton>
             </Tooltip>

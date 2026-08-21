@@ -91,7 +91,9 @@ export function FicheImportButton({ controleId }: Props) {
     return (
         <>
             <Tooltip title={LIBELLE_IMPORT_FICHE}>
-                <IconButton onClick={() => { declencher(controleId); }}>
+                <IconButton
+                    aria-label={LIBELLE_IMPORT_FICHE}
+                    onClick={() => { declencher(controleId); }}>
                     <FileUploadIcon />
                 </IconButton>
             </Tooltip>

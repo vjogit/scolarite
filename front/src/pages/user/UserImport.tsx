@@ -8,6 +8,9 @@ import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError, notifySuccess } from '../../services/notify';
 
 
+/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
+const LIBELLE = 'Importer des utilisateurs depuis un fichier YAML';
+
 export function UserImportButton() {
 
     const notifications = useNotifications();
@@ -37,8 +40,8 @@ export function UserImportButton() {
 
     return (
         <>
-            <Tooltip title="Import">
-                <IconButton onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={LIBELLE}>
+                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>

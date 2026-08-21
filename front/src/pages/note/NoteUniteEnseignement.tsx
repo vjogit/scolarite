@@ -108,6 +108,8 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
         ...createNoteUeRepository(ueId),
         ...createNoteUeViewConfig(ueId),
         title: "Notes de l'UE",
+        entityLabel: "la note",
+        entityLabelPlural: "notes",
         isAction,
         actionsLigne,
         isTopToolbar,

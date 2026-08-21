@@ -178,6 +178,8 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
         ...createControleViewConfig(matiereId),
         title: "Contrôles",
         roleEcriture: Role.NOTES_ECRITURE,
+        entityLabel: "le contrôle",
+        entityLabelPlural: "contrôles",
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

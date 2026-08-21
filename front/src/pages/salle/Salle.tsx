@@ -130,6 +130,8 @@ export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToo
         ...salleViewConfig,
         title: 'Salles',
         roleEcriture: Role.SALLES_ECRITURE,
+        entityLabel: "la salle",
+        entityLabelPlural: "salles",
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

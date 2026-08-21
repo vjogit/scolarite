@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
 import type { MRT_Row } from 'material-react-table';
@@ -63,6 +63,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     onConfirm,
 }: Props<D>) {
     const [saisie, setSaisie] = useState('');
+    const saisieRef = useRef<HTMLInputElement>(null);
 
     const ids = useMemo(
         () => selectedRows.map((row) => datasource.getId(row.original)),
@@ -110,6 +111,15 @@ export function DeleteConfirmDialog<D extends FieldValues>({
             totalCascade > SEUIL_CONFIRMATION ||
             impactEnEchec);
 
+    // La saisie exigée peut naître plus tard que la modale : c'est le cas
+    // quand c'est l'ampleur de la cascade, ou l'échec de son analyse, qui la
+    // déclenche. Le piège à focus de MUI a alors rendu la main depuis
+    // longtemps, un `focus()` direct suffit. Le cas symétrique — saisie
+    // présente dès l'ouverture — est traité par `onEntered` sur la modale.
+    useEffect(() => {
+        if (open && confirmationRequise) saisieRef.current?.focus();
+    }, [open, confirmationRequise]);
+
     // Sur sélection multiple, recopier cinq noms n'aurait aucun sens.
     const phraseAttendue = selectedRows.length === 1 ? (noms[0] ?? MOT_CONFIRMATION) : MOT_CONFIRMATION;
     const confirmationOk = !confirmationRequise || saisie.trim() === phraseAttendue;
@@ -137,6 +147,19 @@ export function DeleteConfirmDialog<D extends FieldValues>({
             maxWidth="sm"
             fullWidth
             aria-labelledby="delete-dialog-title"
+            // Quand la saisie est exigée dès l'ouverture — une entité de haut
+            // niveau, dont le marqueur est connu avant toute réponse serveur —
+            // le piège à focus de MUI reprend la main et applique l'`autoFocus`
+            // du bouton « Annuler ». Même contournement que dans
+            // `UnsavedChangesDialog` : on place le focus la transition finie.
+            // Sans saisie exigée, on ne touche à rien et « Annuler » le garde.
+            slotProps={{
+                transition: {
+                    onEntered: () => {
+                        if (confirmationRequise) saisieRef.current?.focus();
+                    },
+                },
+            }}
         >
             <DialogTitle id="delete-dialog-title">{titre}</DialogTitle>
 
@@ -234,6 +257,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                 Pour confirmer, saisissez <strong>{phraseAttendue}</strong> :
                             </Typography>
                             <TextField
+                                inputRef={saisieRef}
                                 value={saisie}
                                 onChange={(event) => setSaisie(event.target.value)}
                                 size="small"

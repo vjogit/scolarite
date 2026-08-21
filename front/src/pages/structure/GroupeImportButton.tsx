@@ -16,6 +16,9 @@ interface Props {
     groupeId: string;
 }
 
+/** « depuis Excel » seul serait ambigu : c'est l'effectif qu'on importe. */
+const LIBELLE = 'Importer des élèves depuis Excel';
+
 export function GroupeImportButton({ groupeId }: Props) {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
@@ -52,8 +55,8 @@ export function GroupeImportButton({ groupeId }: Props) {
 
     return (
         <>
-            <Tooltip title="Importer depuis Excel">
-                <IconButton onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={LIBELLE}>
+                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>

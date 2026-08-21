@@ -6,6 +6,9 @@ import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
 import { notifyError } from '../../services/notify';
 
+/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
+const LIBELLE = 'Exporter le programme en Excel';
+
 export function PeriodeExportButton() {
     const { optionId } = useParams();
     const notifications = useNotifications();
@@ -37,8 +40,8 @@ export function PeriodeExportButton() {
     }, [optionId, notifications]);
 
     return (
-        <Tooltip title="Export">
-            <IconButton onClick={handleExport}>
+        <Tooltip title={LIBELLE}>
+            <IconButton aria-label={LIBELLE} onClick={handleExport}>
                 <DownloadIcon />
             </IconButton>
         </Tooltip>

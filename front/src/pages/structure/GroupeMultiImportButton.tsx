@@ -22,6 +22,9 @@ interface Props {
     optionId: string;
 }
 
+/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
+const LIBELLE = 'Importer plusieurs groupes depuis Excel';
+
 export function GroupeMultiImportButton({ optionId }: Props) {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
@@ -61,8 +64,8 @@ export function GroupeMultiImportButton({ optionId }: Props) {
 
     return (
         <>
-            <Tooltip title="Importer plusieurs groupes depuis Excel">
-                <IconButton onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={LIBELLE}>
+                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
                     <DriveFolderUploadIcon />
                 </IconButton>
             </Tooltip>

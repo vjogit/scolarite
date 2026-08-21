@@ -122,6 +122,9 @@ export function Planning() {
         () => sessionStorage.getItem('planning_panel_open') !== 'false'
     );
     useEffect(() => { sessionStorage.setItem('planning_panel_open', String(panelOpen)); }, [panelOpen]);
+
+    const libelleCouleur = colorMode === 'type' ? 'Couleur par matière' : 'Couleur par type de cours';
+    const libelleHeures = panelOpen ? 'Masquer les heures' : 'Afficher les heures';
     const [conflictMsg, setConflictMsg] = useState<string | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
@@ -223,10 +226,12 @@ export function Planning() {
                 />
             </Box>
 
-            {/* Boutons toggle */}
+            {/* Boutons toggle. Les deux libellés nomment l'action à venir, pas
+                l'état courant, et servent aussi de nom accessible. */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start', mt: 2, mr: panelOpen ? 0 : 1, gap: 0.5 }}>
-                <Tooltip title={colorMode === 'type' ? 'Couleur par matière' : 'Couleur par type de cours'} placement="left">
+                <Tooltip title={libelleCouleur} placement="left">
                     <IconButton
+                        aria-label={libelleCouleur}
                         size="small"
                         onClick={() => setColorMode(m => m === 'type' ? 'matiere' : 'type')}
                         color={colorMode === 'matiere' ? 'primary' : 'default'}
@@ -234,8 +239,13 @@ export function Planning() {
                         <PaletteIcon />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title={panelOpen ? 'Masquer les heures' : 'Afficher les heures'} placement="left">
-                    <IconButton size="small" onClick={() => setPanelOpen(p => !p)}>
+                <Tooltip title={libelleHeures} placement="left">
+                    <IconButton
+                        aria-label={libelleHeures}
+                        aria-expanded={panelOpen}
+                        size="small"
+                        onClick={() => setPanelOpen(p => !p)}
+                    >
                         <MenuOpenIcon sx={{ transform: panelOpen ? 'none' : 'scaleX(-1)' }} />
                     </IconButton>
                 </Tooltip>

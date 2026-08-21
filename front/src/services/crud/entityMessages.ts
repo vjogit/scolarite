@@ -29,6 +29,12 @@ const ELISIONS: readonly string[] = ["l'", "l’"];
 interface Entite {
     /** Nom nu, majuscule initiale : « Formation ». */
     nom: string;
+    /**
+     * Nom nu dans la casse d'origine : « période », mais « UE ». Les phrases
+     * qui n'ouvrent pas sur le nom en ont besoin — abaisser la casse de `nom`
+     * donnerait « aucune ue ».
+     */
+    nomBrut: string;
     genre: Genre;
 }
 
@@ -50,6 +56,7 @@ function analyserLibelle<D extends FieldValues>(datasource: Datasource<D>): Enti
         if (minuscule.startsWith(prefixe)) {
             return {
                 nom: capitaliser(libelle.slice(prefixe.length)),
+                nomBrut: libelle.slice(prefixe.length),
                 genre: datasource.entityGender ?? genre,
             };
         }
@@ -61,6 +68,7 @@ function analyserLibelle<D extends FieldValues>(datasource: Datasource<D>): Enti
             if (!datasource.entityGender) return null;
             return {
                 nom: capitaliser(libelle.slice(elision.length)),
+                nomBrut: libelle.slice(elision.length),
                 genre: datasource.entityGender,
             };
         }
@@ -68,7 +76,7 @@ function analyserLibelle<D extends FieldValues>(datasource: Datasource<D>): Enti
 
     // Libellé sans article : on l'accepte si le genre est déclaré.
     if (!datasource.entityGender) return null;
-    return { nom: capitaliser(libelle), genre: datasource.entityGender };
+    return { nom: capitaliser(libelle), nomBrut: libelle, genre: datasource.entityGender };
 }
 
 /** « créé » → « créée » au féminin. */
@@ -144,4 +152,30 @@ export function messageSuppression<D extends FieldValues>(
     // Sans genre sûr, le mot neutre déjà employé par la modale de suppression :
     // masculin, donc accordable sans risque.
     return corbeille ? `${nombre} éléments mis en corbeille.` : `${nombre} éléments supprimés.`;
+}
+
+/**
+ * « Aucune période enregistrée. » — le constat d'une collection réellement
+ * vide, accordé comme le reste. Sans entité déterminable, la tournure neutre
+ * du repli : masculin, seul accord sûr.
+ *
+ * Le message ne nomme pas le parent (« … pour cette option ») : le fil de
+ * contexte, juste au-dessus de la liste, l'affiche déjà.
+ */
+export function messageListeVide<D extends FieldValues>(datasource: Datasource<D>): string {
+    const entite = analyserLibelle(datasource);
+    if (!entite) return "Aucun élément à afficher.";
+    const aucun = entite.genre === 'f' ? 'Aucune' : 'Aucun';
+    return `${aucun} ${entite.nomBrut} ${accorder('enregistré', entite.genre)}.`;
+}
+
+/**
+ * « Créer une période » : le libellé de l'invite qui accompagne une liste
+ * vide, et le nom accessible du bouton « Ajouter » de la barre — les deux
+ * mènent au même formulaire, ils portent donc le même nom.
+ */
+export function libelleCreation<D extends FieldValues>(datasource: Datasource<D>): string {
+    const entite = analyserLibelle(datasource);
+    if (!entite) return 'Ajouter';
+    return `Créer ${entite.genre === 'f' ? 'une' : 'un'} ${entite.nomBrut}`;
 }

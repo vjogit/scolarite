@@ -15,6 +15,8 @@ import {
     type MRT_RowSelectionState,
     type MRT_Row,
 } from 'material-react-table';
+import { MRT_Localization_FR } from 'material-react-table/locales/fr';
+import { EtatVideTable } from '../../services/crud/EtatVideTable';
 import { ENDPOINT_DELIBERER, ENDPOINT_JURY } from './def';
 import { JuryExportButton } from './JuryExportButton';
 import { JuryBulletinsExportButton } from './JuryBulletinsExportButton';
@@ -529,6 +531,12 @@ export const JuryPeriode = () => {
     const table = useMaterialReactTable({
         columns,
         data: students,
+        localization: MRT_Localization_FR,
+        // Écran de synthèse : l'effectif vient de la structure, on n'y crée
+        // pas d'élève. Le message constate, sans inviter.
+        renderEmptyRowsFallback: ({ table }) => (
+            <EtatVideTable table={table} message="Aucun élève dans cette période." />
+        ),
         state: { isLoading, rowSelection },
         onRowSelectionChange: setRowSelection,
 

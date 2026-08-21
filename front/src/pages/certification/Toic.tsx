@@ -147,6 +147,8 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
         ...createToeicViewConfig(promotionId),
         title: "TOEIC",
         roleEcriture: Role.CERTIFICATION_ECRITURE,
+        entityLabel: "le résultat TOEIC",
+        entityLabelPlural: "résultats TOEIC",
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,

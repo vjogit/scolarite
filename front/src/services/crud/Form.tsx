@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useForm, type DefaultValues, type FieldValues } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
@@ -14,6 +15,7 @@ import { Box, Button } from '@mui/material';
 import { useCrudContext } from './CrudContext';
 import { useUnsavedChangesGuard } from '../useUnsavedChangesGuard';
 import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
+import { premierChampEnErreur, premierChampSaisissable } from './focus';
 
 
 export type FormMode = 'create' | 'show' | 'edit';
@@ -30,6 +32,10 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
   const navigate = useNavigate();
   const notifications = useNotifications();
   const isReadOnly = mode === 'show';
+  const formulaireRef = useRef<HTMLFormElement>(null);
+  // Champs refusés par le dernier appel serveur. Un tableau neuf à chaque
+  // refus, y compris identique au précédent : l'effet doit rejouer.
+  const [champsRefuses, setChampsRefuses] = useState<string[]>([]);
 
 
   const { register, handleSubmit, control, setError, formState: { errors, dirtyFields }, getValues, setValue } = useForm<D>({
@@ -61,6 +67,10 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
         Object.entries(fields).forEach(([field, message]) => {
           setError(field as Parameters<typeof setError>[0], { type: 'server', message });
         });
+        // Le déplacement du focus attend le rendu que `setError` provoque :
+        // c'est lui qui pose `aria-invalid`, seul repère des champs montés
+        // sous `Controller`.
+        setChampsRefuses(Object.keys(fields));
         return;
       }
       notifyError(notifications, messageForError(error));
@@ -83,6 +93,22 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
     mutation.mutate(data);
   };
 
+  // À l'ouverture d'une saisie, le focus reste sinon sur le déclencheur de
+  // navigation resté sur la liste. En consultation on n'y touche pas : il n'y
+  // a rien à saisir, et voler le focus ferait défiler la page sans raison.
+  useEffect(() => {
+    if (mode === 'show') return;
+    premierChampSaisissable(formulaireRef.current)?.focus();
+  }, [mode]);
+
+  // Après un refus serveur, le clavier va au premier champ fautif dans
+  // l'ordre de lecture. L'utilisateur n'a pas à parcourir le formulaire pour
+  // trouver lequel des messages est apparu.
+  useEffect(() => {
+    if (champsRefuses.length === 0) return;
+    premierChampEnErreur(formulaireRef.current, champsRefuses)?.focus();
+  }, [champsRefuses]);
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
 
@@ -95,7 +121,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
           Elles restent posées pour borner les flèches de l'incrémenteur ;
           l'arbitrage de la validité, lui, revient à zod.
         */}
-        <form noValidate onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
+        <form ref={formulaireRef} noValidate onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
           <h2>
             {mode === 'show' ? 'Détails' : mode === 'edit' ? 'Modifier' : 'Ajouter'}
           </h2>

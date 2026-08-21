@@ -116,6 +116,8 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, action
         // habilité à valider un semestre. Le titre le dit plutôt que de le
         // laisser deviner à celui qui lit une colonne « Non délibéré ».
         title: "GPA délibéré",
+        entityLabel: "le GPA délibéré",
+        entityLabelPlural: "GPA délibérés",
         isAction,
         actionsLigne,
         isTopToolbar,

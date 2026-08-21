@@ -14,6 +14,9 @@ interface JuryExportButtonProps {
     periodeId: string;
 }
 
+/** Deux exports voisinent dans la barre : le nom doit dire lequel. */
+const LIBELLE = 'Exporter le jury en Excel';
+
 export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
     const notifications = useNotifications();
 
@@ -48,8 +51,8 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
     }, [periodeId, notifications]);
 
     return (
-        <Tooltip title="Exporter en Excel">
-            <IconButton onClick={handleExport} size="small" color="primary">
+        <Tooltip title={LIBELLE}>
+            <IconButton aria-label={LIBELLE} onClick={handleExport} size="small" color="primary">
                 <FileDownloadIcon fontSize="small" />
             </IconButton>
         </Tooltip>
