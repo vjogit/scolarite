@@ -1,3 +1,15 @@
+# Configuration du serveur — SOURCE UNIQUE.
+#
+# Ce fichier sert les deux façons de lancer le backend :
+#   * hors conteneur, depuis le debugger VSCode, qui le passe en argument et
+#     résout les ${VAR} avec os.Expand (back/pkg/services/config.go) ;
+#   * en conteneur, où infra/run/start-scolarite.sh le rend avec envsubst et
+#     dépose le résultat dans $SCOLARITE_CONF_DIR/config.yaml, monté en
+#     lecture seule sur /opt/scolarite/conf/config.yaml.
+#
+# Il n'y a donc plus de gabarits infra/run/config-{local,prod}.yaml : ils
+# recopiaient celui-ci à une ligne près et divergeaient à la première retouche.
+# Les valeurs viennent de infra/env/config-<env>.env et secrets-<env>.env.
 database:
   host: ${POSTGRES_HOST}
   port: ${POSTGRES_PORT}
@@ -12,7 +24,17 @@ server:
 keycloak:
   host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
   issuer: ${KC_HOSTNAME}
-  realm: realms/RealmCybScolarite
+  realm: realms/${KC_REALM}
   client: ${KC_CLIENT_ID}
   backend_client_id: ${KC_BACKEND_CLIENT_ID}
   backend_client_secret: ${KC_BACKEND_CLIENT_SECRET}
+  # Bundle PEM ajouté aux CA de confiance pour la découverte OIDC. Vide = CA
+  # système, et le backend s'en contente (AuthMiddleware.go). C'est le cas hors
+  # conteneur — la CA mkcert est dans le trust store de la machine — et en prod,
+  # où l'issuer porte un certificat public.
+  #
+  # [DEV-LOCAL] Seul le conteneur local a besoin d'une valeur : il ne connaît
+  # pas la CA mkcert qui signe l'issuer. start-scolarite.sh l'y dépose et
+  # positionne cette variable. La vérification TLS reste active : jamais
+  # d'InsecureSkipVerify.
+  ca_cert: ${SCOLARITE_CA_CERT}

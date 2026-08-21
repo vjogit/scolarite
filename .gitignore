@@ -42,6 +42,14 @@ front/cert/
 # ── Environnement / secrets ───────────────────────────────────────────────────
 .env
 
+# Les secrets ne sont jamais versionnés ; leur LISTE l'est, dans
+# infra/env/secrets.env.example, pour qu'un oubli se voie.
+infra/env/secrets-*.env
+# config-local.env ET config-prod.env sont versionnés : ils ne contiennent
+# aucun secret, et la topologie de prod n'a rien à cacher — l'en soustraire
+# n'aurait protégé personne tout en privant d'historique les changements
+# d'adresse ou de nom de realm.
+
 # ── Éditeurs / IDE ────────────────────────────────────────────────────────────
 .idea/
 .vscode/

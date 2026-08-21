@@ -1,4 +1,133 @@
-# Déploiement & configuration locale
+# Déploiement & configuration
+
+## Espaces de travail
+
+Deux environnements cloisonnés, `local` (tests sur poste de développement) et
+`prod`. Chacun a son fichier de secrets, son fragment de makefile, son gabarit
+de configuration backend et son espace de travail Terraform.
+
+| | `local` | `prod` |
+|---|---|---|
+| Topologie (versionnée) | `infra/env/config-local.env` | `infra/env/config-prod.env` |
+| Secrets (non versionnés) | `infra/env/secrets-local.env` | `infra/env/secrets-prod.env` |
+| Makefile | `makefile.local` | `makefile.prod` |
+| Espace de travail Terraform | `local` | `prod` |
+| Cible Docker du backend | `local` (avec Delve) | `prod` |
+| SMTP | Mailpit (`10.20.2.6:1025`) | relais réel, à renseigner |
+
+`make` sans argument liste les cibles des deux environnements. Le makefile
+racine n'inclut **qu'un seul** fragment à la fois, choisi sur le nom de la
+cible demandée : toute cible prod porte `prod` dans son nom, aucune cible
+locale ne le porte. Les deux fragments font `include` de leur fichier de
+secrets puis `export` — les charger ensemble ferait gagner le dernier inclus
+sur toute variable homonyme, et un `make start-local-reset` partirait avec les
+identifiants de production.
+
+### Deux fichiers par environnement
+
+La configuration est scindée sur un critère unique : ce qui **se révoque** est
+un secret, le reste est de la topologie. `infra/env/README.md` porte la règle
+complète et la table des variables.
+
+- `config-{local,prod}.env` — adresses, ports, noms de bases, comptes, noms de
+  clients Keycloak. **Versionnés**, y compris celui de production.
+- `secrets-{local,prod}.env` — mots de passe et secrets de client. **Jamais
+  versionnés** ; leur liste l'est, dans `secrets.env.example`.
+
+Sur une nouvelle machine :
+
+```bash
+cp infra/env/secrets.env.example infra/env/secrets-local.env
+# puis renseigner les valeurs
+```
+
+`KC_BACKEND_CLIENT_SECRET` n'est pas à renseigner à la main — la cible
+`keycloak` / `keycloak-prod` le réécrit après chaque `terraform apply`.
+
+### Ces deux fichiers sont l'unique source de vérité
+
+Y compris pour Keycloak : le module `infra/keycloak` n'a **pas** de `.tfvars`
+et ne porte aucune valeur en dur. Chaque variable arrive par `TF_VAR_*`,
+dérivée dans `infra/keycloak/deploy.sh` depuis les noms canoniques des deux
+fichiers (bloc « Pont fichiers d'environnement → Terraform »).
+
+Changer une origine autorisée, le relais SMTP ou le compte de démarrage se
+fait donc dans `config-<env>.env` — pas dans `keycloak.tf`, pas dans la console
+Keycloak, que le prochain `apply` écraserait.
+
+Même règle pour les `back/cmd/*/config.yaml` : le realm et l'URL PostgreSQL y
+sont des `${VAR}`, résolus par `os.Expand` au chargement
+(`back/pkg/services/config.go`).
+
+### Une seule source pour le config.yaml du serveur
+
+`back/cmd/serveur/config.yaml` sert les deux façons de lancer le backend :
+
+| Lancement | Chemin |
+|---|---|
+| Hors conteneur (debugger VSCode) | lu tel quel, `${VAR}` résolus par `os.Expand` |
+| En conteneur | rendu par `envsubst` dans `infra/run/start-scolarite.sh`, déposé dans `$SCOLARITE_CONF_DIR/config.yaml`, monté sur `/opt/scolarite/conf/config.yaml` |
+
+Les gabarits `infra/run/config-{local,prod}.yaml` ont disparu : ils recopiaient
+celui-ci à une ligne près — `keycloak.ca_cert` — et auraient divergé à la
+première retouche.
+
+Cette ligne vaut désormais `${SCOLARITE_CA_CERT}`. Seul le conteneur **local**
+a besoin d'une valeur, n'ayant pas la CA mkcert qui signe l'issuer :
+`start-scolarite.sh` l'y dépose et positionne la variable. Partout ailleurs —
+prod, et backend lancé hors conteneur — elle reste vide, et le backend s'en
+tient aux CA système (`AuthMiddleware.go` ne charge un bundle que si le chemin
+est non vide). Le chemin est celui du montage déclaré dans `compose.yaml`, pas
+de la topologie : il vit donc dans le script, à côté de la copie du fichier
+qu'il désigne, et non dans `infra/env`.
+
+### Terraform : espace de travail
+
+L'espace de travail porte l'**état**, les `TF_VAR_*` portent la
+**configuration** ; les deux doivent désigner le même environnement. Les
+cibles du makefile s'en chargent :
+
+```bash
+infra/keycloak/deploy.sh infra/env/config-local.env infra/env/secrets-local.env
+```
+
+Le script sélectionne l'espace de travail d'après `SCOLARITE_ENV`, applique, et
+réécrit `KC_BACKEND_CLIENT_SECRET` dans le fichier de secrets.
+
+Une `precondition` sur `keycloak_realm.cyb_scolarite` confronte
+`terraform.workspace` à `SCOLARITE_ENV` et refuse l'`apply` s'ils divergent :
+appliquer la configuration d'un environnement sur l'état de l'autre détruirait
+le realm.
+
+### Le cas VSCode
+
+`.vscode/launch.json` charge les deux fichiers directement — l'extension Go
+accepte un tableau de chemins pour `envFile` :
+
+```json
+"envFile": [
+  "${workspaceFolder}/infra/env/config-local.env",
+  "${workspaceFolder}/infra/env/secrets-local.env"
+]
+```
+
+Le backend lancé depuis le debugger lit donc les mêmes fichiers que les
+makefiles, `KC_BACKEND_CLIENT_SECRET` compris.
+
+### Limite connue
+
+Les deux environnements partagent encore les noms de projets Docker
+(`scolarite`, `infra-scolarite`), le réseau `10.20.2.0/24` et ses IP
+statiques. Ils ne peuvent donc pas tourner en même temps sur une même machine :
+lancer une cible prod arrête la pile locale, et réciproquement. `makefile.prod`
+reste pour l'instant une copie de `makefile.local`, à dissocier quand la prod
+quittera le poste de développement.
+
+Par prudence, les cibles destructives de prod (`start-prod-reset`,
+`restart-prod-reset`) demandent une confirmation tapée avant de supprimer les
+bases et les volumes — makefile.local ne le fait pas.
+
+---
 
 ## Certificats HTTPS
 
@@ -75,8 +204,9 @@ Le client est entièrement géré par Terraform (`infra/keycloak/keycloak.tf`) :
   dans `KeycloakContext.tsx` (`pkceMethod: 'S256'`).
 - **Valid redirect URIs restreintes à la racine** de chaque frontend
   (`https://…/` — plus de joker `/*`) : la SPA fixe `redirectUri` sur son
-  origine. Les origines autorisées viennent de `TF_VAR_frontend_urls` dans le
-  fichier de secrets local.
+  origine. Les origines autorisées viennent de `KC_FRONTEND_URLS` dans
+  `infra/env/config-<env>.env` — une liste séparée par des virgules, que le
+  module découpe (`infra/keycloak/locals.tf`).
 
 Ne pas modifier ces réglages à la main dans la console : le prochain
 `terraform apply` les écraserait.
@@ -112,19 +242,23 @@ keycloak:
 ## Spécifique au développement local — marquage `[DEV-LOCAL]`
 
 Tout ce qui n'a de sens qu'en local est marqué d'un commentaire `[DEV-LOCAL]`
-dans les fichiers concernés. Le jour du chantier de séparation des
-environnements, une recherche de `DEV-LOCAL` dans le dépôt suffit à retrouver
-ce qui doit être conditionné. Inventaire actuel :
+dans les fichiers concernés. Une recherche de `DEV-LOCAL` dans le dépôt suffit
+à en retrouver l'inventaire. Depuis la séparation des espaces de travail, ce
+qui était conditionnable l'a été : le realm Keycloak est le même module pour
+les deux environnements, seules les valeurs changent. Ce qui reste marqué :
 
 | Élément | Fichier |
 |---|---|
 | Service Docker Mailpit (SMTP factice) | `infra/container/compose.yaml` |
-| Cible `_mailpit-up` | `makefile.local` |
-| Bloc `smtp_server` du realm (pointe vers Mailpit) | `infra/keycloak/keycloak.tf` |
-| Compte de départ `foo` et son rôle ADMIN | `infra/keycloak/keycloak.tf` |
+| Cible `_mailpit-up` (sans équivalent prod) | `makefile.local` |
+| SMTP Mailpit et compte de démarrage `foo` | `infra/env/config-local.env` |
+| CA mkcert (`keycloak.ca_cert`) | `infra/run/start-scolarite.sh` |
+| Mailpit sans authentification, mot de passe de `foo` | `infra/env/secrets-local.env` |
 
 Aucun identifiant de production, aucune adresse SMTP réelle ne doit figurer
-dans ces blocs.
+dans ces blocs. `config-local.env` est versionné : il décrit la *forme* de
+l'environnement, jamais un mot de passe — ceux-ci vivent tous dans
+`secrets-<env>.env`.
 
 ### Mailpit
 
@@ -147,19 +281,52 @@ fait en modifiant l'utilisateur ou via la console Keycloak (« Credential
 Reset »). Aucun mot de passe ne transite jamais par l'application, ses logs ou
 ses réponses.
 
-### Compte de départ
+### Compte de démarrage
 
-| Utilisateur | Mot de passe initial | Rôle |
+Sans lui, personne ne peut se connecter sur un realm vierge pour créer les
+autres comptes. Il est paramétré par les variables `bootstrap_user_*` :
+
+| | `local` | `prod` |
 |---|---|---|
-| `foo` | `Demarrage-Scolarite-2026!` | `ADMIN` (composite de tous les rôles fonctionnels) |
+| Créé | oui (`KC_BOOTSTRAP_USER_ENABLED=true`) | oui, le temps d'amorcer |
+| Utilisateur | `foo` | `admin-demarrage` |
+| Mot de passe initial | `Demarrage-Scolarite-2026!` | `KC_BOOTSTRAP_USER_PASSWORD` |
+| Remplacement forcé au premier login | **non** | **oui** |
+| Rôle | `ADMIN` (composite de tous les rôles fonctionnels) | idem |
 
-Le mot de passe est **temporaire** : Keycloak force son remplacement à la
-première connexion.
+Le mot de passe vit dans `secrets-<env>.env` et nulle part ailleurs. Une
+`precondition` refuse l'`apply` si le compte est activé sans mot de passe.
+
+`KC_BOOTSTRAP_USER_PASSWORD_TEMPORARY` (topologie) décide du remplacement
+forcé. En prod il vaut `true` : ce mot de passe a transité par un fichier, et
+souvent par une conversation — il ne doit pas survivre à l'amorçage. En local
+il vaut `false` : `foo` est public et documenté, le retaper après chaque remise
+à zéro de la base n'apporte rien. La variable vaut `true` par défaut, un
+environnement qui l'oublie force donc le changement.
+
+> **Quand la valeur prend effet.** Le provider n'applique `initial_password`
+> qu'à la **création** de l'utilisateur : la modifier ne produit aucun plan sur
+> un compte existant. En local, elle prend effet au prochain
+> `make start-local-reset` (qui recrée le realm). Pour l'appliquer tout de
+> suite : `terraform -chdir=infra/keycloak apply -replace='keycloak_user.bootstrap[0]'`
+> — le mot de passe repart alors de `KC_BOOTSTRAP_USER_PASSWORD`.
+
+### À ne pas confondre : les comptes agents
+
+Les comptes créés par l'application (`back/pkg/user/user.go`) ne reçoivent
+**aucun** mot de passe : Keycloak leur envoie un courriel `UPDATE_PASSWORD`
+avec lequel l'utilisateur choisit le sien (visible dans Mailpit en local). Il
+n'y a rien à y rendre facultatif — sans ce parcours, le compte n'a pas de mot
+de passe du tout. `KC_BOOTSTRAP_USER_PASSWORD_TEMPORARY` ne le concerne pas.
+
+En prod, une fois les vrais administrateurs créés : repasser
+`KC_BOOTSTRAP_USER_ENABLED` à `false` dans `infra/env/config-prod.env` et vider
+`KC_BOOTSTRAP_USER_PASSWORD`. Le prochain `apply` supprime le compte.
 
 Les identifiants du provider Terraform ne sont plus en dur dans
-`keycloak.tf` : ils viennent de `KEYCLOAK_USER` / `KEYCLOAK_PASSWORD`
-(mappés vers `TF_VAR_keycloak_user` / `TF_VAR_keycloak_password`) dans le
-fichier de secrets local.
+`keycloak.tf` : ils viennent de `KEYCLOAK_ADMIN` (topologie) et
+`KEYCLOAK_ADMIN_PASSWORD` (secrets), mappés vers `TF_VAR_keycloak_user` /
+`TF_VAR_keycloak_password` par les makefiles.
 
 ### Certificats mkcert
 

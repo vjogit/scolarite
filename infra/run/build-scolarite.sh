@@ -10,6 +10,10 @@ BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 case "$TARGET" in
     nginx)
         IMAGE_NAME="scolarite-nginx"
+        # Mode Vite du build front. Sans cette valeur l'image retomberait sur
+        # le défaut « production » de l'ARG du Dockerfile, et servirait les URL
+        # de prod depuis la pile locale.
+        FRONT_MODE="${FRONT_MODE:-conteneurs}"
         if [ ! -f ./build/ssl/nginx.crt ] || [ ! -f ./build/ssl/nginx.key ]; then
             echo "--- 🔐 Génération des certificats mkcert pour nginx ---"
             mkdir -p ./build/ssl
@@ -26,4 +30,5 @@ docker build -f ./build/Dockerfile \
     --target "$TARGET" \
     --build-arg VERSION="$VERSION" \
     --build-arg BUILD_TIME="$BUILD_TIME" \
+    ${FRONT_MODE:+--build-arg FRONT_MODE="$FRONT_MODE"} \
     -t "$IMAGE_NAME" ../../

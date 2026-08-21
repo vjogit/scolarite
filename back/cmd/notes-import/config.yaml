@@ -1,11 +1,12 @@
 keycloak:
-# KC_HTTP_RELATIVE_PATH: /auth dans le lancement du container keycloak.
-  host: http://localhost:8080/auth
-  realm: realms/RealmCybScolarite
+  host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
+  realm: realms/${KC_REALM}
   client: ${KC_CLIENT_ID}
   backend_client_id: ${KC_BACKEND_CLIENT_ID}
   backend_client_secret: ${KC_BACKEND_CLIENT_SECRET}
 
 import:
+  # MariaDB éphémère, créée et détruite par run.sh : ses identifiants n'ont pas
+  # de valeur hors de ce script, et run.sh réécrit l'hôte au lancement.
   mariadb: "root:root@tcp(localhost:3306)/cyber_notes_v2"
-  postgres: "postgres://postgres:root@localhost:5432/scolarite"
+  postgres: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${SCOLARITE_DB}"

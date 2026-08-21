@@ -97,6 +97,9 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			v, err := getVerifier()
 			if err != nil {
+				// Sans cette trace, un issuer injoignable ou mal configuré ne
+				// se manifeste que par un 503 nu, côté navigateur.
+				slog.Error("découverte OIDC impossible", "issuer", issuer, "err", err)
 				http.Error(w, "Service d'authentification indisponible", http.StatusServiceUnavailable)
 				return
 			}

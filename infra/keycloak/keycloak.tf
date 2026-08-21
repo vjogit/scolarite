@@ -1,7 +1,27 @@
+# ==========================================================
+# Realm Scolarité — module racine partagé par les deux espaces de travail.
+#
+# Un espace de travail Terraform (« terraform workspace ») par environnement :
+# « local » et « prod », chacun avec son propre état. Ce qui les distingue est
+# passé par -var-file :
+#
+#   terraform -chdir=infra/keycloak workspace select -or-create local
+#   terraform -chdir=infra/keycloak apply
+#
+# Il n'y a PAS de fichier .tfvars : toutes les variables arrivent par TF_VAR_*,
+# dérivées dans makefile.local / makefile.prod depuis infra/env/config-<env>.env
+# et infra/env/secrets-<env>.env — l'unique source de vérité du realm. Modifier
+# le realm se fait là-bas, jamais ici ni dans la console. Voir
+# infra/env/README.md.
+#
+# Les cibles keycloak / keycloak-prod des makefiles s'en chargent ; lancé à la
+# main sans ces variables, terraform réclamerait chaque valeur.
+# ==========================================================
+
 # 1. Configuration du Fournisseur Keycloak
 # Identifiants fournis par l'environnement : TF_VAR_keycloak_user /
-# TF_VAR_keycloak_password (alimentés depuis KEYCLOAK_ADMIN /
-# KEYCLOAK_ADMIN_PASSWORD dans le fichier de secrets local).
+# TF_VAR_keycloak_password, alimentés depuis KEYCLOAK_ADMIN (config-<env>.env)
+# et KEYCLOAK_ADMIN_PASSWORD (secrets-<env>.env).
 provider "keycloak" {
   url       = "${var.keycloak_url}/auth"
   realm     = "master"
@@ -29,14 +49,37 @@ resource "keycloak_realm" "cyb_scolarite" {
     default_locale    = "fr"
   }
 
-  # [DEV-LOCAL] SMTP vers le conteneur Mailpit : il accepte tout, sans
-  # authentification ni TLS. À remplacer par le relais réel lors du chantier
-  # de séparation des environnements — aucun identifiant de production ici.
+  # Relais SMTP du realm. En local il pointe vers Mailpit, qui accepte tout
+  # sans authentification ni TLS ; en prod vers le relais réel. La forme est
+  # décrite par les KC_SMTP_* de infra/env/config-<env>.env, le mot de passe
+  # par KC_SMTP_PASSWORD dans infra/env/secrets-<env>.env.
   smtp_server {
-    host = "10.20.2.6"
-    port = "1025"
-    from = "no-reply@scolarite.local"
-    from_display_name = "Scolarité (local)"
+    host              = var.smtp_host
+    port              = var.smtp_port
+    from              = var.smtp_from
+    from_display_name = var.smtp_from_display_name
+    starttls          = var.smtp_starttls
+    ssl               = var.smtp_ssl
+
+    # Bloc omis quand smtp_user est vide : Mailpit refuse une négociation AUTH.
+    dynamic "auth" {
+      for_each = var.smtp_user == "" ? [] : [1]
+      content {
+        username = var.smtp_user
+        password = var.smtp_password
+      }
+    }
+  }
+
+  # Garde-fou : l'espace de travail sélectionné porte l'état, le fichier
+  # d'environnement chargé porte la configuration. Les désaccorder appliquerait
+  # la configuration d'un environnement sur l'état de l'autre — en prod, la
+  # destruction du realm.
+  lifecycle {
+    precondition {
+      condition     = terraform.workspace == var.environnement
+      error_message = "Espace de travail Terraform « ${terraform.workspace} » et SCOLARITE_ENV « ${var.environnement} » discordants : sélectionner l'espace de travail correspondant avant d'appliquer."
+    }
   }
 }
 
@@ -57,9 +100,9 @@ resource "keycloak_openid_client" "spa_app" {
   # Redirections restreintes à la racine de chaque frontend : la SPA fixe
   # explicitement redirectUri sur son origine (KeycloakContext.tsx), le
   # joker "/*" n'est donc pas nécessaire.
-  valid_redirect_uris = [for url in var.frontend_urls : "${url}/"]
-  web_origins         = var.frontend_urls
-  valid_post_logout_redirect_uris = [for url in var.frontend_urls : "${url}/"]
+  valid_redirect_uris = [for url in local.frontend_urls : "${url}/"]
+  web_origins         = local.frontend_urls
+  valid_post_logout_redirect_uris = [for url in local.frontend_urls : "${url}/"]
 
 }
 
@@ -163,31 +206,58 @@ resource "keycloak_role" "admin_role" {
 
 
 # ==========================================================
-# 5. [DEV-LOCAL] Compte de départ "foo"
-# Nécessaire pour la première connexion sur un environnement vierge.
-# Mot de passe temporaire : Keycloak force son remplacement au premier
-# login. Identifiants documentés dans docs/deployements.md. À exclure
-# lors du chantier de séparation des environnements.
+# 5. Compte de démarrage
+#
+# Nécessaire pour la première connexion sur un realm vierge : sans lui,
+# personne ne peut se connecter pour créer les autres comptes.
+#
+# À ne pas confondre avec le parcours de création d'un compte agent
+# (back/pkg/user/user.go) : celui-là n'attribue AUCUN mot de passe, il envoie
+# un courriel UPDATE_PASSWORD avec lequel l'utilisateur choisit le sien. Il n'y
+# a rien à y rendre facultatif.
+#
+# En local c'est « foo », documenté dans docs/deployements.md. En prod, le
+# compte n'a de raison d'être que le temps d'amorcer le realm : une fois les
+# vrais administrateurs créés, repasser KC_BOOTSTRAP_USER_ENABLED à false dans
+# infra/env/config-prod.env et vider KC_BOOTSTRAP_USER_PASSWORD.
 # ==========================================================
-resource "keycloak_user" "default_user_foo" {
+resource "keycloak_user" "bootstrap" {
+  count = var.bootstrap_user_enabled ? 1 : 0
+
   realm_id = keycloak_realm.cyb_scolarite.id
-  username = "foo"
+  username = var.bootstrap_user_username
   enabled  = true
-  first_name     = "Default"
-  last_name      = "User"
-  email          = "foo@scolarite.local"
+  first_name     = "Compte"
+  last_name      = "Démarrage"
+  email          = var.bootstrap_user_email
   email_verified = true
 
+  # temporary : Keycloak impose le remplacement au premier login. Vrai en prod,
+  # où le mot de passe d'amorçage a transité par un fichier et parfois par une
+  # conversation ; faux en local, où le retaper à chaque remise à zéro de la
+  # base n'apporte rien — le compte « foo » y est public et documenté.
+  # Défaut à true : un environnement qui oublie la variable force le changement.
   initial_password {
-    value     = "Demarrage-Scolarite-2026!"
-    temporary = true # remplacement forcé au premier login
+    value     = var.bootstrap_user_password
+    temporary = var.bootstrap_user_password_temporary
+  }
+
+  # Créer un compte ADMIN sans mot de passe est toujours une erreur : mieux
+  # vaut refuser l'apply que découvrir le realm inaccessible — ou accessible.
+  lifecycle {
+    precondition {
+      condition     = var.bootstrap_user_password != ""
+      error_message = "KC_BOOTSTRAP_USER_ENABLED est vrai mais KC_BOOTSTRAP_USER_PASSWORD est vide : renseigner le mot de passe temporaire dans infra/env/secrets-${var.environnement}.env, ou passer KC_BOOTSTRAP_USER_ENABLED à false dans infra/env/config-${var.environnement}.env."
+    }
   }
 }
 
-# [DEV-LOCAL] Rôle du compte de départ : ADMIN (composite) uniquement.
-resource "keycloak_user_roles" "foo_roles" {
+# Rôle du compte de démarrage : ADMIN (composite) uniquement.
+resource "keycloak_user_roles" "bootstrap_roles" {
+  count = var.bootstrap_user_enabled ? 1 : 0
+
   realm_id = keycloak_realm.cyb_scolarite.id
-  user_id  = keycloak_user.default_user_foo.id
+  user_id  = keycloak_user.bootstrap[0].id
 
   role_ids = [
     keycloak_role.admin_role.id,

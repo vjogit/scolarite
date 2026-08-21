@@ -3,7 +3,12 @@ services:
 
   auth-service:
     container_name: keycloak-3
-    image: quay.io/keycloak/keycloak:latest
+    # Version épinglée. « latest » exposait à deux dérives : la version pouvait
+    # changer au premier `pull` sans que rien ne le signale, et surtout un dump
+    # de la base `keycloak` restauré plus tard dans une version plus récente
+    # peut migrer son schéma de façon irréversible. Une sauvegarde n'a de sens
+    # qu'associée à une version connue.
+    image: quay.io/keycloak/keycloak:26.7.1
     command: ["start-dev"]
     restart: always
     environment:
@@ -29,7 +34,8 @@ services:
   # À exclure lors du chantier de séparation des environnements.
   mail-service:
     container_name: mailpit
-    image: axllent/mailpit:latest
+    # Version épinglée (le tag amont porte un « v » initial).
+    image: axllent/mailpit:v1.30.7
     restart: always
     ports:
       - "8025:8025" # interface web, exposée à l'hôte
@@ -38,8 +44,10 @@ services:
         ipv4_address: 10.20.2.6
 
   db:
+    # Déjà épinglé. PG_CONTAINER (infra/env/config-*.env) reprend cette version
+    # dans le nom du conteneur : les deux se changent ensemble.
     image: postgres:16.10-alpine
-    container_name: postgres-16.10-alpine
+    container_name: ${PG_CONTAINER}
     restart: always
     volumes:
       - postgres-data:/var/lib/postgresql/data

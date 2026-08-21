@@ -35,7 +35,13 @@ COPY front/package*.json ./
 RUN npm ci
 
 COPY front/ ./
-RUN npm run build
+
+# Mode Vite, donc fichier front/.env.<mode> retenu : « conteneurs » pour la
+# stack locale (URL de nginx en 10.20.2.5:9021), « production » pour la prod.
+# Positionné par infra/run/compose.yaml depuis start-scolarite.sh, en parallèle
+# de BACKEND_TARGET.
+ARG FRONT_MODE=production
+RUN npm run build -- --mode "${FRONT_MODE}"
 
 # ── Target nginx ──────────────────────────────────────────────────────────────
 FROM alpine:3.22 AS nginx

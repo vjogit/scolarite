@@ -6,14 +6,22 @@ services:
     build:
       context: ../../
       dockerfile: infra/run/build/Dockerfile
-      target: local
+      # local = backend + Delve, prod = backend seul. Positionné par
+      # infra/run/start-scolarite.sh selon l'espace de travail.
+      target: ${BACKEND_TARGET:-local}
       args:
         VERSION: ${VERSION:-dev}
         BUILD_TIME: ${BUILD_TIME:-}
     volumes:
-      - /home/vjo/.scolarite/conf:/opt/scolarite/conf:ro
+      # SCOLARITE_CONF_DIR : répertoire hôte où start-scolarite.sh dépose le
+      # config.yaml de l'espace de travail. Défini dans le fichier de secrets.
+      - ${SCOLARITE_CONF_DIR}:/opt/scolarite/conf:ro
     env_file:
-      - ${SECRETS_FILE_LOCAL}
+      # Chemins absolus des deux fichiers d'environnement, fournis par
+      # start-scolarite.sh ou par la cible stop-* du makefile. Topologie puis
+      # secrets — voir infra/env/README.md.
+      - ${CONFIG_FILE}
+      - ${SECRETS_FILE}
     networks:
       scolarite-net:
         ipv4_address: 10.20.2.4
@@ -25,6 +33,11 @@ services:
       context: ../../
       dockerfile: infra/run/build/Dockerfile
       target: nginx
+      args:
+        # Mode Vite du build front. Positionné par
+        # infra/run/start-scolarite.sh selon l'espace de travail, comme
+        # BACKEND_TARGET ci-dessus : local -> conteneurs, prod -> production.
+        FRONT_MODE: ${FRONT_MODE:-production}
     depends_on:
       - backend
     networks:

@@ -3,13 +3,17 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DUMP="$SCRIPT_DIR/../../../infra/data/bd/dump_cyber_notes.sql"
-ENV_FILE="$SCRIPT_DIR/../../../.vscode/secrets-local.env"
+ENV_DIR="$SCRIPT_DIR/../../../infra/env"
+CONFIG_FILE="$ENV_DIR/config-local.env"
+SECRETS_FILE="$ENV_DIR/secrets-local.env"
 CONFIG="$SCRIPT_DIR/config.yaml"
 IMPORT_DIR="$SCRIPT_DIR"
 MARIADB_CONTAINER="mariadb-import"
 DOCKER_NETWORK="infra-scolarite_scolarite-net"
-KC_IP="10.20.2.2"    # IP fixe du container keycloak dans infra-scolarite_scolarite-net
-PG_IP="10.20.2.3"    # IP fixe du container postgres dans infra-scolarite_scolarite-net
+# Keycloak et PostgreSQL ne sont plus réécrits ici : config.yaml les prend dans
+# les fichiers d'environnement (KC_INTERNAL_HOSTNAME, POSTGRES_*), qui portent
+# déjà les IP du réseau docker. Seule MariaDB reste, ce container n'existant que
+# le temps de ce script.
 MARIADB_IP="10.20.2.10"  # IP fixe du container mariadb éphémère sur le même réseau
 
 cleanup() {
@@ -25,22 +29,20 @@ trap cleanup EXIT INT TERM
 
 # Vérifications préalables
 [[ -f "$DUMP" ]]     || { echo "ERREUR : dump introuvable : $DUMP"; exit 1; }
-[[ -f "$ENV_FILE" ]] || { echo "ERREUR : fichier env introuvable : $ENV_FILE"; exit 1; }
+for f in "$CONFIG_FILE" "$SECRETS_FILE"; do
+    [[ -f "$f" ]] || { echo "ERREUR : fichier d'environnement introuvable : $f"; exit 1; }
+done
 # shellcheck source=/dev/null
-set -a; source "$ENV_FILE"; set +a
+set -a; source "$CONFIG_FILE"; source "$SECRETS_FILE"; set +a
 docker info &>/dev/null || { echo "ERREUR : Docker non disponible"; exit 1; }
-docker inspect postgres-16.10-alpine &>/dev/null \
-    || { echo "ERREUR : container postgres-16.10-alpine non démarré (lance docker compose up -d)"; exit 1; }
+docker inspect "$PG_CONTAINER" &>/dev/null \
+    || { echo "ERREUR : container $PG_CONTAINER non démarré (lance make start-local-keep)"; exit 1; }
 
 echo "==> Sauvegarde de config.yaml"
 cp "$CONFIG" "${CONFIG}.bak"
 
 echo "==> Mise à jour de config.yaml"
-sed -i \
-    -e "s|localhost:8080|${KC_IP}:8080|g" \
-    -e "s|tcp(localhost:3306)|tcp(${MARIADB_IP}:3306)|g" \
-    -e "s|@localhost:5432/|@${PG_IP}:5432/|g" \
-    "$CONFIG"
+sed -i -e "s|tcp(localhost:3306)|tcp(${MARIADB_IP}:3306)|g" "$CONFIG"
 
 echo "==> Démarrage du container MariaDB éphémère sur ${DOCKER_NETWORK}"
 docker run -d \

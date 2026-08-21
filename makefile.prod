@@ -1,0 +1,117 @@
+# ── Espace de travail « prod » ────────────────────────────────────────────────
+# Copie de makefile.local, transposée sur les fichiers d'environnement,
+# l'espace de travail Terraform et les cibles de production. Le makefile racine n'inclut qu'un
+# seul des deux fragments, choisi sur le nom de la cible demandée.
+#
+# ÉCARTS ASSUMÉS avec makefile.local, pour l'instant :
+#   * pas de cible Mailpit : la prod parle à un vrai relais SMTP, décrit par
+#     les KC_SMTP_* de infra/env/config-prod.env ;
+#   * les cibles destructives demandent une confirmation tapée ;
+#   * build et déploiement visent la cible Docker « prod » (backend sans Delve),
+#     et le config.yaml rendu n'embarque pas la CA mkcert.
+#
+# LIMITE CONNUE : les deux environnements partagent encore les noms de projets
+# Docker (« scolarite », « infra-scolarite »), le réseau 10.20.2.0/24 et ses
+# IP statiques. Ils ne peuvent donc pas tourner en même temps sur une même
+# machine — lancer une cible prod arrête la pile locale, et réciproquement.
+# À dissocier quand la prod quittera le poste de développement.
+
+DOCKER_DIR=infra/container
+INFRA_DIR=infra
+BACK_DIR=back
+RUN_DIR=infra/run
+KEYCLOAK_DIR=infra/keycloak
+LIQUIBASE_DIR=infra/liquibase
+
+# Le fichier de secrets n'est pas versionné (.gitignore : infra/env/secrets-*.env).
+# Sans ce garde-fou, make se contenterait d'un « No such file or directory ».
+ifeq ($(wildcard $(SECRETS_FILE_PROD)),)
+$(error Fichier de secrets absent : $(SECRETS_FILE_PROD) — le créer à partir de $(ENV_DIR)/secrets.env.example)
+endif
+
+include $(CONFIG_FILE_PROD)
+include $(SECRETS_FILE_PROD)
+export
+
+.PHONY: start-prod-reset start-prod-keep restart-prod-keep restart-prod-reset reset-db-prod _purge-prod _pg-up-prod _keycloak-down-prod _keycloak-up-prod keycloak-prod liquibase-prod gen_sql-prod start-scolarite-prod stop-prod clean-prod _confirm-prod
+
+
+
+start-prod-reset: _confirm-prod _purge-prod _pg-up-prod _keycloak-down-prod reset-db-prod _keycloak-up-prod keycloak-prod liquibase-prod gen_sql-prod start-scolarite-prod _sleep-prod
+	@echo "--- ✅ Infra prod démarrée (BD recréée) ---"
+
+start-prod-keep: _pg-up-prod _keycloak-up-prod keycloak-prod liquibase-prod gen_sql-prod start-scolarite-prod
+	@echo "--- ✅ Infra prod démarrée (BD conservée) ---"
+
+restart-prod-reset: stop-prod _sleep-prod start-prod-reset
+
+restart-prod-keep: stop-prod _sleep-prod start-prod-keep
+
+_sleep-prod:
+	sleep 5
+
+# Garde-fou des cibles destructives. Absent de makefile.local : effacer une
+# base de test coûte une minute, effacer la prod coûte les données.
+_confirm-prod:
+	@echo "⚠️  Cible destructive sur l'espace de travail PROD."
+	@echo "   Bases supprimées : $(KC_DB_NAME), $(SCOLARITE_DB) — volumes Docker compris."
+	@read -r -p "   Taper « prod » pour confirmer : " reponse; \
+	if [ "$$reponse" != "prod" ]; then echo "   Abandon."; exit 1; fi
+
+# Rase l'infra prod : conteneurs, réseaux et volumes de données.
+#
+# Ciblage par projet et non par fichier : c'est le seul moyen d'atteindre une
+# stack lancée depuis un compose.yaml depuis déplacé ou supprimé, dont les
+# conteneurs continuent de tourner. La commande sort en 0 si rien ne
+# correspond, elle est donc sans effet sur une machine déjà propre.
+#
+# Ordre imposé : « scolarite » attache le réseau en external, il doit partir
+# avant « infra-scolarite » qui le possède.
+_purge-prod:
+	@echo "--- 🧹 Purge de l'infra prod (conteneurs, réseaux, volumes) ---"
+	docker compose -p scolarite down -v --remove-orphans
+	docker compose -p infra-scolarite down -v --remove-orphans
+
+_pg-up-prod:
+	@echo "--- 🐳 Démarrage de PostgreSQL ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) up -d --wait db
+
+reset-db-prod:
+	$(INFRA_DIR)/reset-db.sh $(CONFIG_FILE_PROD) $(SECRETS_FILE_PROD)
+
+_keycloak-down-prod:
+	@echo "--- 🛑 Arrêt de Keycloak ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) stop auth-service
+
+_keycloak-up-prod:
+	@echo "--- 🐳 Démarrage de Keycloak ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) up -d auth-service
+	@echo "--- ⏳ Attente de la disponibilité de Keycloak ---"
+	$(DOCKER_DIR)/wait_for_keycloak.sh http://$(KC_INTERNAL_HOSTNAME):8080$(KC_HTTP_RELATIVE_PATH)/realms/master/protocol/openid-connect/certs
+
+keycloak-prod: _keycloak-up-prod
+	$(KEYCLOAK_DIR)/deploy.sh $(CONFIG_FILE_PROD) $(SECRETS_FILE_PROD)
+
+liquibase-prod:
+	$(LIQUIBASE_DIR)/migrate.sh $(CONFIG_FILE_PROD) $(SECRETS_FILE_PROD)
+
+gen_sql-prod:
+	@echo "--- 🆕 gen code sqlc ---"
+	$(INFRA_DIR)/gen_sql.sh $(CONFIG_FILE_PROD) $(SECRETS_FILE_PROD)
+
+start-scolarite-prod :
+	$(RUN_DIR)/build-scolarite.sh prod
+	$(RUN_DIR)/start-scolarite.sh prod
+
+# Ordre inversé par rapport à la version d'origine : backend et nginx
+# attachent le réseau en external, ils doivent partir avant les conteneurs qui
+# le possèdent. Pas de -v ici, start-prod-keep s'appuie sur le volume.
+stop-prod:
+	@echo "--- 🛑 Arrêt de l'application scolarite ---"
+	CONFIG_FILE=$(abspath $(CONFIG_FILE_PROD)) SECRETS_FILE=$(abspath $(SECRETS_FILE_PROD)) docker compose -f $(RUN_DIR)/compose.yaml down --remove-orphans
+	@echo "--- 🛑 Arrêt des conteneurs Docker ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) down --remove-orphans
+
+# Arrêt et suppression des conteneurs, volumes conservés.
+clean-prod:
+	cd $(DOCKER_DIR) && docker compose --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) down
