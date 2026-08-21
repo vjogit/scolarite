@@ -3,7 +3,6 @@ package formation
 import (
 	"context"
 	"cyb-react/pkg/services"
-	"cyb-react/pkg/structure/formation/gen"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -66,12 +65,22 @@ func TestIntegration_FormationDeleteImpact(t *testing.T) {
 		}
 	}
 
-	// La suppression réelle vide bien tout ce qui a été annoncé.
-	queries := gen.New(pool)
-	require.NoError(t, queries.DeleteFormation(context.Background(), []int32{fixture.FormationID}))
-	services.AssertTablesVides(t, pool, "formation", "promotion", "option", "periode",
-		"unite_enseignement", "matiere", "controle", "note", "reservation", "groupe",
-		"groupe_user", "toeic", "mobilite_internationale")
+	// La suppression réelle retire bien tout ce qui a été annoncé. Elle est
+	// logique depuis la corbeille : les quatre niveaux structurants sortent des
+	// vues actives, et leurs lignes subsistent en base pour la restauration.
+	reqDel := services.NewBulkIDsRequest(t, pool, http.MethodDelete, "/bulk", []int32{fixture.FormationID})
+	recDel := httptest.NewRecorder()
+	Delete(recDel, reqDel)
+	require.Equal(t, http.StatusNoContent, recDel.Code, recDel.Body.String())
+
+	services.AssertTablesVides(t, pool, "formation_active", "promotion_active",
+		"option_active", "periode_active")
+
+	var restantes int
+	require.NoError(t, pool.QueryRow(context.Background(),
+		"SELECT count(*) FROM formation WHERE id = $1 AND deleted_at IS NOT NULL",
+		fixture.FormationID).Scan(&restantes))
+	assert.Equal(t, 1, restantes, "la formation doit rester en corbeille, restaurable")
 }
 
 func TestIntegration_FormationDeleteImpact_BloqueParJury(t *testing.T) {
