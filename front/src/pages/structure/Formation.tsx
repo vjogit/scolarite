@@ -1,12 +1,13 @@
 import { z } from 'zod'; // Import de Zod
 import { createRepository } from '../../services/crud/def';
-import { Box, IconButton, TextField, Tooltip } from '@mui/material';
+import { TextField } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
+import type { FieldValues } from 'react-hook-form';
+import type { ActionNavigation } from '../../services/crud/actions';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { useNavigate } from 'react-router';
 import { ENDPOINT_FORMATION, FORMATION, PROMOTION, STRUCTURE, ENDPOINT_FORMATION_DELETE_IMPACT } from './def';
-import { useCallback, useMemo, type ReactNode } from 'react';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import { useMemo } from 'react';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { Crud } from '../../services/crud/Crud';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
@@ -66,28 +67,17 @@ export const formationRepository = createRepository<Formation>({
 });
 
 
-export function FormationDefaultAction({ formationId, rootPath }: { formationId: number, rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <Tooltip title="Gérer les promotions">
-            <IconButton onClick={() => navigate(`${rootPath}/${formationId}/${PROMOTION}`)}>
-                <ListAltIcon />
-            </IconButton>
-        </Tooltip>
-    );
-}
+/** Descente vers les promotions de la formation. */
+export const ACTION_PROMOTIONS: ActionNavigation<FieldValues> = {
+    id: 'promotions',
+    libelle: 'Gérer les promotions',
+    icone: ListAltIcon,
+    segment: PROMOTION,
+};
 
-export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOnly, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Formation>) {
+export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOnly, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Formation>) {
 
     const rootPath = useRootPath(mode);
-
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Formation>, defaultActions: ReactNode }): ReactNode => {
-        return (<Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <FormationDefaultAction formationId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-        )
-    }, [rootPath]);
 
     const datasource = useMemo((): Datasource<Formation> => ({
         ...formationRepository,
@@ -100,10 +90,10 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
         suppressionEnCorbeille: true,
         isAction,
         isReadOnly,
-        renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [defaultRenderRowActions, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions]);
+    }), [isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

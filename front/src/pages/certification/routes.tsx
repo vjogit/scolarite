@@ -5,19 +5,17 @@
  * s'arrête à la promotion, sous laquelle deux écrans frères se greffent.
  */
 
-import { useState, type ReactNode, type MouseEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router';
-import { Box, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
+import type { FieldValues } from 'react-hook-form';
+import PublicIcon from '@mui/icons-material/Public';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-import type { MRT_Row } from 'material-react-table';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_CERTIFICATION } from '../../services/context/workflows';
-import type { CrudComponentProps } from '../../services/crud/routes';
+import type { ActionNavigation } from '../../services/crud/actions';
 
 import { FORMATION, PROMOTION } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
-import { CrudPromotion, type Promotion } from '../structure/Promotion';
+import { CrudPromotion } from '../structure/Promotion';
 import { TOEIC, MOBILITE, CERTIFICATION_WORKFLOW } from './def';
 import { CrudToeic } from './Toic';
 import { CrudMobiliteInternationale } from './MobiliteInternationale';
@@ -36,66 +34,38 @@ const CERTIFICATION: ReglagesNiveau = {
     isTopToolbar: true,
 };
 
+/**
+ * Les deux certifications d'une promotion. Elles avaient leur propre menu —
+ * `CertificationMenu` — devenu inutile : le menu commun des listes les porte
+ * comme n'importe quelle autre action, et sous les mêmes libellés que le fil
+ * de contexte.
+ */
+const ACTION_TOEIC: ActionNavigation<FieldValues> = {
+    id: 'toeic',
+    libelle: 'TOEIC',
+    icone: WorkspacePremiumIcon,
+    segment: TOEIC,
+};
+
+const ACTION_MOBILITE: ActionNavigation<FieldValues> = {
+    id: 'mobilite',
+    libelle: 'Mobilité internationale',
+    icone: PublicIcon,
+    segment: MOBILITE,
+};
+
 export function createCertificationHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_CERTIFICATION, {
         niveaux: {
             [FORMATION]: enrober(CrudFormation, TRAVERSEE),
-            [PROMOTION]: CustomCrudPromotion,
+            [PROMOTION]: enrober(CrudPromotion, {
+                ...TRAVERSEE,
+                actionsLigne: [ACTION_TOEIC, ACTION_MOBILITE],
+            }),
         },
         greffes: [
             { segment: TOEIC, parent: PROMOTION, composant: enrober(CrudToeic, CERTIFICATION) },
             { segment: MOBILITE, parent: PROMOTION, composant: enrober(CrudMobiliteInternationale, CERTIFICATION) },
         ],
     });
-}
-
-function CustomCrudPromotion({ mode }: CrudComponentProps) {
-    const renderAction = ({
-        defaultActions,
-        row
-    }: {
-        defaultActions: ReactNode;
-        row: MRT_Row<Promotion>
-    }) => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <CertificationMenu row={row} />
-        </Box>
-    )
-    return <CrudPromotion workflow={CERTIFICATION_WORKFLOW} mode={mode} isAction={true} isTopToolbar={false} renderRowActions={renderAction} />;
-}
-
-function CertificationMenu({ row }: { row: MRT_Row<Promotion> }) {
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-    const open = Boolean(anchorEl);
-    const location = useLocation();
-    const navigate = useNavigate();
-
-    const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleNavigate = (type: string) => {
-        const path = `${location.pathname}/${row.original.id}/${type}`;
-        navigate(path);
-        handleClose();
-    };
-
-    return (
-        <>
-            <Tooltip title="Gérer les certifications">
-                <IconButton onClick={handleClick}>
-                    <WorkspacePremiumIcon />
-                </IconButton>
-            </Tooltip>
-            <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-                <MenuItem onClick={() => handleNavigate(TOEIC)}>Toeic</MenuItem>
-                <MenuItem onClick={() => handleNavigate(MOBILITE)}>Mobilite</MenuItem>
-            </Menu>
-        </>
-    );
 }

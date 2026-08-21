@@ -110,7 +110,7 @@ export const createMatiereRepository = (ueId: string) => {
     })
 }
 
-export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Matiere>) {
+export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Matiere>) {
 
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
@@ -126,10 +126,10 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
         roleEcriture: Role.STRUCTURE_ECRITURE,
         isAction,
         isReadOnly,
-        renderRowActions,
+        actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [rootPath, workflow]);
+    }), [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

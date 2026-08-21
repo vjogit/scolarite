@@ -1,14 +1,15 @@
 import { z } from 'zod'; // Import de Zod
-import { TextField, Tooltip, IconButton, FormControlLabel, Switch, Typography, Box } from "@mui/material";
+import { TextField, FormControlLabel, Switch, Typography } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { useMemo, useCallback, type ReactNode } from "react";
+import type { ActionNavigation } from "../../services/crud/actions";
+import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
-import { Controller, useWatch } from 'react-hook-form';
+import { Controller, useWatch, type FieldValues } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { useNavigate, useParams } from 'react-router';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import { useParams } from 'react-router';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { ECHELLE_KEYS, IsValidEchelle } from './service';
 import { ENDPOINT_PROMOTION, OPTION, PROMOTION, STRUCTURE, ENDPOINT_PROMOTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
@@ -278,19 +279,15 @@ export const createPromotionRepository = (formationId: string) => {
     });
 }
 
-export function PromotionDefaultAction({ promotionId, rootPath }: { promotionId: number, rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <Tooltip title="Gérer les options">
-            <IconButton onClick={() => navigate(`${rootPath}/${promotionId}/${OPTION}`)}>
-                <ListAltIcon />
-            </IconButton>
-        </Tooltip>
-    );
-}
+/** Descente vers les options de la promotion. */
+export const ACTION_OPTIONS: ActionNavigation<FieldValues> = {
+    id: 'options',
+    libelle: 'Gérer les options',
+    icone: ListAltIcon,
+    segment: OPTION,
+};
 
-
-export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Promotion>) {
+export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Promotion>) {
 
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
@@ -298,13 +295,6 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     if (!formationId) return (
         <Typography>Le paramètre formationId est obligatoire</Typography>
     )
-
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Promotion>, defaultActions: ReactNode }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <PromotionDefaultAction promotionId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
 
     const datasource = useMemo((): Datasource<Promotion> => ({
         ...createPromotionRepository(formationId),
@@ -317,10 +307,10 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         suppressionEnCorbeille: true,
         isAction,
         isReadOnly,
-        renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_OPTIONS],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [rootPath, workflow, defaultRenderRowActions]);
+    }), [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>

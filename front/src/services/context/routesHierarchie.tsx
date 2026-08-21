@@ -12,8 +12,10 @@
  */
 
 import type { ComponentType } from 'react';
+import type { FieldValues } from 'react-hook-form';
 import { createCrudRoutes, createRoute, type CrudComponentProps } from '../crud/routes';
 import type { CrudMode } from '../crud/def';
+import type { ActionLigne } from '../crud/actions';
 import type { Niveau } from './niveaux';
 import type { DescripteurWorkflow } from './workflows';
 
@@ -29,15 +31,22 @@ export interface PropsNiveau {
     isAction: boolean;
     isReadOnly?: boolean;
     isTopToolbar: boolean;
+    /**
+     * Actions de ligne du niveau. Déclarées, elles remplacent celles que
+     * l'entité expose par défaut — c'est ainsi qu'un workflow ajoute la sienne
+     * ou n'en garde aucune. « Voir » et « Éditer » restent ajoutés par la liste.
+     */
+    actionsLigne?: readonly ActionLigne<FieldValues>[];
 }
 
 /** Ce que la configuration fixe une fois pour toutes ; la route fournit `mode`. */
 export type ReglagesNiveau = Omit<PropsNiveau, 'mode'>;
 
 /**
- * Fige les props d'un composant CRUD. Remplace les enrobages qui ne faisaient
- * que passer des constantes ; ceux qui portent un `renderRowActions` ou un
- * `renderTopToolbarCustomActions` réel restent des composants nommés.
+ * Fige les props d'un composant CRUD. Les actions de ligne étant désormais
+ * déclarées et non plus dessinées, elles passent par ici comme le reste ; seuls
+ * les niveaux portant un `renderTopToolbarCustomActions` réel — du JSX à hooks
+ * — restent des composants nommés.
  */
 export function enrober(
     Composant: ComponentType<PropsNiveau>,

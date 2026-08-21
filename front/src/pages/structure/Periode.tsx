@@ -1,15 +1,16 @@
 import { z } from 'zod';
 import { createRepository } from '../../services/crud/def';
-import { TextField, Box, Tooltip, IconButton, Typography } from "@mui/material";
+import { TextField, Typography } from "@mui/material";
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from "../../services/crud/def";
-import { useMemo, useCallback, type ReactNode } from "react";
+import type { ActionNavigation } from "../../services/crud/actions";
+import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { useNavigate, useParams } from 'react-router';
-import { Controller } from 'react-hook-form';
+import { useParams } from 'react-router';
+import { Controller, type FieldValues } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { ENDPOINT_PERIODE, PERIODE, STRUCTURE, UES, ENDPOINT_PERIODE_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
@@ -123,18 +124,15 @@ export const createPeriodeRepository = (optionId: string) => {
     })
 }
 
-export function PeriodeDefaultAction({ periodeId, rootPath }: { periodeId: number, rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <Tooltip title="Gérer les Ues">
-            <IconButton onClick={() => navigate(`/${rootPath}/${periodeId}/${UES}`)}>
-                <ListAltIcon />
-            </IconButton>
-        </Tooltip>
-    );
-}
+/** Descente vers les UE de la période. */
+export const ACTION_UES: ActionNavigation<FieldValues> = {
+    id: 'ues',
+    libelle: 'Gérer les UE',
+    icone: ListAltIcon,
+    segment: UES,
+};
 
-export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions, isReadOnly }: CrudProps<Periode>) {
+export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly }: CrudProps<Periode>) {
 
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -142,13 +140,6 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
     if (!optionId) return (
         <Typography>Le paramètre optionId est obligatoire</Typography>
     )
-
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Periode>, defaultActions: ReactNode }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <PeriodeDefaultAction periodeId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
 
     const datasource = useMemo((): Datasource<Periode> => ({
         ...createPeriodeRepository(optionId),
@@ -159,11 +150,11 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, renderRowA
         entityLabelPlural: "périodes",
         suppressionEnCorbeille: true,
         isAction,
-        renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_UES],
         isTopToolbar,
         renderTopToolbarCustomActions,
         isReadOnly,
-    }), [optionId, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions, defaultRenderRowActions, isReadOnly]);
+    }), [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

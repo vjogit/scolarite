@@ -6,21 +6,21 @@
  */
 
 import { type ReactNode } from 'react';
-import { Box, IconButton, Tooltip } from '@mui/material';
+import { Box } from '@mui/material';
 import GroupsIcon from '@mui/icons-material/Groups';
-import { useNavigate } from 'react-router';
-import type { MRT_Row } from 'material-react-table';
+
+import type { FieldValues } from 'react-hook-form';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_CATALOG } from '../../services/context/workflows';
+import type { ActionNavigation } from '../../services/crud/actions';
 import type { CrudComponentProps } from '../../services/crud/routes';
-import { useCrudContext } from '../../services/crud/CrudContext';
 
 import { CATALOG_WORKFLOW, MEMBRES } from './def';
 import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE, GROUPE } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
 import { CrudPromotion } from '../structure/Promotion';
-import { CrudOption, OptionDefaultAction, type Option } from '../structure/Options';
+import { CrudOption, ACTION_PERIODES } from '../structure/Options';
 import { CrudPeriode } from '../structure/Periode';
 import { CrudUe } from '../structure/Ue';
 import { CrudMatiere } from '../structure/Matiere';
@@ -36,13 +36,21 @@ const EDITION: ReglagesNiveau = {
     isTopToolbar: true,
 };
 
+/** Descente vers les groupes de l'option, propre au catalogue. */
+const ACTION_GROUPES: ActionNavigation<FieldValues> = {
+    id: 'groupes',
+    libelle: 'Gérer les groupes',
+    icone: GroupsIcon,
+    segment: GROUPE,
+};
+
 /** Segment des membres d'un groupe, seul écran hors CRUD du workflow. */
 export function createCatalogHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_CATALOG, {
         niveaux: {
             [FORMATION]: enrober(CrudFormation, EDITION),
             [PROMOTION]: enrober(CrudPromotion, EDITION),
-            [OPTION]: CustomCrudOption,
+            [OPTION]: enrober(CrudOption, { ...EDITION, actionsLigne: [ACTION_GROUPES, ACTION_PERIODES] }),
             [PERIODE]: CustomCrudPeriode,
         },
         greffes: [
@@ -52,34 +60,6 @@ export function createCatalogHierarchyRoutes() {
             { segment: MEMBRES, parent: GROUPE, ecran: GroupeUserPage },
         ],
     });
-}
-
-function CustomCrudOption({ mode }: CrudComponentProps) {
-    const renderRowActions = ({
-        row,
-        defaultActions,
-    }: {
-        row: MRT_Row<Option>,
-        defaultActions: ReactNode;
-        peutEcrire: boolean;
-    }) => {
-        const navigate = useNavigate();
-        const { rootPath } = useCrudContext();
-        return (
-            <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                {defaultActions}
-                <Tooltip title="Gérer les groupes">
-                    <IconButton onClick={() => navigate(`/${rootPath}/${row.getValue('id')}/${GROUPE}`)}>
-                        <GroupsIcon />
-                    </IconButton>
-                </Tooltip>
-                <OptionDefaultAction optionId={row.getValue('id')} rootPath={rootPath}/>
-            </Box>
-        )
-    }
-
-
-    return <CrudOption workflow={CATALOG_WORKFLOW} mode={mode} isAction={true} isTopToolbar={true} renderRowActions={renderRowActions} />;
 }
 
 function CustomCrudPeriode({ mode }: CrudComponentProps) {

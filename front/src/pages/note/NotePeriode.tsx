@@ -96,7 +96,7 @@ export const createNotePeriodeRepository = (periodeId: string) => {
     })
 }
 
-export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, renderRowActions }: CrudProps<NotePeriode>) {
+export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, actionsLigne }: CrudProps<NotePeriode>) {
 
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
@@ -117,12 +117,12 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, render
         // laisser deviner à celui qui lit une colonne « Non délibéré ».
         title: "GPA délibéré",
         isAction,
-        renderRowActions,
+        actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => handleOpenChart(table)} />
         )
-    }), [periodeId, isAction, isTopToolbar, renderRowActions, handleOpenChart]);
+    }), [periodeId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
 
 
     return (

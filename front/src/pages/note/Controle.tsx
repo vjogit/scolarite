@@ -1,16 +1,18 @@
 import { z } from 'zod';
-import { Box, FormControlLabel, IconButton, Switch, TextField, Tooltip, Typography } from "@mui/material";
+import { FormControlLabel, Switch, TextField, Typography } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import type { ActionLigne } from "../../services/crud/actions";
+import { useCallback, useMemo, useState } from "react";
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef, MRT_Row, MRT_TableInstance } from 'material-react-table';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { Controller } from 'react-hook-form';
 import { CONTROLE, ENDPOINT_CONTROLE, RESULTAT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { FicheExportModal } from './FicheExportModal';
-import { FicheImportButton } from './FicheImportButton';
+import { LIBELLE_IMPORT_FICHE, useFicheImport } from './FicheImportButton';
 import { Role } from '../user/def';
 
 
@@ -135,18 +137,37 @@ export const createControleRepository = (matiereId: string) => {
         getId: (data: Controle) => data.id,
     })
 }
-export function CrudControle({ mode, workflow, isAction, isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Controle>) {
+export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Controle>) {
 
     const { matiereId, optionId } = useParams();
     const rootPath = useRootPath(mode);
 
     const [exportOpen, setExportOpen] = useState(false);
     const [exportControleId, setExportControleId] = useState<number | null>(null);
+    const { declencher: declencherImport, champ: champImport } = useFicheImport();
 
     const handleExportOpen = useCallback((controleId: number) => {
         setExportControleId(controleId);
         setExportOpen(true);
     }, []);
+
+    // Les deux actions propres à l'écran : l'import écrit des notes, l'export
+    // reste une lecture, offerte à tous.
+    const actionsFiche: ActionLigne<Controle>[] = useMemo(() => [
+        {
+            id: 'import-fiche',
+            libelle: LIBELLE_IMPORT_FICHE,
+            icone: FileUploadIcon,
+            exigeEcriture: true,
+            onSelect: (controle) => { declencherImport(controle.id); },
+        },
+        {
+            id: 'export-fiche',
+            libelle: 'Exporter la fiche',
+            icone: FileDownloadIcon,
+            onSelect: (controle) => { handleExportOpen(controle.id); },
+        },
+    ], [declencherImport, handleExportOpen]);
 
     if (!matiereId) return (
         <Typography>Le paramètre matiereId est obligatoire</Typography>
@@ -160,23 +181,13 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, renderRow
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-        renderRowActions: ({ row, table, defaultActions, peutEcrire }: { row: MRT_Row<Controle>, table: MRT_TableInstance<Controle>, defaultActions: ReactNode, peutEcrire: boolean }) => (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {renderRowActions ? renderRowActions({ row, table, defaultActions, peutEcrire }) : defaultActions}
-                {/* L'import écrit des notes ; l'export reste une lecture. */}
-                {peutEcrire && <FicheImportButton controleId={row.original.id} />}
-                <Tooltip title="Exporter la fiche">
-                    <IconButton onClick={() => handleExportOpen(row.original.id)}>
-                        <FileDownloadIcon />
-                    </IconButton>
-                </Tooltip>
-            </Box>
-        ),
-    }), [rootPath, workflow, renderRowActions, handleExportOpen]);
+        actionsLigne: [...(actionsLigne ?? []), ...actionsFiche],
+    }), [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche]);
 
     return (
         <>
             <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />
+            {champImport}
             <FicheExportModal
                 open={exportOpen}
                 controleId={exportControleId}

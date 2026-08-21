@@ -5,9 +5,7 @@ import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
 import { alpha, Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
-import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
 import { useCrudContext } from './CrudContext';
@@ -19,6 +17,8 @@ import { blockingMessageFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
 import { messageSuppression } from './entityMessages';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { actionsDeLaLigne, cibleAction, estNavigation, type ActionLigne } from './actions';
+import { MenuActionsLigne } from './MenuActionsLigne';
 
 
 
@@ -132,40 +132,34 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     }
   }, []);
 
-  const renderRowActions = useCallback(({ row, table }: { row: MRT_Row<D>, table: MRT_TableInstance<D> }) => {
-    if (!datasource.isAction) return null
+  // Les actions déclarées par l'écran, exécutées ici : navigation construite
+  // depuis `rootPath` et la ligne, ou rappel de l'écran. Aucun écran ne
+  // manipule d'URL ni ne monte de composant à hooks dans sa colonne.
+  const executer = useCallback((action: ActionLigne<D>, ligne: D) => {
+    if (estNavigation(action)) {
+      void navigate(cibleAction(action, rootPath, datasource.getId(ligne)));
+      return;
+    }
+    action.onSelect(ligne);
+  }, [datasource, navigate, rootPath]);
 
-    const defaultActions = (
-      <Box sx={{ display: 'flex', gap: '1rem' }}>
-        {/* « Voir » est toujours présent : consulter le détail d'une ligne ne
-            dépend d'aucun droit d'écriture. */}
-        <Tooltip title="Voir">
-          <span>
-            <IconButton onClick={() => navigate(`${rootPath}/${datasource.getId(row.original)}`)}>
-              <VisibilityIcon />
-            </IconButton>
-          </span>
-        </Tooltip>
+  const renderRowActions = useCallback(({ row }: { row: MRT_Row<D> }) => {
+    if (!datasource.isAction) return null;
 
-        {ecritureAutorisee && (
-          <Tooltip title="Éditer">
-            <span>
-              <IconButton onClick={() => navigate(`${rootPath}/${datasource.getId(row.original)}/edit`)}>
-                <EditIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-        )}
-      </Box >
+    const actions = actionsDeLaLigne(
+      datasource.actionsLigne ?? [],
+      row.original,
+      ecritureAutorisee,
     );
 
-    // Si la datasource fournit une fonction personnalisée, on l'utilise en lui passant les actions par défaut
-    if (datasource.renderRowActions) {
-      return datasource.renderRowActions({ row, table, defaultActions, peutEcrire: ecritureAutorisee });
-    }
-
-    return defaultActions;
-  }, [datasource, ecritureAutorisee, navigate, rootPath]);
+    return (
+      <MenuActionsLigne
+        actions={actions}
+        nomLigne={datasource.getName(row.original)}
+        onChoisir={(action) => { executer(action, row.original); }}
+      />
+    );
+  }, [datasource, ecritureAutorisee, executer]);
 
   const renderTopToolbarCustomActions = useCallback(({ table }: { table: MRT_TableInstance<D> }) => {
     if (!datasource.isTopToolbar) return null

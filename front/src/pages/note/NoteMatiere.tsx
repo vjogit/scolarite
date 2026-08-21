@@ -88,7 +88,7 @@ export const createNoteMatiereRepository = (matiereId: string) => {
         getId: (data: NoteMatiere) => data.id
     })
 }
-export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, renderRowActions }: CrudProps<NoteMatiere>) {
+export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, actionsLigne }: CrudProps<NoteMatiere>) {
 
     const { matiereId } = useParams();
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteMatiere>();
@@ -103,7 +103,7 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, render
         ...createNoteMatiereViewConfig(matiereId),
         title: "Notes de la matière",
         isAction,
-        renderRowActions,
+        actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => handleOpenChart(table)} />

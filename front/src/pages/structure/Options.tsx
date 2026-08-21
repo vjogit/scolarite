@@ -1,11 +1,13 @@
 import { z } from 'zod'; // Import de Zod
-import { TextField, Tooltip, IconButton, Typography, Box } from "@mui/material";
+import { TextField, Typography } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { useMemo, useCallback, type ReactNode } from "react";
+import type { FieldValues } from 'react-hook-form';
+import type { ActionNavigation } from "../../services/crud/actions";
+import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { useNavigate, useParams } from 'react-router';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import { useParams } from 'react-router';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { ENDPOINT_OPTION,  OPTION, PERIODE, STRUCTURE, ENDPOINT_OPTION_DELETE_IMPACT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
@@ -72,20 +74,15 @@ export const createOptionRepository = (promotionId: string) => {
     });
 }
 
-export function OptionDefaultAction({ optionId, rootPath }: { optionId: number, rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <>
-            <Tooltip title="Gérer les periodes">
-                <IconButton onClick={() => navigate(`/${rootPath}/${optionId}/${PERIODE}`)}>
-                    <ListAltIcon />
-                </IconButton>
-            </Tooltip>
-        </>
-    );
-}
+/** Descente vers les périodes de l'option. */
+export const ACTION_PERIODES: ActionNavigation<FieldValues> = {
+    id: 'periodes',
+    libelle: 'Gérer les périodes',
+    icone: ListAltIcon,
+    segment: PERIODE,
+};
 
-export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Option>) {
+export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Option>) {
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -94,13 +91,6 @@ export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, 
         <Typography>Le paramètre formationId est obligatoire</Typography>
     )
 
-
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Option>, defaultActions: ReactNode }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <OptionDefaultAction optionId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
 
     const datasource = useMemo((): Datasource<Option> => ({
         ...createOptionRepository(promotionId),
@@ -113,10 +103,10 @@ export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, 
         entityGender: 'f',
         isAction,
         isReadOnly,
-        renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_PERIODES],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [rootPath, workflow, defaultRenderRowActions]);
+    }), [promotionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>

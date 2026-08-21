@@ -1,8 +1,9 @@
 import type { QueryKey } from '@tanstack/react-query';
 import type { Control, DefaultValues, FieldErrors, FieldValues, UseFormGetValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
-import type { JSX, ReactNode } from 'react';
-import type { MRT_ColumnDef, MRT_Row, MRT_TableInstance } from 'material-react-table';
+import type { JSX } from 'react';
+import type { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
 import { apiInstance } from '../api';
+import type { ActionLigne } from './actions';
 
 export type CrudMode = 'create' | 'show' | 'edit' | 'list';
 
@@ -11,7 +12,9 @@ export interface CrudProps<D extends FieldValues> {
     workflow: string;
     isAction: boolean
     isReadOnly?: boolean
-    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, peutEcrire: boolean }) => ReactNode
+    /** Actions de ligne propres à l'écran. « Voir » et « Éditer » sont ajoutés
+     *  par la liste : les déclarer ici serait les redoubler. */
+    actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
     renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
 }
@@ -105,7 +108,12 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
      * le défaut des écrans purement calculés.
      */
     roleEcriture?: string
-    renderRowActions?: (props: { row: MRT_Row<D>, table: MRT_TableInstance<D>, defaultActions: ReactNode, peutEcrire: boolean }) => ReactNode
+    /**
+     * Actions de ligne propres à l'écran, en plus de « Voir » et « Éditer »
+     * que `List.tsx` ajoute partout. La liste compose seule la présentation :
+     * une action directe, puis un menu à libellés.
+     */
+    actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
     renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
 }

@@ -18,14 +18,28 @@ interface Props {
     controleId: number;
 }
 
-export function FicheImportButton({ controleId }: Props) {
+/** Partagé par le bouton de la grille et l'entrée de menu des contrôles. */
+export const LIBELLE_IMPORT_FICHE = 'Importer les notes depuis Excel';
+
+/**
+ * Import d'une fiche de notes, sans son bouton.
+ *
+ * Le déclencheur est ici un `<input type="file">` caché : il doit exister dans
+ * l'arbre au moment du clic. Une entrée de menu ne peut pas le porter — le menu
+ * se ferme avant. L'écran monte donc `champ` à côté de sa liste et appelle
+ * `declencher(controleId)` depuis l'action de ligne.
+ */
+export function useFicheImport() {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    // Le contrôle visé est fixé au clic : un seul champ sert toutes les lignes.
+    const controleRef = useRef<number | null>(null);
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        const controleId = controleRef.current;
+        if (!file || controleId === null) return;
 
         const formData = new FormData();
         formData.append('file', file);
@@ -50,22 +64,38 @@ export function FicheImportButton({ controleId }: Props) {
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [controleId, notifications, queryClient]);
+    }, [notifications, queryClient]);
+
+    const declencher = useCallback((controleId: number) => {
+        controleRef.current = controleId;
+        fileInputRef.current?.click();
+    }, []);
+
+    const champ = (
+        <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+            accept=".xlsx"
+        />
+    );
+
+    return { declencher, champ };
+}
+
+/** Le même import sous forme de bouton, pour la grille de saisie. */
+export function FicheImportButton({ controleId }: Props) {
+    const { declencher, champ } = useFicheImport();
 
     return (
         <>
-            <Tooltip title="Importer les notes depuis Excel">
-                <IconButton onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={LIBELLE_IMPORT_FICHE}>
+                <IconButton onClick={() => { declencher(controleId); }}>
                     <FileUploadIcon />
                 </IconButton>
             </Tooltip>
-            <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={handleFileChange}
-                accept=".xlsx"
-            />
+            {champ}
         </>
     );
 }

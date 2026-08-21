@@ -1,12 +1,13 @@
 import { z } from 'zod'; // Import de Zod
-import { Box, FormControlLabel, IconButton, Switch, TextField, Tooltip, Typography } from "@mui/material";
+import { FormControlLabel, Switch, TextField, Typography } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { useMemo, useCallback, type ReactNode } from "react";
-import { Controller } from "react-hook-form";
+import type { ActionNavigation } from "../../services/crud/actions";
+import { useMemo } from "react";
+import { Controller, type FieldValues } from "react-hook-form";
 import { Crud } from "../../services/crud/Crud";
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { ENDPOINT_UES, MATIERE, STRUCTURE, UES } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
@@ -104,18 +105,15 @@ export const createUeRepository = (periodeId: string) => {
     })
 }
 
-export function UeDefaultAction({ ueId, rootPath }: { ueId: number, rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <Tooltip title="Gérer les matières">
-            <IconButton onClick={() => navigate(`/${rootPath}/${ueId}/${MATIERE}`)}>
-                <ListAltIcon />
-            </IconButton>
-        </Tooltip>
-    );
-}
+/** Descente vers les matières de l'UE. */
+export const ACTION_MATIERES: ActionNavigation<FieldValues> = {
+    id: 'matieres',
+    libelle: 'Gérer les matières',
+    icone: ListAltIcon,
+    segment: MATIERE,
+};
 
-export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Ue>) {
+export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Ue>) {
 
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
@@ -124,15 +122,6 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, rend
         <Typography>Le paramètre periodeId est obligatoire</Typography>
     )
 
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Ue>, defaultActions: ReactNode }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <UeDefaultAction ueId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
-
-
-
     const datasource = useMemo((): Datasource<Ue> => ({
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
@@ -140,10 +129,10 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, rend
         roleEcriture: Role.STRUCTURE_ECRITURE,
         isAction,
         isReadOnly,
-        renderRowActions: renderRowActions ? renderRowActions : defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_MATIERES],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), []);
+    }), [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>

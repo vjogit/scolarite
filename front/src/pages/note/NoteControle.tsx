@@ -172,7 +172,7 @@ export const createNoteControleRepository = (controleId: string) => {
     })
 }
 
-export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, renderRowActions }: CrudProps<NoteControle>) {
+export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actionsLigne }: CrudProps<NoteControle>) {
 
     const { controleId, optionId } = useParams();
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteControle>();
@@ -199,7 +199,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, rende
         title: "Notes du contrôle",
         roleEcriture: Role.NOTES_ECRITURE,
         isAction,
-        renderRowActions,
+        actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table, defaultActions }) => (
             <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

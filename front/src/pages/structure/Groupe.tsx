@@ -1,10 +1,12 @@
 import { z } from 'zod';
-import { TextField, Typography, Tooltip, IconButton, Box } from "@mui/material";
+import { TextField, Typography, Box } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import type { FieldValues } from 'react-hook-form';
+import type { ActionNavigation } from "../../services/crud/actions";
 import { useMemo, useCallback, type ReactNode } from "react";
 import { Crud } from "../../services/crud/Crud";
-import { useParams, useNavigate } from 'react-router';
-import type { MRT_ColumnDef, MRT_Row } from 'material-react-table';
+import { useParams } from 'react-router';
+import type { MRT_ColumnDef } from 'material-react-table';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import PeopleIcon from '@mui/icons-material/People';
@@ -57,31 +59,24 @@ export const createGroupeRepository = (optionId: string) =>
         getId: (data: Groupe) => data.id,
     });
 
-export function GroupeDefaultAction({ groupeId, rootPath }: { groupeId: number; rootPath: string }) {
-    const navigate = useNavigate();
-    return (
-        <Tooltip title="Gérer les membres">
-            <IconButton onClick={() => navigate(`/${rootPath}/${groupeId}/user`)}>
-                <PeopleIcon />
-            </IconButton>
-        </Tooltip>
-    );
-}
+/**
+ * Descente vers les membres du groupe. Le segment `user` est celui de la
+ * greffe `MEMBRES` du catalogue, seul workflow où les groupes apparaissent.
+ */
+export const ACTION_MEMBRES: ActionNavigation<FieldValues> = {
+    id: 'membres',
+    libelle: 'Gérer les membres',
+    icone: PeopleIcon,
+    segment: 'user',
+};
 
-export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, renderRowActions, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
+export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
 
     if (!optionId) return (
         <Typography>Le paramètre optionId est obligatoire</Typography>
     );
-
-    const defaultRenderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Groupe>; defaultActions: ReactNode }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <GroupeDefaultAction groupeId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
 
     const defaultRenderTopToolbar = useCallback(({ defaultActions, peutEcrire }: { defaultActions: ReactNode; peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -98,9 +93,9 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
         isAction,
         isReadOnly,
         isTopToolbar,
-        renderRowActions: renderRowActions ?? defaultRenderRowActions,
+        actionsLigne: actionsLigne ?? [ACTION_MEMBRES],
         renderTopToolbarCustomActions: renderTopToolbarCustomActions ?? defaultRenderTopToolbar,
-    }), [optionId, isAction, isReadOnly, isTopToolbar, renderRowActions, renderTopToolbarCustomActions, defaultRenderRowActions, defaultRenderTopToolbar]);
+    }), [optionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, defaultRenderTopToolbar]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

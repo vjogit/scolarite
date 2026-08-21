@@ -7,29 +7,24 @@
  * Ce sont quatre greffes de même segment `note` sur quatre parents distincts.
  */
 
-import { useCallback, type ReactNode } from 'react';
-import { Box, Tooltip, IconButton } from '@mui/material';
+import type { FieldValues } from 'react-hook-form';
 import GradingIcon from '@mui/icons-material/Grading';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import { useNavigate } from 'react-router';
-import type { MRT_Row } from 'material-react-table';
-import type { FieldValues } from 'react-hook-form';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_NOTE } from '../../services/context/workflows';
-import type { CrudComponentProps } from '../../services/crud/routes';
-import { useRootPath } from '../../services/crud/useRootPath';
+import type { ActionNavigation } from '../../services/crud/actions';
 
 import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
 import { CrudPromotion } from '../structure/Promotion';
 import { CrudOption } from '../structure/Options';
-import { CrudPeriode, PeriodeDefaultAction, type Periode } from '../structure/Periode';
-import { CrudUe, UeDefaultAction, type Ue } from '../structure/Ue';
-import { CrudMatiere, type Matiere } from '../structure/Matiere';
+import { ACTION_UES, CrudPeriode } from '../structure/Periode';
+import { ACTION_MATIERES, CrudUe } from '../structure/Ue';
+import { CrudMatiere } from '../structure/Matiere';
 
 import { CONTROLE, NOTE, NOTE_WORKFLOW } from './def';
-import { CrudControle, type Controle } from './Controle';
+import { CrudControle } from './Controle';
 import { CrudNotePeriode } from './NotePeriode';
 import { CrudNoteUniteEnseignement } from './NoteUniteEnseignement';
 import { CrudNoteMatiere } from './NoteMatiere';
@@ -61,18 +56,58 @@ const NOTES_SAISIES: ReglagesNiveau = {
     isTopToolbar: true,
 };
 
+/**
+ * L'action dominante du workflow, à tous ses niveaux : promue hors du menu,
+ * là où les autres écrans laissent « Voir ».
+ */
+const ACTION_NOTES: ActionNavigation<FieldValues> = {
+    id: 'notes',
+    libelle: 'Gérer les notes',
+    icone: GradingIcon,
+    segment: NOTE,
+    directe: true,
+};
+
+/** Descente vers les contrôles de la matière, propre au workflow. */
+const ACTION_CONTROLES: ActionNavigation<FieldValues> = {
+    id: 'controles',
+    libelle: 'Gérer les contrôles',
+    icone: ListAltIcon,
+    segment: CONTROLE,
+};
+
 export function createNoteHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_NOTE, {
         niveaux: {
             [FORMATION]: enrober(CrudFormation, TRAVERSEE),
             [PROMOTION]: enrober(CrudPromotion, TRAVERSEE),
             [OPTION]: enrober(CrudOption, TRAVERSEE),
-            [PERIODE]: CustomCrudPeriode,
+            [PERIODE]: enrober(CrudPeriode, {
+                ...TRAVERSEE,
+                isTopToolbar: true,
+                actionsLigne: [ACTION_NOTES, ACTION_UES],
+            }),
         },
         greffes: [
-            { segment: UES, parent: PERIODE, composant: CustomCrudUe },
-            { segment: MATIERE, parent: UES, composant: CustomCrudMatiere },
-            { segment: CONTROLE, parent: MATIERE, composant: CustomCrudControle },
+            {
+                segment: UES, parent: PERIODE,
+                composant: enrober(CrudUe, { ...TRAVERSEE, actionsLigne: [ACTION_NOTES, ACTION_MATIERES] }),
+            },
+            {
+                segment: MATIERE, parent: UES,
+                composant: enrober(CrudMatiere, { ...TRAVERSEE, actionsLigne: [ACTION_NOTES, ACTION_CONTROLES] }),
+            },
+            {
+                // Le contrôle est le seul niveau de structure éditable ici, et
+                // il ajoute lui-même ses actions de fiche.
+                segment: CONTROLE, parent: MATIERE,
+                composant: enrober(CrudControle, {
+                    workflow: NOTE_WORKFLOW,
+                    isAction: true,
+                    isTopToolbar: true,
+                    actionsLigne: [ACTION_NOTES],
+                }),
+            },
 
             { segment: NOTE, parent: PERIODE, composant: enrober(CrudNotePeriode, NOTES_CONSULTEES) },
             { segment: NOTE, parent: UES, composant: enrober(CrudNoteUniteEnseignement, NOTES_CONSULTEES) },
@@ -80,76 +115,4 @@ export function createNoteHierarchyRoutes() {
             { segment: NOTE, parent: CONTROLE, composant: enrober(CrudNoteControle, NOTES_SAISIES) },
         ],
     });
-}
-
-function CustomCrudPeriode({ mode }: CrudComponentProps) {
-
-    const rootPath = useRootPath(mode);
-
-    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Periode>, defaultActions: ReactNode, peutEcrire: boolean }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <NoteDefaultAction row={row} />
-            <PeriodeDefaultAction periodeId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
-
-    return <CrudPeriode workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={true} renderRowActions={renderRowActions} />;
-}
-
-function CustomCrudUe({ mode }: CrudComponentProps) {
-    const rootPath = useRootPath(mode);
-
-    const renderRowActions = useCallback(({ row, defaultActions }: { row: MRT_Row<Ue>, defaultActions: ReactNode, peutEcrire: boolean }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <NoteDefaultAction row={row} />
-            <UeDefaultAction ueId={row.getValue('id')} rootPath={rootPath} />
-        </Box>
-    ), [rootPath]);
-    return <CrudUe workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={false} renderRowActions={renderRowActions} />;
-}
-
-
-
-function CustomCrudMatiere({ mode }: CrudComponentProps) {
-
-    const navigate = useNavigate();
-    const rootPath = useRootPath(mode);
-
-    const renderRowActions = useCallback(({ row }: { row: MRT_Row<Matiere> }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            <NoteDefaultAction row={row} />
-            <Tooltip title="Gérer les controles">
-                <IconButton onClick={() => navigate(`/${rootPath}/${row.getValue('id')}/${CONTROLE}`)}>
-                    <ListAltIcon />
-                </IconButton>
-            </Tooltip>
-        </Box>
-    ), []);
-
-    return <CrudMatiere workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isReadOnly={true} isTopToolbar={false} renderRowActions={renderRowActions} />;
-}
-
-function CustomCrudControle({ mode }: CrudComponentProps) {
-
-    const renderRowActions = useCallback(({ row , defaultActions}: { row: MRT_Row<Controle> , defaultActions: ReactNode, }): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            <NoteDefaultAction row={row} />
-        </Box>
-    ), []);
-    return <CrudControle workflow={NOTE_WORKFLOW} mode={mode} isAction={true} isTopToolbar={true} renderRowActions={renderRowActions} />;
-}
-
-function NoteDefaultAction<T extends FieldValues>({ row }: { row: MRT_Row<T> }): ReactNode {
-    const navigate = useNavigate()
-    return (
-        <Tooltip title="Gérer les notes">
-            <IconButton onClick={() => navigate(`${location.pathname}/${row.getValue('id')}/${NOTE}`)}>
-                <GradingIcon />
-            </IconButton>
-        </Tooltip>
-
-    )
 }

@@ -93,7 +93,7 @@ const createNoteUeRepository = (ueId: string) => {
     })
 }
 
-export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolbar, renderRowActions }: CrudProps<NoteUe>) {
+export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolbar, actionsLigne }: CrudProps<NoteUe>) {
 
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
@@ -109,7 +109,7 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
         ...createNoteUeViewConfig(ueId),
         title: "Notes de l'UE",
         isAction,
-        renderRowActions,
+        actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => handleOpenChart(table)} />
