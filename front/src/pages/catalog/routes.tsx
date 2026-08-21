@@ -16,7 +16,7 @@ import { WORKFLOW_CATALOG } from '../../services/context/workflows';
 import type { CrudComponentProps } from '../../services/crud/routes';
 import { useCrudContext } from '../../services/crud/CrudContext';
 
-import { CATALOG_WORKFLOW } from './def';
+import { CATALOG_WORKFLOW, MEMBRES } from './def';
 import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE, GROUPE } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
 import { CrudPromotion } from '../structure/Promotion';
@@ -37,8 +37,6 @@ const EDITION: ReglagesNiveau = {
 };
 
 /** Segment des membres d'un groupe, seul écran hors CRUD du workflow. */
-const MEMBRES = 'user';
-
 export function createCatalogHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_CATALOG, {
         niveaux: {

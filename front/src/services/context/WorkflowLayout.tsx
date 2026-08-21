@@ -4,28 +4,23 @@
  * Les sept layouts d'origine étaient le même code à la constante près :
  * mémoriser le chemin courant, afficher un fil d'Ariane, rediriger l'index
  * vers le dernier écran visité. La mémorisation est désormais tenue par le
- * `ContexteHierarchieProvider` pour tous les workflows à la fois ; il ne reste
- * ici que la composition de l'écran.
+ * `ContexteHierarchieProvider` pour tous les workflows à la fois, et le fil de
+ * contexte se déduit du descripteur ; il ne reste ici que la composition de
+ * l'écran.
  */
 
 import { Navigate, Outlet } from 'react-router';
 import { Box } from '@mui/material';
 
-import { CommonBreadcrumbs, type BreadcrumbEntityMap } from '../CommonBreadcrumbs';
 import { BarreWorkflows } from './BarreWorkflows';
 import { useContexteHierarchie } from './contexte';
 import { construireCheminWorkflow, ecranTerminalDuChemin, estCheminCompatible } from './navigation';
 import type { DescripteurWorkflow } from './workflows';
 
-/** Workflow hiérarchique : fil d'Ariane, puis barre de navigation entre tâches. */
-export function WorkflowLayout({ workflow, label, entityMap }: {
-    workflow: DescripteurWorkflow;
-    label: string;
-    entityMap: BreadcrumbEntityMap;
-}) {
+/** Workflow hiérarchique : une seule barre, onglets de tâches et fil de contexte. */
+export function WorkflowLayout({ workflow }: { workflow: DescripteurWorkflow }) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <CommonBreadcrumbs context={workflow.id} label={label} entityMap={entityMap} />
             <BarreWorkflows workflowCourant={workflow} />
             <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <Outlet />

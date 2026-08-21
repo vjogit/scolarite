@@ -6,7 +6,7 @@ import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef, MRT_Row, MRT_TableInstance } from 'material-react-table';
 import { Controller } from 'react-hook-form';
-import { ENDPOINT_CONTROLE } from './def';
+import { CONTROLE, ENDPOINT_CONTROLE, RESULTAT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { FicheExportModal } from './FicheExportModal';
@@ -130,7 +130,7 @@ export const createControleRepository = (matiereId: string) => {
     return createRepository<Controle>({
         endpoint: `${ENDPOINT_CONTROLE}`,
         queryParams: `?matiere_id=${matiereId}`,
-        queryKey: ['controle', matiereId],
+        queryKey: [RESULTAT, CONTROLE, matiereId],
 
         getId: (data: Controle) => data.id,
     })

@@ -1,48 +1,55 @@
 /**
- * Un niveau du contexte, rendu actionnable.
+ * Un niveau du fil de contexte, rendu actionnable.
  *
- * Le déclencheur affiche ce que `RappelContexte` affichait déjà ; le menu qu'il
- * ouvre liste les frères du niveau et permet d'en changer sans repasser par le
- * fil d'Ariane.
+ * Le déclencheur affiche le libellé du niveau et le nom résolu ; le menu qu'il
+ * ouvre liste les frères du niveau — pour en changer sans remonter — et se
+ * termine par « Voir la liste », qui mène à la liste de ce niveau, là où le
+ * lien du fil d'Ariane menait avant la fusion.
+ *
+ * Le composant ne sait plus rien de la hiérarchie : l'appelant fournit le
+ * dépôt des frères (`freres.ts` pour les niveaux partagés, `prolongements.ts`
+ * pour les niveaux profonds) et la cible de la liste. C'est ce qui permet au
+ * même sélecteur de servir la formation comme le contrôle.
  *
  * Deux propriétés sont défendues ici et ne doivent pas se perdre :
  *
- * - Aucun état ne double `parUrl`. Le seul état local est l'ancre du menu, qui
+ * - Aucun état ne double l'URL. Le seul état local est l'ancre du menu, qui
  *   décrit l'ouverture d'un menu, pas une position dans la hiérarchie. La
  *   valeur affichée reste dérivée de l'URL, et le rechargement la redonne.
  * - Aucune requête au montage. La liste des frères n'est demandée qu'à
- *   l'ouverture — quatre sélecteurs qui se peupleraient d'eux-mêmes, ce
- *   seraient quatre requêtes de liste sur chaque écran de l'application.
+ *   l'ouverture — des sélecteurs qui se peupleraient d'eux-mêmes, ce seraient
+ *   autant de requêtes de liste sur chaque écran de l'application.
  */
 
 import { useCallback, useMemo, useState } from 'react';
+import { Link as RouterLink } from 'react-router';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import {
-    Box, Button, ListItemText, Menu, MenuItem, Skeleton, TextField, Typography,
+    Box, Button, Divider, ListItemText, Menu, MenuItem, Skeleton, TextField, Typography,
 } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 import type { NiveauResolu } from './contexte';
-import { LIBELLE_NIVEAU, type ContexteHierarchique, type Niveau } from './niveaux';
-import { depotFreres, type Frere } from './freres';
+import type { DepotFreres, Frere } from './freres';
+import { DUREE_FRAICHEUR_NOMS } from './resolution';
 
 const NOM_INDISPONIBLE = '—';
 const SANS_SELECTION = 'Choisir';
 
 /**
- * Fraîcheur alignée sur celle du fournisseur de contexte.
+ * Fraîcheur alignée sur celle des résolutions de nom.
  *
  * Le `QueryClient` de l'application ne fixe pas de `staleTime`, donc la liste
  * chargée par l'écran est périmée dès son arrivée : un observateur sans
  * `staleTime` la redemanderait à l'ouverture du menu, alors même que la donnée
  * est en cache. C'est ce délai qui rend l'ouverture réellement gratuite.
  */
-const DUREE_FRAICHEUR = 5 * 60 * 1000;
+const DUREE_FRAICHEUR = DUREE_FRAICHEUR_NOMS;
 
 /**
  * Au-delà, un menu déroulant devient une zone de défilement aveugle et l'on
  * bascule sur une saisie filtrante. Seules les formations franchissent
- * couramment ce seuil ; promotions, options et périodes restent en deçà.
+ * couramment ce seuil ; les autres niveaux restent en deçà.
  */
 const SEUIL_RECHERCHE = 12;
 
@@ -53,19 +60,21 @@ function normaliser(texte: string): string {
     return texte.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 }
 
-export function SelecteurNiveau({ niveau, valeur, contexte, onChoisir }: {
-    niveau: Niveau;
+export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, onChoisir }: {
+    /** Segment d'URL du niveau : identifie le menu, pas autre chose. */
+    segment: string;
+    libelle: string;
     /** `undefined` pour le niveau suivant, proposé mais pas encore choisi. */
     valeur: NiveauResolu | undefined;
-    /** Contexte affiché, d'où se déduit le parent qui filtre les frères. */
-    contexte: ContexteHierarchique;
-    onChoisir: (niveau: Niveau, identifiant: string) => void;
+    /** Dépôt des frères du niveau ; `null` sans parent connu. */
+    depot: DepotFreres | null;
+    /** Cible de « Voir la liste » ; absent quand la liste est l'écran courant. */
+    cheminListe?: string;
+    onChoisir: (identifiant: string) => void;
 }) {
     const [ancre, setAncre] = useState<HTMLElement | null>(null);
     const [filtre, setFiltre] = useState('');
     const ouvert = ancre !== null;
-
-    const depot = useMemo(() => depotFreres(niveau, contexte), [niveau, contexte]);
 
     // Le nom n'est pas encore résolu : on garde le squelette et l'on n'ouvre pas.
     const enChargementDuNom = valeur?.enChargement === true;
@@ -81,7 +90,7 @@ export function SelecteurNiveau({ niveau, valeur, contexte, onChoisir }: {
     const { data: freres, isError, isFetching, refetch } = useQuery({
         // Exactement la clé du repository : le cache est partagé avec la liste
         // CRUD du même niveau, et l'ouverture ne relance alors aucune requête.
-        queryKey: depot?.queryKey ?? [CLE_SANS_DEPOT, niveau],
+        queryKey: depot?.queryKey ?? [CLE_SANS_DEPOT, segment],
         queryFn: ouvert && depot !== null ? depot.fetchAll : skipToken,
         select: selectionner,
         staleTime: DUREE_FRAICHEUR,
@@ -104,12 +113,11 @@ export function SelecteurNiveau({ niveau, valeur, contexte, onChoisir }: {
         fermer();
         // Rester où l'on est ne justifie pas une navigation.
         if (frere.identifiant === valeur?.identifiant) return;
-        onChoisir(niveau, frere.identifiant);
+        onChoisir(frere.identifiant);
     };
 
-    const libelle = LIBELLE_NIVEAU[niveau];
     const nomAffiche = valeur === undefined ? SANS_SELECTION : valeur.nom ?? NOM_INDISPONIBLE;
-    const identifiantMenu = `selecteur-${niveau}`;
+    const identifiantMenu = `selecteur-${segment}`;
 
     return (
         <>
@@ -234,6 +242,15 @@ export function SelecteurNiveau({ niveau, valeur, contexte, onChoisir }: {
                     <Typography variant="caption" sx={{ px: 2, color: 'text.secondary' }}>
                         Actualisation…
                     </Typography>
+                )}
+
+                {cheminListe !== undefined && <Divider />}
+                {cheminListe !== undefined && (
+                    // L'accès à la liste que le fil d'Ariane offrait : même
+                    // cible, désormais au bout du menu du niveau.
+                    <MenuItem component={RouterLink} to={cheminListe} onClick={fermer}>
+                        Voir la liste
+                    </MenuItem>
                 )}
             </Menu>
         </>

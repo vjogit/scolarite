@@ -1,5 +1,14 @@
 export const NOTE_WORKFLOW ='note_workflow'
 
+/**
+ * Espace de noms des clés de requête du domaine résultat. Les clés de liste
+ * sont à trois éléments `[espace, entité, parentId]`, comme celles de la
+ * structure : une clé à deux éléments `['controle', id]` désignerait aussi
+ * bien la liste des contrôles de la matière `id` que le détail du contrôle
+ * `id`, et les deux formes se corrompraient mutuellement en cache.
+ */
+export const RESULTAT = 'resultat'
+
 export const NOTE ="note"
 export const CONTROLE="controle"
 

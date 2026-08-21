@@ -34,7 +34,7 @@ export interface Frere {
 
 /**
  * Ce qu'un sélecteur a besoin de savoir d'un repository, débarrassé du type de
- * l'entité : les quatre niveaux doivent tenir dans une même variable.
+ * l'entité : tous les niveaux doivent tenir dans une même variable.
  */
 export interface DepotFreres {
     readonly queryKey: QueryKey;
@@ -42,7 +42,7 @@ export interface DepotFreres {
     readonly versFreres: (donnees: readonly unknown[]) => Frere[];
 }
 
-function depot<D extends FieldValues>(repository: Repository<D>): DepotFreres {
+export function depot<D extends FieldValues>(repository: Repository<D>): DepotFreres {
     return {
         queryKey: repository.queryKey,
         fetchAll: repository.fetchAll,

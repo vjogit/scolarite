@@ -6,3 +6,6 @@
  * descripteurs — la constante doit donc être atteignable sans passer par lui.
  */
 export const CATALOG_WORKFLOW = 'catalog_context';
+
+/** Segment de l'écran des membres d'un groupe, greffé sous le groupe. */
+export const MEMBRES = 'user';

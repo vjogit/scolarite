@@ -1,38 +1,41 @@
 import { useEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { useLocation } from 'react-router';
-import { skipToken, useQuery } from '@tanstack/react-query';
 
-import { apiInstance } from '../api';
-import { ENDPOINT_PAR_NIVEAU, NIVEAUX, type EntiteNommee, type Niveau } from './niveaux';
+import { ENDPOINT_PAR_NIVEAU, NIVEAUX, type ContexteHierarchique, type EntiteNommee, type Niveau } from './niveaux';
 import { FORMATION, OPTION, PERIODE, PROMOTION } from '../../pages/structure/def';
 import { extraireContexte, fusionnerContexte } from './navigation';
 import { trouverWorkflow } from './workflows';
 import { etatNavigation, majEtatNavigation, sAbonnerNavigation, type EtatNavigation } from './stockage';
 import { ContexteHierarchie, type NiveauResolu, type ValeurContexteHierarchie } from './contexte';
+import { depotFreres } from './freres';
+import { useNomResolu } from './resolution';
+
+const projeterNom = (donnee: unknown): string | null => {
+    const nom = (donnee as EntiteNommee).name;
+    return typeof nom === 'string' && nom.length > 0 ? nom : null;
+};
 
 /**
  * Résout le nom d'un niveau.
  *
- * La clé de requête et la durée de fraîcheur reprennent celles du fil
- * d'Ariane : TanStack Query dédoublonne, et le contexte n'ajoute aucun appel
- * réseau à un écran qui affiche déjà son fil d'Ariane.
+ * La clé `[niveau, identifiant]` est celle de toutes les résolutions de nom :
+ * TanStack Query dédoublonne, et le contexte n'ajoute aucun appel réseau à un
+ * écran qui résout déjà ce niveau. Le dépôt du niveau sert de secours le temps
+ * de la première réponse : les noms sont déjà dans la liste traversée.
  */
-function useNiveauResolu(niveau: Niveau, identifiant: string | undefined): NiveauResolu | undefined {
-    const { data } = useQuery({
-        queryKey: [niveau, identifiant],
-        queryFn: identifiant === undefined
-            ? skipToken
-            : async () => {
-                const reponse = await apiInstance.get<EntiteNommee>(`${ENDPOINT_PAR_NIVEAU[niveau]}/${identifiant}`);
-                return reponse.data;
-            },
-        staleTime: 5 * 60 * 1000,
+function useNiveauResolu(
+    niveau: Niveau,
+    identifiant: string | undefined,
+    contexteUrl: ContexteHierarchique,
+): NiveauResolu | undefined {
+    const depotParent = useMemo(() => depotFreres(niveau, contexteUrl), [niveau, contexteUrl]);
+    return useNomResolu({
+        cle: [niveau, identifiant],
+        endpoint: ENDPOINT_PAR_NIVEAU[niveau],
+        identifiant,
+        projeter: projeterNom,
+        depotParent,
     });
-
-    return useMemo(() => {
-        if (identifiant === undefined) return undefined;
-        return { identifiant, nom: data?.name ?? null, enChargement: data === undefined };
-    }, [identifiant, data]);
 }
 
 export function ContexteHierarchieProvider({ children }: { children: ReactNode }) {
@@ -60,10 +63,10 @@ export function ContexteHierarchieProvider({ children }: { children: ReactNode }
         majEtatNavigation(suivant);
     }, [pathname, workflowCourant, pourNavigation, memoire]);
 
-    const formation = useNiveauResolu(FORMATION, contexteUrl[FORMATION]);
-    const promotion = useNiveauResolu(PROMOTION, contexteUrl[PROMOTION]);
-    const option = useNiveauResolu(OPTION, contexteUrl[OPTION]);
-    const periode = useNiveauResolu(PERIODE, contexteUrl[PERIODE]);
+    const formation = useNiveauResolu(FORMATION, contexteUrl[FORMATION], contexteUrl);
+    const promotion = useNiveauResolu(PROMOTION, contexteUrl[PROMOTION], contexteUrl);
+    const option = useNiveauResolu(OPTION, contexteUrl[OPTION], contexteUrl);
+    const periode = useNiveauResolu(PERIODE, contexteUrl[PERIODE], contexteUrl);
 
     const valeur = useMemo<ValeurContexteHierarchie>(() => {
         const parNiveau: Partial<Record<Niveau, NiveauResolu>> = {
