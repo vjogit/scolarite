@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Box, TextField, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
 import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
@@ -110,6 +110,14 @@ export const createMatiereRepository = (ueId: string) => {
     })
 }
 
+/** Ce que la matière est, quel que soit l'écran qui l'affiche. */
+export const matiereEntite: DescriptionEntite = {
+    title: "Matières",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "la matière",
+    entityLabelPlural: "matières",
+};
+
 export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Matiere>) {
 
     const { ueId } = useParams();
@@ -122,10 +130,7 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
     const datasource = useMemo((): Datasource<Matiere> => ({
         ...createMatiereRepository(ueId),
         ...createMatiereViewConfig(ueId),
-        title: "Matières",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "la matière",
-        entityLabelPlural: "matières",
+        ...matiereEntite,
         isAction,
         isReadOnly,
         actionsLigne,

@@ -8,6 +8,11 @@
  * Le fil de contexte, à droite, porte tout le reste : descendre, remonter,
  * changer de frère — c'est l'unique navigation contextuelle depuis la fusion
  * du fil d'Ariane et du rappel de contexte.
+ *
+ * Sauf là où un arbre le remplace. Le workflow Structure montre la hiérarchie
+ * entière et ses frères par ses nœuds dépliés : garder le fil au-dessus y
+ * serait la redondance que cette fusion avait précisément supprimée. Les
+ * onglets, eux, restent — changer de tâche n'a pas d'autre chemin.
  */
 
 import type { SyntheticEvent } from 'react';
@@ -66,7 +71,8 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
                     ))}
                 </Tabs>
             )}
-            <FilContexte workflowCourant={workflowCourant} />
+            {workflowCourant.presentationContexte !== 'arbre'
+                && <FilContexte workflowCourant={workflowCourant} />}
         </Box>
     );
 }

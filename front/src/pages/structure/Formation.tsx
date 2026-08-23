@@ -1,5 +1,5 @@
 import { z } from 'zod'; // Import de Zod
-import { createRepository } from '../../services/crud/def';
+import { createRepository, type DescriptionEntite } from '../../services/crud/def';
 import { TextField } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import type { FieldValues } from 'react-hook-form';
@@ -75,6 +75,16 @@ export const ACTION_PROMOTIONS: ActionNavigation<FieldValues> = {
     segment: PROMOTION,
 };
 
+/** Ce que la formation est, quel que soit l'écran qui l'affiche. */
+export const formationEntite: DescriptionEntite = {
+    title: "Formations",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "la formation",
+    entityLabelPlural: "formations",
+    deleteRequiresNameConfirmation: true,
+    suppressionEnCorbeille: true,
+};
+
 export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOnly, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Formation>) {
 
     const rootPath = useRootPath(mode);
@@ -82,12 +92,7 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
     const datasource = useMemo((): Datasource<Formation> => ({
         ...formationRepository,
         ...formationViewConfig,
-        title: "Formations",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "la formation",
-        entityLabelPlural: "formations",
-        deleteRequiresNameConfirmation: true,
-        suppressionEnCorbeille: true,
+        ...formationEntite,
         isAction,
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS],

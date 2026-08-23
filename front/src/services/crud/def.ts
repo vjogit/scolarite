@@ -79,7 +79,16 @@ export interface ViewConfig<D extends FieldValues> {
     render: (props: RenderProps<D>) => JSX.Element;
 }
 
-export interface Datasource<D extends FieldValues> extends Repository<D>, ViewConfig<D> {
+/**
+ * Ce qu'une entité est, indépendamment de l'écran qui l'affiche : ses libellés,
+ * son genre, son rôle d'écriture, la nature de sa suppression.
+ *
+ * Séparé du `Datasource` parce que tout cela vaut hors d'une table. La modale de
+ * suppression et les messages d'`entityMessages` n'ont jamais eu besoin de
+ * colonnes ni de barre d'outils ; l'arbre de la structure, qui supprime et
+ * annonce sans monter aucune liste, ne pouvait pas leur en fournir.
+ */
+export interface DescriptionEntite {
     title: string
     /** Entité de haut niveau : la modale exige de retaper le nom avant suppression. */
     deleteRequiresNameConfirmation?: boolean
@@ -100,14 +109,24 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
      * uniquement en cas d'élision, ex. "l'option" → 'f'.
      */
     entityGender?: 'm' | 'f'
-    isAction: boolean
-    isReadOnly?: boolean
     /**
      * Rôle d'écriture de l'entité, aligné sur la route serveur qu'elle frappe —
      * jamais sur le workflow qui l'affiche. Absent : aucune écriture possible,
      * le défaut des écrans purement calculés.
      */
     roleEcriture?: string
+}
+
+/**
+ * Le minimum pour lire, supprimer et nommer une entité : ce que réclament la
+ * modale de suppression, les messages de succès et le test de droit d'écriture.
+ * Tout `Datasource` en est un.
+ */
+export type EntiteCrud<D extends FieldValues> = Repository<D> & DescriptionEntite;
+
+export interface Datasource<D extends FieldValues> extends Repository<D>, ViewConfig<D>, DescriptionEntite {
+    isAction: boolean
+    isReadOnly?: boolean
     /**
      * Actions de ligne propres à l'écran, en plus de « Voir » et « Éditer »
      * que `List.tsx` ajoute partout. La liste compose seule la présentation :

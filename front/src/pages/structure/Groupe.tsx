@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TextField, Typography, Box } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
 import type { FieldValues } from 'react-hook-form';
 import type { ActionNavigation } from "../../services/crud/actions";
 import { useMemo, useCallback, type ReactNode } from "react";
@@ -70,6 +70,14 @@ export const ACTION_MEMBRES: ActionNavigation<FieldValues> = {
     segment: 'user',
 };
 
+/** Ce que le groupe est, quel que soit l'écran qui l'affiche. */
+export const groupeEntite: DescriptionEntite = {
+    title: "Groupes",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "le groupe",
+    entityLabelPlural: "groupes",
+};
+
 export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -88,10 +96,7 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
     const datasource = useMemo((): Datasource<Groupe> => ({
         ...createGroupeRepository(optionId),
         ...createGroupeViewConfig(optionId),
-        title: "Groupes",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "le groupe",
-        entityLabelPlural: "groupes",
+        ...groupeEntite,
         isAction,
         isReadOnly,
         isTopToolbar,

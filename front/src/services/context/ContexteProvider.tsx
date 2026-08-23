@@ -63,10 +63,16 @@ export function ContexteHierarchieProvider({ children }: { children: ReactNode }
         majEtatNavigation(suivant);
     }, [pathname, workflowCourant, pourNavigation, memoire]);
 
-    const formation = useNiveauResolu(FORMATION, contexteUrl[FORMATION], contexteUrl);
-    const promotion = useNiveauResolu(PROMOTION, contexteUrl[PROMOTION], contexteUrl);
-    const option = useNiveauResolu(OPTION, contexteUrl[OPTION], contexteUrl);
-    const periode = useNiveauResolu(PERIODE, contexteUrl[PERIODE], contexteUrl);
+    // Les noms ne servent qu'au fil. Là où un arbre le remplace, les résoudre
+    // serait quatre requêtes par navigation sans destinataire : `useNomResolu`
+    // n'émet rien sans identifiant.
+    const aResoudre = workflowCourant?.presentationContexte !== 'arbre';
+    const pourFil = (niveau: Niveau) => aResoudre ? contexteUrl[niveau] : undefined;
+
+    const formation = useNiveauResolu(FORMATION, pourFil(FORMATION), contexteUrl);
+    const promotion = useNiveauResolu(PROMOTION, pourFil(PROMOTION), contexteUrl);
+    const option = useNiveauResolu(OPTION, pourFil(OPTION), contexteUrl);
+    const periode = useNiveauResolu(PERIODE, pourFil(PERIODE), contexteUrl);
 
     const valeur = useMemo<ValeurContexteHierarchie>(() => {
         const parNiveau: Partial<Record<Niveau, NiveauResolu>> = {

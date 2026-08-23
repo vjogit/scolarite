@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { createRepository } from '../../services/crud/def';
+import { createRepository, type DescriptionEntite } from '../../services/crud/def';
 import { TextField, Typography } from "@mui/material";
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from "../../services/crud/def";
 import type { ActionNavigation } from "../../services/crud/actions";
@@ -132,6 +132,15 @@ export const ACTION_UES: ActionNavigation<FieldValues> = {
     segment: UES,
 };
 
+/** Ce que la période est, quel que soit l'écran qui l'affiche. */
+export const periodeEntite: DescriptionEntite = {
+    title: "Périodes",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "la période",
+    entityLabelPlural: "périodes",
+    suppressionEnCorbeille: true,
+};
+
 export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly }: CrudProps<Periode>) {
 
     const { optionId } = useParams();
@@ -144,11 +153,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
     const datasource = useMemo((): Datasource<Periode> => ({
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
-        title: "Périodes",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "la période",
-        entityLabelPlural: "périodes",
-        suppressionEnCorbeille: true,
+        ...periodeEntite,
         isAction,
         actionsLigne: actionsLigne ?? [ACTION_UES],
         isTopToolbar,

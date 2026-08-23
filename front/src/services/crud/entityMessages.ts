@@ -1,5 +1,5 @@
 import type { FieldValues } from 'react-hook-form';
-import type { Datasource } from './def';
+import type { DescriptionEntite, EntiteCrud } from './def';
 import { formatNombre } from '../format';
 
 /**
@@ -7,7 +7,7 @@ import { formatNombre } from '../format';
  *
  * Le point délicat est l'accord en genre : `entityLabel` porte l'article
  * (« la formation »), ce qui permet de déduire le genre… sauf en cas
- * d'élision (« l'option »). Le `Datasource` expose alors `entityGender`.
+ * d'élision (« l'option »). La description d'entité expose alors `entityGender`.
  * Sans genre déterminable on n'invente pas d'accord : on retombe sur une
  * tournure sans nom d'entité, où seul le nom cité reste sujet et où le
  * masculin est la forme neutre correcte.
@@ -46,7 +46,7 @@ function capitaliser(mot: string): string {
  * Décompose `entityLabel` en nom nu et genre. Renvoie `null` dès que l'un
  * des deux manque : mieux vaut une phrase sans nom d'entité qu'un accord faux.
  */
-function analyserLibelle<D extends FieldValues>(datasource: Datasource<D>): Entite | null {
+function analyserLibelle(datasource: DescriptionEntite): Entite | null {
     const libelle = datasource.entityLabel?.trim();
     if (!libelle) return null;
 
@@ -94,7 +94,7 @@ function accorderPluriel(participe: string, genre: Genre): string {
  * quand le genre de l'entité n'est pas connu.
  */
 function phraseSingulier<D extends FieldValues>(
-    datasource: Datasource<D>,
+    datasource: EntiteCrud<D>,
     nom: string,
     participe: string,
 ): string {
@@ -104,12 +104,12 @@ function phraseSingulier<D extends FieldValues>(
 }
 
 /** Message de création, sur la donnée renvoyée par le serveur. */
-export function messageCreation<D extends FieldValues>(datasource: Datasource<D>, data: D): string {
+export function messageCreation<D extends FieldValues>(datasource: EntiteCrud<D>, data: D): string {
     return phraseSingulier(datasource, datasource.getName(data), 'créé');
 }
 
 /** Message de modification, sur la donnée renvoyée par le serveur. */
-export function messageEnregistrement<D extends FieldValues>(datasource: Datasource<D>, data: D): string {
+export function messageEnregistrement<D extends FieldValues>(datasource: EntiteCrud<D>, data: D): string {
     return phraseSingulier(datasource, datasource.getName(data), 'enregistré');
 }
 
@@ -126,7 +126,7 @@ function accorderMis(genre: Genre, pluriel: boolean): string {
  * Les noms sont ceux capturés au moment de la demande de suppression.
  */
 export function messageSuppression<D extends FieldValues>(
-    datasource: Datasource<D>,
+    datasource: EntiteCrud<D>,
     noms: string[],
 ): string {
     const corbeille = datasource.suppressionEnCorbeille === true;
@@ -162,7 +162,7 @@ export function messageSuppression<D extends FieldValues>(
  * Le message ne nomme pas le parent (« … pour cette option ») : le fil de
  * contexte, juste au-dessus de la liste, l'affiche déjà.
  */
-export function messageListeVide<D extends FieldValues>(datasource: Datasource<D>): string {
+export function messageListeVide(datasource: DescriptionEntite): string {
     const entite = analyserLibelle(datasource);
     if (!entite) return "Aucun élément à afficher.";
     const aucun = entite.genre === 'f' ? 'Aucune' : 'Aucun';
@@ -174,7 +174,7 @@ export function messageListeVide<D extends FieldValues>(datasource: Datasource<D
  * vide, et le nom accessible du bouton « Ajouter » de la barre — les deux
  * mènent au même formulaire, ils portent donc le même nom.
  */
-export function libelleCreation<D extends FieldValues>(datasource: Datasource<D>): string {
+export function libelleCreation(datasource: DescriptionEntite): string {
     const entite = analyserLibelle(datasource);
     if (!entite) return 'Ajouter';
     return `Créer ${entite.genre === 'f' ? 'une' : 'un'} ${entite.nomBrut}`;

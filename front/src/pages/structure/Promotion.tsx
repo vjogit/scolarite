@@ -1,6 +1,6 @@
 import { z } from 'zod'; // Import de Zod
 import { TextField, FormControlLabel, Switch, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
 import type { ActionNavigation } from "../../services/crud/actions";
 import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
@@ -287,6 +287,16 @@ export const ACTION_OPTIONS: ActionNavigation<FieldValues> = {
     segment: OPTION,
 };
 
+/** Ce que la promotion est, quel que soit l'écran qui l'affiche. */
+export const promotionEntite: DescriptionEntite = {
+    title: "Promotions",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "la promotion",
+    entityLabelPlural: "promotions",
+    deleteRequiresNameConfirmation: true,
+    suppressionEnCorbeille: true,
+};
+
 export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Promotion>) {
 
     const { formationId } = useParams();
@@ -299,12 +309,7 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     const datasource = useMemo((): Datasource<Promotion> => ({
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId),
-        title: "Promotions",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "la promotion",
-        entityLabelPlural: "promotions",
-        deleteRequiresNameConfirmation: true,
-        suppressionEnCorbeille: true,
+        ...promotionEntite,
         isAction,
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_OPTIONS],

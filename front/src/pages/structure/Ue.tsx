@@ -1,6 +1,6 @@
 import { z } from 'zod'; // Import de Zod
 import { FormControlLabel, Switch, TextField, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
 import type { ActionNavigation } from "../../services/crud/actions";
 import { useMemo } from "react";
 import { Controller, type FieldValues } from "react-hook-form";
@@ -113,6 +113,15 @@ export const ACTION_MATIERES: ActionNavigation<FieldValues> = {
     segment: MATIERE,
 };
 
+/** Ce que l'UE est, quel que soit l'écran qui l'affiche. */
+export const ueEntite: DescriptionEntite = {
+    title: "UE",
+    roleEcriture: Role.STRUCTURE_ECRITURE,
+    entityLabel: "l'UE",
+    entityLabelPlural: "UE",
+    entityGender: 'f',
+};
+
 export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Ue>) {
 
     const { periodeId } = useParams();
@@ -125,11 +134,7 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
     const datasource = useMemo((): Datasource<Ue> => ({
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
-        title: "UE",
-        roleEcriture: Role.STRUCTURE_ECRITURE,
-        entityLabel: "l'UE",
-        entityLabelPlural: "UE",
-        entityGender: 'f',
+        ...ueEntite,
         isAction,
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_MATIERES],

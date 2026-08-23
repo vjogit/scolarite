@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router';
 import type { Datasource } from './def';
 import type { FieldValues } from 'react-hook-form';
@@ -11,12 +11,10 @@ import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
 import { useCrudContext } from './CrudContext';
 import { useDroits } from '../context/droits';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { useNotifications } from '@toolpad/core/useNotifications';
-import { blockingMessageFor, messageForError } from '../errorMessages';
-import { notifyError, notifySuccess } from '../notify';
-import { libelleCreation, messageListeVide, messageSuppression } from './entityMessages';
+import { libelleCreation, messageListeVide } from './entityMessages';
+import { useSuppressionCrud } from './suppression';
 import { EtatVideTable } from './EtatVideTable';
 import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { actionsDeLaLigne, cibleAction, estNavigation, type ActionLigne } from './actions';
@@ -41,21 +39,13 @@ function highlightIdFromState(state: unknown): number | null {
   return typeof value === 'number' ? value : null;
 }
 
-/** Identifiants à supprimer, accompagnés des noms à annoncer au succès. */
-interface DeleteVariables {
-  ids: number[];
-  noms: string[];
-}
-
 
 export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const { rootPath } = useCrudContext();
   // Source unique de vérité : le bouton retour n'existe que si un parent existe.
   const parentPath = parentListPath(rootPath);
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
-  const notifications = useNotifications();
   // Ligne à mettre en évidence au retour d'un enregistrement. Lue au montage :
   // liste et formulaire sont des routes distinctes, la liste est donc remontée
   // à chaque retour. Éviter un setState dans l'effet évite un rendu en cascade.
@@ -88,23 +78,11 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     queryFn: datasource.fetchAll
   });
 
-  // DELETE : Mutation pour supprimer.
-  // Les noms transitent par les variables de mutation : la modale se ferme et
-  // vide `selectedRows` avant la résolution, ils ne seraient plus lisibles dans
-  // `onSuccess`.
-  const mutation = useMutation({
-    mutationFn: ({ ids }: DeleteVariables) => datasource.delete(ids),
-    onSuccess: (_result, { noms }) => {
-      // Invalide le cache et force un rafraîchissement automatique de la liste
-      queryClient.invalidateQueries({ queryKey: datasource.queryKey });
-      notifySuccess(notifications, messageSuppression(datasource, noms));
-    },
-    onError: (error) => {
-      // Le serveur peut refuser la suppression (409 BUSINESS_CONFLICT) même si
-      // la modale l'a autorisée : le message doit remonter à l'utilisateur.
-      notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
-    },
-  });
+  // DELETE : le geste commun, partagé avec l'arbre de la structure.
+  const mutation = useSuppressionCrud(datasource);
+
+  // La modale ne connaît plus les lignes de la table, seulement les objets.
+  const objets = useMemo(() => selectedRows.map(row => row.original), [selectedRows]);
 
 
   // Ferme la modale
@@ -342,8 +320,8 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       {/* Modale de confirmation : nomme les objets et détaille la cascade */}
       <DeleteConfirmDialog
         open={open}
-        datasource={datasource}
-        selectedRows={selectedRows}
+        entite={datasource}
+        objets={objets}
         onClose={handleClose}
         onConfirm={() => handleConfirmDelete(table)}
       />

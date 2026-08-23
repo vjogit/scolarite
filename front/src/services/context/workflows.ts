@@ -40,6 +40,16 @@ export interface DescripteurWorkflow {
      * entités aux rôles d'écriture différents.
      */
     readonly rolesRequis: readonly string[];
+    /**
+     * Comment le workflow donne à voir la position dans la hiérarchie.
+     *
+     * `fil` — le défaut — affiche le fil de contexte, qui résout le nom des
+     * quatre niveaux partagés. `arbre` signifie qu'une autre présentation les
+     * montre déjà, avec leurs frères et leurs branches : le fil y serait la
+     * redondance que sa fusion avec le rappel de contexte avait supprimée, et
+     * les résolutions de nom qui l'alimentent n'auraient plus de destinataire.
+     */
+    readonly presentationContexte?: 'fil' | 'arbre';
 }
 
 const HIERARCHIE_COMPLETE: readonly Niveau[] = NIVEAUX;
@@ -52,6 +62,9 @@ export const WORKFLOW_CATALOG: DescripteurWorkflow = {
     // Sous la période, le catalogue enchaîne sur les unités d'enseignement.
     ecransTerminaux: [UES],
     rolesRequis: [Role.CONSULTATION],
+    // Seul workflow dont la tâche propre est de construire la hiérarchie : il
+    // la montre en entier, en arbre, et se passe donc du fil.
+    presentationContexte: 'arbre',
 };
 
 export const WORKFLOW_NOTE: DescripteurWorkflow = {

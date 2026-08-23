@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
-import type { MRT_Row } from 'material-react-table';
 import {
     Alert,
     Box,
@@ -19,7 +18,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import type { Datasource, DeleteImpact, DeleteImpactEntry } from './def';
+import type { DeleteImpact, DeleteImpactEntry, EntiteCrud } from './def';
 import { messageForError } from '../errorMessages';
 import { formatNombre } from '../format';
 
@@ -45,8 +44,15 @@ function joinFr(parts: string[]): string {
 
 interface Props<D extends FieldValues> {
     open: boolean;
-    datasource: Datasource<D>;
-    selectedRows: MRT_Row<D>[];
+    /**
+     * L'entité visée, réduite à ce que la modale lit vraiment : identifiant,
+     * nom, libellés, impact. Un `Datasource` en est un — la liste passe le
+     * sien —, mais l'arbre de la structure, qui supprime sans table, n'a pas de
+     * colonnes à fournir.
+     */
+    entite: EntiteCrud<D>;
+    /** Les objets visés eux-mêmes, et non les lignes d'une table. */
+    objets: readonly D[];
     onClose: () => void;
     onConfirm: () => void;
 }
@@ -57,8 +63,8 @@ interface Props<D extends FieldValues> {
  */
 export function DeleteConfirmDialog<D extends FieldValues>({
     open,
-    datasource,
-    selectedRows,
+    entite,
+    objets,
     onClose,
     onConfirm,
 }: Props<D>) {
@@ -66,19 +72,19 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     const saisieRef = useRef<HTMLInputElement>(null);
 
     const ids = useMemo(
-        () => selectedRows.map((row) => datasource.getId(row.original)),
-        [selectedRows, datasource],
+        () => objets.map((objet) => entite.getId(objet)),
+        [objets, entite],
     );
     const noms = useMemo(
-        () => selectedRows.map((row) => datasource.getName(row.original)),
-        [selectedRows, datasource],
+        () => objets.map((objet) => entite.getName(objet)),
+        [objets, entite],
     );
 
-    const fetchImpact = datasource.deleteImpact;
+    const fetchImpact = entite.deleteImpact;
     const supporteImpact = Boolean(fetchImpact);
 
     const impactQuery = useQuery<DeleteImpact>({
-        queryKey: [...datasource.queryKey, 'delete-impact', ids],
+        queryKey: [...entite.queryKey, 'delete-impact', ids],
         queryFn: () => fetchImpact!(ids),
         enabled: open && supporteImpact && ids.length > 0,
         retry: false,
@@ -107,7 +113,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     // impact inconnu — dans ce dernier cas on ne prétend surtout pas qu'il est nul.
     const confirmationRequise =
         supporteImpact &&
-        (datasource.deleteRequiresNameConfirmation === true ||
+        (entite.deleteRequiresNameConfirmation === true ||
             totalCascade > SEUIL_CONFIRMATION ||
             impactEnEchec);
 
@@ -121,20 +127,20 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     }, [open, confirmationRequise]);
 
     // Sur sélection multiple, recopier cinq noms n'aurait aucun sens.
-    const phraseAttendue = selectedRows.length === 1 ? (noms[0] ?? MOT_CONFIRMATION) : MOT_CONFIRMATION;
+    const phraseAttendue = objets.length === 1 ? (noms[0] ?? MOT_CONFIRMATION) : MOT_CONFIRMATION;
     const confirmationOk = !confirmationRequise || saisie.trim() === phraseAttendue;
 
     const suppressionPossible = !estBloque && !impactEnCours && confirmationOk;
 
     const titre = (() => {
-        if (selectedRows.length === 1) {
-            const libelle = datasource.entityLabel ? `${datasource.entityLabel} ` : '';
+        if (objets.length === 1) {
+            const libelle = entite.entityLabel ? `${entite.entityLabel} ` : '';
             return `Supprimer ${libelle}« ${noms[0]} » ?`;
         }
         // Sans libellé explicite, on conserve le mot neutre déjà utilisé par la
         // modale d'origine : certains titres de liste ne sont pas des pluriels.
-        const pluriel = datasource.entityLabelPlural ?? 'éléments';
-        return `Supprimer ${formatNombre.format(selectedRows.length)} ${pluriel} ?`;
+        const pluriel = entite.entityLabelPlural ?? 'éléments';
+        return `Supprimer ${formatNombre.format(objets.length)} ${pluriel} ?`;
     })();
 
     const nomsAffiches = noms.slice(0, MAX_NOMS_AFFICHES);
@@ -165,7 +171,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
             <DialogContent>
                 <Stack spacing={2}>
-                    {selectedRows.length > 1 && (
+                    {objets.length > 1 && (
                         <Box>
                             <DialogContentText>Objets sélectionnés :</DialogContentText>
                             <List dense disablePadding>
@@ -206,18 +212,18 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                             ) : (
                                 <Alert severity="warning">
                                     <Typography variant="body2" component="span">
-                                        {selectedRows.length === 1
+                                        {objets.length === 1
                                             ? <>« {noms[0]} » contient </>
                                             : 'La sélection contient '}
                                         <strong>{joinFr(impact.cascade.map(formatEntry))}</strong>.{' '}
-                                        {datasource.suppressionEnCorbeille
+                                        {entite.suppressionEnCorbeille
                                             ? 'Tout partira en corbeille.'
                                             : 'Tout sera définitivement supprimé.'}
                                     </Typography>
                                 </Alert>
                             )}
 
-                            {datasource.suppressionEnCorbeille && (
+                            {entite.suppressionEnCorbeille && (
                                 <Alert severity="info">
                                     La suppression est restaurable : un administrateur peut tout
                                     rétablir depuis la corbeille, jusqu'à purge définitive.
