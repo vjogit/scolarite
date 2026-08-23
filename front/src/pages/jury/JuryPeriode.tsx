@@ -460,7 +460,7 @@ export const JuryPeriode = () => {
         try {
             await apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/bulk`, { users: entries });
             notifySuccess(notifications, messageDeliberationGroupee(entries.length));
-            queryClient.invalidateQueries({ queryKey: ['jury-deliberations', periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['jury-deliberations', periodeId] });
             setRowSelection({});
             setBulkDialogOpen(false);
         } catch {
@@ -595,7 +595,7 @@ export const JuryPeriode = () => {
                 students={selectedStudents}
                 loading={bulkLoading}
                 onClose={() => { setBulkDialogOpen(false); }}
-                onConfirm={handleBulkConfirm}
+                onConfirm={(entries) => { void handleBulkConfirm(entries); }}
             />
         </Box>
     );

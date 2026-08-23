@@ -26,7 +26,7 @@ export function UserImportButton() {
 
         try {
             await apiInstance.post(`${ENDPOINT_USER}/import`, formData);
-            queryClient.invalidateQueries({ queryKey: [USER] });
+            void queryClient.invalidateQueries({ queryKey: [USER] });
             notifySuccess(notifications, "Import des utilisateurs réussi.");
         } catch (error) {
             console.error("Import failed", error);
@@ -49,7 +49,7 @@ export function UserImportButton() {
                 type="file"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                onChange={handleFileChange}
+                onChange={(event) => { void handleFileChange(event); }}
                 accept=".yaml,.yml"
             />
         </>

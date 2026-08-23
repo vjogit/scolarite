@@ -39,7 +39,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
             apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`, { compte_cumul: compteCumul }),
         onSuccess: () => {
             notifySuccess(notifications, `Délibération enregistrée pour ${userName}.`);
-            queryClient.invalidateQueries({ queryKey: deliberationKey });
+            void queryClient.invalidateQueries({ queryKey: deliberationKey });
             setOpen(false);
         },
         onError: () => {
@@ -52,7 +52,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
             apiInstance.delete(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`),
         onSuccess: () => {
             notifyUndone(notifications, `Délibération annulée pour ${userName}.`);
-            queryClient.invalidateQueries({ queryKey: deliberationKey });
+            void queryClient.invalidateQueries({ queryKey: deliberationKey });
         },
         onError: () => {
             notifyError(notifications, "Erreur lors de l'annulation.");

@@ -182,8 +182,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             ? apiInstance.put(`/api/v0/planning/reservation/${reservation.id}`, input)
             : apiInstance.post('/api/v0/planning/reservation', input),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['reservations', periodeId] });
-            queryClient.invalidateQueries({ queryKey: ['heures',       periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['reservations', periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['heures',       periodeId] });
             onClose();
         },
         onError: handleConflictError,
@@ -194,8 +194,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             data: { ids: [reservation!.id] },
         }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['reservations', periodeId] });
-            queryClient.invalidateQueries({ queryKey: ['heures',       periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['reservations', periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['heures',       periodeId] });
             onClose();
         },
     });

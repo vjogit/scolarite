@@ -98,7 +98,7 @@ export function Planning() {
             queryClient.setQueryData<ReservationDetail[]>(['reservations', periodeId], (old) =>
                 old?.map(r => r.id === updated.id ? updated : r) ?? []
             );
-            queryClient.invalidateQueries({ queryKey: ['heures', periodeId] });
+            void queryClient.invalidateQueries({ queryKey: ['heures', periodeId] });
         },
     });
 

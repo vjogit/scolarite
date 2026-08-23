@@ -12,6 +12,9 @@ import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { UserSelector } from '../../services/UserSelector';
 import { GroupeImportButton } from './GroupeImportButton';
+import { useNotifications } from '@toolpad/core/useNotifications';
+import { notifyError } from '../../services/notify';
+import { messageForError } from '../../services/errorMessages';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
 
@@ -49,6 +52,7 @@ export function GroupeUserPage() {
     const { groupeId } = useParams<{ groupeId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const notifications = useNotifications();
 
     // Lister les membres est une lecture ; ajouter, retirer et importer
     // écrivent la structure.
@@ -70,17 +74,19 @@ export function GroupeUserPage() {
         mutationFn: (userId: number) =>
             apiInstance.post(`${ENDPOINT_GROUPE}/${groupeId}/user`, { user_id: userId }),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['groupe-users', groupeId] });
+            void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
             reset(ADD_USER_DEFAULT);
         },
+        onError: (error) => { notifyError(notifications, messageForError(error)); },
     });
 
     const removeMutation = useMutation({
         mutationFn: (userId: number) =>
             apiInstance.delete(`${ENDPOINT_GROUPE}/${groupeId}/user/${userId}`),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['groupe-users', groupeId] });
+            void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         },
+        onError: (error) => { notifyError(notifications, messageForError(error)); },
     });
 
     const onSubmit = (data: AddUserForm) => {
@@ -146,7 +152,7 @@ export function GroupeUserPage() {
         <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
                 <Tooltip title="Retour">
-                    <IconButton aria-label="Retour" onClick={() => navigate(-1)}>
+                    <IconButton aria-label="Retour" onClick={() => { void navigate(-1); }}>
                         <ArrowBackIcon />
                     </IconButton>
                 </Tooltip>
@@ -155,7 +161,7 @@ export function GroupeUserPage() {
             </Box>
 
             {peutEcrire && (
-                <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mb: 2, flexShrink: 0 }}>
+                <Box component="form" onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} sx={{ mb: 2, flexShrink: 0 }}>
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                         <Box sx={{ flex: 1 }}>
                             <UserSelector

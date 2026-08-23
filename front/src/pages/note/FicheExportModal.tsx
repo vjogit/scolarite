@@ -4,10 +4,13 @@ import {
     Button, Autocomplete, TextField, CircularProgress, Box,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
+import { useNotifications } from '@toolpad/core/useNotifications';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE } from '../structure/def';
 import { ENDPOINT_BASE } from './def';
 import type { Groupe } from '../structure/Groupe';
+import { notifyError } from '../../services/notify';
+import { messageForError } from '../../services/errorMessages';
 
 interface Props {
     open: boolean;
@@ -17,6 +20,7 @@ interface Props {
 }
 
 export function FicheExportModal({ open, controleId, optionId, onClose }: Props) {
+    const notifications = useNotifications();
     const [selectedGroupe, setSelectedGroupe] = useState<Groupe | null>(null);
     const [downloading, setDownloading] = useState(false);
 
@@ -48,6 +52,11 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
             link.remove();
             window.URL.revokeObjectURL(url);
             handleClose();
+        } catch (error) {
+            // Sans ce `catch`, l'échec ne se voyait nulle part : la modale
+            // restait ouverte, le bouton cessait de tourner, et rien ne
+            // distinguait un export refusé d'un export terminé.
+            notifyError(notifications, messageForError(error));
         } finally {
             setDownloading(false);
         }
@@ -89,7 +98,7 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
                 <Button onClick={handleClose}>Annuler</Button>
                 <Button
                     variant="contained"
-                    onClick={handleDownload}
+                    onClick={() => { void handleDownload(); }}
                     disabled={!selectedGroupe || downloading}
                     startIcon={downloading ? <CircularProgress size={16} /> : undefined}
                 >

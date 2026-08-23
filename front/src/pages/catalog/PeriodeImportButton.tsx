@@ -35,7 +35,7 @@ export function PeriodeImportButton() {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             notifySuccess(notifications, 'Import du programme réussi.');
-            queryClient.invalidateQueries({ queryKey: [STRUCTURE, PERIODE, optionId] });
+            void queryClient.invalidateQueries({ queryKey: [STRUCTURE, PERIODE, optionId] });
         } catch (error) {
             console.error(error);
             notifyError(notifications, "Erreur lors de l'import.");
@@ -57,7 +57,7 @@ export function PeriodeImportButton() {
                 type="file"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                onChange={handleFileChange}
+                onChange={(event) => { void handleFileChange(event); }}
                 accept=".xlsx"
             />
         </>

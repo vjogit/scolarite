@@ -41,7 +41,7 @@ export function PeriodeExportButton() {
 
     return (
         <Tooltip title={LIBELLE}>
-            <IconButton aria-label={LIBELLE} onClick={handleExport}>
+            <IconButton aria-label={LIBELLE} onClick={() => { void handleExport(); }}>
                 <DownloadIcon />
             </IconButton>
         </Tooltip>

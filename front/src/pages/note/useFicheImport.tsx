@@ -59,7 +59,7 @@ export function useFicheImport() {
                 notifications,
                 `${created} note(s) créée(s), ${updated} note(s) mise(s) à jour.`,
             );
-            queryClient.invalidateQueries({ queryKey: [NOTE, 'controle', String(controleId)] });
+            void queryClient.invalidateQueries({ queryKey: [NOTE, 'controle', String(controleId)] });
         } catch (error) {
             // Le serveur nomme la ligne et la valeur en cause quand il refuse un
             // fichier : ce message vaut mieux que le libellé générique.
@@ -79,7 +79,7 @@ export function useFicheImport() {
             type="file"
             ref={fileInputRef}
             style={{ display: 'none' }}
-            onChange={handleFileChange}
+            onChange={(event) => { void handleFileChange(event); }}
             accept=".xlsx"
         />
     );

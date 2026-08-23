@@ -69,7 +69,7 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
                 open={open}
                 loading={loading}
                 onClose={() => { setOpen(false); }}
-                onConfirm={handleExport}
+                onConfirm={(params) => { void handleExport(params); }}
             />
         </>
     );

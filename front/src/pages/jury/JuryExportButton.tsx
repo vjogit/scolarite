@@ -52,7 +52,7 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
 
     return (
         <Tooltip title={LIBELLE}>
-            <IconButton aria-label={LIBELLE} onClick={handleExport} size="small" color="primary">
+            <IconButton aria-label={LIBELLE} onClick={() => { void handleExport(); }} size="small" color="primary">
                 <FileDownloadIcon fontSize="small" />
             </IconButton>
         </Tooltip>

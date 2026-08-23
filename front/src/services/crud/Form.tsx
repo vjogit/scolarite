@@ -48,7 +48,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
     // Choix dynamique de la fonction API
     mutationFn: mode === 'edit' ? datasource.update : datasource.create,
     onSuccess: (saved) => {
-      queryClient.invalidateQueries({ queryKey: datasource.queryKey });
+      void queryClient.invalidateQueries({ queryKey: datasource.queryKey });
       // On annonce l'état réel renvoyé par le serveur, pas les valeurs saisies :
       // le libellé a pu être normalisé côté API.
       notifySuccess(
@@ -59,7 +59,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
       // une mutation réussie : sans ce désarmement, la garde s'interposerait
       // sur le retour vers la liste, à chaque enregistrement.
       guard.allowNavigation();
-      navigate(rootPath, { state: { highlightId: datasource.getId(saved) } });
+      void navigate(rootPath, { state: { highlightId: datasource.getId(saved) } });
     },
     onError: (error) => {
       const fields = fieldErrorsFor(error);
@@ -121,7 +121,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
           Elles restent posées pour borner les flèches de l'incrémenteur ;
           l'arbitrage de la validité, lui, revient à zod.
         */}
-        <form ref={formulaireRef} noValidate onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
+        <form ref={formulaireRef} noValidate onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
           <h2>
             {mode === 'show' ? 'Détails' : mode === 'edit' ? 'Modifier' : 'Ajouter'}
           </h2>

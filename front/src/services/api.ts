@@ -34,7 +34,11 @@ export function setupAxiosInterceptors(keycloak: Keycloak) {
             }
         } catch (error) {
             console.error("Erreur lors du rafraîchissement du token", error);
-            keycloak.logout();
+            // Dernier recours : si la déconnexion échoue à son tour, plus rien
+            // ne le dirait — l'utilisateur resterait sur un jeton mort.
+            keycloak.logout().catch((erreur: unknown) => {
+                console.error("Échec de la déconnexion après un rafraîchissement raté", erreur);
+            });
         }
         return config;
     });

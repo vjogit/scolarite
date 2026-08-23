@@ -54,7 +54,7 @@ export function GroupeMultiImportButton({ optionId }: Props) {
             }
 
             notifyPartialSuccess(notifications, message, allNotFound.length === 0);
-            queryClient.invalidateQueries({ queryKey: [STRUCTURE, GROUPE, optionId] });
+            void queryClient.invalidateQueries({ queryKey: [STRUCTURE, GROUPE, optionId] });
         } catch {
             notifyError(notifications, "Erreur lors de l'import multi-groupes.");
         } finally {
@@ -73,7 +73,7 @@ export function GroupeMultiImportButton({ optionId }: Props) {
                 type="file"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                onChange={handleFileChange}
+                onChange={(event) => { void handleFileChange(event); }}
                 accept=".xlsx"
             />
         </>

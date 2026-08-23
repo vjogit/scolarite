@@ -156,7 +156,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
               <span>
                 <IconButton
                   aria-label={libelleCreation(datasource)}
-                  onClick={() => navigate(`${rootPath}/new`)}>
+                  onClick={() => { void navigate(`${rootPath}/new`); }}>
                   <AddBoxIcon />
                 </IconButton>
               </span>
@@ -301,7 +301,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
         {parentPath ? (
           <Tooltip title="Retour">
-            <IconButton aria-label="Retour" onClick={() => navigate(parentPath)}>
+            <IconButton aria-label="Retour" onClick={() => { void navigate(parentPath); }}>
               <ArrowBackIcon />
             </IconButton>
           </Tooltip>

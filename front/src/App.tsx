@@ -188,7 +188,7 @@ export default function App() {
 
   const AUTHENTICATION: Authentication = {
     signIn: () => { },
-    signOut: () => { keycloak?.logout({ redirectUri: window.location.origin + '/' }) },
+    signOut: () => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); },
   };
 
   return (

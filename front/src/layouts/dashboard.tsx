@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 
@@ -60,6 +61,16 @@ export default function Layout() {
   const { mode } = useColorScheme()
   const { keycloak, loading } = useKeycloak()
 
+  // La redirection vers Keycloak est un effet de bord : la déclencher pendant
+  // le rendu rendait `Layout` impur, et React se réserve le droit de rejouer un
+  // rendu — ce qui déclenchait la redirection deux fois.
+  useEffect(() => {
+    if (loading || session) return;
+    void keycloak?.login({
+      redirectUri: window.location.origin + location.pathname + location.search,
+    });
+  }, [loading, session, keycloak, location.pathname, location.search]);
+
   let theme: Theme
   if (mode == undefined || mode == 'system') {
     theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme
@@ -76,9 +87,6 @@ export default function Layout() {
   }
 
   if (!session) {
-    keycloak?.login({
-      redirectUri: window.location.origin + location.pathname + location.search
-    })
     return (
       <div style={{ width: '100%' }}>
         <LinearProgress />

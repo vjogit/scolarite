@@ -4,7 +4,7 @@ import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
-import { ENDPOINT_GROUPE } from './def';
+import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
 
 interface ImportResult {
@@ -45,7 +45,7 @@ export function GroupeImportButton({ groupeId }: Props) {
             }
 
             notifyPartialSuccess(notifications, message, !(not_found?.length > 0));
-            queryClient.invalidateQueries({ queryKey: ['groupe-users', groupeId] });
+            void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         } catch {
             notifyError(notifications, "Erreur lors de l'import.");
         } finally {
@@ -64,7 +64,7 @@ export function GroupeImportButton({ groupeId }: Props) {
                 type="file"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                onChange={handleFileChange}
+                onChange={(event) => { void handleFileChange(event); }}
                 accept=".xlsx"
             />
         </>
