@@ -42,6 +42,28 @@ elapsed=0
 
 echo "Waiting for Keycloak to accept admin login at $TOKEN_URL (timeout ${TIMEOUT_SECONDS}s) ..."
 
+# Sur un terminal, l'état de la sonde est réécrit sur la même ligne ; sinon
+# (log, CI) on n'imprime une ligne que lorsque la réponse change.
+INTERACTIVE=0
+[ -t 1 ] && INTERACTIVE=1
+last_probe=""
+
+report() {
+  local probe="$1"
+  if [ "$INTERACTIVE" = "1" ]; then
+    printf '\r\033[2K  → %s (%ss/%ss)' "$probe" "$elapsed" "$TIMEOUT_SECONDS"
+  elif [ "$probe" != "$last_probe" ]; then
+    printf '  → %s (%ss/%ss)\n' "$probe" "$elapsed" "$TIMEOUT_SECONDS"
+  fi
+  last_probe="$probe"
+}
+
+end_progress() {
+  if [ "$INTERACTIVE" = "1" ] && [ -n "$last_probe" ]; then
+    printf '\n'
+  fi
+}
+
 KC_ADMIN="${KEYCLOAK_ADMIN:-admin}"
 KC_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD:-admin}"
 while true; do
@@ -50,15 +72,18 @@ while true; do
     2>/dev/null || echo -e "\n000")
   HTTP_STATUS=$(echo "$RESPONSE" | tail -1)
   BODY=$(echo "$RESPONSE" | head -1)
-  echo "  → HTTP $HTTP_STATUS : $BODY"
+  PROBE="HTTP $HTTP_STATUS"
+  [ -n "$BODY" ] && PROBE="$PROBE : ${BODY:0:100}"
+  report "$PROBE"
   [ "$HTTP_STATUS" = "200" ] && break
   elapsed=$((elapsed + INTERVAL_SECONDS))
   if [ $elapsed -ge $TIMEOUT_SECONDS ]; then
+    end_progress
     echo "Timed out waiting for Keycloak after $TIMEOUT_SECONDS seconds" >&2
     exit 1
   fi
   sleep $INTERVAL_SECONDS
 done
+end_progress
 
 echo "Keycloak is ready (admin login OK)"
-
