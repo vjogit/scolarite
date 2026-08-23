@@ -89,6 +89,114 @@ const IntegerCell = memo(({ value }: { value: number | null | undefined }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rendus de colonnes — `Cell` et `Header` sont appelés par MRT comme de
+// simples fonctions, pas montés comme des composants ; les écrire ici plutôt
+// que dans le corps du composant ne change donc rien au rendu. Mais six
+// colonnes de synthèse répétaient le même entête à l'infobulle près, et douze
+// arrtêtes enveloppaient un composant déjà mémoïsé dans une flèche neuve.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type CelluleJury = NonNullable<MRT_ColumnDef<StudentEntry>['Cell']>;
+type DeliberationParEleve = ReadonlyMap<number, { delibere: boolean; compteCumul: boolean }>;
+
+/** L'entête des colonnes de synthèse : une infobulle sur un libellé court. */
+const enteteInfobulle = (titre: string, libelle: string, multiligne = false) => () => (
+    <Tooltip title={titre}>
+        <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ fontWeight: 700, ...(multiligne ? { whiteSpace: 'pre-line' } : {}) }}>
+                {libelle}
+            </Typography>
+        </Box>
+    </Tooltip>
+);
+
+const celluleGpa: CelluleJury = ({ cell }) => <GpaCell value={cell.getValue<number | null>()} />;
+const celluleEntier: CelluleJury = ({ cell }) => <IntegerCell value={cell.getValue<number | null>()} />;
+const celluleBooleen: CelluleJury = ({ cell }) => <BooleanCell value={cell.getValue<boolean | null>()} />;
+const celluleEctsEchec: CelluleJury = ({ cell }) => <EctsEchecCell value={cell.getValue<number>()} />;
+
+const celluleEctsValides: CelluleJury = ({ cell }) => (
+    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+        {cell.getValue<number>()}
+    </Typography>
+);
+
+const celluleGrade: CelluleJury = ({ cell }) => (
+    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <GradeBadge grade={cell.getValue<string | null>()} />
+    </Box>
+);
+
+/** L'entête d'un groupe d'UE : le nom complet en infobulle s'il est tronqué. */
+const enteteUe = (ue: { nom: string; ects: number }) => () => {
+    const displayName = ue.nom.length > 40 ? `${ue.nom.substring(0, 39)}…` : ue.nom;
+    return (
+        <Tooltip title={ue.nom} disableHoverListener={ue.nom.length <= 40}>
+            <Box sx={{ textAlign: 'center', lineHeight: 1.3 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                    {displayName}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {ue.ects} ECTS
+                </Typography>
+            </Box>
+        </Tooltip>
+    );
+};
+
+/**
+ * La cellule de statut : le seul rendu de colonne qui dépende de l'état de
+ * l'écran — les délibérations déjà prises, les dossiers incomplets, le droit
+ * d'écrire. On les passe en arguments plutôt que de les capter au vol.
+ */
+const celluleStatut = (
+    periodeId: string,
+    deliberationByUser: DeliberationParEleve,
+    dossiersIncomplets: ReadonlyMap<number, string[]>,
+    peutDeliberer: boolean,
+): CelluleJury => ({ row }) => {
+    const info = deliberationByUser.get(row.original.userID);
+    const nom = `${row.original.juryStat.lastName ?? ''} ${row.original.juryStat.firstName ?? ''}`.trim();
+    const incompletes = dossiersIncomplets.get(row.original.userID);
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {info?.delibere ? (
+                <Chip
+                    label={info.compteCumul ? 'Délibéré' : 'Redoublant'}
+                    size="small"
+                    color={info.compteCumul ? 'success' : 'warning'}
+                    sx={{ fontSize: '0.68rem', height: 20 }}
+                />
+            ) : incompletes ? (
+                // « En attente » dirait qu'il ne manque qu'une décision.
+                // Ici c'est une note qui manque, et le jury doit le voir.
+                <Tooltip title={`Non évaluée : ${incompletes.join(', ')}`}>
+                    <Chip
+                        label="Incomplet"
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                        sx={{ fontSize: '0.68rem', height: 20 }}
+                    />
+                </Tooltip>
+            ) : (
+                <Chip label="En attente" size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
+            )}
+            {peutDeliberer && (
+                <DelibererButton
+                    periodeId={periodeId}
+                    userId={row.original.userID}
+                    userName={nom}
+                    isDelibere={info?.delibere ?? false}
+                    compteCumulActuel={info?.compteCumul}
+                    uesNonEvaluees={incompletes}
+                />
+            )}
+        </Box>
+    );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Constantes stables hors du composant
 // Tout ce qui est défini ici a une référence stable entre les renders,
 // ce qui évite les boucles infinies dans MRT (mrtTheme, muiTableHeadCellProps)
@@ -214,48 +322,7 @@ export const JuryPeriode = () => {
                 enableSorting: false,
                 enableColumnFilter: false,
                 accessorFn: (row) => deliberationByUser.get(row.userID)?.delibere ?? false,
-                Cell: ({ row }) => {
-                    if (!periodeId) return null;
-                    const info = deliberationByUser.get(row.original.userID);
-                    const nom = `${row.original.juryStat.lastName ?? ''} ${row.original.juryStat.firstName ?? ''}`.trim();
-                    const incompletes = dossiersIncomplets.get(row.original.userID);
-                    return (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {info?.delibere ? (
-                                <Chip
-                                    label={info.compteCumul ? 'Délibéré' : 'Redoublant'}
-                                    size="small"
-                                    color={info.compteCumul ? 'success' : 'warning'}
-                                    sx={{ fontSize: '0.68rem', height: 20 }}
-                                />
-                            ) : incompletes ? (
-                                // « En attente » dirait qu'il ne manque qu'une décision.
-                                // Ici c'est une note qui manque, et le jury doit le voir.
-                                <Tooltip title={`Non évaluée : ${incompletes.join(', ')}`}>
-                                    <Chip
-                                        label="Incomplet"
-                                        size="small"
-                                        color="warning"
-                                        variant="outlined"
-                                        sx={{ fontSize: '0.68rem', height: 20 }}
-                                    />
-                                </Tooltip>
-                            ) : (
-                                <Chip label="En attente" size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
-                            )}
-                            {peutDeliberer && (
-                                <DelibererButton
-                                    periodeId={periodeId}
-                                    userId={row.original.userID}
-                                    userName={nom}
-                                    isDelibere={info?.delibere ?? false}
-                                    compteCumulActuel={info?.compteCumul}
-                                    uesNonEvaluees={incompletes}
-                                />
-                            )}
-                        </Box>
-                    );
-                },
+                Cell: periodeId ? celluleStatut(periodeId, deliberationByUser, dossiersIncomplets, peutDeliberer) : () => null,
                 muiTableHeadCellProps: { sx: { fontWeight: 700 } },
             },
             {
@@ -290,32 +357,14 @@ export const JuryPeriode = () => {
                     '& .MuiTableSortLabel-root': { color: 'inherit' },
                 },
             },
-            Header: () => {
-                const displayName = ue.nom.length > 40 ? `${ue.nom.substring(0, 39)}…` : ue.nom;
-                return (
-                    <Tooltip title={ue.nom} disableHoverListener={ue.nom.length <= 40}>
-                        <Box sx={{ textAlign: 'center', lineHeight: 1.3 }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
-                                {displayName}
-                            </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                {ue.ects} ECTS
-                            </Typography>
-                        </Box>
-                    </Tooltip>
-                );
-            },
+            Header: enteteUe(ue),
             columns: [
                 {
                     id: `ue_${ue.id}_grade`,
                     header: 'Grade',
                     size: 140,
                     accessorFn: (row) => data.statsUe[row.userID]?.[ue.id]?.grade_lettre,
-                    Cell: ({ cell }) => (
-                        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                            <GradeBadge grade={cell.getValue<string | null>()} />
-                        </Box>
-                    ),
+                    Cell: celluleGrade,
                     muiTableHeadCellProps: {
                         sx: {
                             fontSize: '0.72rem',
@@ -339,99 +388,59 @@ export const JuryPeriode = () => {
             {
                 id: 'gpa_academique_periode',
                 header: 'GPA aca',
-                Header: () => (
-                    <Tooltip title="GPA Académique">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>GPA aca</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('GPA Académique', 'GPA aca'),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_academique_periode,
-                Cell: ({ cell }) => <GpaCell value={cell.getValue<number | null>()} />,
+                Cell: celluleGpa,
                 muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
                 muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
             },
             {
                 id: 'gpa',
                 header: 'GPA',
-                Header: () => (
-                    <Tooltip title="GPA Période">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>GPA</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('GPA Période', 'GPA'),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_periode,
-                Cell: ({ cell }) => <GpaCell value={cell.getValue<number | null>()} />,
+                Cell: celluleGpa,
                 muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
                 muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
             },
              {
                 id: 'toeic',
                 header: 'Toeic',
-                Header: () => (
-                    <Tooltip title="Score TOEIC">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Toeic</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('Score TOEIC', 'Toeic'),
                 size: 100,
                 accessorFn: (row) => row.juryStat.toeic,
-                Cell: ({ cell }) => <IntegerCell value={cell.getValue<number | null>()} />,
+                Cell: celluleEntier,
                 muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
                 muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
             },
              {
                 id: 'mobilite_valide',
                 header: 'Mobilite',
-                Header: () => (
-                    <Tooltip title="Mobilité Validée">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Mobilite</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('Mobilité Validée', 'Mobilite'),
                 size: 100,
                 accessorFn: (row) => row.juryStat.mobilite_valide,
-                Cell: ({ cell }) => <BooleanCell value={cell.getValue<boolean | null>()} />,
+                Cell: celluleBooleen,
                 muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
                 muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
             },
             {
                 id: 'ects_acquis',
                 header: 'ECTS\nValidés',
-                Header: () => (
-                    <Tooltip title="Total ECTS Validés">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: 'pre-line' }}>{'ECTS\nValidés'}</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('Total ECTS Validés', 'ECTS\nValidés', true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_valides,
-                Cell: ({ cell }) => (
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {cell.getValue<number>()}
-                    </Typography>
-                ),
+                Cell: celluleEctsValides,
                 muiTableBodyCellProps: { sx: { textAlign: 'center' } },
             },
             {
                 id: 'ects_non_valides',
                 header: 'Échecs\n(ECTS)',
-                Header: () => (
-                    <Tooltip title="ECTS non validés (Grades F)">
-                        <Box sx={{ textAlign: 'center' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700, whiteSpace: 'pre-line' }}>{'Échecs\n(ECTS)'}</Typography>
-                        </Box>
-                    </Tooltip>
-                ),
+                Header: enteteInfobulle('ECTS non validés (Grades F)', 'Échecs\n(ECTS)', true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_periode - row.juryStat.total_ects_valides,
-                Cell: ({ cell }) => <EctsEchecCell value={cell.getValue<number>()} />,
+                Cell: celluleEctsEchec,
                 muiTableBodyCellProps: { sx: { textAlign: 'center' } },
             },
         ];
