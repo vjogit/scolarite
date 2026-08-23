@@ -121,8 +121,20 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
     // Excel qui invalide le préfixe de la clé. Une ligne dont l'écriture a
     // échoué ou qui attend encore garde sa saisie — c'est l'exigence « ne jamais
     // perdre une saisie », qui vaut aussi contre nos propres rechargements.
-    useEffect(() => {
-        if (!data) return;
+    //
+    // Ajusté pendant le rendu, et non dans un effet : c'est le motif que React
+    // recommande pour un état qui suit une donnée entrante. L'effet rendait une
+    // première fois la grille vide, puis la reposait — un aller-retour visible
+    // à chaque rafraîchissement, et une cascade de rendus à chaque frappe qui
+    // faisait revenir la requête.
+    const [donneeAmorcee, setDonneeAmorcee] = useState<LigneGrilleServeur[] | undefined>(undefined);
+    if (data && data !== donneeAmorcee) {
+        // `react-x` croit voir un effet ; c'est le corps du rendu. Le greffon
+        // officiel `react-hooks` accepte ce motif, qui est celui que la
+        // documentation de React prescrit pour ajuster un état sur une donnée
+        // entrante — React relance le rendu sans rien valider entre les deux.
+        // eslint-disable-next-line react-x/set-state-in-effect
+        setDonneeAmorcee(data);
         const precedentes = new Map(lignesRef.current.map(l => [l.userId, l]));
         appliquerLignes(data.map(brut => {
             const precedente = precedentes.get(brut.user_id);
@@ -131,7 +143,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
             tentativesRef.current.delete(brut.user_id);
             return ligneDepuisServeur(brut);
         }));
-    }, [data, appliquerLignes]);
+    }
 
     useEffect(() => { onLignesChange(lignes); }, [lignes, onLignesChange]);
 

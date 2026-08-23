@@ -2,9 +2,9 @@ import { Outlet } from 'react-router';
 import { type Authentication, type NavigationItem } from '@toolpad/core/AppProvider';
 import { ReactRouterAppProvider } from '@toolpad/core/react-router';
 import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from './pages/user/def';
-import SessionContext, { type Session } from './SessionContext';
+import SessionContext from './SessionContext';
 import React from 'react';
-import { getKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
+import { demarrerKeycloak, instantaneKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
 import Keycloak from 'keycloak-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -144,14 +144,29 @@ function sessionDepuis(kc: Keycloak) {
 
 export default function App() {
 
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [keycloak, setKeycloak] = React.useState<Keycloak | null>(null);
-  const [loading, setLoading] = React.useState(true);
+
+  // Keycloak est un magasin externe : on s'y abonne et on le lit, plutôt que
+  // d'en recopier l'état dans React. Le rendu voit `null` tant que
+  // l'initialisation n'a pas abouti, puis l'instance — sans qu'aucun effet
+  // n'ait eu à poser d'état, ni à rendre l'application une seconde fois.
+  React.useEffect(() => { demarrerKeycloak(); }, []);
+  const keycloak = React.useSyncExternalStore(subscribeToKeycloak, instantaneKeycloak);
+  const loading = keycloak === null;
+
+  // La session est ce que le jeton décrit : une fonction pure de l'instance,
+  // et non un état à tenir à jour. `setSession` reste dans le contrat du
+  // contexte — Toolpad le lit — mais plus personne n'a de raison de l'appeler.
+  const session = React.useMemo(
+    () => (keycloak ? sessionDepuis(keycloak) : null),
+    [keycloak],
+  );
 
   const sessionContextValue = React.useMemo(
     () => ({
       session,
-      setSession,
+      setSession: () => {
+        throw new Error("La session se déduit du jeton Keycloak : rien à poser.");
+      },
     }),
     [session],
   );
@@ -163,34 +178,12 @@ export default function App() {
     [session],
   );
 
+  // L'intercepteur d'API est le seul véritable effet de bord qui reste : il
+  // arme axios une fois l'instance prête.
   React.useEffect(() => {
-    // Récupérer l'instance (elle sera initialisée si nécessaire)
-    const kc = getKeycloak();
-
-    // S'abonner aux notifications d'initialisation
-    const unsubscribe = subscribeToKeycloak((initializedKeycloak) => {
-      console.log("Keycloak instance initialized, updating state");
-      setKeycloak(initializedKeycloak);
-      setLoading(false);
-
-      // Mettre à jour la session avec les infos utilisateur
-      setSession(sessionDepuis(initializedKeycloak));
-      setupAxiosInterceptors(initializedKeycloak)
-    });
-
-    // Si déjà initialisé, mettre à jour immédiatement
-    if (kc.token) {
-      setKeycloak(kc);
-      setLoading(false);
-      setSession(sessionDepuis(kc));
-      setupAxiosInterceptors(kc)
-    }
-
-    // Nettoyer l'abonnement au démontage du composant
-    return () => {
-      unsubscribe();
-    };
-  }, [setSession]);
+    if (!keycloak) return;
+    setupAxiosInterceptors(keycloak);
+  }, [keycloak]);
 
   const AUTHENTICATION: Authentication = {
     // Toolpad exige les deux entrées ; l'entrée en session est faite par
