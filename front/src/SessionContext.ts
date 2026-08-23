@@ -22,4 +22,4 @@ const SessionContext = React.createContext<SessionContextType>({
 
 export default SessionContext;
 
-export const useSession = () => React.useContext(SessionContext);
+export const useSession = () => React.use(SessionContext);

@@ -86,5 +86,5 @@ export const KeycloakContext = React.createContext<KeycloakContextType>({
 });
 
 
-export const useKeycloak = () => React.useContext(KeycloakContext);
+export const useKeycloak = () => React.use(KeycloakContext);
 

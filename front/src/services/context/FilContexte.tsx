@@ -268,6 +268,9 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
             sx={{ py: 0.5 }}
         >
             {elements.map((element, index) => (
+                // L'index n'est pas la clé : il départage deux niveaux qui
+                // portent le même segment, ce que le segment seul ne fait pas.
+                // eslint-disable-next-line react-x/no-array-index-key
                 <Fragment key={`${index}-${segmentDe(element)}`}>
                     {index > 0 && (
                         <Typography variant="body2" component="span" aria-hidden sx={{ color: 'text.secondary' }}>

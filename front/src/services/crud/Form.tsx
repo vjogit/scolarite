@@ -12,7 +12,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { Box, Button } from '@mui/material';
-import { useCrudContext } from './CrudContext';
+import { useCrudContext } from './useCrudContext';
 import { useUnsavedChangesGuard } from '../useUnsavedChangesGuard';
 import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
 import { premierChampEnErreur, premierChampSaisissable } from './focus';

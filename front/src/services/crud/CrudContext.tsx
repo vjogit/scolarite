@@ -1,18 +1,17 @@
-import { createContext, useContext } from 'react';
+import { createContext } from 'react';
 
 export interface CrudContextType {
     rootPath: string;
     workflow: string;
 }
 
-const CrudContext = createContext<CrudContextType | undefined>(undefined);
-
-export const useCrudContext = () => {
-    const context = useContext(CrudContext);
-    if (!context) {
-        throw new Error('useCrudContext must be used within a CrudProvider');
-    }
-    return context;
-};
-
-export const CrudProvider = CrudContext.Provider;
+/**
+ * Le chemin racine et le workflow courants, pour les écrans qui en dépendent
+ * sans les recevoir en props.
+ *
+ * Depuis React 19 un contexte se rend directement comme fournisseur : c'est
+ * pourquoi ce module n'exporte plus d'alias `CrudProvider`, et pourquoi il ne
+ * contient que lui — un contexte compte désormais comme un composant, et le
+ * hook de lecture vit à côté.
+ */
+export const CrudContext = createContext<CrudContextType | undefined>(undefined);

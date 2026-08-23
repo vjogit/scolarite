@@ -9,7 +9,7 @@ import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
-import { useCrudContext } from './CrudContext';
+import { useCrudContext } from './useCrudContext';
 import { useDroits } from '../context/droits';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';

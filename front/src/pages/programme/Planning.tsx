@@ -113,7 +113,12 @@ export function Planning() {
     const isEditMode = possedeRole(Role.PROGRAMME_ECRITURE);
 
     const DATE_KEY = 'planning_date';
-    const initialDate = sessionStorage.getItem(DATE_KEY) ?? undefined;
+    // Lue une fois, à l'ouverture : l'initialiseur paresseux de `useState` est
+    // l'endroit prévu pour ça, alors qu'un `getItem` en plein rendu rendait le
+    // composant impur — sa sortie dépendait d'un stockage qu'il n'observe pas.
+    const [initialDate] = useState<string | undefined>(
+        () => sessionStorage.getItem(DATE_KEY) ?? undefined,
+    );
     const handleDatesSet = useCallback((info: { startStr: string }) => {
         sessionStorage.setItem(DATE_KEY, info.startStr);
     }, []);

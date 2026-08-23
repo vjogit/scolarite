@@ -193,8 +193,8 @@ export default function App() {
   };
 
   return (
-    <SessionContext.Provider value={sessionContextValue}>
-      <KeycloakContext.Provider value={{ keycloak, loading }}>
+    <SessionContext value={sessionContextValue}>
+      <KeycloakContext value={{ keycloak, loading }}>
         <QueryClientProvider client={queryClient}>
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
             <ReactRouterAppProvider
@@ -218,8 +218,8 @@ export default function App() {
             </ReactRouterAppProvider>
           </LocalizationProvider>
         </QueryClientProvider>
-      </KeycloakContext.Provider>
-    </SessionContext.Provider >
+      </KeycloakContext>
+    </SessionContext>
   )
 
 }

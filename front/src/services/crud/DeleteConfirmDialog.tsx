@@ -139,8 +139,11 @@ export function DeleteConfirmDialog<D extends FieldValues>({
         return `Supprimer ${formatNombre.format(objets.length)} ${pluriel} ?`;
     })();
 
-    const nomsAffiches = noms.slice(0, MAX_NOMS_AFFICHES);
-    const nomsRestants = noms.length - nomsAffiches.length;
+    // Chaque nom voyage avec l'identifiant de son objet : c'est lui la clé de
+    // liste, et le réindexer au rendu obligeait à retomber sur la position.
+    const objetsAffiches = objets.slice(0, MAX_NOMS_AFFICHES)
+        .map((objet, rang) => ({ id: entite.getId(objet), nom: noms[rang] ?? '' }));
+    const nomsRestants = noms.length - objetsAffiches.length;
 
     return (
         <Dialog
@@ -176,8 +179,8 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                         <Box>
                             <DialogContentText>Objets sélectionnés :</DialogContentText>
                             <List dense disablePadding>
-                                {nomsAffiches.map((nom, index) => (
-                                    <ListItem key={ids[index] ?? index} disablePadding sx={{ pl: 1 }}>
+                                {objetsAffiches.map(({ id, nom }) => (
+                                    <ListItem key={id} disablePadding sx={{ pl: 1 }}>
                                         <ListItemText primary={`• ${nom}`} />
                                     </ListItem>
                                 ))}

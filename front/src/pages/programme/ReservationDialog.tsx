@@ -247,6 +247,9 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                 <Stack spacing={2} sx={{ mt: 1 }}>
 
                     {conflictErrors.map((msg, i) => (
+                        // Liste de messages affichée d'un bloc, jamais réordonnée
+                        // et sans état interne : l'index suffit à les distinguer.
+                        // eslint-disable-next-line react-x/no-array-index-key
                         <Alert key={i} severity="error">{msg}</Alert>
                     ))}
 

@@ -5,7 +5,7 @@ import { CrudList } from "./List";
 import { Form } from "./Form";
 import type { CrudMode, Datasource } from "./def";
 import type { DefaultValues, FieldValues } from "react-hook-form";
-import { CrudProvider } from "./CrudContext";
+import { CrudContext } from "./CrudContext";
 import { Alert, Skeleton } from "@mui/material";
 import { useDroits } from "../context/droits";
 
@@ -72,9 +72,9 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
     })();
 
     return (
-        <CrudProvider value={{ rootPath, workflow }}>
+        <CrudContext value={{ rootPath, workflow }}>
             {content}
-        </CrudProvider>
+        </CrudContext>
     );
 
 }

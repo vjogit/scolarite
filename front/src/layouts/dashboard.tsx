@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import Stack from '@mui/material/Stack';
 
 import { Outlet, useLocation } from 'react-router';
@@ -71,9 +72,15 @@ export default function Layout() {
     });
   }, [loading, session, keycloak, location.pathname, location.search]);
 
+  // `useMediaQuery` s'abonne à la préférence système ; la lecture directe de
+  // `window.matchMedia` pendant le rendu marchait, mais seulement parce que
+  // `useColorScheme` ci-dessus s'y abonne pour son compte et provoque le rendu.
+  // Le composant dépendait donc d'un abonnement posé par un voisin.
+  const systemeSombre = useMediaQuery('(prefers-color-scheme: dark)');
+
   let theme: Theme
   if (mode == undefined || mode == 'system') {
-    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme
+    theme = systemeSombre ? darkTheme : lightTheme
   } else {
     theme = mode === 'dark' ? darkTheme : lightTheme
   }

@@ -7,11 +7,11 @@
  * workflow — il mérite un module qu'on trouve en le cherchant.
  */
 
-import { useContext, type ReactNode } from 'react';
+import { use, type ReactNode } from 'react';
 import SessionContext from '../SessionContext';
 
 export const RoleGuard = ({ children, roles, requireAll }: { children: ReactNode, roles: readonly string[], requireAll?: boolean }) => {
-  const { session } = useContext(SessionContext);
+  const { session } = use(SessionContext);
 
   if (!session?.user) {
     return null;
