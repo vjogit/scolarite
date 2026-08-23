@@ -43,7 +43,10 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     const [endDate,             setEndDate]             = useState<Dayjs | null>(null);
     const [typeCours,           setTypeCours]           = useState('');
     const [matiereId,           setMatiereId]           = useState<number | ''>('');
-    const [selectedSalles,      setSelectedSalles]      = useState<Salle[]>([]);
+    // `null` tant que l'utilisateur n'a rien choisi : la sélection se déduit
+    // alors de la réservation, dès que le référentiel arrive. Un état initialisé
+    // à `[]` obligeait à le remplir depuis un effet, une fois la requête revenue.
+    const [sallesChoisies,      setSallesChoisies]      = useState<Salle[] | null>(null);
     const [selectedIntervenants,setSelectedIntervenants]= useState<User[]>([]);
     const [intervenantQuery,    setIntervenantQuery]    = useState('');
     const [debouncedQuery,      setDebouncedQuery]      = useState('');
@@ -52,15 +55,23 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         const t = setTimeout(() => { setDebouncedQuery(intervenantQuery); }, 400);
         return () => { clearTimeout(t); };
     }, [intervenantQuery]);
-    const [selectedGroupes,     setSelectedGroupes]     = useState<Groupe[]>([]);
+    const [groupesChoisis,      setGroupesChoisis]      = useState<Groupe[] | null>(null);
     const [isDistanciel,        setIsDistanciel]        = useState(false);
     const [description,         setDescription]         = useState('');
     const [conflictErrors,      setConflictErrors]      = useState<string[]>([]);
 
-    // ── Initialisation selon mode create / edit ─────────────────────────────
-    useEffect(() => {
-        if (!open) return;
+    /**
+     * Remise à zéro du formulaire, jouée à l'ouverture de la modale.
+     *
+     * C'était un effet gardé par `if (!open) return`, qui rejouait à chaque
+     * changement de ses dépendances et posait neuf états d'un coup après le
+     * rendu. L'ouverture est un événement : la transition de MUI le donne, et
+     * l'état est prêt avant le premier affichage du contenu.
+     */
+    const initialiser = () => {
         setConflictErrors([]);
+        setSallesChoisies(null);
+        setGroupesChoisis(null);
         if (reservation) {
             setStartDate(dayjs(reservation.horaire.Lower));
             setEndDate(dayjs(reservation.horaire.Upper));
@@ -76,13 +87,11 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             setEndDate(end ? dayjs(end) : null);
             setTypeCours('');
             setMatiereId('');
-            setSelectedSalles([]);
             setSelectedIntervenants([]);
-            setSelectedGroupes([]);
             setIsDistanciel(false);
             setDescription('');
         }
-    }, [open, reservation, start, end]);
+    };
 
     // ── Référentiels ────────────────────────────────────────────────────────
     const { data: salles = [] } = useQuery<Salle[]>({
@@ -124,17 +133,12 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     });
     const matieres: Matiere[] = matiereResults.flatMap(q => q.data ?? []);
 
-    // ── Synchronisation salles / intervenants / groupes en mode édition ─────
-    useEffect(() => {
-        if (!reservation || !open || salles.length === 0) return;
-        setSelectedSalles(salles.filter(s => reservation.salles.some(rs => rs.id === s.id)));
-    }, [reservation, salles, open]);
-
-
-    useEffect(() => {
-        if (!reservation || !open || groupes.length === 0) return;
-        setSelectedGroupes(groupes.filter(g => reservation.groupes.some(rg => rg.id === g.id)));
-    }, [reservation, groupes, open]);
+    // ── Sélection courante : le choix de l'utilisateur, ou celle de la
+    // réservation en cours d'édition, filtrée sur le référentiel chargé ───────
+    const selectedSalles = sallesChoisies
+        ?? salles.filter(s => reservation?.salles.some(rs => rs.id === s.id) ?? false);
+    const selectedGroupes = groupesChoisis
+        ?? groupes.filter(g => reservation?.groupes.some(rg => rg.id === g.id) ?? false);
 
     // ── Gestion des erreurs de conflit ───────────────────────────────────────
     const userName = (u: User) =>
@@ -223,7 +227,13 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
 
     // ── Rendu ───────────────────────────────────────────────────────────────
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="sm"
+            fullWidth
+            slotProps={{ transition: { onEnter: initialiser } }}
+        >
             <DialogTitle>
                 {reservation ? 'Modifier la réservation' : 'Nouvelle réservation'}
             </DialogTitle>
@@ -286,7 +296,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiple
                         options={salles}
                         value={selectedSalles}
-                        onChange={(_, v) => { setSelectedSalles(v); }}
+                        onChange={(_, v) => { setSallesChoisies(v); }}
                         getOptionLabel={s => `${s.name}${s.batiment ? ` (${s.batiment})` : ''}`}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         renderInput={params => <TextField {...params} label="Salles" />}
@@ -309,7 +319,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiple
                         options={groupes}
                         value={selectedGroupes}
-                        onChange={(_, v) => { setSelectedGroupes(v); }}
+                        onChange={(_, v) => { setGroupesChoisis(v); }}
                         getOptionLabel={g => g.name}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         renderInput={params => <TextField {...params} label="Groupes" />}

@@ -92,11 +92,6 @@ export function DeleteConfirmDialog<D extends FieldValues>({
         staleTime: 0,
     });
 
-    // La saisie ne doit jamais survivre à la fermeture de la modale.
-    useEffect(() => {
-        if (!open) setSaisie('');
-    }, [open]);
-
     const impact = impactQuery.data;
     const impactEnCours = supporteImpact && impactQuery.isPending;
     const impactEnEchec = supporteImpact && impactQuery.isError;
@@ -164,6 +159,11 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                     onEntered: () => {
                         if (confirmationRequise) saisieRef.current?.focus();
                     },
+                    // La saisie ne doit jamais survivre à la fermeture. La vider
+                    // à la fin de la transition plutôt que dans un effet évite
+                    // un rendu de plus, et le champ ne se vide pas sous les yeux
+                    // de l'utilisateur pendant que la modale s'efface.
+                    onExited: () => { setSaisie(''); },
                 },
             }}
         >
