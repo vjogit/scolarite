@@ -26,14 +26,14 @@ import { JURY, JURY_WORKFLOW } from '../../pages/jury/def';
 import {
     CONTROLE, ENDPOINT_CONTROLE, ENDPOINT_NOTE_CONTROLE, NOTE, NOTE_WORKFLOW,
 } from '../../pages/note/def';
-import { createControleRepository } from '../../pages/note/Controle';
+import { createControleRepository } from '../../pages/note/entites/controle';
 import { PROGRAMME, PROGRAMME_WORKFLOW } from '../../pages/programme/def';
 import {
     ENDPOINT_GROUPE, ENDPOINT_MATIERE, ENDPOINT_UES, GROUPE, MATIERE, UES,
 } from '../../pages/structure/def';
-import { createGroupeRepository } from '../../pages/structure/Groupe';
-import { createMatiereRepository } from '../../pages/structure/Matiere';
-import { createUeRepository } from '../../pages/structure/Ue';
+import { createGroupeRepository } from '../../pages/structure/entites/groupe';
+import { createMatiereRepository } from '../../pages/structure/entites/matiere';
+import { createUeRepository } from '../../pages/structure/entites/ue';
 import { depot, type DepotFreres } from './freres';
 import type { EntiteNommee } from './niveaux';
 

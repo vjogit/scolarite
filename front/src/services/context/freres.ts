@@ -19,10 +19,10 @@ import type { FieldValues } from 'react-hook-form';
 
 import type { Repository } from '../crud/def';
 import { FORMATION, OPTION, PERIODE, PROMOTION } from '../../pages/structure/def';
-import { formationRepository } from '../../pages/structure/Formation';
-import { createPromotionRepository } from '../../pages/structure/Promotion';
-import { createOptionRepository } from '../../pages/structure/Options';
-import { createPeriodeRepository } from '../../pages/structure/Periode';
+import { formationRepository } from '../../pages/structure/entites/formation';
+import { createPromotionRepository } from '../../pages/structure/entites/promotion';
+import { createOptionRepository } from '../../pages/structure/entites/option';
+import { createPeriodeRepository } from '../../pages/structure/entites/periode';
 import type { ContexteHierarchique, Niveau } from './niveaux';
 import { NIVEAUX } from './niveaux';
 

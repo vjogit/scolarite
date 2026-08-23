@@ -37,7 +37,7 @@ import { useSuppressionCrud } from '../../services/crud/suppression';
 import { ArbreStructure } from '../structure/arbre/ArbreStructure';
 import { useEtatArbre, useNomEnCache, type CibleArbre } from '../structure/arbre/etat';
 import { CREER_FORMATION } from '../structure/arbre/niveaux';
-import { formationEntite } from '../structure/Formation';
+import { formationEntite } from '../structure/entites/formation';
 import { FORMATION } from '../structure/def';
 import { CATALOG_WORKFLOW } from './def';
 

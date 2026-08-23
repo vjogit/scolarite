@@ -29,13 +29,13 @@ import type { DescriptionEntite, EntiteCrud, Repository } from '../../../service
 import { libelleCreation } from '../../../services/crud/entityMessages';
 
 import { FORMATION, GROUPE, MATIERE, OPTION, PERIODE, PROMOTION, UES } from '../def';
-import { ACTION_PROMOTIONS, formationEntite, formationRepository } from '../Formation';
-import { ACTION_OPTIONS, createPromotionRepository, promotionEntite } from '../Promotion';
-import { ACTION_GROUPES, ACTION_PERIODES, createOptionRepository, optionEntite } from '../Options';
-import { ACTION_UES, createPeriodeRepository, periodeEntite } from '../Periode';
-import { ACTION_MATIERES, createUeRepository, ueEntite } from '../Ue';
-import { createMatiereRepository, matiereEntite } from '../Matiere';
-import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../Groupe';
+import { ACTION_PROMOTIONS, formationEntite, formationRepository } from '../entites/formation';
+import { ACTION_OPTIONS, createPromotionRepository, promotionEntite } from '../entites/promotion';
+import { ACTION_GROUPES, ACTION_PERIODES, createOptionRepository, optionEntite } from '../entites/option';
+import { ACTION_UES, createPeriodeRepository, periodeEntite } from '../entites/periode';
+import { ACTION_MATIERES, createUeRepository, ueEntite } from '../entites/ue';
+import { createMatiereRepository, matiereEntite } from '../entites/matiere';
+import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../entites/groupe';
 
 /**
  * Repository débarrassé du type de son entité : tous les niveaux doivent tenir

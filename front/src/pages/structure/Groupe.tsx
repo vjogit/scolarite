@@ -1,27 +1,14 @@
-import { z } from 'zod';
-import { TextField, Typography, Box } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
-import type { FieldValues } from 'react-hook-form';
-import type { ActionNavigation } from "../../services/crud/actions";
-import { useMemo, useCallback, type ReactNode } from "react";
-import { Crud } from "../../services/crud/Crud";
+import { TextField, Typography, Box } from '@mui/material';
+import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
+import { useMemo, useCallback, type ReactNode } from 'react';
+import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
-import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
-import PeopleIcon from '@mui/icons-material/People';
 import { GroupeMultiImportButton } from './GroupeMultiImportButton';
-import { Role } from '../user/def';
+import { groupeSchema, type Groupe, createGroupeRepository, ACTION_MEMBRES, groupeEntite } from './entites/groupe';
 
-
-const groupeSchema = z.object({
-    id: z.number(),
-    version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
-    option_id: z.number(),
-});
-
-export type Groupe = z.infer<typeof groupeSchema>;
+export type { Groupe } from './entites/groupe';
 
 const GroupeFields = ({ register, errors, isReadOnly }: RenderProps<Groupe>) => (
     <>
@@ -50,33 +37,6 @@ const createGroupeViewConfig = (optionId: string): ViewConfig<Groupe> => ({
     columns: groupeColumns,
     render: GroupeFields,
 });
-
-export const createGroupeRepository = (optionId: string) =>
-    createRepository<Groupe>({
-        endpoint: ENDPOINT_GROUPE,
-        queryParams: `?option_id=${optionId}`,
-        queryKey: [STRUCTURE, GROUPE, optionId],
-        getId: (data: Groupe) => data.id,
-    });
-
-/**
- * Descente vers les membres du groupe. Le segment `user` est celui de la
- * greffe `MEMBRES` du catalogue, seul workflow où les groupes apparaissent.
- */
-export const ACTION_MEMBRES: ActionNavigation<FieldValues> = {
-    id: 'membres',
-    libelle: 'Gérer les membres',
-    icone: PeopleIcon,
-    segment: 'user',
-};
-
-/** Ce que le groupe est, quel que soit l'écran qui l'affiche. */
-export const groupeEntite: DescriptionEntite = {
-    title: "Groupes",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "le groupe",
-    entityLabelPlural: "groupes",
-};
 
 export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
     const { optionId } = useParams();

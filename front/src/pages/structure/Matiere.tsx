@@ -1,26 +1,13 @@
-import { z } from 'zod';
-import { Box, TextField, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig, type DescriptionEntite } from '../../services/crud/def';
-import { useMemo } from "react";
-import { Crud } from "../../services/crud/Crud";
+import { Box, TextField, Typography } from '@mui/material';
+import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
+import { useMemo } from 'react';
+import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
-import { ENDPOINT_MATIERE, MATIERE, STRUCTURE } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
-import { Role } from '../user/def';
+import { matiereSchema, type Matiere, createMatiereRepository, matiereEntite } from './entites/matiere';
 
-
-const matiereSchema = z.object({
-    id: z.number(),
-    version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
-    coeff: z.number().min(0, "Le coefficient doit être positif"),
-    heure: z.number().min(0, "Les heures doit être positive"),
-    unite_enseignement_id: z.number(),
-    color: z.string().nullable().optional(),
-});
-
-export type Matiere = z.infer<typeof matiereSchema>;
+export type { Matiere } from './entites/matiere';
 
 const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) => (
     <>
@@ -98,24 +85,6 @@ const createMatiereViewConfig = (ueId: string): ViewConfig<Matiere> => {
         columns: matiereColumns,
         render: MatiereFields,
     }
-};
-
-// Partie statique : à l'extérieur du composant
-export const createMatiereRepository = (ueId: string) => {
-    return createRepository<Matiere>({
-        endpoint: ENDPOINT_MATIERE,
-        queryParams: `?unite_enseignement_id=${ueId}`,
-        queryKey: [STRUCTURE, MATIERE, ueId],
-        getId: (data: Matiere) => data.id,
-    })
-}
-
-/** Ce que la matière est, quel que soit l'écran qui l'affiche. */
-export const matiereEntite: DescriptionEntite = {
-    title: "Matières",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "la matière",
-    entityLabelPlural: "matières",
 };
 
 export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Matiere>) {

@@ -19,8 +19,10 @@ import { FORMATION, PROMOTION, OPTION, PERIODE, UES, MATIERE } from '../structur
 import { CrudFormation } from '../structure/Formation';
 import { CrudPromotion } from '../structure/Promotion';
 import { CrudOption } from '../structure/Options';
-import { ACTION_UES, CrudPeriode } from '../structure/Periode';
-import { ACTION_MATIERES, CrudUe } from '../structure/Ue';
+import { CrudPeriode } from '../structure/Periode';
+import { ACTION_UES } from '../structure/entites/periode';
+import { CrudUe } from '../structure/Ue';
+import { ACTION_MATIERES } from '../structure/entites/ue';
 import { CrudMatiere } from '../structure/Matiere';
 
 import { CONTROLE, NOTE, NOTE_WORKFLOW } from './def';

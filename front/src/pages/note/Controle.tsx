@@ -1,39 +1,20 @@
-import { z } from 'zod';
-import { FormControlLabel, Switch, TextField, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import type { ActionLigne } from "../../services/crud/actions";
-import { useCallback, useMemo, useState } from "react";
-import { Crud } from "../../services/crud/Crud";
+import { FormControlLabel, Switch, TextField, Typography } from '@mui/material';
+import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
+import type { ActionLigne } from '../../services/crud/actions';
+import { useCallback, useMemo, useState } from 'react';
+import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { Controller } from 'react-hook-form';
-import { CONTROLE, ENDPOINT_CONTROLE, RESULTAT } from './def';
 import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { FicheExportModal } from './FicheExportModal';
 import { LIBELLE_IMPORT_FICHE, useFicheImport } from './FicheImportButton';
 import { Role } from '../user/def';
+import { controleSchema, type Controle, createControleRepository } from './entites/controle';
 
-
-const controleSchema = z.object({
-    id: z.number(),
-    version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
-    coeff: z.preprocess(
-        (val) => (Number.isNaN(val as number) ? undefined : val),
-        z.number().nullable().optional()
-    ),
-    is_rattrapage: z.boolean().default(false),
-    remarque: z.string().nullable().optional(),
-    matiere_id: z.number(),
-    // Renvoyé par GET /resultat/controle/{id} uniquement : le barème appartient
-    // à la promotion, il n'est pas saisi ici. Optionnel car la liste des
-    // contrôles d'une matière ne le rapporte pas.
-    bareme: z.number().optional(),
-});
-
-export type Controle = z.infer<typeof controleSchema>;
+export type { Controle } from './entites/controle';
 
 const ControleFields = ({ register, control, errors, isReadOnly }: RenderProps<Controle>) => (
     <>
@@ -126,17 +107,6 @@ const createControleViewConfig = (matiereId: string): ViewConfig<Controle> => {
         render: ControleFields,
     }
 };
-
-// Partie statique : à l'extérieur du composant
-export const createControleRepository = (matiereId: string) => {
-    return createRepository<Controle>({
-        endpoint: ENDPOINT_CONTROLE,
-        queryParams: `?matiere_id=${matiereId}`,
-        queryKey: [RESULTAT, CONTROLE, matiereId],
-
-        getId: (data: Controle) => data.id,
-    })
-}
 export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Controle>) {
 
     const { matiereId, optionId } = useParams();
