@@ -17,7 +17,7 @@ export function IsValidEchelle(value: string, regex : RegExp, errorMessage : str
         if (parts.length !== 2) {
             return "Format incorrect pour une paire"
         }
-        const currentValue = parseFloat(parts[1]);
+        const currentValue = parseFloat(parts[1] ?? '');
         if (isNaN(currentValue) || currentValue >= previousValue) {
             return "Un nombre n'est pas valide ou les nombres ne sont pas décroissant"
         }

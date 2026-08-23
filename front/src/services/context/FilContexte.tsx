@@ -137,8 +137,8 @@ function analyserChemin(
     const dernier = elements.at(-1);
     if (dernier?.genre === 'niveau' && dernier.identifiant !== null) {
         const rang = workflow.niveaux.indexOf(dernier.niveau);
-        if (rang !== -1 && rang + 1 < workflow.niveaux.length) {
-            const niveau = workflow.niveaux[rang + 1];
+        const niveau = rang === -1 ? undefined : workflow.niveaux[rang + 1];
+        if (niveau !== undefined) {
             elements.push({
                 genre: 'niveau', niveau, identifiant: null,
                 cheminListe: `${dernier.cheminListe}/${dernier.identifiant}/${niveau}`,

@@ -44,7 +44,7 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
     // première de la liste — « Voir » dans le cas général. Sans icône, rien à
     // dessiner dans un bouton nu : elle reste dans le menu.
     const directe = actions.find(action => action.directe && action.icone)
-        ?? (actions[0].icone ? actions[0] : undefined);
+        ?? (actions[0]?.icone ? actions[0] : undefined);
     const entrees = actions.filter(action => action !== directe);
 
     const IconeDirecte = directe?.icone;

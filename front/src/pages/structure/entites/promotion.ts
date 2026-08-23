@@ -36,7 +36,7 @@ export const promotionSchema = z.object({
                     message: error,
                 });
             }
-        }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1]))),
+        }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1] ?? ''))),
         z.array(z.number())
     ]),
     echelle: z.union([
@@ -48,7 +48,7 @@ export const promotionSchema = z.object({
                     message: error,
                 });
             }
-        }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1]))),
+        }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1] ?? ''))),
         z.array(z.number())
     ]),
     bareme: z.number({ message: "Le barème est requis" })
@@ -71,7 +71,8 @@ export const promotionSchema = z.object({
     // Miroir de la contrainte SQL chk_promotion_echelle_bareme. echelle est déjà
     // validée décroissante par ailleurs : son premier seuil en est le maximum.
     const seuils = Array.isArray(data.echelle) ? data.echelle : [];
-    return seuils.length === 0 || seuils[0] <= data.bareme;
+    const [premierSeuil] = seuils;
+    return premierSeuil === undefined || premierSeuil <= data.bareme;
 }, {
     message: "Les seuils de l'échelle ne peuvent pas dépasser le barème",
     path: ["echelle"],

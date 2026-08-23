@@ -132,12 +132,13 @@ export function messageSuppression<D extends FieldValues>(
     const corbeille = datasource.suppressionEnCorbeille === true;
     const entite = analyserLibelle(datasource);
 
+    const [premierNom = ''] = noms;
     if (noms.length === 1) {
         if (!corbeille) {
-            return phraseSingulier(datasource, noms[0], 'supprimé');
+            return phraseSingulier(datasource, premierNom, 'supprimé');
         }
-        if (!entite) return `« ${noms[0]} » mis en corbeille.`;
-        return `${entite.nom} « ${noms[0]} » ${accorderMis(entite.genre, false)} en corbeille.`;
+        if (!entite) return `« ${premierNom} » mis en corbeille.`;
+        return `${entite.nom} « ${premierNom} » ${accorderMis(entite.genre, false)} en corbeille.`;
     }
 
     const nombre = formatNombre.format(noms.length);

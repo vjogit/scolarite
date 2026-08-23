@@ -151,7 +151,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             const match = /=\((\d+), \["([^"]+)","([^"]+)"\]\) conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(err.detail);
             if (!match) return ERROR_MESSAGES.BUSINESS_CONFLICT;
 
-            const entityId      = parseInt(match[1]);
+            const entityId      = parseInt(match[1] ?? '');
             const existingStart = dayjs(match[4]).format('HH:mm');
             const existingEnd   = dayjs(match[5]).format('HH:mm');
 

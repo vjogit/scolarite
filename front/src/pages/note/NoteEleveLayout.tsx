@@ -84,7 +84,7 @@ export function NoteEleveDetail() {
     // dire. On retombe sur la première période plutôt que d'aller chercher une
     // clé qui n'existe pas.
     const ongletActif = tabIndex < periodeKeys.length ? tabIndex : 0;
-    const periodeActive = periodeKeys[ongletActif];
+    const periodeActive = periodeKeys[ongletActif] ?? '';
     const currentPeriode = periodes.get(periodeActive);
 
     return (
@@ -126,7 +126,7 @@ export function NoteEleveDetail() {
                         {currentPeriode && Array.from(currentPeriode.entries()).map(([ue, rows]) => (
                             <Box key={ue}>
                                 <Typography variant="subtitle1" sx={{ mb: 0.5, fontWeight: 600 }}>
-                                    {ue} <Chip label={`${rows[0].unite_enseignement_ects} ECTS`} size="small" sx={{ ml: 1 }} />
+                                    {ue} <Chip label={`${rows[0]?.unite_enseignement_ects ?? 0} ECTS`} size="small" sx={{ ml: 1 }} />
                                 </Typography>
                                 <TableContainer component={Paper} variant="outlined">
                                     <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>

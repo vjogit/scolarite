@@ -199,7 +199,11 @@ const NIVEAUX: readonly NiveauArbre[] = [
 const PAR_SEGMENT = new Map(NIVEAUX.map(niveau => [niveau.segment, niveau]));
 
 /** Le niveau racine de l'arbre : celui dont la collection n'a pas de parent. */
-export const NIVEAU_RACINE: NiveauArbre = NIVEAUX[0];
+// `NIVEAUX` est construit juste au-dessus et n'est jamais vide ; le dire
+// ainsi évite une assertion et casserait à la compilation si on le vidait.
+const [RACINE] = NIVEAUX;
+if (RACINE === undefined) throw new Error("L'arbre de la structure n'a aucun niveau.");
+export const NIVEAU_RACINE: NiveauArbre = RACINE;
 
 export function niveauArbre(segment: string): NiveauArbre | undefined {
     return PAR_SEGMENT.get(segment);

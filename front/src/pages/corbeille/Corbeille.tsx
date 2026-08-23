@@ -83,8 +83,9 @@ function PurgeDialog({
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
 
+    const [seulElement] = operation?.items ?? [];
     const phraseAttendue =
-        operation?.items.length === 1 ? operation.items[0].name : MOT_CONFIRMATION;
+        operation?.items.length === 1 && seulElement ? seulElement.name : MOT_CONFIRMATION;
     const confirmationOk = operation !== null && saisie.trim() === phraseAttendue;
 
     const fermer = () => {

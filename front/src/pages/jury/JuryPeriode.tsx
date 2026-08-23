@@ -445,8 +445,12 @@ export const JuryPeriode = () => {
     // ── Élèves sélectionnés non encore délibérés ──────────────────────────────
     const selectedStudents = useMemo<BulkStudent[]>(() => {
         return Object.keys(rowSelection)
+            // Une ligne sélectionnée puis disparue des données laisse un trou :
+            // le prédicat de type le dit au compilateur, là où un `s &&` ne
+            // faisait que l'écarter à l'exécution.
             .map(idx => students[Number(idx)])
-            .filter(s => s && !deliberationByUser.get(s.userID)?.delibere)
+            .filter((s): s is StudentEntry => s !== undefined)
+            .filter(s => !deliberationByUser.get(s.userID)?.delibere)
             .filter(s => !dossiersIncomplets.has(s.userID))
             .map(s => ({
                 userId: s.userID,

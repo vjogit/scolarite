@@ -113,19 +113,23 @@ export function NoteChartModal({
         if (evaluatedData.length === 0) {
             return { kpis: null, lineData: [], barData: [], scatterData: [] };
         }
+        // Trié et non vide : le garde ci-dessus l'assure, et `at()` rend le
+        // repli explicite plutôt que de promettre une valeur qu'un tableau vide
+        // n'aurait pas.
         const notes = evaluatedData.map(d => d.note).sort((a, b) => a - b);
+        const valeur = (rang: number) => notes[rang] ?? 0;
 
         const avg = notes.reduce((a, b) => a + b, 0) / notes.length;
         const median = notes.length % 2 === 0
-            ? (notes[notes.length / 2 - 1] + notes[notes.length / 2]) / 2
-            : notes[Math.floor(notes.length / 2)];
+            ? (valeur(notes.length / 2 - 1) + valeur(notes.length / 2)) / 2
+            : valeur(Math.floor(notes.length / 2));
         const successRate = (notes.filter(n => n >= successThreshold).length / notes.length) * 100;
 
         const kpis = {
             avg: avg.toFixed(2),
             median: median.toFixed(2),
-            min: notes[0].toFixed(2),
-            max: notes[notes.length - 1].toFixed(2),
+            min: valeur(0).toFixed(2),
+            max: valeur(notes.length - 1).toFixed(2),
             success: successRate.toFixed(1)
         };
 
@@ -144,20 +148,16 @@ export function NoteChartModal({
             });
 
         // Histogramme
-        const buckets: { label: string, min: number, max: number, count: number }[] = [];
-        for (let i = 0; i < bucketRanges.length - 1; i++) {
-            buckets.push({
-                label: `${bucketRanges[i]}-${bucketRanges[i + 1]}`,
-                min: bucketRanges[i],
-                max: bucketRanges[i + 1],
-                count: 0
-            });
-        }
+        const buckets = bucketRanges.slice(0, -1).map((min, rang) => ({
+            label: `${min}-${bucketRanges[rang + 1] ?? min}`,
+            min,
+            max: bucketRanges[rang + 1] ?? min,
+            count: 0,
+        }));
 
         evaluatedData.forEach(d => {
-            for (let i = 0; i < buckets.length; i++) {
-                const bucket = buckets[i];
-                const isLast = i === buckets.length - 1;
+            for (const [rang, bucket] of buckets.entries()) {
+                const isLast = rang === buckets.length - 1;
                 if (d.note >= bucket.min && (isLast ? d.note <= bucket.max : d.note < bucket.max)) {
                     bucket.count++;
                     break;
@@ -210,7 +210,7 @@ export function NoteChartModal({
                                 {/* 3. CORRECTION DE L'AXE X */}
                                 <XAxis
                                     dataKey="uniqueAxisKey" // On utilise la clé cachée unique
-                                    tickFormatter={(val: string) => val.split('###')[0]} // Mais on coupe le "###index" pour l'affichage à l'écran !
+                                    tickFormatter={(val: string) => val.split('###')[0] ?? val} // Mais on coupe le "###index" pour l'affichage à l'écran !
                                     angle={-45}
                                     textAnchor="end"
                                     height={70}

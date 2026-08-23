@@ -58,7 +58,7 @@ export interface EtatArbre {
 
 /** L'identifiant du parent dans la chaîne ; la racine n'en a pas. */
 function identifiantParent(chainons: readonly Chainon[], rang: number): string {
-    return rang === 0 ? '' : chainons[rang - 1].identifiant;
+    return rang === 0 ? '' : chainons[rang - 1]?.identifiant ?? '';
 }
 
 export function etatArbre(pathname: string, prefixe: string): EtatArbre {
