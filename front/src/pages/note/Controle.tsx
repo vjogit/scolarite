@@ -10,7 +10,7 @@ import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { FicheExportModal } from './FicheExportModal';
-import { LIBELLE_IMPORT_FICHE, useFicheImport } from './FicheImportButton';
+import { useFicheImport, LIBELLE_IMPORT_FICHE } from './useFicheImport';
 import { Role } from '../user/def';
 import { controleSchema, type Controle, createControleRepository } from './entites/controle';
 

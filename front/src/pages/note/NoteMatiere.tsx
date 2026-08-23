@@ -7,7 +7,8 @@ import { createRepository, type CrudProps, type Datasource, type RenderProps, ty
 import type { MRT_ColumnDef } from 'material-react-table';
 import { NoteChartModal } from './NoteChartModal';
 import { ENDPOINT_NOTE_MATIERE, NOTE } from './def';
-import { NoteChartButton, useNoteChart } from './NoteChartButton';
+import { NoteChartButton } from './NoteChartButton';
+import { useNoteChart } from './useNoteChart';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { createNoteField } from './noteField';
 

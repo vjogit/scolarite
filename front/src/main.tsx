@@ -1,5 +1,5 @@
-import { StrictMode, useContext } from 'react'
-import { createRoot } from 'react-dom/client'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App.tsx'
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from './pages/user/def.tsx';
@@ -7,7 +7,7 @@ import Layout from './layouts/dashboard';
 import { CatalogLayout, CatalogIndex, CATALOG_WORKFLOW } from './pages/catalog/CatalogLayout.tsx';
 
 import { NoteIndex, NoteLayout } from './pages/note/NoteLayout.tsx';
-import SessionContext from './SessionContext';
+import { RoleGuard } from './services/RoleGuard';
 import { CertificationIndex, CertificationLayout } from './pages/certification/CertificationLayout.tsx';
 
 
@@ -33,26 +33,6 @@ import { CorbeillePage } from './pages/corbeille/Corbeille.tsx';
 
 
 
-const RoleGuard = ({ children, roles, requireAll }: { children: React.ReactNode, roles: readonly string[], requireAll?: boolean }) => {
-  const { session } = useContext(SessionContext);
-
-  if (!session?.user) {
-    return null;
-  }
-
-  // `requireAll` : sémantique ET, réservée à la corbeille (composite ADMIN,
-  // exprimé par les huit rôles fonctionnels sans tester son nom).
-  const userRoles = session.user.roles || [];
-  const hasRole = requireAll
-    ? roles.every(r => userRoles.includes(r))
-    : roles.some(r => userRoles.includes(r));
-
-  if (!hasRole) {
-    return <div>Accès non autorisé</div>;
-  }
-
-  return <>{children}</>;
-};
 
 const routes = [
   {

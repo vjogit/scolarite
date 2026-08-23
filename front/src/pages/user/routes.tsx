@@ -1,9 +1,6 @@
-import type { ReactNode } from "react";
-import { createCrudRoutes, type CrudComponentProps } from "../../services/crud/routes";
-import { USER, USER_WORKFLOW } from "./def";
-import { CrudUser } from "./User";
-import { Box } from "@mui/material";
-import { UserImportButton } from "./UserImport";
+import { createCrudRoutes } from '../../services/crud/routes';
+import { USER } from './def';
+import { CustomCrudUser } from './CustomCrudUser';
 
 export function createUserRoutes() {
 
@@ -13,28 +10,4 @@ export function createUserRoutes() {
         createCrudRoutes(userPath, CustomCrudUser),
     ]
 
-}
-
-function CustomCrudUser({ mode }: CrudComponentProps) {
-
-    const renderTopToolbar = ({
-        defaultActions,
-        peutEcrire,
-    }: {
-        defaultActions: ReactNode;
-        peutEcrire: boolean;
-    }) => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-            {defaultActions}
-            {/* Import : composant React autonome avec ses propres hooks */}
-            {peutEcrire && <UserImportButton />}
-        </Box>
-    )
-    return <CrudUser
-        workflow={USER_WORKFLOW}
-        mode={mode}
-        isAction={true}
-        isTopToolbar={true}
-        renderTopToolbarCustomActions={renderTopToolbar}
-    />;
 }
