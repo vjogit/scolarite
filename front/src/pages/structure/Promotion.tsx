@@ -232,7 +232,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
     </>
 };
 
-export const promotionColumns: MRT_ColumnDef<Promotion>[] = [
+const promotionColumns: MRT_ColumnDef<Promotion>[] = [
     {
         accessorKey: 'id',
         header: 'ID',
@@ -259,7 +259,7 @@ export const promotionColumns: MRT_ColumnDef<Promotion>[] = [
   
 ]
 
-export const createPromotionViewConfig = (formationId: string): ViewConfig<Promotion> => {
+const createPromotionViewConfig = (formationId: string): ViewConfig<Promotion> => {
     return {
         schema: promotionSchema,
         emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), bareme: 20 },

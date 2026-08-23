@@ -36,7 +36,7 @@ const FormationFields = ({ register, errors, isReadOnly }: RenderProps<Formation
     </>
 );
 
-export const formationColumns: MRT_ColumnDef<Formation>[] = [
+const formationColumns: MRT_ColumnDef<Formation>[] = [
     {
         accessorKey: 'id',
         header: 'ID',
@@ -51,7 +51,7 @@ export const formationColumns: MRT_ColumnDef<Formation>[] = [
     },
 ]
 
-export const formationViewConfig: ViewConfig<Formation> = {
+const formationViewConfig: ViewConfig<Formation> = {
     schema: formationSchema,
     emptyValue: { id: -1, version: -1 },
     columns: formationColumns,

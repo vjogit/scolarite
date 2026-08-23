@@ -62,7 +62,7 @@ const UeFields = ({ register, errors, control, isReadOnly }: RenderProps<Ue>) =>
 
 );
 
-export const periodeColumns: MRT_ColumnDef<Ue>[] = [
+const periodeColumns: MRT_ColumnDef<Ue>[] = [
     {
         accessorKey: 'id',
         header: 'ID',
@@ -86,7 +86,7 @@ export const periodeColumns: MRT_ColumnDef<Ue>[] = [
     },
 ]
 
-export const createUeViewConfig = (periodeId: string): ViewConfig<Ue> => {
+const createUeViewConfig = (periodeId: string): ViewConfig<Ue> => {
     return {
         schema: ueSchema,
         emptyValue: { id: -1, version: -1, academique: true, periode_id: parseInt(periodeId) },

@@ -118,7 +118,7 @@ const controleColumns: MRT_ColumnDef<Controle>[] = [
     },
 ]
 
-export const createControleViewConfig = (matiereId: string): ViewConfig<Controle> => {
+const createControleViewConfig = (matiereId: string): ViewConfig<Controle> => {
     return {
         schema: controleSchema,
         emptyValue: { id: -1, version: -1, matiere_id: parseInt(matiereId), is_rattrapage: false },

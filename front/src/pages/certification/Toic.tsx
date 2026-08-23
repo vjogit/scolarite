@@ -114,7 +114,7 @@ const toeicColumns: MRT_ColumnDef<Toeic>[] = [
     },
 ]
 
-export const createToeicViewConfig = (promotionId: string): ViewConfig<Toeic> => {
+const createToeicViewConfig = (promotionId: string): ViewConfig<Toeic> => {
     return {
         schema: toeicSchema,
         emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId) },
@@ -124,7 +124,7 @@ export const createToeicViewConfig = (promotionId: string): ViewConfig<Toeic> =>
 };
 
 // Partie statique : à l'extérieur du composant
-export const toeicDatasourceBase = (promotionId: string) => {
+const toeicDatasourceBase = (promotionId: string) => {
     return createRepository<Toeic>({
         endpoint: ENDPOINT_TOEIC,
         queryParams: `?promotion_id=${promotionId}`,

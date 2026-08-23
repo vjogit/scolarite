@@ -39,7 +39,7 @@ const OptionFields = ({ register, errors, isReadOnly }: RenderProps<Option>) => 
     </>
 );
 
-export const optionColumns: MRT_ColumnDef<Option>[] = [
+const optionColumns: MRT_ColumnDef<Option>[] = [
     {
         accessorKey: 'id',
         header: 'ID',
@@ -55,7 +55,7 @@ export const optionColumns: MRT_ColumnDef<Option>[] = [
 
 ]
 
-export const createOptionViewConfig = (promotionId: string): ViewConfig<Option> => {
+const createOptionViewConfig = (promotionId: string): ViewConfig<Option> => {
     return {
         schema: optionSchema,
         emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId) },

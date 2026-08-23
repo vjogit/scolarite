@@ -210,7 +210,7 @@ const matiereColumns: MRT_ColumnDef<Mobilite>[] =
         },
     ]
 
-export const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mobilite> => {
+const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mobilite> => {
     return {
         schema: mobiliteSchema,
         emptyValue: {
@@ -225,7 +225,7 @@ export const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mob
 };
 
 // Partie statique : à l'extérieur du composant
-export const createPeriodeRepository = (promotionId: string) => {
+const createPeriodeRepository = (promotionId: string) => {
     return createRepository<Mobilite>({
         endpoint: ENDPOINT_MOBILITE,
         queryParams: `?promotion_id=${promotionId}`,

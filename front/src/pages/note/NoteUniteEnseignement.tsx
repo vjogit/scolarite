@@ -74,7 +74,7 @@ const noteUeColumns: MRT_ColumnDef<NoteUe>[] = [
     { accessorFn: (data) => data.a_matiere_eliminatoire ? 'Oui' : '-', header: 'Matière éliminatoire' },
 ]
 
-export const createNoteUeViewConfig = (ueId: string): ViewConfig<NoteUe> => {
+const createNoteUeViewConfig = (ueId: string): ViewConfig<NoteUe> => {
     return {
         schema: noteUeSchema,
         emptyValue: { unite_enseignement_id: parseInt(ueId) },

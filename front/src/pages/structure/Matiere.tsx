@@ -68,7 +68,7 @@ const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) =
     </>
 );
 
-export const matiereColumns: MRT_ColumnDef<Matiere>[] = [
+const matiereColumns: MRT_ColumnDef<Matiere>[] = [
     {
         accessorKey: 'id',
         header: 'ID',
@@ -91,7 +91,7 @@ export const matiereColumns: MRT_ColumnDef<Matiere>[] = [
     },
 ]
 
-export const createMatiereViewConfig = (ueId: string): ViewConfig<Matiere> => {
+const createMatiereViewConfig = (ueId: string): ViewConfig<Matiere> => {
     return {
         schema: matiereSchema,
         emptyValue: { id: -1, version: -1, unite_enseignement_id: parseInt(ueId) },

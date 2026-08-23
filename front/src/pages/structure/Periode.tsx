@@ -88,7 +88,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
     </>
 );
 
-export const periodeColumns: MRT_ColumnDef<Periode>[] = [
+const periodeColumns: MRT_ColumnDef<Periode>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'version', header: 'Version' },
     { accessorKey: 'name', header: 'Nom' },
@@ -104,7 +104,7 @@ export const periodeColumns: MRT_ColumnDef<Periode>[] = [
     },
 ]
 
-export const createPeriodeViewConfig = (optionId: string): ViewConfig<Periode> => {
+const createPeriodeViewConfig = (optionId: string): ViewConfig<Periode> => {
     return {
         schema: periodeSchema,
         emptyValue: { id: -1, version: -1, option_id: parseInt(optionId) },

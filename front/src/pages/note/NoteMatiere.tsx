@@ -11,7 +11,7 @@ import { NoteChartButton, useNoteChart } from './NoteChartButton';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { createNoteField } from './noteField';
 
-export const noteMatiereSchema = z.object({
+const noteMatiereSchema = z.object({
     id: z.number(),
     version: z.number(),
     // Moyenne pondérée, donc bien dans l'unité du barème — mais le champ est
@@ -72,7 +72,7 @@ const noteMatiereColumns: MRT_ColumnDef<NoteMatiere>[] = [
     },
 ]
 
-export const createNoteMatiereViewConfig = (matiereId: string): ViewConfig<NoteMatiere> => {
+const createNoteMatiereViewConfig = (matiereId: string): ViewConfig<NoteMatiere> => {
     return {
         schema: noteMatiereSchema,
         emptyValue: { id: -1, version: -1, matiere_id: parseInt(matiereId) },
@@ -80,7 +80,7 @@ export const createNoteMatiereViewConfig = (matiereId: string): ViewConfig<NoteM
         render: NoteMatiereFields,
     }
 };
-export const createNoteMatiereRepository = (matiereId: string) => {
+const createNoteMatiereRepository = (matiereId: string) => {
     return createRepository<NoteMatiere>({
         endpoint: ENDPOINT_NOTE_MATIERE,
         queryParams: `?matiere_id=${matiereId}`,

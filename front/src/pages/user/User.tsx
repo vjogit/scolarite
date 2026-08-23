@@ -105,7 +105,7 @@ const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>
     </>
 );
 
-export const userColumns: MRT_ColumnDef<User>[] = [
+const userColumns: MRT_ColumnDef<User>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'keycloak_id', header: 'Keycloak Id' },
     { accessorKey: 'version', header: "Version" },
@@ -122,7 +122,7 @@ export const userColumns: MRT_ColumnDef<User>[] = [
     },
 ]
 
-export const userViewConfig: ViewConfig<User> = {
+const userViewConfig: ViewConfig<User> = {
     schema: userSchema,
     emptyValue: { id: -1, version: 0, keycloak_id: "-", roles: [] },
     columns: userColumns,
@@ -130,7 +130,7 @@ export const userViewConfig: ViewConfig<User> = {
 };
 
 // Partie statique : à l'extérieur du composant
-export const userDatasourceBase = createRepository<User>({
+const userDatasourceBase = createRepository<User>({
     endpoint: ENDPOINT_USER,
     queryKey: [USER],
     getId: (data: User) => data.id,

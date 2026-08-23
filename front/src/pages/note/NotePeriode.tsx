@@ -12,7 +12,7 @@ import { NoteChartModal } from './NoteChartModal';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { createNoteField } from './noteField';
 
-export const notePeriodeSchema = z.object({
+const notePeriodeSchema = z.object({
     // Ce champ n'est pas une note mais un GPA : il s'exprime sur echelle_gpa
     // (0 à 4 ici), pas sur le barème. Aucune borne haute ne lui est applicable.
     // Il vaut null tant que le jury n'a pas délibéré : c'est le jury qui valide
@@ -77,7 +77,7 @@ const notePeriodeColumns: MRT_ColumnDef<NotePeriode>[] = [
     },
 ]
 
-export const createNotePeriodeViewConfig = (periodeId: string): ViewConfig<NotePeriode> => {
+const createNotePeriodeViewConfig = (periodeId: string): ViewConfig<NotePeriode> => {
     return {
         emptyValue: { periode_id: parseInt(periodeId) } as never,
         schema: notePeriodeSchema,
@@ -87,7 +87,7 @@ export const createNotePeriodeViewConfig = (periodeId: string): ViewConfig<NoteP
 };
 
 // Partie statique : à l'extérieur du composant
-export const createNotePeriodeRepository = (periodeId: string) => {
+const createNotePeriodeRepository = (periodeId: string) => {
     return createRepository<NotePeriode>({
         endpoint: ENDPOINT_NOTE_PERIODE,
         queryParams: `?periode_id=${periodeId}`,

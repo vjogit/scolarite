@@ -28,14 +28,14 @@ const COMPOSANTS_FR = {
   },
 } as const;
 
-export const darkTheme = createTheme({
+const darkTheme = createTheme({
   palette: {
     mode: 'dark',
   },
   components: COMPOSANTS_FR,
 });
 
-export const lightTheme = createTheme({
+const lightTheme = createTheme({
   palette: {
     mode: 'light',
   },

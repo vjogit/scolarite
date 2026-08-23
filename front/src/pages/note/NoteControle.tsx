@@ -155,7 +155,7 @@ const createNoteMatiereColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteCont
     { accessorKey: 'remarque', header: 'Remarque' },
 ];
 
-export const noteControleViewConfig = (controleId: string, isRattrapage: boolean, bareme?: number): ViewConfig<NoteControle> => {
+const noteControleViewConfig = (controleId: string, isRattrapage: boolean, bareme?: number): ViewConfig<NoteControle> => {
     return {
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
@@ -163,7 +163,7 @@ export const noteControleViewConfig = (controleId: string, isRattrapage: boolean
         render: createNoteMatiereFields(isRattrapage, bareme),
     }
 };
-export const createNoteControleRepository = (controleId: string) => {
+const createNoteControleRepository = (controleId: string) => {
     return createRepository<NoteControle>({
         endpoint: ENDPOINT_NOTE_CONTROLE,
         queryParams: `?controle_id=${controleId}`,

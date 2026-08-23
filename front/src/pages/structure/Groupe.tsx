@@ -38,13 +38,13 @@ const GroupeFields = ({ register, errors, isReadOnly }: RenderProps<Groupe>) => 
     </>
 );
 
-export const groupeColumns: MRT_ColumnDef<Groupe>[] = [
+const groupeColumns: MRT_ColumnDef<Groupe>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'version', header: 'Version' },
     { accessorKey: 'name', header: 'Nom' },
 ];
 
-export const createGroupeViewConfig = (optionId: string): ViewConfig<Groupe> => ({
+const createGroupeViewConfig = (optionId: string): ViewConfig<Groupe> => ({
     schema: groupeSchema,
     emptyValue: { id: -1, version: -1, option_id: parseInt(optionId) },
     columns: groupeColumns,

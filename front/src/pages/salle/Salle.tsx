@@ -92,7 +92,7 @@ const SalleFields = ({ register, control, errors, isReadOnly }: RenderProps<Sall
     </>
 );
 
-export const salleColumns: MRT_ColumnDef<Salle>[] = [
+const salleColumns: MRT_ColumnDef<Salle>[] = [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'version', header: 'Version' },
     { accessorKey: 'name', header: 'Nom' },
@@ -109,14 +109,14 @@ export const salleColumns: MRT_ColumnDef<Salle>[] = [
     { accessorKey: 'equipement', header: 'Équipement' },
 ];
 
-export const salleViewConfig: ViewConfig<Salle> = {
+const salleViewConfig: ViewConfig<Salle> = {
     schema: salleSchema,
     emptyValue: { id: -1, version: 0, name: '', capacite: 1, equipement: null, type_salle: null, batiment: null },
     columns: salleColumns,
     render: SalleFields,
 };
 
-export const salleDatasourceBase = createRepository<Salle>({
+const salleDatasourceBase = createRepository<Salle>({
     endpoint: ENDPOINT_SALLE,
     queryKey: [SALLE],
     getId: (data: Salle) => data.id,
