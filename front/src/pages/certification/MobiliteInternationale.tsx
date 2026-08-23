@@ -35,7 +35,9 @@ const mobiliteSchema = z.object({
     firstName: z.string().optional(),
     lastName: z.string().optional(),
 }).refine(data => {
-    if (!data.date_debut || !data.date_fin) return true;
+    // `refine` ne s'exécute qu'après une analyse réussie : les deux dates sont
+    // donc présentes et valides. Le garde qui les testait ici ne se déclenchait
+    // jamais.
     return data.date_fin >= data.date_debut;
 }, {
     message: "La date de fin doit être postérieure à la date de début",
@@ -110,6 +112,12 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     render={({ field }) => (
                         <DatePicker
                             label="Date de début"
+                            // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
+                            // pas : en création, react-hook-form donne `undefined`. Et
+                            // `dayjs(undefined)` rend l'heure courante, pas une date
+                            // invalide — sans ce garde, le formulaire s'ouvre avec la date
+                            // du jour pré-remplie. Vérifié au navigateur.
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                             value={field.value ? dayjs(field.value) : null}
                             onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
                             disabled={isReadOnly}
@@ -131,6 +139,12 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     render={({ field }) => (
                         <DatePicker
                             label="Date de fin"
+                            // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
+                            // pas : en création, react-hook-form donne `undefined`. Et
+                            // `dayjs(undefined)` rend l'heure courante, pas une date
+                            // invalide — sans ce garde, le formulaire s'ouvre avec la date
+                            // du jour pré-remplie. Vérifié au navigateur.
+                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                             value={field.value ? dayjs(field.value) : null}
                             onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
                             disabled={isReadOnly}

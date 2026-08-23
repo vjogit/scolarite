@@ -204,7 +204,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                     {impactEnEchec && (
                         <Alert severity="warning">
                             Impossible d'évaluer l'impact de cette suppression
-                            {impactQuery.error ? ` (${messageForError(impactQuery.error)})` : ''}. Des
+                            {` (${messageForError(impactQuery.error)})`}. Des
                             données liées peuvent exister et seraient définitivement perdues.
                         </Alert>
                     )}

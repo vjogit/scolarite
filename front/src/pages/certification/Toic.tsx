@@ -53,6 +53,12 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 render={({ field }) => (
                     <DatePicker
                         label="Date de passage"
+                        // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
+                        // pas : en création, react-hook-form donne `undefined`. Et
+                        // `dayjs(undefined)` rend l'heure courante, pas une date
+                        // invalide — sans ce garde, le formulaire s'ouvre avec la date
+                        // du jour pré-remplie. Vérifié au navigateur.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={field.value ? dayjs(field.value) : null}
                         onChange={(newValue) => {
                             field.onChange(newValue ? newValue.toDate() : null);

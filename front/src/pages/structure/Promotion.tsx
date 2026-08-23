@@ -35,6 +35,12 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             render={({ field }) => (
                 <DatePicker
                     label="Date de début"
+                    // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
+                    // pas : en création, react-hook-form donne `undefined`. Et
+                    // `dayjs(undefined)` rend l'heure courante, pas une date
+                    // invalide — sans ce garde, le formulaire s'ouvre avec la date
+                    // du jour pré-remplie. Vérifié au navigateur.
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     value={field.value ? dayjs(field.value) : null}
                     onChange={(newValue) => {
                         field.onChange(newValue ? newValue.toDate() : null);
@@ -57,6 +63,12 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             render={({ field }) => (
                 <DatePicker
                     label="Date de fin"
+                    // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
+                    // pas : en création, react-hook-form donne `undefined`. Et
+                    // `dayjs(undefined)` rend l'heure courante, pas une date
+                    // invalide — sans ce garde, le formulaire s'ouvre avec la date
+                    // du jour pré-remplie. Vérifié au navigateur.
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     value={field.value ? dayjs(field.value) : null}
                     onChange={(newValue) => {
                         field.onChange(newValue ? newValue.toDate() : null);
@@ -85,6 +97,11 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                 return (
                     <TextField
                         {...field}
+                        // `emptyValue` ne porte pas ce champ : en création il vaut
+                        // `undefined`, et `value={undefined}` ferait basculer le
+                        // TextField en non contrôlé — React s'en plaint et la saisie
+                        // peut se perdre. Le repli est ce qui le garde contrôlé.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
                         label="Echelle GPA"
                         variant="outlined"
@@ -108,6 +125,11 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                 return (
                     <TextField
                         {...field}
+                        // `emptyValue` ne porte pas ce champ : en création il vaut
+                        // `undefined`, et `value={undefined}` ferait basculer le
+                        // TextField en non contrôlé — React s'en plaint et la saisie
+                        // peut se perdre. Le repli est ce qui le garde contrôlé.
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
                         label="Echelle"
                         variant="outlined"
