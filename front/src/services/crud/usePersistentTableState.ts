@@ -81,7 +81,10 @@ export function usePersistentTableState(queryKey: QueryKey) {
   });
 
   const [density, setDensity] = useState<MRT_DensityState>(() => {
-    return (sessionStorage.getItem(densityKey) as MRT_DensityState) ?? 'compact';
+    // L'assertion doit venir après le repli : appliquée à `getItem`, elle
+    // effaçait le `null` et faisait passer le `??` pour inutile.
+    const memorisee = sessionStorage.getItem(densityKey);
+    return (memorisee ?? 'compact') as MRT_DensityState;
   });
 
   const [isFullScreen, setIsFullScreen] = useState<boolean>(() => {
@@ -90,7 +93,7 @@ export function usePersistentTableState(queryKey: QueryKey) {
   });
 
   useEffect(() => { sessionStorage.setItem(filtersKey,      JSON.stringify(columnFilters));   }, [columnFilters]);
-  useEffect(() => { sessionStorage.setItem(globalFilterKey, globalFilter ?? '');              }, [globalFilter]);
+  useEffect(() => { sessionStorage.setItem(globalFilterKey, globalFilter);                    }, [globalFilter]);
   useEffect(() => { sessionStorage.setItem(sortingKey,      JSON.stringify(sorting));         }, [sorting]);
   useEffect(() => { sessionStorage.setItem(paginationKey,   JSON.stringify(pagination));      }, [pagination]);
   useEffect(() => { sessionStorage.setItem(showSearchKey,   String(showGlobalFilter));        }, [showGlobalFilter]);

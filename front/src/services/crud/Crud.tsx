@@ -55,11 +55,11 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
     if (mode === 'show') {
         if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="show" />;
-    } else if (mode === 'edit') {
+    } else {
+        // Reste `edit` : les quatre modes de `CrudMode` sont couverts, il n'y a
+        // pas de cinquième cas à rattraper par un « page non trouvée ».
         if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="edit" />;
-    } else {
-        return <p>Page non trouvée</p>;
     }
     })();
 

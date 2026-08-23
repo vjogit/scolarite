@@ -9,7 +9,9 @@ import { notifyError, notifyPartialSuccess } from '../../services/notify';
 
 interface ImportResult {
     added: number;
-    not_found: string[];
+    // Absent de la réponse quand tout le monde a été trouvé : le serveur ne
+    // sérialise pas une liste vide.
+    not_found?: string[];
 }
 
 interface Props {
@@ -38,13 +40,13 @@ export function GroupeImportButton({ groupeId }: Props) {
                 { headers: { 'Content-Type': 'multipart/form-data' } },
             );
 
-            const { added, not_found } = res.data;
+            const { added, not_found = [] } = res.data;
             let message = `${added} élève(s) ajouté(s).`;
-            if (not_found?.length > 0) {
+            if (not_found.length > 0) {
                 message += ` Emails introuvables : ${not_found.join(', ')}`;
             }
 
-            notifyPartialSuccess(notifications, message, !(not_found?.length > 0));
+            notifyPartialSuccess(notifications, message, not_found.length === 0);
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         } catch {
             notifyError(notifications, "Erreur lors de l'import.");

@@ -33,12 +33,9 @@ const createNoteControleSchema = (bareme?: number) => z.object({
     }),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
-}).refine(data => {
-    const fkCount = [data.controle_id].filter(v => v != null).length;
-    return fkCount === 1;
-}, {
-    message: "Une note doit être associée à exactement un élément (contrôle, matière, UE, ou période).",
-    path: ["user_id"],
+// `controle_id` est le seul rattachement de ce schéma, et il est obligatoire :
+// le contrôle « exactement une clé étrangère » qui vivait ici comptait toujours
+// un, et ne pouvait donc rien refuser.
 }).refine(data => {
     if (!data.not_evaluated && (data.note == null || isNaN(data.note))) return false;
     return true;

@@ -105,7 +105,7 @@ export function NoteChartModal({
     };
 
     const { kpis, lineData, barData, scatterData } = useMemo(() => {
-        if (!data || data.length === 0) {
+        if (data.length === 0) {
             return { kpis: null, lineData: [], barData: [], scatterData: [] };
         }
 

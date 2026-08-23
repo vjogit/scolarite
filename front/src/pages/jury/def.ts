@@ -94,6 +94,9 @@ export interface JuryData {
   // En Go, le pointeur *Hierarchie indique qu'il peut être nul
   hierarchy: Hierarchie | null;
   students: StudentEntry[];
-  // map[int32]map[int32]UeStat se traduit par des Records imbriqués
-  statsUe: Record<number, Record<number, UeStat>>;
+  // map[int32]map[int32]UeStat se traduit par des Records imbriqués. Le
+  // `| undefined` n'est pas une précaution : une map Go ne sérialise que les
+  // clés qu'elle contient, et un élève sans note d'UE n'y figure pas. Sans lui,
+  // le type promettait une valeur pour n'importe quel identifiant.
+  statsUe: Record<number, Record<number, UeStat | undefined> | undefined>;
 }

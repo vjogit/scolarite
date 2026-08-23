@@ -185,7 +185,7 @@ export const JuryPeriode = () => {
     }, [deliberations]);
 
     const nbDeliberes = deliberationByUser.size;
-    const nbTotal = data?.students?.length ?? 0;
+    const nbTotal = data?.students.length ?? 0;
 
     // userID → UE non évaluées. Un dossier incomplet ne se délibère pas : le
     // serveur le refuse, l'écran doit le dire avant l'envoi et nommer les UE.

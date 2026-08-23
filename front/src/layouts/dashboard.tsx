@@ -73,7 +73,7 @@ export default function Layout() {
 
   let theme: Theme
   if (mode == undefined || mode == 'system') {
-    theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme
   } else {
     theme = mode === 'dark' ? darkTheme : lightTheme
   }

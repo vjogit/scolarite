@@ -158,7 +158,7 @@ export default function App() {
 
   const filteredNavigation = React.useMemo(
     () => (
-      filterNavigationByRoles(NAVIGATION, session?.user?.roles)
+      filterNavigationByRoles(NAVIGATION, session?.user.roles)
     ),
     [session],
   );
@@ -179,7 +179,7 @@ export default function App() {
     });
 
     // Si déjà initialisé, mettre à jour immédiatement
-    if (kc?.token) {
+    if (kc.token) {
       setKeycloak(kc);
       setLoading(false);
       setSession(sessionDepuis(kc));
