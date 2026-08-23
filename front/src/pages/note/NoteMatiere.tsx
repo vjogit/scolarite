@@ -107,7 +107,7 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
-    }) : null, [matiereId]);
+    }) : null, [matiereId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

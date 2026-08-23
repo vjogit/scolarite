@@ -44,7 +44,12 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
     // On wrappe le contenu dans le Provider pour rendre rootPath et workflow accessibles
     const content = (() => {
     if (mode === 'list') {
-        return <CrudList datasource={datasource} />;
+        // La `key` remonte la liste quand on passe à celle d'un autre parent —
+        // les matières de l'UE 1 puis celles de l'UE 2. Sans elle, le composant
+        // restait monté et gardait l'état de la précédente : recherche, tri,
+        // pagination et filtres de colonnes s'appliquaient à la nouvelle liste,
+        // qui pouvait annoncer « aucun résultat » sur un contenu bien présent.
+        return <CrudList datasource={datasource} key={JSON.stringify(datasource.queryKey)} />;
     } else if (mode === 'create') {
         return <Form datasource={datasource} initialData={datasource.emptyValue} mode="create" />;
     }

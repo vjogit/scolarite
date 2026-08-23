@@ -92,14 +92,16 @@ export function usePersistentTableState(queryKey: QueryKey) {
     return false;
   });
 
-  useEffect(() => { sessionStorage.setItem(filtersKey,      JSON.stringify(columnFilters));   }, [columnFilters]);
-  useEffect(() => { sessionStorage.setItem(globalFilterKey, globalFilter);                    }, [globalFilter]);
-  useEffect(() => { sessionStorage.setItem(sortingKey,      JSON.stringify(sorting));         }, [sorting]);
-  useEffect(() => { sessionStorage.setItem(paginationKey,   JSON.stringify(pagination));      }, [pagination]);
-  useEffect(() => { sessionStorage.setItem(showSearchKey,   String(showGlobalFilter));        }, [showGlobalFilter]);
-  useEffect(() => { sessionStorage.setItem(showFiltersKey,  String(showColumnFilters));       }, [showColumnFilters]);
-  useEffect(() => { sessionStorage.setItem(columnVisKey,    JSON.stringify(columnVisibility));}, [columnVisibility]);
-  useEffect(() => { sessionStorage.setItem(densityKey,      density);                         }, [density]);
+  // La clé figure dans les dépendances : elle ne change pas tant que la liste
+  // vit, puisque `Crud` remonte celle-ci quand on passe à un autre parent.
+  useEffect(() => { sessionStorage.setItem(filtersKey,      JSON.stringify(columnFilters));   }, [columnFilters, filtersKey]);
+  useEffect(() => { sessionStorage.setItem(globalFilterKey, globalFilter);                    }, [globalFilter, globalFilterKey]);
+  useEffect(() => { sessionStorage.setItem(sortingKey,      JSON.stringify(sorting));         }, [sorting, sortingKey]);
+  useEffect(() => { sessionStorage.setItem(paginationKey,   JSON.stringify(pagination));      }, [pagination, paginationKey]);
+  useEffect(() => { sessionStorage.setItem(showSearchKey,   String(showGlobalFilter));        }, [showGlobalFilter, showSearchKey]);
+  useEffect(() => { sessionStorage.setItem(showFiltersKey,  String(showColumnFilters));       }, [showColumnFilters, showFiltersKey]);
+  useEffect(() => { sessionStorage.setItem(columnVisKey,    JSON.stringify(columnVisibility));}, [columnVisibility, columnVisKey]);
+  useEffect(() => { sessionStorage.setItem(densityKey,      density);                         }, [density, densityKey]);
   // isFullScreen volontairement non persisté
 
   return {

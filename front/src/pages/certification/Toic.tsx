@@ -148,7 +148,7 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [rootPath, workflow]);
+    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

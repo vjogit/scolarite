@@ -112,7 +112,7 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
-    }) : null, [ueId]);
+    }) : null, [ueId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

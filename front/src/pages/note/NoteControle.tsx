@@ -201,7 +201,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
                 <NoteChartButton onClick={() => { handleOpenChart(table); }} />
             </Box>
         )
-    }) : null, [rootPath, workflow, isRattrapage, bareme]);
+    }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
