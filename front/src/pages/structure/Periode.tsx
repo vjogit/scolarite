@@ -146,11 +146,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
 
-    if (!optionId) return (
-        <Typography>Le paramètre optionId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<Periode> => ({
+    const datasource = useMemo((): Datasource<Periode> | null => optionId ? ({
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
         ...periodeEntite,
@@ -159,7 +155,13 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
         isTopToolbar,
         renderTopToolbarCustomActions,
         isReadOnly,
-    }), [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly]);
+    }) : null, [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre optionId est obligatoire</Typography>
+    )
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

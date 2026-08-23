@@ -94,11 +94,7 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteMatiere>();
     const rootPath = useRootPath(mode);
 
-    if (!matiereId) return (
-        <Typography>Le paramètre matiereId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<NoteMatiere> => ({
+    const datasource = useMemo((): Datasource<NoteMatiere> | null => matiereId ? ({
         ...createNoteMatiereRepository(matiereId),
         ...createNoteMatiereViewConfig(matiereId),
         title: "Notes de la matière",
@@ -110,7 +106,13 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
-    }), []);
+    }) : null, [matiereId]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre matiereId est obligatoire</Typography>
+    )
 
 
     return (

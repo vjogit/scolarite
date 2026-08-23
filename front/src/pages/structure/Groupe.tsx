@@ -82,18 +82,14 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
 
-    if (!optionId) return (
-        <Typography>Le paramètre optionId est obligatoire</Typography>
-    );
-
     const defaultRenderTopToolbar = useCallback(({ defaultActions, peutEcrire }: { defaultActions: ReactNode; peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
-            {peutEcrire && <GroupeMultiImportButton optionId={optionId} />}
+            {peutEcrire && optionId && <GroupeMultiImportButton optionId={optionId} />}
         </Box>
     ), [optionId]);
 
-    const datasource = useMemo((): Datasource<Groupe> => ({
+    const datasource = useMemo((): Datasource<Groupe> | null => optionId ? ({
         ...createGroupeRepository(optionId),
         ...createGroupeViewConfig(optionId),
         ...groupeEntite,
@@ -102,7 +98,13 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
         isTopToolbar,
         actionsLigne: actionsLigne ?? [ACTION_MEMBRES],
         renderTopToolbarCustomActions: renderTopToolbarCustomActions ?? defaultRenderTopToolbar,
-    }), [optionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, defaultRenderTopToolbar]);
+    }) : null, [optionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, defaultRenderTopToolbar]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre optionId est obligatoire</Typography>
+    );
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

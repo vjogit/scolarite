@@ -189,11 +189,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
     const isRattrapage = controle?.is_rattrapage ?? false;
     const bareme = controle?.bareme;
 
-    if (!controleId) return (
-        <Typography>Le paramètre matiereId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<NoteControle> => ({
+    const datasource = useMemo((): Datasource<NoteControle> | null => controleId ? ({
         ...createNoteControleRepository(controleId),
         ...noteControleViewConfig(controleId, isRattrapage, bareme),
         title: "Notes du contrôle",
@@ -207,7 +203,13 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
                 <NoteChartButton onClick={() => { handleOpenChart(table); }} />
             </Box>
         )
-    }), [rootPath, workflow, isRattrapage, bareme]);
+    }) : null, [rootPath, workflow, isRattrapage, bareme]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!controleId || !datasource) return (
+        <Typography>Le paramètre matiereId est obligatoire</Typography>
+    )
 
     // On attend le contrôle avant de monter le formulaire : sans le barème, le
     // schéma validerait sur la seule borne basse et le champ annoncerait une

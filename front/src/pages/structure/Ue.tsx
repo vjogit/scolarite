@@ -127,11 +127,7 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
 
-    if (!periodeId) return (
-        <Typography>Le paramètre periodeId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<Ue> => ({
+    const datasource = useMemo((): Datasource<Ue> | null => periodeId ? ({
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
         ...ueEntite,
@@ -140,7 +136,13 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
         actionsLigne: actionsLigne ?? [ACTION_MATIERES],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre periodeId est obligatoire</Typography>
+    )
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>

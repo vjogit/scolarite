@@ -99,12 +99,7 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
     const rootPath = useRootPath(mode);
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteUe>();
 
-
-    if (!ueId) return (
-        <Typography>Le paramètre ueId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<NoteUe> => ({
+    const datasource = useMemo((): Datasource<NoteUe> | null => ueId ? ({
         ...createNoteUeRepository(ueId),
         ...createNoteUeViewConfig(ueId),
         title: "Notes de l'UE",
@@ -116,7 +111,13 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
-    }), []);
+    }) : null, [ueId]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre ueId est obligatoire</Typography>
+    )
 
 
     return (

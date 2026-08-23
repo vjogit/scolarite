@@ -123,11 +123,7 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
 
-    if (!ueId) return (
-        <Typography>Le paramètre ueId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<Matiere> => ({
+    const datasource = useMemo((): Datasource<Matiere> | null => ueId ? ({
         ...createMatiereRepository(ueId),
         ...createMatiereViewConfig(ueId),
         ...matiereEntite,
@@ -136,7 +132,13 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre ueId est obligatoire</Typography>
+    )
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

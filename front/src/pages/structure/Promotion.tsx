@@ -302,11 +302,7 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
 
-    if (!formationId) return (
-        <Typography>Le paramètre formationId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<Promotion> => ({
+    const datasource = useMemo((): Datasource<Promotion> | null => formationId ? ({
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId),
         ...promotionEntite,
@@ -315,7 +311,13 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         actionsLigne: actionsLigne ?? [ACTION_OPTIONS],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre formationId est obligatoire</Typography>
+    )
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>

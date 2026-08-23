@@ -102,12 +102,7 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, action
     const rootPath = useRootPath(mode);
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NotePeriode>();
 
-
-    if (!periodeId) return (
-        <Typography>Le paramètre ueId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<NotePeriode> => ({
+    const datasource = useMemo((): Datasource<NotePeriode> | null => periodeId ? ({
         ...createNotePeriodeRepository(periodeId),
         ...createNotePeriodeViewConfig(periodeId),
         // « GPA délibéré » et non « Notes de la période » : cet axe n'est pas
@@ -124,7 +119,13 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, action
         renderTopToolbarCustomActions: ({ table }) => (
             <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
-    }), [periodeId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
+    }) : null, [periodeId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre ueId est obligatoire</Typography>
+    )
 
 
     return (

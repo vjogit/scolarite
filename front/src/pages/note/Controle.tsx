@@ -169,11 +169,7 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
         },
     ], [declencherImport, handleExportOpen]);
 
-    if (!matiereId) return (
-        <Typography>Le paramètre matiereId est obligatoire</Typography>
-    )
-
-    const datasource = useMemo((): Datasource<Controle> => ({
+    const datasource = useMemo((): Datasource<Controle> | null => matiereId ? ({
         ...createControleRepository(matiereId),
         ...createControleViewConfig(matiereId),
         title: "Contrôles",
@@ -184,7 +180,13 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
         isTopToolbar,
         renderTopToolbarCustomActions,
         actionsLigne: [...(actionsLigne ?? []), ...actionsFiche],
-    }), [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche]);
+    }) : null, [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche]);
+
+    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
+    // rendu : sans le paramètre, le mémo ne construit rien.
+    if (!datasource) return (
+        <Typography>Le paramètre matiereId est obligatoire</Typography>
+    )
 
     return (
         <>
