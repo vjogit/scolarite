@@ -60,7 +60,7 @@ export function depot<D extends FieldValues>(repository: Repository<D>): DepotFr
 /** Le niveau dont l'identifiant filtre les frères. `null` pour la racine. */
 export function niveauParent(niveau: Niveau): Niveau | null {
     const rang = NIVEAUX.indexOf(niveau);
-    return rang <= 0 ? null : NIVEAUX[rang - 1];
+    return rang <= 0 ? null : NIVEAUX[rang - 1] ?? null;
 }
 
 /**

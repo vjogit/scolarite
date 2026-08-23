@@ -55,6 +55,8 @@ export function analyserChemin(pathname: string, prefixe: string): CheminAnalyse
     let i = debut;
     while (i < segments.length) {
         const segment = segments[i];
+        // La condition de boucle le garantit, le compilateur ne le sait pas.
+        if (segment === undefined) break;
 
         if (segment === SEGMENT_CREATION) {
             mode = 'create';
@@ -65,7 +67,7 @@ export function analyserChemin(pathname: string, prefixe: string): CheminAnalyse
             break;
         }
 
-        const suivant = i + 1 < segments.length ? segments[i + 1] : null;
+        const suivant = segments[i + 1] ?? null;
         if (suivant !== null && estIdentifiant(suivant)) {
             chainons.push({ segment, identifiant: suivant });
             i += 2;

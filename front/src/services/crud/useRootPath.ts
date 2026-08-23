@@ -17,7 +17,8 @@ export function useRootPath(mode: CrudMode): string {
 
 function extractRootPath(urlPath: string, mode: CrudMode): string {
     // 1. On ignore les éventuels paramètres d'URL (ex: ?param=1)
-    const pathWithoutQuery = urlPath.split('?')[0];
+    // `split` rend toujours au moins un élément, y compris sur une chaîne vide.
+    const [pathWithoutQuery = ''] = urlPath.split('?');
 
     // 2. On enlève un éventuel slash final pour éviter un segment vide
     const cleanPath = pathWithoutQuery.endsWith('/')

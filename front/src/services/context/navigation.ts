@@ -27,13 +27,14 @@ export function extraireContexte(pathname: string): ContexteHierarchique {
     const segments = pathname.split('/').filter(Boolean);
     const contexte: ContexteHierarchique = {};
 
-    for (let i = 0; i < segments.length - 1; i++) {
-        const segment = segments[i];
-        const suivant = segments[i + 1];
-        if (estNiveau(segment) && estIdentifiant(suivant)) {
+    // On lit les paires deux à deux : `segments.slice(1)` donne le suivant de
+    // chaque segment, ce qui évite d'indexer et de border la boucle à la main.
+    segments.forEach((segment, rang) => {
+        const suivant = segments[rang + 1];
+        if (suivant !== undefined && estNiveau(segment) && estIdentifiant(suivant)) {
             contexte[segment] = suivant;
         }
-    }
+    });
 
     return contexte;
 }
@@ -41,7 +42,10 @@ export function extraireContexte(pathname: string): ContexteHierarchique {
 /** Profondeur du préfixe de niveaux consécutifs réellement renseignés. */
 function profondeur(contexte: ContexteHierarchique): number {
     let n = 0;
-    while (n < NIVEAUX.length && contexte[NIVEAUX[n]] !== undefined) n++;
+    for (const niveau of NIVEAUX) {
+        if (contexte[niveau] === undefined) break;
+        n++;
+    }
     return n;
 }
 
@@ -64,16 +68,14 @@ export function fusionnerContexte(
 
     // L'URL d'abord, intégralement : elle fait foi.
     let memoireUtilisable = true;
-    for (let i = 0; i < profondeurUrl; i++) {
-        const niveau = NIVEAUX[i];
+    for (const niveau of NIVEAUX.slice(0, profondeurUrl)) {
         fusion[niveau] = contexteUrl[niveau];
         if (contexteMemorise[niveau] !== contexteUrl[niveau]) memoireUtilisable = false;
     }
 
     if (!memoireUtilisable) return fusion;
 
-    for (let i = profondeurUrl; i < NIVEAUX.length; i++) {
-        const niveau = NIVEAUX[i];
+    for (const niveau of NIVEAUX.slice(profondeurUrl)) {
         const memorise = contexteMemorise[niveau];
         if (memorise === undefined) break;
         fusion[niveau] = memorise;
@@ -122,19 +124,17 @@ export function ecranTerminalDuChemin(
     if (chemin === undefined || ecransTerminaux.length < 2) return undefined;
     const segments = chemin.split('/').filter(Boolean);
 
-    for (let i = segments.length - 1; i >= 0; i--) {
-        if (ecransTerminaux.includes(segments[i])) return segments[i];
-    }
-    return undefined;
+    return [...segments].reverse().find(segment => ecransTerminaux.includes(segment));
 }
 
 function choisirEcranTerminal(
     ecransTerminaux: readonly string[],
     prefere: string | undefined,
 ): string | null {
-    if (ecransTerminaux.length === 0) return null;
+    const [premier] = ecransTerminaux;
+    if (premier === undefined) return null;
     if (prefere !== undefined && ecransTerminaux.includes(prefere)) return prefere;
-    return ecransTerminaux[0];
+    return premier;
 }
 
 /**
@@ -152,16 +152,18 @@ export function construireCheminWorkflow(
     ecranTerminalPrefere?: string,
 ): string {
     const { niveaux, ecransTerminaux } = workflow;
-    if (niveaux.length === 0) return `/${workflow.chemin}`;
+    const [premierNiveau] = niveaux;
+    if (premierNiveau === undefined) return `/${workflow.chemin}`;
 
-    let chemin = `/${workflow.chemin}/${niveaux[0]}`;
+    let chemin = `/${workflow.chemin}/${premierNiveau}`;
 
-    for (let i = 0; i < niveaux.length; i++) {
-        const identifiant = contexte[niveaux[i]];
+    for (const [rang, niveau] of niveaux.entries()) {
+        const identifiant = contexte[niveau];
         if (identifiant === undefined) return chemin;
 
-        if (i + 1 < niveaux.length) {
-            chemin += `/${identifiant}/${niveaux[i + 1]}`;
+        const niveauSuivant = niveaux[rang + 1];
+        if (niveauSuivant !== undefined) {
+            chemin += `/${identifiant}/${niveauSuivant}`;
             continue;
         }
 

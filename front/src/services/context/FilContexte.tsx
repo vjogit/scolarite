@@ -96,6 +96,9 @@ function analyserChemin(
     let i = workflow.chemin.split('/').length;
     while (i < segments.length) {
         const segment = segments[i];
+        // La condition de boucle le garantit, le compilateur ne le sait pas :
+        // le dire ici évite de le réaffirmer à chaque usage.
+        if (segment === undefined) break;
         if (SEGMENTS_CRUD.has(segment)) {
             i += 1;
             continue;
