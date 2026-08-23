@@ -33,11 +33,10 @@ export default defineConfig([
       globals: globals.browser,
       // Les configs *TypeChecked ci-dessus exigent les infos de type.
       parserOptions: {
-        projectService: {
-          // `env.d.ts` vit à la racine et n'est inclus par aucun tsconfig
-          // (`tsconfig.app.json` ne couvre que `src`).
-          allowDefaultProject: ['env.d.ts'],
-        },
+        // `env.d.ts` fait désormais partie du programme de `tsconfig.app.json` :
+        // le tirer en plus par `allowDefaultProject` le ferait appartenir à deux
+        // projets à la fois, ce que le service de types refuse.
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
