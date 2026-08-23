@@ -55,7 +55,7 @@ function isApiErrorCode(value: unknown): value is ApiErrorCode {
 // Extrait le code depuis un objet payload (forme { code, details, ... }).
 function codeFromPayload(payload: unknown): ApiErrorCode | null {
   if (typeof payload !== 'object' || payload === null) return null;
-  const code = (payload as Record<string, unknown>)['code'];
+  const code = (payload as Record<string, unknown>).code;
   return isApiErrorCode(code) ? code : null;
 }
 
@@ -63,17 +63,17 @@ function codeFromPayload(payload: unknown): ApiErrorCode | null {
 function fieldErrorsFromPayload(payload: unknown): Record<string, string> | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const p = payload as Record<string, unknown>;
-  if (p['code'] !== 'VALIDATION_ERROR') return null;
-  const details = p['details'];
+  if (p.code !== 'VALIDATION_ERROR') return null;
+  const details = p.details;
   if (typeof details !== 'object' || details === null) return null;
-  const rawErrors = (details as Record<string, unknown>)['errors'];
+  const rawErrors = (details as Record<string, unknown>).errors;
   if (typeof rawErrors !== 'object' || rawErrors === null) return null;
   const errors: Record<string, string> = {};
   for (const [key, val] of Object.entries(rawErrors as Record<string, unknown>)) {
     if (typeof val === 'string') {
       errors[key] = val;
     } else if (typeof val === 'object' && val !== null && 'message' in val) {
-      errors[key] = String((val as Record<string, unknown>)['message']);
+      errors[key] = String((val as Record<string, unknown>).message);
     }
   }
   return errors;
@@ -117,11 +117,11 @@ export function messageForError(err: unknown): string {
 function blockingMessageFromPayload(payload: unknown): string | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const p = payload as Record<string, unknown>;
-  if (p['code'] !== 'BUSINESS_CONFLICT') return null;
-  const details = p['details'];
+  if (p.code !== 'BUSINESS_CONFLICT') return null;
+  const details = p.details;
   if (typeof details !== 'object' || details === null) return null;
-  if (typeof (details as Record<string, unknown>)['reason'] !== 'string') return null;
-  const message = p['message'];
+  if (typeof (details as Record<string, unknown>).reason !== 'string') return null;
+  const message = p.message;
   return typeof message === 'string' && message.length > 0 ? message : null;
 }
 
@@ -143,8 +143,8 @@ export function blockingMessageFor(err: unknown): string | null {
 function fileMessageFromPayload(payload: unknown): string | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const p = payload as Record<string, unknown>;
-  if (p['code'] !== 'INVALID_FILE') return null;
-  const message = p['message'];
+  if (p.code !== 'INVALID_FILE') return null;
+  const message = p.message;
   return typeof message === 'string' && message.length > 0 ? message : null;
 }
 

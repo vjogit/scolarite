@@ -12,16 +12,16 @@ export interface UserOption {
     lastName: string;
 }
 
-type FormFields = {
+interface FormFields {
     id: number;
     user_id: number | null | undefined;
     firstName?: string;
     lastName?: string;
     [key: string]: any;
-};
+}
 
 interface UserSelectorProps<T extends FormFields> {
-    control: Control<T, any>;
+    control: Control<T>;
     errors: FieldErrors<T>;
     getValues: UseFormGetValues<T>;
     setValue: UseFormSetValue<T>;
@@ -51,7 +51,7 @@ export const UserSelector = <T extends FormFields>({
         const handler = setTimeout(() => {
             setDebouncedInputValue(inputValue);
         }, 500);
-        return () => clearTimeout(handler);
+        return () => { clearTimeout(handler); };
     }, [inputValue]);
 
     const { data: users, isLoading } = useQuery({
@@ -83,7 +83,7 @@ export const UserSelector = <T extends FormFields>({
                     getOptionLabel={(option) => `${option.lastName} ${option.firstName}`}
                     value={selectedUser}
                     inputValue={inputValue}
-                    onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+                    onInputChange={(_, newInputValue) => { setInputValue(newInputValue); }}
                     onChange={(_, newValue) => {
                         field.onChange(newValue?.id ?? null);
                         setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as any);

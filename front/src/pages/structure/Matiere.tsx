@@ -103,7 +103,7 @@ export const createMatiereViewConfig = (ueId: string): ViewConfig<Matiere> => {
 // Partie statique : à l'extérieur du composant
 export const createMatiereRepository = (ueId: string) => {
     return createRepository<Matiere>({
-        endpoint: `${ENDPOINT_MATIERE}`,
+        endpoint: ENDPOINT_MATIERE,
         queryParams: `?unite_enseignement_id=${ueId}`,
         queryKey: [STRUCTURE, MATIERE, ueId],
         getId: (data: Matiere) => data.id,

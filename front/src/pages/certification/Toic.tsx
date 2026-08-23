@@ -61,7 +61,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                         slotProps={{
                             textField: {
                                 error: !!errors.date_passage,
-                                helperText: errors.date_passage?.message as string,
+                                helperText: errors.date_passage?.message!,
                                 fullWidth: true
                             }
                         }}
@@ -78,7 +78,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 rows={4}
                 disabled={isReadOnly}
                 error={!!errors.remarque}
-                helperText={errors.remarque?.message as string}
+                helperText={errors.remarque?.message}
                 sx={{ mb: 2 }}
             />
         </>
@@ -126,7 +126,7 @@ export const createToeicViewConfig = (promotionId: string): ViewConfig<Toeic> =>
 // Partie statique : à l'extérieur du composant
 export const toeicDatasourceBase = (promotionId: string) => {
     return createRepository<Toeic>({
-        endpoint: `${ENDPOINT_TOEIC}`,
+        endpoint: ENDPOINT_TOEIC,
         queryParams: `?promotion_id=${promotionId}`,
         queryKey: ['toeic', promotionId],
         getId: (data: Toeic) => data.id,

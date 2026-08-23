@@ -41,10 +41,11 @@ interface Props {
 export function JuryBulletinsExportModal({ open, loading, onClose, onConfirm }: Props) {
     const [params, setParams] = useState<BulletinParams>(defaultParams);
 
-    const set = (key: keyof BulletinParams) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    const set = (key: keyof BulletinParams) => (e: React.ChangeEvent<HTMLInputElement>) => {
         setParams(prev => ({ ...prev, [key]: e.target.value }));
+    };
 
-    const handleConfirm = () => onConfirm(params);
+    const handleConfirm = () => { onConfirm(params); };
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

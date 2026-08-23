@@ -56,7 +56,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
                     slotProps={{
                         textField: {
                             error: !!errors.debut,
-                            helperText: errors.debut?.message as string,
+                            helperText: errors.debut?.message!,
                             fullWidth: true
                         }
                     }}
@@ -78,7 +78,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
                     slotProps={{
                         textField: {
                             error: !!errors.fin,
-                            helperText: errors.fin?.message as string,
+                            helperText: errors.fin?.message!,
                             fullWidth: true
                         }
                     }}
@@ -116,8 +116,8 @@ export const createPeriodeViewConfig = (optionId: string): ViewConfig<Periode> =
 // Partie statique : à l'extérieur du composant
 export const createPeriodeRepository = (optionId: string) => {
     return createRepository<Periode>({
-        endpoint: `${ENDPOINT_PERIODE}`,
-        deleteImpactEndpoint: `${ENDPOINT_PERIODE_DELETE_IMPACT}`,
+        endpoint: ENDPOINT_PERIODE,
+        deleteImpactEndpoint: ENDPOINT_PERIODE_DELETE_IMPACT,
         queryParams: `?option_id=${optionId}`,
         queryKey: [STRUCTURE, PERIODE, optionId],
         getId: (data: Periode) => data.id,

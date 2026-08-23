@@ -62,7 +62,7 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
                         options={groupes}
                         getOptionLabel={(g) => g.name}
                         value={selectedGroupe}
-                        onChange={(_, value) => setSelectedGroupe(value)}
+                        onChange={(_, value) => { setSelectedGroupe(value); }}
                         loading={isLoading}
                         renderInput={(params) => (
                             <TextField

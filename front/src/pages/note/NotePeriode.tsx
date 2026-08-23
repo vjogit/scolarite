@@ -89,7 +89,7 @@ export const createNotePeriodeViewConfig = (periodeId: string): ViewConfig<NoteP
 // Partie statique : à l'extérieur du composant
 export const createNotePeriodeRepository = (periodeId: string) => {
     return createRepository<NotePeriode>({
-        endpoint: `${ENDPOINT_NOTE_PERIODE}`,
+        endpoint: ENDPOINT_NOTE_PERIODE,
         queryParams: `?periode_id=${periodeId}`,
         queryKey: [NOTE, 'periode', periodeId],
         getId: (data: NotePeriode) => data.user_id,
@@ -122,7 +122,7 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, action
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
-            <NoteChartButton onClick={() => handleOpenChart(table)} />
+            <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
     }), [periodeId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
 
@@ -130,7 +130,7 @@ export function CrudNotePeriode({ mode, workflow, isAction, isTopToolbar, action
     return (
         <>
             <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />
-            <NoteChartModal open={chartOpen} onClose={() => setChartOpen(false)} data={chartData} />
+            <NoteChartModal open={chartOpen} onClose={() => { setChartOpen(false); }} data={chartData} />
         </>
     )
 }

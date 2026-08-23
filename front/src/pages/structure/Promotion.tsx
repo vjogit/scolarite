@@ -106,7 +106,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                     slotProps={{
                         textField: {
                             error: !!errors.debut,
-                            helperText: errors.debut?.message as string,
+                            helperText: errors.debut?.message!,
                             fullWidth: true
                         }
                     }}
@@ -128,7 +128,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                     slotProps={{
                         textField: {
                             error: !!errors.fin,
-                            helperText: errors.fin?.message as string,
+                            helperText: errors.fin?.message!,
                             fullWidth: true
                         }
                     }}
@@ -154,7 +154,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         fullWidth
                         disabled={isReadOnly}
                         error={!!errors.echelle_gpa}
-                        helperText={errors.echelle_gpa?.message as string}
+                        helperText={errors.echelle_gpa?.message}
                         sx={{ mb: 2 }}
                     />
                 );
@@ -177,7 +177,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         fullWidth
                         disabled={isReadOnly}
                         error={!!errors.echelle}
-                        helperText={errors.echelle?.message as string}
+                        helperText={errors.echelle?.message}
                         sx={{ mb: 2 }}
                     />
                 );
@@ -271,8 +271,8 @@ export const createPromotionViewConfig = (formationId: string): ViewConfig<Promo
 // Partie statique : à l'extérieur du composant
 export const createPromotionRepository = (formationId: string) => {
     return createRepository<Promotion>({
-        endpoint: `${ENDPOINT_PROMOTION}`,
-        deleteImpactEndpoint: `${ENDPOINT_PROMOTION_DELETE_IMPACT}`,
+        endpoint: ENDPOINT_PROMOTION,
+        deleteImpactEndpoint: ENDPOINT_PROMOTION_DELETE_IMPACT,
         queryKey: [STRUCTURE, PROMOTION, formationId],
         queryParams: `?formation_id=${formationId}`,
         getId: (data: Promotion) => data.id,

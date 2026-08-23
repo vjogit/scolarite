@@ -123,7 +123,7 @@ const createNoteMatiereFields = (isRattrapage: boolean, bareme?: number) =>
                     rows={4}
                     disabled={isReadOnly}
                     error={!!errors.remarque}
-                    helperText={errors.remarque?.message as string}
+                    helperText={errors.remarque?.message}
                     sx={{ mb: 2 }}
                 />
             </>
@@ -165,7 +165,7 @@ export const noteControleViewConfig = (controleId: string, isRattrapage: boolean
 };
 export const createNoteControleRepository = (controleId: string) => {
     return createRepository<NoteControle>({
-        endpoint: `${ENDPOINT_NOTE_CONTROLE}`,
+        endpoint: ENDPOINT_NOTE_CONTROLE,
         queryParams: `?controle_id=${controleId}`,
         queryKey: [NOTE, 'controle', controleId],
         getId: (data: NoteControle) => data.id,
@@ -204,7 +204,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
         renderTopToolbarCustomActions: ({ table, defaultActions }) => (
             <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 {defaultActions}
-                <NoteChartButton onClick={() => handleOpenChart(table)} />
+                <NoteChartButton onClick={() => { handleOpenChart(table); }} />
             </Box>
         )
     }), [rootPath, workflow, isRattrapage, bareme]);
@@ -234,7 +234,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
     return (
         <>
             <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />
-            <NoteChartModal open={chartOpen} onClose={() => setChartOpen(false)} data={chartData} />
+            <NoteChartModal open={chartOpen} onClose={() => { setChartOpen(false); }} data={chartData} />
         </>
     )
 }

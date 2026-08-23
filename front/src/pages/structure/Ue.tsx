@@ -98,7 +98,7 @@ export const createUeViewConfig = (periodeId: string): ViewConfig<Ue> => {
 // Partie statique : à l'extérieur du composant
 export const createUeRepository = (periodeId: string) => {
     return createRepository<Ue>({
-        endpoint: `${ENDPOINT_UES}`,
+        endpoint: ENDPOINT_UES,
         queryParams: `?periode_id=${periodeId}`,
         queryKey: [STRUCTURE, UES, periodeId],
         getId: (data: Ue) => data.id,

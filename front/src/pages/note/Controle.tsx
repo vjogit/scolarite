@@ -130,7 +130,7 @@ export const createControleViewConfig = (matiereId: string): ViewConfig<Controle
 // Partie statique : à l'extérieur du composant
 export const createControleRepository = (matiereId: string) => {
     return createRepository<Controle>({
-        endpoint: `${ENDPOINT_CONTROLE}`,
+        endpoint: ENDPOINT_CONTROLE,
         queryParams: `?matiere_id=${matiereId}`,
         queryKey: [RESULTAT, CONTROLE, matiereId],
 
@@ -194,7 +194,7 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
                 open={exportOpen}
                 controleId={exportControleId}
                 optionId={optionId ?? ''}
-                onClose={() => setExportOpen(false)}
+                onClose={() => { setExportOpen(false); }}
             />
         </>
     )

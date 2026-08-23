@@ -49,8 +49,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     const [debouncedQuery,      setDebouncedQuery]      = useState('');
 
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedQuery(intervenantQuery), 400);
-        return () => clearTimeout(t);
+        const t = setTimeout(() => { setDebouncedQuery(intervenantQuery); }, 400);
+        return () => { clearTimeout(t); };
     }, [intervenantQuery]);
     const [selectedGroupes,     setSelectedGroupes]     = useState<Groupe[]>([]);
     const [isDistanciel,        setIsDistanciel]        = useState(false);
@@ -149,9 +149,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             if (!err.detail) return ERROR_MESSAGES.BUSINESS_CONFLICT;
 
             // Detail PG : "Key (col, horaire)=(id, ["start","end"]) conflicts with existing key (...) = (id, ["start","end"])."
-            const match = err.detail.match(
-                /=\((\d+), \["([^"]+)","([^"]+)"\]\) conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/
-            );
+            const match = /=\((\d+), \["([^"]+)","([^"]+)"\]\) conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(err.detail);
             if (!match) return ERROR_MESSAGES.BUSINESS_CONFLICT;
 
             const entityId      = parseInt(match[1]);
@@ -259,7 +257,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         <InputLabel>Type de cours</InputLabel>
                         <Select
                             value={typeCours}
-                            onChange={e => setTypeCours(e.target.value)}
+                            onChange={e => { setTypeCours(e.target.value); }}
                             label="Type de cours"
                         >
                             <MenuItem value=""><em>Aucun</em></MenuItem>
@@ -273,7 +271,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         <InputLabel>Matière</InputLabel>
                         <Select
                             value={matiereId}
-                            onChange={e => setMatiereId(e.target.value as number | '')}
+                            onChange={e => { setMatiereId(e.target.value as number | ''); }}
                             label="Matière"
                         >
                             <MenuItem value=""><em>Aucune</em></MenuItem>
@@ -289,7 +287,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiple
                         options={salles}
                         value={selectedSalles}
-                        onChange={(_, v) => setSelectedSalles(v)}
+                        onChange={(_, v) => { setSelectedSalles(v); }}
                         getOptionLabel={s => `${s.name}${s.batiment ? ` (${s.batiment})` : ''}`}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         renderInput={params => <TextField {...params} label="Salles" />}
@@ -299,9 +297,9 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiple
                         options={users}
                         value={selectedIntervenants}
-                        onChange={(_, v) => setSelectedIntervenants(v)}
+                        onChange={(_, v) => { setSelectedIntervenants(v); }}
                         inputValue={intervenantQuery}
-                        onInputChange={(_, v) => setIntervenantQuery(v)}
+                        onInputChange={(_, v) => { setIntervenantQuery(v); }}
                         getOptionLabel={userName}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         filterOptions={x => x}
@@ -312,7 +310,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiple
                         options={groupes}
                         value={selectedGroupes}
-                        onChange={(_, v) => setSelectedGroupes(v)}
+                        onChange={(_, v) => { setSelectedGroupes(v); }}
                         getOptionLabel={g => g.name}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         renderInput={params => <TextField {...params} label="Groupes" />}
@@ -322,7 +320,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         control={
                             <Checkbox
                                 checked={isDistanciel}
-                                onChange={e => setIsDistanciel(e.target.checked)}
+                                onChange={e => { setIsDistanciel(e.target.checked); }}
                             />
                         }
                         label="Distanciel"
@@ -333,7 +331,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         multiline
                         rows={2}
                         value={description}
-                        onChange={e => setDescription(e.target.value)}
+                        onChange={e => { setDescription(e.target.value); }}
                         fullWidth
                     />
                 </Stack>
@@ -342,7 +340,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             <DialogActions>
                 {reservation && (
                     <Button
-                        onClick={() => deleteMutation.mutate()}
+                        onClick={() => { deleteMutation.mutate(); }}
                         color="error"
                         disabled={deleteMutation.isPending}
                         sx={{ mr: 'auto' }}

@@ -499,7 +499,7 @@ export const JuryPeriode = () => {
                         size="small"
                         variant="contained"
                         startIcon={<GavelIcon />}
-                        onClick={() => setBulkDialogOpen(true)}
+                        onClick={() => { setBulkDialogOpen(true); }}
                     >
                         Délibérer {selectedStudents.length} sélectionné(s)
                     </Button>
@@ -594,7 +594,7 @@ export const JuryPeriode = () => {
                 open={bulkDialogOpen}
                 students={selectedStudents}
                 loading={bulkLoading}
-                onClose={() => setBulkDialogOpen(false)}
+                onClose={() => { setBulkDialogOpen(false); }}
                 onConfirm={handleBulkConfirm}
             />
         </Box>

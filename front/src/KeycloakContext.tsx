@@ -11,10 +11,10 @@ let keycloakInstance: Keycloak | null = null;
 
 // Système d'observateurs
 type KeycloakObserver = (keycloak: Keycloak) => void;
-const observers: Set<KeycloakObserver> = new Set();
+const observers = new Set<KeycloakObserver>();
 
 const notifyObservers = (keycloak: Keycloak) => {
-    observers.forEach(observer => observer(keycloak));
+    observers.forEach(observer => { observer(keycloak); });
 };
 
 export const subscribeToKeycloak = (observer: KeycloakObserver): (() => void) => {

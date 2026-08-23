@@ -166,7 +166,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
                 <IconButton
                   aria-label="Supprimer la sélection"
                   color="error"
-                  onClick={() => handleOpenModal(table)}
+                  onClick={() => { handleOpenModal(table); }}
                   disabled={table.getSelectedRowModel().flatRows.length === 0}>
                   <DeleteIcon />
                 </IconButton>
@@ -323,7 +323,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
         entite={datasource}
         objets={objets}
         onClose={handleClose}
-        onConfirm={() => handleConfirmDelete(table)}
+        onConfirm={() => { handleConfirmDelete(table); }}
       />
     </Box>
   )

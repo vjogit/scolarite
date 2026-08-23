@@ -151,9 +151,7 @@ export function Planning() {
 
         let msg = ERROR_MESSAGES.BUSINESS_CONFLICT;
         if (first.detail) {
-            const match = first.detail.match(
-                /conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/
-            );
+            const match = /conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(first.detail);
             if (match) {
                 msg += ` (créneau existant : ${dayjs(match[1]).format('HH:mm')}–${dayjs(match[2]).format('HH:mm')})`;
             }
@@ -177,7 +175,7 @@ export function Planning() {
     const handleEventResize = useCallback((info: any) => {
         const r = info.event.extendedProps.reservation as ReservationDetail;
         moveMutation.mutate(
-            buildUpdateInput(r, info.event.start!, info.event.end!),
+            buildUpdateInput(r, info.event.start, info.event.end),
             {
                 onError: (err) => {
                     info.revert();
@@ -233,7 +231,7 @@ export function Planning() {
                     <IconButton
                         aria-label={libelleCouleur}
                         size="small"
-                        onClick={() => setColorMode(m => m === 'type' ? 'matiere' : 'type')}
+                        onClick={() => { setColorMode(m => m === 'type' ? 'matiere' : 'type'); }}
                         color={colorMode === 'matiere' ? 'primary' : 'default'}
                     >
                         <PaletteIcon />
@@ -244,7 +242,7 @@ export function Planning() {
                         aria-label={libelleHeures}
                         aria-expanded={panelOpen}
                         size="small"
-                        onClick={() => setPanelOpen(p => !p)}
+                        onClick={() => { setPanelOpen(p => !p); }}
                     >
                         <MenuOpenIcon sx={{ transform: panelOpen ? 'none' : 'scaleX(-1)' }} />
                     </IconButton>
@@ -256,7 +254,7 @@ export function Planning() {
 
             <ReservationDialog
                 open={dialogOpen}
-                onClose={() => setDialogOpen(false)}
+                onClose={() => { setDialogOpen(false); }}
                 reservation={editReservation}
                 start={selectedSlot?.start ?? null}
                 end={selectedSlot?.end ?? null}
@@ -270,7 +268,7 @@ export function Planning() {
                 onClose={(_, reason) => { if (reason !== 'clickaway') setConflictMsg(null); }}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
-                <Alert severity="error" onClose={() => setConflictMsg(null)}>
+                <Alert severity="error" onClose={() => { setConflictMsg(null); }}>
                     {conflictMsg}
                 </Alert>
             </Snackbar>

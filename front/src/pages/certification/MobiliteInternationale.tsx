@@ -73,7 +73,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     fullWidth
                     disabled={isReadOnly}
                     error={!!errors.ville}
-                    helperText={errors.ville?.message as string}
+                    helperText={errors.ville?.message}
                     sx={{ mb: 2 }}
                 />
             </Grid>
@@ -91,7 +91,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                             fullWidth
                             disabled={isReadOnly}
                             error={!!errors.type_mobilite}
-                            helperText={errors.type_mobilite?.message as string}
+                            helperText={errors.type_mobilite?.message}
                             value={field.value ?? ""}
                             sx={{ mb: 2 }}
                         >
@@ -111,12 +111,12 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                         <DatePicker
                             label="Date de début"
                             value={field.value ? dayjs(field.value) : null}
-                            onChange={(newValue) => field.onChange(newValue ? newValue.toDate() : null)}
+                            onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
                             disabled={isReadOnly}
                             slotProps={{
                                 textField: {
                                     error: !!errors.date_debut,
-                                    helperText: errors.date_debut?.message as string,
+                                    helperText: errors.date_debut?.message!,
                                     fullWidth: true,
                                     sx: { mb: 2 },
                                 }
@@ -132,12 +132,12 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                         <DatePicker
                             label="Date de fin"
                             value={field.value ? dayjs(field.value) : null}
-                            onChange={(newValue) => field.onChange(newValue ? newValue.toDate() : null)}
+                            onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
                             disabled={isReadOnly}
                             slotProps={{
                                 textField: {
                                     error: !!errors.date_fin,
-                                    helperText: errors.date_fin?.message as string,
+                                    helperText: errors.date_fin?.message!,
                                     fullWidth: true,
                                     sx: { mb: 2 },
                                 }
@@ -176,7 +176,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     rows={4}
                     disabled={isReadOnly}
                     error={!!errors.remarque}
-                    helperText={errors.remarque?.message as string}
+                    helperText={errors.remarque?.message}
                     sx={{ mb: 2 }}
                 />
             </Grid>
@@ -227,7 +227,7 @@ export const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mob
 // Partie statique : à l'extérieur du composant
 export const createPeriodeRepository = (promotionId: string) => {
     return createRepository<Mobilite>({
-        endpoint: `${ENDPOINT_MOBILITE}`,
+        endpoint: ENDPOINT_MOBILITE,
         queryParams: `?promotion_id=${promotionId}`,
         queryKey: ['mobilite', promotionId],
         getId: (data: Mobilite) => data.id,

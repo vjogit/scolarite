@@ -38,7 +38,7 @@ export function DelibererBulkDialog({ open, students, loading, onClose, onConfir
                     control={
                         <Switch
                             checked={compteCumul}
-                            onChange={e => setCompteCumul(e.target.checked)}
+                            onChange={e => { setCompteCumul(e.target.checked); }}
                         />
                     }
                     label={

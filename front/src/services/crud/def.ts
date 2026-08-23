@@ -156,7 +156,7 @@ export function createRepository<T extends FieldValues>(
     // Par défaut on affiche le champ `name`, présent sur toutes les entités
     // de structure ; à défaut, l'identifiant technique.
     const getName = config.getName ?? ((data: T) => {
-        const name: unknown = data['name'];
+        const name: unknown = data.name;
         return typeof name === 'string' && name.length > 0 ? name : `#${config.getId(data)}`;
     });
 

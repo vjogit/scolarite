@@ -60,7 +60,7 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
     return (
         <>
             <Tooltip title={LIBELLE}>
-                <IconButton aria-label={LIBELLE} onClick={() => setOpen(true)} size="small" color="secondary">
+                <IconButton aria-label={LIBELLE} onClick={() => { setOpen(true); }} size="small" color="secondary">
                     <ArticleIcon fontSize="small" />
                 </IconButton>
             </Tooltip>
@@ -68,7 +68,7 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
             <JuryBulletinsExportModal
                 open={open}
                 loading={loading}
-                onClose={() => setOpen(false)}
+                onClose={() => { setOpen(false); }}
                 onConfirm={handleExport}
             />
         </>

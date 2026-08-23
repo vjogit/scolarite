@@ -265,7 +265,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                             <TextField
                                 inputRef={saisieRef}
                                 value={saisie}
-                                onChange={(event) => setSaisie(event.target.value)}
+                                onChange={(event) => { setSaisie(event.target.value); }}
                                 size="small"
                                 fullWidth
                                 autoComplete="off"

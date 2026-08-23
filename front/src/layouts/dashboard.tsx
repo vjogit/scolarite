@@ -60,7 +60,7 @@ export default function Layout() {
   const { mode } = useColorScheme()
   const { keycloak, loading } = useKeycloak()
 
-  var theme: Theme
+  let theme: Theme
   if (mode == undefined || mode == 'system') {
     theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme
   } else {

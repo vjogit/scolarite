@@ -82,7 +82,7 @@ export const createNoteMatiereViewConfig = (matiereId: string): ViewConfig<NoteM
 };
 export const createNoteMatiereRepository = (matiereId: string) => {
     return createRepository<NoteMatiere>({
-        endpoint: `${ENDPOINT_NOTE_MATIERE}`,
+        endpoint: ENDPOINT_NOTE_MATIERE,
         queryParams: `?matiere_id=${matiereId}`,
         queryKey: [NOTE, 'matiere', matiereId],
         getId: (data: NoteMatiere) => data.id
@@ -108,7 +108,7 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
-            <NoteChartButton onClick={() => handleOpenChart(table)} />
+            <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
     }), []);
 
@@ -116,7 +116,7 @@ export function CrudNoteMatiere({ mode, workflow, isAction, isTopToolbar, action
     return (
         <>
             <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>
-            <NoteChartModal open={chartOpen} onClose={() => setChartOpen(false)} data={chartData} />
+            <NoteChartModal open={chartOpen} onClose={() => { setChartOpen(false); }} data={chartData} />
         </>
     )
 }

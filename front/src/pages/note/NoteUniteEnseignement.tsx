@@ -86,7 +86,7 @@ export const createNoteUeViewConfig = (ueId: string): ViewConfig<NoteUe> => {
 // Partie statique : à l'extérieur du composant
 const createNoteUeRepository = (ueId: string) => {
     return createRepository<NoteUe>({
-        endpoint: `${ENDPOINT_NOTE_UE}`,
+        endpoint: ENDPOINT_NOTE_UE,
         queryParams: `?unite_enseignement_id=${ueId}`,
         queryKey: [NOTE, 'ue', ueId],
         getId: () => -1,
@@ -114,7 +114,7 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions: ({ table }) => (
-            <NoteChartButton onClick={() => handleOpenChart(table)} />
+            <NoteChartButton onClick={() => { handleOpenChart(table); }} />
         )
     }), []);
 
@@ -122,7 +122,7 @@ export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolb
     return (
         <>
             <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>
-            <NoteChartModal open={chartOpen} onClose={() => setChartOpen(false)} data={chartData} />
+            <NoteChartModal open={chartOpen} onClose={() => { setChartOpen(false); }} data={chartData} />
         </>
     )
 }

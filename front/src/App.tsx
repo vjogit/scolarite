@@ -167,7 +167,7 @@ export default function App() {
     });
 
     // Si déjà initialisé, mettre à jour immédiatement
-    if (kc && kc.token) {
+    if (kc?.token) {
       setKeycloak(kc);
       setLoading(false);
       setSession({

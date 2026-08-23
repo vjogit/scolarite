@@ -35,7 +35,7 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
 
     const { data, isLoading, error } = useQuery<D>({
         queryKey: [...datasource.queryKey, id],
-        queryFn: () => datasource.fetch(id!),
+        queryFn: () => datasource.fetch(id),
         enabled: !!id && (mode === 'show' || mode === 'edit') && !formulaireInterdit,
     });
 

@@ -67,8 +67,8 @@ export const createOptionViewConfig = (promotionId: string): ViewConfig<Option> 
 // Partie statique : à l'extérieur du composant
 export const createOptionRepository = (promotionId: string) => {
     return createRepository<Option>({
-        endpoint: `${ENDPOINT_OPTION}`,
-        deleteImpactEndpoint: `${ENDPOINT_OPTION_DELETE_IMPACT}`,
+        endpoint: ENDPOINT_OPTION,
+        deleteImpactEndpoint: ENDPOINT_OPTION_DELETE_IMPACT,
         queryParams: `?promotion_id=${promotionId}`,
         queryKey: [STRUCTURE,OPTION, promotionId],
         getId: (data: Option) => data.id,

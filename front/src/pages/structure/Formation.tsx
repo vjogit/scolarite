@@ -60,8 +60,8 @@ export const formationViewConfig: ViewConfig<Formation> = {
 
 // Partie statique : à l'extérieur du composant
 export const formationRepository = createRepository<Formation>({
-    endpoint: `${ENDPOINT_FORMATION}`,
-    deleteImpactEndpoint: `${ENDPOINT_FORMATION_DELETE_IMPACT}`,
+    endpoint: ENDPOINT_FORMATION,
+    deleteImpactEndpoint: ENDPOINT_FORMATION_DELETE_IMPACT,
     queryKey: [STRUCTURE, FORMATION],
     getId: (data: Formation) => data.id,
 });

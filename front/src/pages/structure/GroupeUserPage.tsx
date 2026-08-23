@@ -22,12 +22,12 @@ interface User {
     email: string | null;
 }
 
-type AddUserForm = {
+interface AddUserForm {
     id: number;
     user_id: number | null;
     firstName: string;
     lastName: string;
-};
+}
 
 const ADD_USER_DEFAULT: AddUserForm = { id: -1, user_id: null, firstName: '', lastName: '' };
 
@@ -112,7 +112,7 @@ export function GroupeUserPage() {
                     size="small"
                     color="error"
                     disabled={removeMutation.isPending}
-                    onClick={() => removeMutation.mutate(row.original.id)}
+                    onClick={() => { removeMutation.mutate(row.original.id); }}
                 >
                     <DeleteIcon fontSize="small" />
                 </IconButton>

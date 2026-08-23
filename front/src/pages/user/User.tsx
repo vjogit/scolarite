@@ -97,7 +97,7 @@ const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>
                                 />
                             ))}
                         </FormGroup>
-                        {errors.roles && <FormHelperText>{errors.roles.message as string}</FormHelperText>}
+                        {errors.roles && <FormHelperText>{errors.roles.message!}</FormHelperText>}
                     </FormControl>
                 );
             }}
@@ -131,7 +131,7 @@ export const userViewConfig: ViewConfig<User> = {
 
 // Partie statique : à l'extérieur du composant
 export const userDatasourceBase = createRepository<User>({
-    endpoint: `${ENDPOINT_USER}`,
+    endpoint: ENDPOINT_USER,
     queryKey: [USER],
     getId: (data: User) => data.id,
 })

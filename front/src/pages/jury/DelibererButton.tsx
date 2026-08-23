@@ -75,7 +75,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         aria-label={`Annuler la délibération de ${userName} (correction possible)`}
                         size="small"
                         color="warning"
-                        onClick={() => annuler.mutate()}
+                        onClick={() => { annuler.mutate(); }}
                         disabled={annuler.isPending}
                     >
                         {annuler.isPending ? <CircularProgress size={16} /> : <UndoIcon fontSize="small" />}
@@ -128,7 +128,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                 </IconButton>
             </Tooltip>
 
-            <Dialog open={open} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
+            <Dialog open={open} onClose={() => { setOpen(false); }} maxWidth="xs" fullWidth>
                 <DialogTitle>Délibérer — {userName}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mb: 2 }}>
@@ -138,7 +138,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         control={
                             <Switch
                                 checked={compteCumul}
-                                onChange={(e) => setCompteCumul(e.target.checked)}
+                                onChange={(e) => { setCompteCumul(e.target.checked); }}
                             />
                         }
                         label={
@@ -152,10 +152,10 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpen(false)}>Annuler</Button>
+                    <Button onClick={() => { setOpen(false); }}>Annuler</Button>
                     <Button
                         variant="contained"
-                        onClick={() => deliberer.mutate()}
+                        onClick={() => { deliberer.mutate(); }}
                         disabled={deliberer.isPending}
                         startIcon={deliberer.isPending ? <CircularProgress size={16} /> : <GavelIcon />}
                     >
