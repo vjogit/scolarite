@@ -78,7 +78,14 @@ export function NoteEleveDetail() {
     }, new Map());
 
     const periodeKeys = Array.from(periodes.keys());
-    const currentPeriode = periodes.get(periodeKeys[tabIndex]);
+    // L'onglet est un état, les périodes viennent de l'élève : changer d'élève
+    // pour un dossier plus court laissait `tabIndex` au-delà du dernier onglet.
+    // L'écran affichait alors un onglet inexistant et aucune note, sans rien
+    // dire. On retombe sur la première période plutôt que d'aller chercher une
+    // clé qui n'existe pas.
+    const ongletActif = tabIndex < periodeKeys.length ? tabIndex : 0;
+    const periodeActive = periodeKeys[ongletActif];
+    const currentPeriode = periodes.get(periodeActive);
 
     return (
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -98,7 +105,7 @@ export function NoteEleveDetail() {
             {periodeKeys.length > 0 && (
                 <Paper variant="outlined">
                     <Tabs
-                        value={tabIndex}
+                        value={ongletActif}
                         onChange={(_: React.SyntheticEvent, v: number) => { setTabIndex(v); }}
                         variant="scrollable"
                         scrollButtons="auto"
@@ -107,8 +114,8 @@ export function NoteEleveDetail() {
                     </Tabs>
 
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {gpaByPeriode.has(periodeKeys[tabIndex]) && (() => {
-                            const gpa = gpaByPeriode.get(periodeKeys[tabIndex])!;
+                        {gpaByPeriode.has(periodeActive) && (() => {
+                            const gpa = gpaByPeriode.get(periodeActive)!;
                             return (
                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                     <Chip label={`GPA période : ${gpa.gpa_periode != null ? gpa.gpa_periode.toFixed(2) : 'N/A'}`} color="primary" />
