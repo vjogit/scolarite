@@ -158,6 +158,40 @@ export function fileMessageFor(err: unknown): string | null {
   return null;
 }
 
+/** Erreur de champ telle que le serveur la rédige, détail technique compris. */
+export interface ErreurChamp {
+  message: string;
+  detail?: string;
+}
+
+// Les erreurs de champ sans les aplatir. `fieldErrorsFor` n'en garde que le
+// message, ce qui suffit à un formulaire ; le planning a besoin du `detail`
+// PostgreSQL, seul endroit où figurent les bornes du créneau déjà réservé.
+function conflitsDetaillesFromPayload(payload: unknown): Record<string, ErreurChamp> {
+  if (typeof payload !== 'object' || payload === null) return {};
+  const details = (payload as Record<string, unknown>).details;
+  if (typeof details !== 'object' || details === null) return {};
+  const brutes = (details as Record<string, unknown>).errors;
+  if (typeof brutes !== 'object' || brutes === null) return {};
+  const erreurs: Record<string, ErreurChamp> = {};
+  for (const [champ, valeur] of Object.entries(brutes as Record<string, unknown>)) {
+    if (typeof valeur !== 'object' || valeur === null) continue;
+    const v = valeur as Record<string, unknown>;
+    erreurs[champ] = {
+      message: typeof v.message === 'string' ? v.message : '',
+      detail: typeof v.detail === 'string' ? v.detail : undefined,
+    };
+  }
+  return erreurs;
+}
+
+/** Les conflits de champ d'une erreur, quelle que soit sa forme. */
+export function conflitsDetaillesFor(err: unknown): Record<string, ErreurChamp> {
+  if (axios.isAxiosError(err)) return conflitsDetaillesFromPayload(err.response?.data);
+  if (isWrappedApiError(err)) return conflitsDetaillesFromPayload(err.payload);
+  return {};
+}
+
 export function fieldErrorsFor(err: unknown): Record<string, string> | null {
   if (axios.isAxiosError(err)) {
     return fieldErrorsFromPayload(err.response?.data);

@@ -124,6 +124,24 @@ const BRANDING = {
 const queryClient = new QueryClient()
 
 
+/**
+ * La session telle que le jeton la décrit.
+ *
+ * `tokenParsed` est une signature d'index : chacun de ses champs arrive en
+ * `any`, et les lire à deux endroits dupliquait autant d'accès non typés. Une
+ * seule lecture, ici, avec les valeurs de repli.
+ */
+function sessionDepuis(kc: Keycloak) {
+  const jeton = kc.tokenParsed;
+  return {
+    user: {
+      name: typeof jeton?.preferred_username === 'string' ? jeton.preferred_username : '',
+      email: typeof jeton?.email === 'string' ? jeton.email : '',
+      roles: jeton?.realm_access?.roles ?? [],
+    },
+  };
+}
+
 export default function App() {
 
   const [session, setSession] = React.useState<Session | null>(null);
@@ -156,13 +174,7 @@ export default function App() {
       setLoading(false);
 
       // Mettre à jour la session avec les infos utilisateur
-      setSession({
-        user: {
-          name: initializedKeycloak.tokenParsed?.preferred_username || '',
-          email: initializedKeycloak.tokenParsed?.email || '',
-          roles: initializedKeycloak.tokenParsed?.realm_access?.roles || [],
-        },
-      });
+      setSession(sessionDepuis(initializedKeycloak));
       setupAxiosInterceptors(initializedKeycloak)
     });
 
@@ -170,13 +182,7 @@ export default function App() {
     if (kc?.token) {
       setKeycloak(kc);
       setLoading(false);
-      setSession({
-        user: {
-          name: kc.tokenParsed?.preferred_username || '',
-          email: kc.tokenParsed?.email || '',
-          roles: kc.tokenParsed?.realm_access?.roles || [],
-        },
-      });
+      setSession(sessionDepuis(kc));
       setupAxiosInterceptors(kc)
     }
 

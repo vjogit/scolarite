@@ -1,7 +1,7 @@
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import interactionPlugin, { type EventResizeDoneArg } from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
 import frLocale from '@fullcalendar/core/locales/fr';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import { apiInstance } from '../../services/api';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
-import { ERROR_MESSAGES } from '../../services/errorMessages';
+import { conflitsDetaillesFor, ERROR_MESSAGES } from '../../services/errorMessages';
 import { ReservationDialog } from './ReservationDialog';
 import { HeuresPanel } from './HeuresPanel';
 import type { ReservationDetail } from './def';
@@ -61,6 +61,9 @@ function toEvent(r: ReservationDetail, colorMode: ColorMode) {
     };
 }
 
+/** Ce que le serveur attend pour réenregistrer une réservation déplacée. */
+type EntreeDeplacement = ReturnType<typeof buildUpdateInput>;
+
 function buildUpdateInput(r: ReservationDetail, start: Date, end: Date) {
     return {
         id: r.id,
@@ -86,14 +89,16 @@ export function Planning() {
     // ── Données ─────────────────────────────────────────────────────────────
     const { data: reservations = [] } = useQuery<ReservationDetail[]>({
         queryKey: ['reservations', periodeId],
-        queryFn: () => apiInstance.get(`/api/v0/planning/reservation?periode_id=${periodeId}`).then(r => r.data),
+        queryFn: () => apiInstance.get<ReservationDetail[]>(`/api/v0/planning/reservation?periode_id=${periodeId}`).then(r => r.data),
         enabled: !!periodeId,
     });
 
     // ── Mutation drag/resize (sans dialog) ──────────────────────────────────
     const moveMutation = useMutation({
-        mutationFn: (input: object) =>
-            apiInstance.put(`/api/v0/planning/reservation/${(input as any).id}`, input).then(r => r.data as ReservationDetail),
+        // `buildUpdateInput` rend la réservation complète : l'identifiant en fait
+        // partie, il n'y a pas à aller le chercher derrière un `any`.
+        mutationFn: (input: EntreeDeplacement) =>
+            apiInstance.put<ReservationDetail>(`/api/v0/planning/reservation/${input.id}`, input).then(r => r.data),
         onSuccess: (updated) => {
             queryClient.setQueryData<ReservationDetail[]>(['reservations', periodeId], (old) =>
                 old?.map(r => r.id === updated.id ? updated : r) ?? []
@@ -143,9 +148,8 @@ export function Planning() {
         setDialogOpen(true);
     }, []);
 
-    const handleMoveError = useCallback((error: any) => {
-        const errors: Record<string, { message: string; detail?: string }> =
-            error?.response?.data?.details?.errors ?? {};
+    const handleMoveError = useCallback((error: unknown) => {
+        const errors = conflitsDetaillesFor(error);
         const first = Object.values(errors)[0];
         if (!first) return;
 
@@ -159,10 +163,25 @@ export function Planning() {
         setConflictMsg(msg);
     }, []);
 
-    const handleEventDrop = useCallback((info: EventDropArg) => {
+    /**
+     * Déplacement et redimensionnement aboutissent au même appel : la
+     * réservation change de bornes, on la réenregistre, et on la remet en place
+     * si le serveur refuse.
+     *
+     * `event.start` et `event.end` sont `Date | null` dans le type de
+     * FullCalendar — un événement peut n'avoir aucune borne. Ce n'est pas le cas
+     * ici, mais l'affirmer par un `!` reviendrait à parier ; on renonce au
+     * déplacement plutôt que d'envoyer une date absente au serveur.
+     */
+    const deplacer = useCallback((info: EventDropArg | EventResizeDoneArg) => {
         const r = info.event.extendedProps.reservation as ReservationDetail;
+        const { start, end } = info.event;
+        if (!start || !end) {
+            info.revert();
+            return;
+        }
         moveMutation.mutate(
-            buildUpdateInput(r, info.event.start!, info.event.end!),
+            buildUpdateInput(r, start, end),
             {
                 onError: (err) => {
                     info.revert();
@@ -170,20 +189,7 @@ export function Planning() {
                 }
             },
         );
-    }, [moveMutation, handleMoveError, queryClient, periodeId]);
-
-    const handleEventResize = useCallback((info: any) => {
-        const r = info.event.extendedProps.reservation as ReservationDetail;
-        moveMutation.mutate(
-            buildUpdateInput(r, info.event.start, info.event.end),
-            {
-                onError: (err) => {
-                    info.revert();
-                    handleMoveError(err);
-                }
-            },
-        );
-    }, [moveMutation, handleMoveError, queryClient, periodeId]);
+    }, [moveMutation, handleMoveError]);
 
     // ── Rendu ────────────────────────────────────────────────────────────────
     return (
@@ -211,8 +217,8 @@ export function Planning() {
                     editable={isEditMode}
                     select={isEditMode ? handleSelect : undefined}
                     eventClick={isEditMode ? handleEventClick : undefined}
-                    eventDrop={isEditMode ? handleEventDrop : undefined}
-                    eventResize={isEditMode ? handleEventResize : undefined}
+                    eventDrop={isEditMode ? deplacer : undefined}
+                    eventResize={isEditMode ? deplacer : undefined}
                     eventContent={(info) => (
                         <Box sx={{ fontSize: '0.75rem', overflow: 'hidden', px: 0.5, lineHeight: 1.3 }}>
                             <strong>{info.event.title}</strong>

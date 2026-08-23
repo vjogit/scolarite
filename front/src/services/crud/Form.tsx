@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useForm, type DefaultValues, type FieldValues } from 'react-hook-form';
+import { useForm, type DefaultValues, type FieldValues, type Resolver } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,7 +39,11 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
 
 
   const { register, handleSubmit, control, setError, formState: { errors, dirtyFields }, getValues, setValue } = useForm<D>({
-    resolver: zodResolver(datasource.schema),
+    // Le résolveur de zod et le générique de react-hook-form ne se rejoignent
+    // pas : `zodResolver` infère `Resolver<FieldValues>` d'un schéma générique,
+    // là où `useForm<D>` réclame `Resolver<D>`. L'affirmation est ici, une fois,
+    // plutôt que dans un `schema: any` qui la répandrait sur tous les écrans.
+    resolver: zodResolver(datasource.schema) as Resolver<D>,
     // READ : On pré-remplit le formulaire avec les données existantes
     defaultValues: initialData,
   });

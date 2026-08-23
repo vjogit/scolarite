@@ -1,4 +1,5 @@
 import { Box, Button, Chip, darken, Tooltip, Typography } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JuryData, JuryResult, StudentEntry } from './def';
@@ -101,7 +102,7 @@ function messageDeliberationGroupee(nombre: number): string {
     return `${formatNombre.format(nombre)} élève${pluriel} délibéré${pluriel}.`;
 }
 
-const TABLE_THEME = (theme: any) => ({
+const TABLE_THEME = (theme: Theme) => ({
     baseBackgroundColor:
         theme.palette.mode === 'dark'
             ? darken(theme.palette.background.default, 0.05)
@@ -129,7 +130,7 @@ const fetchSynthese = async (periodeId: string | undefined): Promise<JuryData> =
     try {
         const rep = await apiInstance.get<JuryData>(`${ENDPOINT_JURY}/data/${periodeId}`);
         return rep.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
         throw handleAxiosError(error);
     }
 };

@@ -17,7 +17,7 @@ interface Props {
 export function HeuresPanel({ periodeId }: Props) {
     const { data = [] } = useQuery<MatiereHeures[]>({
         queryKey: ['heures', periodeId],
-        queryFn:  () => apiInstance.get(`/api/v0/planning/reservation/heures?periode_id=${periodeId}`).then(r => r.data),
+        queryFn:  () => apiInstance.get<MatiereHeures[]>(`/api/v0/planning/reservation/heures?periode_id=${periodeId}`).then(r => r.data),
         enabled:  !!periodeId,
     });
 

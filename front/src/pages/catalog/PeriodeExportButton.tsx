@@ -4,6 +4,7 @@ import { useParams } from 'react-router';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
+import { nomDeFichierDepuis } from '../../services/telechargement';
 import { notifyError } from '../../services/notify';
 
 /** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
@@ -25,9 +26,7 @@ export function PeriodeExportButton() {
             const link = document.createElement('a');
             link.href = url;
 
-            const disposition = response.headers['content-disposition'] as string | undefined;
-            const filename = disposition?.match(/filename="(.+)"/)?.[1] ?? 'programme.xlsx';
-            link.setAttribute('download', filename);
+            link.setAttribute('download', nomDeFichierDepuis(response, 'programme.xlsx'));
 
             document.body.appendChild(link);
             link.click();

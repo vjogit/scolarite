@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type {  FieldErrors, UseFormGetValues, UseFormSetValue, Path, Control } from 'react-hook-form';
+import type { Control, FieldErrors, FieldValues, Path, PathValue, UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import  { Controller  } from 'react-hook-form';
 
 import { useQuery } from '@tanstack/react-query';
@@ -12,12 +12,13 @@ export interface UserOption {
     lastName: string;
 }
 
-interface FormFields {
+// `FieldValues` porte déjà la signature d'index qu'exige react-hook-form :
+// l'étendre évite de la redéclarer en `any` pour notre compte.
+interface FormFields extends FieldValues {
     id: number;
     user_id: number | null | undefined;
     firstName?: string;
     lastName?: string;
-    [key: string]: any;
 }
 
 interface UserSelectorProps<T extends FormFields> {
@@ -86,8 +87,8 @@ export const UserSelector = <T extends FormFields>({
                     onInputChange={(_, newInputValue) => { setInputValue(newInputValue); }}
                     onChange={(_, newValue) => {
                         field.onChange(newValue?.id ?? null);
-                        setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as any);
-                        setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as any);
+                        setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
+                        setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
                         setSelectedUser(newValue);
                     }}
                     renderInput={(params) => (

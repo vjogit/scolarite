@@ -19,6 +19,24 @@ import type {
  */
 const COLONNES_TECHNIQUES: MRT_VisibilityState = { id: false, version: false };
 
+/**
+ * Une valeur relue de `sessionStorage`, ou le repli si elle manque ou ne se
+ * relit pas. `JSON.parse` rend `any` : la conversion vers le type attendu est
+ * donc une affirmation, faite ici une fois plutôt qu'à chaque état.
+ *
+ * Le `catch` n'est pas décoratif : une entrée écrite par une version
+ * précédente, ou tronquée, ferait échouer le rendu initial de la table.
+ */
+function relire<T>(cle: string, repli: T): T {
+    const brut = sessionStorage.getItem(cle);
+    if (brut === null) return repli;
+    try {
+        return JSON.parse(brut) as T;
+    } catch {
+        return repli;
+    }
+}
+
 export function usePersistentTableState(queryKey: QueryKey) {
   const key = JSON.stringify(queryKey);
   const filtersKey         = `${key}_col_filters`;
@@ -31,8 +49,7 @@ export function usePersistentTableState(queryKey: QueryKey) {
   const densityKey         = `${key}_density`;
 
   const [columnFilters, setColumnFilters] = useState<MRT_ColumnFiltersState>(() => {
-    const saved = sessionStorage.getItem(filtersKey);
-    return saved ? JSON.parse(saved) : [];
+    return relire(filtersKey, []);
   });
 
   const [globalFilter, setGlobalFilter] = useState<string>(() => {
@@ -40,13 +57,11 @@ export function usePersistentTableState(queryKey: QueryKey) {
   });
 
   const [sorting, setSorting] = useState<MRT_SortingState>(() => {
-    const saved = sessionStorage.getItem(sortingKey);
-    return saved ? JSON.parse(saved) : [];
+    return relire(sortingKey, []);
   });
 
   const [pagination, setPagination] = useState<MRT_PaginationState>(() => {
-    const saved = sessionStorage.getItem(paginationKey);
-    return saved ? JSON.parse(saved) : { pageIndex: 0, pageSize: 10 };
+    return relire(paginationKey, { pageIndex: 0, pageSize: 10 });
   });
 
   const [showGlobalFilter, setShowGlobalFilter] = useState<boolean>(() => {

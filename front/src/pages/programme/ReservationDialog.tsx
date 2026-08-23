@@ -9,7 +9,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { type Dayjs } from 'dayjs';
 import { apiInstance } from '../../services/api';
-import { ERROR_MESSAGES } from '../../services/errorMessages';
+import { conflitsDetaillesFor, ERROR_MESSAGES } from '../../services/errorMessages';
 import type { ReservationDetail } from './def';
 
 // ─── Types référentiels ───────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     // ── Référentiels ────────────────────────────────────────────────────────
     const { data: salles = [] } = useQuery<Salle[]>({
         queryKey: ['salles'],
-        queryFn: () => apiInstance.get('/api/v0/planning/salle').then(r => r.data),
+        queryFn: () => apiInstance.get<Salle[]>('/api/v0/planning/salle').then(r => r.data),
         enabled: open,
     });
 
@@ -95,7 +95,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         queryKey: ['users-search', debouncedQuery],
         queryFn: async () => {
             if (!debouncedQuery) return [];
-            const r = await apiInstance.get(`/api/v0/user/search?q=${encodeURIComponent(debouncedQuery)}`);
+            const r = await apiInstance.get<User[]>(`/api/v0/user/search?q=${encodeURIComponent(debouncedQuery)}`);
             return r.data;
         },
         enabled: open,
@@ -103,13 +103,13 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
 
     const { data: groupes = [] } = useQuery<Groupe[]>({
         queryKey: ['groupes', optionId],
-        queryFn: () => apiInstance.get(`/api/v0/structure/groupe?option_id=${optionId}`).then(r => r.data),
+        queryFn: () => apiInstance.get<Groupe[]>(`/api/v0/structure/groupe?option_id=${optionId}`).then(r => r.data),
         enabled: open && !!optionId,
     });
 
     const { data: ues = [] } = useQuery<Ue[]>({
         queryKey: ['ues', periodeId],
-        queryFn: () => apiInstance.get(`/api/v0/structure/ue?periode_id=${periodeId}`).then(r => r.data),
+        queryFn: () => apiInstance.get<Ue[]>(`/api/v0/structure/ue?periode_id=${periodeId}`).then(r => r.data),
         enabled: open && !!periodeId,
     });
 
@@ -140,9 +140,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     const userName = (u: User) =>
         [u.firstName, u.lastName].filter(Boolean).join(' ') || `#${u.id}`;
 
-    const handleConflictError = (error: any) => {
-        const errors: Record<string, { message: string; detail?: string }> =
-            error?.response?.data?.details?.errors ?? {};
+    const handleConflictError = (error: unknown) => {
+        const errors = conflitsDetaillesFor(error);
         if (Object.keys(errors).length === 0) return;
 
         const msgs = Object.entries(errors).map(([field, err]) => {

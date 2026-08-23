@@ -8,6 +8,8 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
     ResponsiveContainer, ReferenceLine, ZAxis
 } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
+import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 export interface NoteData {
     note?: number | null;
@@ -30,28 +32,55 @@ function CustomTabPanel(props: TabPanelProps) {
     );
 }
 
-// 1. CORRECTION DU TOOLTIP : On s'assure de récupérer la bonne propriété `displayLabel`
-const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length > 0) {
-        // Dans Recharts, payload[0].payload contient l'objet exact de la donnée survolée
-        const dataPoint = payload[0].payload;
+/**
+ * Ce que les graphiques mettent dans un point : soit un élève et sa note, soit
+ * une tranche de l'histogramme. Le tooltip est commun aux trois graphiques, il
+ * doit donc savoir distinguer les deux.
+ */
+interface PointEleve extends NoteData {
+    displayLabel?: string;
+    uniqueAxisKey?: string;
+}
 
-        return (
-            <Paper elevation={3} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                    {/* On affiche le nom propre, ou le label de la tranche (pour l'histogramme) */}
-                    {dataPoint.displayLabel || dataPoint.label || (dataPoint.lastName ? `${dataPoint.lastName} ${dataPoint.firstName || ''}` : 'Élève')}
-                </Typography>
-                <Typography variant="body2" color="primary.main">
-                    {dataPoint.count !== undefined
-                        ? `Nombre d'élèves : ${dataPoint.count}`
-                        : `Note : ${dataPoint.note.toFixed(2)} / 20`}
-                </Typography>
-            </Paper>
-        );
-    }
-    return null;
+interface TrancheHistogramme {
+    label: string;
+    min: number;
+    max: number;
+    count: number;
+}
+
+type PointGraphique = PointEleve | TrancheHistogramme;
+
+const estTranche = (point: PointGraphique): point is TrancheHistogramme => 'count' in point;
+
+/** Le nom à afficher en tête du tooltip. */
+const libelleDuPoint = (point: PointGraphique): string => {
+    if (estTranche(point)) return point.label;
+    if (point.displayLabel) return point.displayLabel;
+    return point.lastName ? `${point.lastName} ${point.firstName ?? ''}` : 'Élève';
 };
+
+function CustomTooltip({ active, payload }: TooltipContentProps<ValueType, NameType>) {
+    // Recharts type le contenu d'un point en `any` : lui seul le transporte,
+    // nous seuls savons ce que nous y avons mis. C'est le seul endroit du
+    // fichier où l'affirmer, et le reste en découle sans autre assertion.
+    const premier: unknown = payload[0];
+    const point = (premier as { payload?: PointGraphique } | undefined)?.payload;
+    if (!active || !point) return null;
+
+    return (
+        <Paper elevation={3} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                {libelleDuPoint(point)}
+            </Typography>
+            <Typography variant="body2" color="primary.main">
+                {estTranche(point)
+                    ? `Nombre d'élèves : ${point.count}`
+                    : `Note : ${point.note?.toFixed(2) ?? '—'} / 20`}
+            </Typography>
+        </Paper>
+    );
+}
 
 const DEFAULT_BUCKET_RANGES = Array.from({ length: 21 }, (_, i) => i);
 
@@ -181,14 +210,14 @@ export function NoteChartModal({
                                 {/* 3. CORRECTION DE L'AXE X */}
                                 <XAxis
                                     dataKey="uniqueAxisKey" // On utilise la clé cachée unique
-                                    tickFormatter={(val) => val.split('###')[0]} // Mais on coupe le "###index" pour l'affichage à l'écran !
+                                    tickFormatter={(val: string) => val.split('###')[0]} // Mais on coupe le "###index" pour l'affichage à l'écran !
                                     angle={-45}
                                     textAnchor="end"
                                     height={70}
                                     tick={{ fontSize: 12 }}
                                 />
                                 <YAxis domain={[0, 20]} tickCount={11} />
-                                <RechartsTooltip content={<CustomTooltip />} />
+                                <RechartsTooltip content={CustomTooltip} />
                                 {kpis && (
                                     <ReferenceLine y={parseFloat(kpis.avg)} stroke="#d32f2f" strokeDasharray="4 4"
                                         label={{ position: 'top', value: `Moyenne (${kpis.avg})`, fill: '#d32f2f', fontSize: 12 }} />
@@ -206,7 +235,7 @@ export function NoteChartModal({
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.5} vertical={false} />
                                 <XAxis dataKey="label" />
                                 <YAxis allowDecimals={false} label={{ value: "Nb. d'élèves", angle: -90, position: 'insideLeft' }} />
-                                <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(25, 118, 210, 0.1)' }} />
+                                <RechartsTooltip content={CustomTooltip} cursor={{ fill: 'rgba(25, 118, 210, 0.1)' }} />
                                 <Bar dataKey="count" fill="#1976d2" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -219,7 +248,7 @@ export function NoteChartModal({
                                 <XAxis dataKey="indexId" type="number" name="Élève" tick={false} label={{ value: "Élèves (Ordre alphabétique)", position: 'insideBottom', offset: -10 }} />
                                 <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} />
                                 <ZAxis range={[60, 60]} />
-                                <RechartsTooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                                <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3' }} />
                                 {kpis && <ReferenceLine y={parseFloat(kpis.avg)} stroke="#d32f2f" strokeDasharray="4 4" />}
                                 <Scatter name="Notes" data={scatterData} fill="#9c27b0" />
                             </ScatterChart>

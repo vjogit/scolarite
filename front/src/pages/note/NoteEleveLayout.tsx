@@ -99,7 +99,7 @@ export function NoteEleveDetail() {
                 <Paper variant="outlined">
                     <Tabs
                         value={tabIndex}
-                        onChange={(_, v) => { setTabIndex(v); }}
+                        onChange={(_: React.SyntheticEvent, v: number) => { setTabIndex(v); }}
                         variant="scrollable"
                         scrollButtons="auto"
                     >

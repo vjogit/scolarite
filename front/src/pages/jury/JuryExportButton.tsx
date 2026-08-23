@@ -1,5 +1,6 @@
 import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
+import { nomDeFichierDepuis } from '../../services/telechargement';
 import { useCallback } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -30,14 +31,7 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
             const link = document.createElement('a');
             link.href = url;
 
-            const contentDisposition = response.headers['content-disposition'];
-            let filename = `jury_${periodeId}.xlsx`;
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (match?.[1]) filename = match[1];
-            }
-
-            link.setAttribute('download', filename);
+            link.setAttribute('download', nomDeFichierDepuis(response, `jury_${periodeId}.xlsx`));
             document.body.appendChild(link);
             link.click();
             link.remove();

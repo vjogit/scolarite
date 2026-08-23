@@ -2,6 +2,8 @@ import type { QueryKey } from '@tanstack/react-query';
 import type { Control, DefaultValues, FieldErrors, FieldValues, UseFormGetValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { JSX } from 'react';
 import type { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
+import type { ZodType } from 'zod';
+import { isAxiosError } from 'axios';
 import { apiInstance } from '../api';
 import type { ActionLigne } from './actions';
 
@@ -73,7 +75,15 @@ export interface Repository<D extends FieldValues> {
 }
 
 export interface ViewConfig<D extends FieldValues> {
-    schema: any
+    /**
+     * Le schéma zod du formulaire.
+     *
+     * `ZodType<D, FieldValues>` : le résolveur de react-hook-form doit savoir
+     * ce que la validation produit — un `D` — et ce qu'elle accepte en entrée —
+     * les champs bruts du formulaire. Un `any` ici répandait de l'inconnu sur
+     * chaque écran, alors que la contrainte tient en deux paramètres.
+     */
+    schema: ZodType<D, FieldValues>
     emptyValue: DefaultValues<D>;
     columns: MRT_ColumnDef<D>[];
     render: (props: RenderProps<D>) => JSX.Element;
@@ -186,7 +196,7 @@ export function createRepository<T extends FieldValues>(
                 const url = config.queryParams ? `${endpoint}${config.queryParams}` : endpoint;
                 const rep = await apiInstance.get<T[]>(url);
                 return rep.data
-            } catch (error: any) {
+            } catch (error: unknown) {
                 throw handleAxiosError(error);
             }
         },
@@ -196,7 +206,7 @@ export function createRepository<T extends FieldValues>(
             try {
                 const rep = await apiInstance.get<T>(`${endpoint}/${id}`);
                 return rep.data
-            } catch (error: any) {
+            } catch (error: unknown) {
                 throw handleAxiosError(error);
             }
 
@@ -207,7 +217,7 @@ export function createRepository<T extends FieldValues>(
             try {
                 const rep = await apiInstance.post<T>(endpoint, data);
                 return rep.data
-            } catch (error: any) {
+            } catch (error: unknown) {
                 throw handleAxiosError(error);
             }
         },
@@ -218,7 +228,7 @@ export function createRepository<T extends FieldValues>(
                 const id = config.getId(data);
                 const rep = await apiInstance.put<T>(`${endpoint}/${id}`, data);
                 return rep.data
-            } catch (error: any) {
+            } catch (error: unknown) {
                 throw handleAxiosError(error);
             }
         },
@@ -226,9 +236,9 @@ export function createRepository<T extends FieldValues>(
         // Supprimer (Bulk)
         delete: async (ids: (string | number)[]) => {
             try {
-                const rep = await apiInstance.delete(`${endpoint}/bulk`, { data: { ids } });
+                const rep = await apiInstance.delete<{ success: boolean }>(`${endpoint}/bulk`, { data: { ids } });
                 return rep.data
-            } catch (error: any) {
+            } catch (error: unknown) {
                 throw handleAxiosError(error);
             }
         },
@@ -239,10 +249,15 @@ export function createRepository<T extends FieldValues>(
  * Helper pour transformer les erreurs Axios en votre format ApiError
  * compatible avec votre backend Go
  */
-export function handleAxiosError(error: any) {
-    if (error.response) {
+export function handleAxiosError(error: unknown) {
+    // `unknown` plutôt que `any` : c'est le seul endroit qui interroge la forme
+    // d'une erreur, et `isAxiosError` est le test que fournit la bibliothèque.
+    // Le typer ici évite que chaque `catch` du projet ait à le refaire.
+    if (isAxiosError(error) && error.response) {
         // L'erreur vient du serveur (400, 401, 409...)
-        return new ApiError(error.response.status, error.response.data);
+        // `data` est `any` dans les types d'axios : la seule chose honnête est
+        // de le nommer pour ce qu'il est — la réponse d'erreur du serveur.
+        return new ApiError(error.response.status, error.response.data as ErrorResponse);
     }
     return new Error("Erreur réseau ou serveur injoignable");
 }
