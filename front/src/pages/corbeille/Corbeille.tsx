@@ -47,13 +47,13 @@ function formatEntry(entry: DeleteImpactEntry): string {
 /** Énumération française : « a, b et c ». */
 function joinFr(parts: string[]): string {
     if (parts.length <= 1) return parts[0] ?? '';
-    return `${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`;
+    return `${parts.slice(0, -1).join(', ')} et ${parts.at(-1) ?? ''}`;
 }
 
 function titreOperation(op: OperationCorbeille): string {
     const type = LIBELLE_RACINE[op.racineType] ?? op.racineType;
     const noms = op.items.map((item) => `« ${item.name} »`);
-    if (noms.length === 1) return `${type} ${noms[0]}`;
+    if (noms.length === 1) return `${type} ${noms[0] ?? ''}`;
     return `${formatNombre.format(noms.length)} ${type.toLowerCase()}s : ${joinFr(noms)}`;
 }
 

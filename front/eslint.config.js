@@ -28,6 +28,17 @@ export default defineConfig([
       // Optionally, add this for stylistic rules
       ...tseslint.configs.stylisticTypeChecked,
     ],
+    rules: {
+      // `strictTypeChecked` interdit d'interpoler un nombre dans un gabarit ;
+      // la règle elle-même l'autorise par défaut, et pour cause : `${3}` ne
+      // réserve aucune surprise. Le danger est l'interpolation d'une valeur
+      // qui peut manquer — elle écrit « undefined » à l'écran — et cela reste
+      // interdit. Ce réglage rend à la règle son défaut, pas moins.
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        { allowNumber: true },
+      ],
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,

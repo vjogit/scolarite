@@ -97,7 +97,7 @@ const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>
                                 />
                             ))}
                         </FormGroup>
-                        {errors.roles && <FormHelperText>{errors.roles.message!}</FormHelperText>}
+                        {errors.roles && <FormHelperText>{errors.roles.message}</FormHelperText>}
                     </FormControl>
                 );
             }}
@@ -117,7 +117,7 @@ const userColumns: MRT_ColumnDef<User>[] = [
         header: 'Rôles',
         Cell: ({ cell }) => {
             const roles = cell.getValue<string[]>();
-            return Array.isArray(roles) ? roles.map(r => AVAILABLE_ROLES.find(ar => ar.id === r)?.label || r).join(', ') : '';
+            return Array.isArray(roles) ? roles.map(r => AVAILABLE_ROLES.find(ar => ar.id === r)?.label ?? r).join(', ') : '';
         }
     },
 ]

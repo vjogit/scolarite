@@ -28,13 +28,16 @@ export const subscribeToKeycloak = (observer: KeycloakObserver): (() => void) =>
 
 export const getKeycloak = () => {
     if (!keycloakInstance) {
-        keycloakInstance = new Keycloak({
+        // Nommée avant d'être publiée : le rappel d'initialisation la reçoit
+        // ainsi sans avoir à affirmer que la variable de module est remplie.
+        const instance = new Keycloak({
             url: import.meta.env.VITE_KEYCLOAK_URL,
             realm: import.meta.env.VITE_KEYCLOAK_REALM,
             clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID
         });
+        keycloakInstance = instance;
 
-        keycloakInstance.init({
+        instance.init({
             onLoad: 'login-required',
             // PKCE S256 : exigé par le client Keycloak (pkce_code_challenge_method),
             // un code d'autorisation intercepté est inutilisable sans le verifier.
@@ -44,8 +47,8 @@ export const getKeycloak = () => {
             redirectUri: window.location.origin + '/',
         }).then(() => {
             console.log("Keycloak initialized");
-            notifyObservers(keycloakInstance!);
-        }).catch((error) => {
+            notifyObservers(instance);
+        }).catch((error: unknown) => {
             console.error("Failed to initialize Keycloak", error);
         })
     }

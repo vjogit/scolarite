@@ -43,7 +43,7 @@ function extractRootPath(urlPath: string, mode: CrudMode): string {
             segments.pop();
             break;
         default:
-            throw new Error(`Mode non géré: ${mode}`);
+            throw new Error(`Mode non géré: ${String(mode)}`);
     }
 
     // 5. On reconstruit l'URL

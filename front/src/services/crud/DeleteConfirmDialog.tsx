@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
 import {
     Alert,
@@ -39,7 +39,7 @@ function formatEntry(entry: DeleteImpactEntry): string {
 /** Énumération française : « a, b et c ». */
 function joinFr(parts: string[]): string {
     if (parts.length <= 1) return parts[0] ?? '';
-    return `${parts.slice(0, -1).join(', ')} et ${parts[parts.length - 1]}`;
+    return `${parts.slice(0, -1).join(', ')} et ${parts.at(-1) ?? ''}`;
 }
 
 interface Props<D extends FieldValues> {
@@ -85,8 +85,9 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
     const impactQuery = useQuery<DeleteImpact>({
         queryKey: [...entite.queryKey, 'delete-impact', ids],
-        queryFn: () => fetchImpact!(ids),
-        enabled: open && supporteImpact && ids.length > 0,
+        queryFn: fetchImpact && open && ids.length > 0
+            ? () => fetchImpact(ids)
+            : skipToken,
         retry: false,
         gcTime: 0,
         staleTime: 0,
@@ -130,7 +131,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     const titre = (() => {
         if (objets.length === 1) {
             const libelle = entite.entityLabel ? `${entite.entityLabel} ` : '';
-            return `Supprimer ${libelle}« ${noms[0]} » ?`;
+            return `Supprimer ${libelle}« ${noms[0] ?? ''} » ?`;
         }
         // Sans libellé explicite, on conserve le mot neutre déjà utilisé par la
         // modale d'origine : certains titres de liste ne sont pas des pluriels.
@@ -176,7 +177,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                             <DialogContentText>Objets sélectionnés :</DialogContentText>
                             <List dense disablePadding>
                                 {nomsAffiches.map((nom, index) => (
-                                    <ListItem key={`${ids[index]}`} disablePadding sx={{ pl: 1 }}>
+                                    <ListItem key={ids[index] ?? index} disablePadding sx={{ pl: 1 }}>
                                         <ListItemText primary={`• ${nom}`} />
                                     </ListItem>
                                 ))}

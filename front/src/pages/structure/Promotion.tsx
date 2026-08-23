@@ -43,7 +43,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                     slotProps={{
                         textField: {
                             error: !!errors.debut,
-                            helperText: errors.debut?.message!,
+                            helperText: errors.debut?.message,
                             fullWidth: true
                         }
                     }}
@@ -65,7 +65,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                     slotProps={{
                         textField: {
                             error: !!errors.fin,
-                            helperText: errors.fin?.message!,
+                            helperText: errors.fin?.message,
                             fullWidth: true
                         }
                     }}
@@ -79,7 +79,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             render={({ field }) => {
                 // Conversion Array (API) -> String (Affichage)
                 const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i]}=${v}`).join(',')
+                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
                     : field.value;
 
                 return (
@@ -103,7 +103,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             control={control}
             render={({ field }) => {
                 const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i]}=${v}`).join(',')
+                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
                     : field.value;
                 return (
                     <TextField

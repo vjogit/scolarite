@@ -137,7 +137,7 @@ export function NoteChartModal({
         const lineData = [...evaluatedData]
             .sort((a, b) => a.note - b.note)
             .map((d, i) => {
-                const label = d.lastName ? `${d.lastName} ${d.firstName}` : `N°${i + 1}`;
+                const label = d.lastName ? `${d.lastName} ${d.firstName ?? ''}`.trim() : `N°${i + 1}`;
                 return {
                     ...d,
                     // ASTUCE : On crée une clé 100% unique en ajoutant "###index" à la fin du nom.
@@ -167,7 +167,7 @@ export function NoteChartModal({
 
         // Nuage de points
         const scatterData = [...evaluatedData]
-            .sort((a, b) => (a.lastName || '').localeCompare(b.lastName || ''))
+            .sort((a, b) => (a.lastName ?? '').localeCompare(b.lastName ?? ''))
             .map((d, i) => ({
                 ...d,
                 indexId: i + 1,

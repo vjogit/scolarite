@@ -39,7 +39,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
                     slotProps={{
                         textField: {
                             error: !!errors.debut,
-                            helperText: errors.debut?.message!,
+                            helperText: errors.debut?.message,
                             fullWidth: true
                         }
                     }}
@@ -61,7 +61,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
                     slotProps={{
                         textField: {
                             error: !!errors.fin,
-                            helperText: errors.fin?.message!,
+                            helperText: errors.fin?.message,
                             fullWidth: true
                         }
                     }}

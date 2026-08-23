@@ -16,7 +16,8 @@ interface SessionContextType {
 
 const SessionContext = React.createContext<SessionContextType>({
   session: null,
-  setSession: () => {},
+  // Défaut d'un contexte sans fournisseur : personne ne doit l'appeler.
+  setSession: () => { throw new Error('SessionContext utilisé hors de son fournisseur.'); },
 });
 
 export default SessionContext;

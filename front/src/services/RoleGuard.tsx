@@ -19,7 +19,7 @@ export const RoleGuard = ({ children, roles, requireAll }: { children: ReactNode
 
   // `requireAll` : sémantique ET, réservée à la corbeille (composite ADMIN,
   // exprimé par les huit rôles fonctionnels sans tester son nom).
-  const userRoles = session.user.roles || [];
+  const userRoles = session.user.roles ?? [];
   const hasRole = requireAll
     ? roles.every(r => userRoles.includes(r))
     : roles.some(r => userRoles.includes(r));

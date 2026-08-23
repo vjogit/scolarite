@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Box, Typography, IconButton, Tooltip, Button, darken } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -64,15 +64,17 @@ export function GroupeUserPage() {
 
     const { data: members = [], isLoading } = useQuery<User[]>({
         queryKey: [STRUCTURE,'groupe-users', groupeId],
-        queryFn: async () => {
-            const res = await apiInstance.get<User[]>(`${ENDPOINT_GROUPE}/${groupeId}/user`);
-            return res.data;
-        },
+        queryFn: groupeId
+            ? async () => {
+                const res = await apiInstance.get<User[]>(`${ENDPOINT_GROUPE}/${groupeId}/user`);
+                return res.data;
+            }
+            : skipToken,
     });
 
     const addMutation = useMutation({
         mutationFn: (userId: number) =>
-            apiInstance.post(`${ENDPOINT_GROUPE}/${groupeId}/user`, { user_id: userId }),
+            apiInstance.post(`${ENDPOINT_GROUPE}/${groupeId ?? ''}/user`, { user_id: userId }),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
             reset(ADD_USER_DEFAULT);
@@ -82,7 +84,7 @@ export function GroupeUserPage() {
 
     const removeMutation = useMutation({
         mutationFn: (userId: number) =>
-            apiInstance.delete(`${ENDPOINT_GROUPE}/${groupeId}/user/${userId}`),
+            apiInstance.delete(`${ENDPOINT_GROUPE}/${groupeId ?? ''}/user/${userId}`),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         },
@@ -157,7 +159,7 @@ export function GroupeUserPage() {
                     </IconButton>
                 </Tooltip>
                 <Typography variant="h6" sx={{ flex: 1 }}>Membres du groupe</Typography>
-                {peutEcrire && <GroupeImportButton groupeId={groupeId!} />}
+                {peutEcrire && groupeId && <GroupeImportButton groupeId={groupeId} />}
             </Box>
 
             {peutEcrire && (

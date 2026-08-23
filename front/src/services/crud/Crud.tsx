@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { skipToken, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router";
 import { useEffect } from "react";
 import { CrudList } from "./List";
@@ -35,8 +35,11 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
 
     const { data, isLoading, error } = useQuery<D>({
         queryKey: [...datasource.queryKey, id],
-        queryFn: () => datasource.fetch(id),
-        enabled: !!id && (mode === 'show' || mode === 'edit') && !formulaireInterdit,
+        // `skipToken` plutôt qu'`enabled` : il dit au typage, et pas seulement
+        // à l'exécution, que la requête ne part pas sans identifiant.
+        queryFn: id !== undefined && (mode === 'show' || mode === 'edit') && !formulaireInterdit
+            ? () => datasource.fetch(id)
+            : skipToken,
     });
 
     if (formulaireInterdit) return null;

@@ -61,7 +61,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                         slotProps={{
                             textField: {
                                 error: !!errors.date_passage,
-                                helperText: errors.date_passage?.message!,
+                                helperText: errors.date_passage?.message,
                                 fullWidth: true
                             }
                         }}

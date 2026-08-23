@@ -4,7 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { type EventResizeDoneArg } from '@fullcalendar/interaction';
 import type { DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
 import frLocale from '@fullcalendar/core/locales/fr';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router';
 import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
@@ -89,8 +89,9 @@ export function Planning() {
     // ── Données ─────────────────────────────────────────────────────────────
     const { data: reservations = [] } = useQuery<ReservationDetail[]>({
         queryKey: ['reservations', periodeId],
-        queryFn: () => apiInstance.get<ReservationDetail[]>(`/api/v0/planning/reservation?periode_id=${periodeId}`).then(r => r.data),
-        enabled: !!periodeId,
+        queryFn: periodeId
+            ? () => apiInstance.get<ReservationDetail[]>(`/api/v0/planning/reservation?periode_id=${periodeId}`).then(r => r.data)
+            : skipToken,
     });
 
     // ── Mutation drag/resize (sans dialog) ──────────────────────────────────

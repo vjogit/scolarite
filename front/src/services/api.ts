@@ -21,11 +21,9 @@ export function setupAxiosInterceptors(keycloak: Keycloak) {
             // Vérifie si le token expire dans moins de 30s et le rafraîchit si nécessaire.
             // On utilise une promesse partagée pour éviter que plusieurs requêtes simultanées 
             // ne déclenchent plusieurs rafraîchissements en parallèle.
-            if (!refreshPromise) {
-                refreshPromise = keycloak.updateToken(30).finally(() => {
-                    refreshPromise = null;
-                });
-            }
+            refreshPromise ??= keycloak.updateToken(30).finally(() => {
+                refreshPromise = null;
+            });
             await refreshPromise;
 
             const token = keycloak.token;

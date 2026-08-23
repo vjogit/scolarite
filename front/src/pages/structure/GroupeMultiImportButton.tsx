@@ -11,11 +11,13 @@ interface ImportGroupeResult {
     nom: string;
     groupe_id: number;
     added: number;
-    not_found: string[];
+    // Absent quand tout le monde a été trouvé : le serveur ne sérialise pas
+    // une liste vide. Même remarque que dans `GroupeImportButton`.
+    not_found?: string[];
 }
 
 interface ImportMultiGroupesResult {
-    groupes: ImportGroupeResult[];
+    groupes?: ImportGroupeResult[];
 }
 
 interface Props {

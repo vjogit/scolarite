@@ -68,7 +68,7 @@ export const UserSelector = <T extends FormFields>({
 
     if (isReadOnly) {
         return (
-            <TextField label="Élève" value={`${getValues("lastName" as Path<T>) || ''} ${getValues("firstName" as Path<T>) || ''}`} variant="outlined" fullWidth disabled sx={{ mb: 2 }} />
+            <TextField label="Élève" value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()} variant="outlined" fullWidth disabled sx={{ mb: 2 }} />
         );
     }
 
@@ -78,7 +78,7 @@ export const UserSelector = <T extends FormFields>({
             control={control}
             render={({ field }) => (
                 <Autocomplete
-                    options={users || []}
+                    options={users ?? []}
                     loading={isLoading}
                     filterOptions={(x) => x} // Server-side filtering
                     getOptionLabel={(option) => `${option.lastName} ${option.firstName}`}
@@ -96,8 +96,16 @@ export const UserSelector = <T extends FormFields>({
                             {...params}
                             label="Rechercher un élève"
                             error={!!errors.user_id}
+                            // Le générique `T` transforme le type du message en conditionnel que
+                            // React n'accepte pas : c'est le seul endroit du projet où
+                            // l'assertion est vraiment nécessaire.
                             helperText={errors.user_id?.message as string}
-                            InputProps={{ ...params.InputProps, endAdornment: (<>{isLoading ? <CircularProgress color="inherit" size={20} /> : null}{params.InputProps.endAdornment}</>) }}
+                            slotProps={{
+                                input: {
+                                    ...params.InputProps,
+                                    endAdornment: (<>{isLoading ? <CircularProgress color="inherit" size={20} /> : null}{params.InputProps.endAdornment}</>),
+                                },
+                            }}
                         />
                     )}
                     sx={{ mb: 2 }}

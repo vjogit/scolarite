@@ -116,7 +116,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                             slotProps={{
                                 textField: {
                                     error: !!errors.date_debut,
-                                    helperText: errors.date_debut?.message!,
+                                    helperText: errors.date_debut?.message,
                                     fullWidth: true,
                                     sx: { mb: 2 },
                                 }
@@ -137,7 +137,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                             slotProps={{
                                 textField: {
                                     error: !!errors.date_fin,
-                                    helperText: errors.date_fin?.message!,
+                                    helperText: errors.date_fin?.message,
                                     fullWidth: true,
                                     sx: { mb: 2 },
                                 }

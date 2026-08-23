@@ -193,7 +193,9 @@ export default function App() {
   }, [setSession]);
 
   const AUTHENTICATION: Authentication = {
-    signIn: () => { },
+    // Toolpad exige les deux entrées ; l'entrée en session est faite par
+    // Keycloak avant que l'application ne se monte, il n'y a rien à y faire.
+    signIn: () => { /* la connexion est déclenchée par Keycloak lui-même */ },
     signOut: () => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); },
   };
 

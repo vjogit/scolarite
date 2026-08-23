@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Tabs, Tab } from '@mui/material';
 import { useForm, useWatch } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import { UserSelector } from '../../services/UserSelector';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_NOTE } from './def';
@@ -50,30 +50,41 @@ export function NoteEleveDetail() {
 
     const { data: gpaData = [] } = useQuery({
         queryKey: ['gpa-eleve', userId],
-        queryFn: async () => {
-            const res = await apiInstance.get<GpaPeriode[]>(`${ENDPOINT_NOTE}/eleve/gpa?user_id=${userId}`);
-            return res.data;
-        },
-        enabled: !!userId,
+        queryFn: userId
+            ? async () => {
+                const res = await apiInstance.get<GpaPeriode[]>(`${ENDPOINT_NOTE}/eleve/gpa?user_id=${userId}`);
+                return res.data;
+            }
+            : skipToken,
     });
 
     const gpaByPeriode = new Map(gpaData.map(g => [g.periode_name, g]));
 
     const { data: notes = [], isLoading } = useQuery({
         queryKey: ['notes-eleve', userId],
-        queryFn: async () => {
-            const res = await apiInstance.get<NoteEleve[]>(`${ENDPOINT_NOTE}/eleve?user_id=${userId}`);
-            return res.data;
-        },
-        enabled: !!userId,
+        queryFn: userId
+            ? async () => {
+                const res = await apiInstance.get<NoteEleve[]>(`${ENDPOINT_NOTE}/eleve?user_id=${userId}`);
+                return res.data;
+            }
+            : skipToken,
     });
 
     // Grouper par période (ordre conservé) puis UE
     const periodes = notes.reduce<Map<string, Map<string, NoteEleve[]>>>((acc, note) => {
-        if (!acc.has(note.periode_name)) acc.set(note.periode_name, new Map());
-        const ues = acc.get(note.periode_name)!;
-        if (!ues.has(note.unite_enseignement_name)) ues.set(note.unite_enseignement_name, []);
-        ues.get(note.unite_enseignement_name)!.push(note);
+        // On garde la référence qu'on vient d'insérer plutôt que de la
+        // redemander à la Map, ce qui obligeait à affirmer qu'elle s'y trouve.
+        let ues = acc.get(note.periode_name);
+        if (!ues) {
+            ues = new Map();
+            acc.set(note.periode_name, ues);
+        }
+        let rangees = ues.get(note.unite_enseignement_name);
+        if (!rangees) {
+            rangees = [];
+            ues.set(note.unite_enseignement_name, rangees);
+        }
+        rangees.push(note);
         return acc;
     }, new Map());
 
@@ -114,8 +125,9 @@ export function NoteEleveDetail() {
                     </Tabs>
 
                     <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {gpaByPeriode.has(periodeActive) && (() => {
-                            const gpa = gpaByPeriode.get(periodeActive)!;
+                        {(() => {
+                            const gpa = gpaByPeriode.get(periodeActive);
+                            if (!gpa) return null;
                             return (
                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                     <Chip label={`GPA période : ${gpa.gpa_periode != null ? gpa.gpa_periode.toFixed(2) : 'N/A'}`} color="primary" />
@@ -148,7 +160,7 @@ export function NoteEleveDetail() {
                                                     <TableCell align="center">
                                                         {row.not_evaluated
                                                             ? <Chip label="N.E." size="small" color="warning" />
-                                                            : row.note != null ? row.note : '—'}
+                                                            : row.note ?? '—'}
                                                     </TableCell>
                                                     <TableCell align="center">
                                                         {row.is_rattrapage

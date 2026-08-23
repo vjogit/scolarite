@@ -50,7 +50,13 @@ export interface ResolveurNom {
  * Fabrique un résolveur typé. Le transtypage est sûr par le même argument que
  * dans `freres.ts` : la donnée sous cette clé vient de ce même endpoint, donc
  * ce que `projeter` reçoit est bien un `D`.
+ *
+ * `no-unnecessary-type-parameters` voudrait remplacer `D` par `never` puisqu'il
+ * n'apparaît qu'une fois dans la signature. Mais c'est précisément par lui que
+ * les appelants disent la forme attendue — `resolveur<EntiteNommee>(…)` — et
+ * sans lui leur rappel ne compile plus.
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 function resolveur<D>(segment: string, endpoint: string, nom: (donnee: D) => string): ResolveurNom {
     return {
         endpoint,

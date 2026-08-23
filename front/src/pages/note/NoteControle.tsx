@@ -13,7 +13,7 @@ import { UserSelector } from '../../services/UserSelector';
 import { NoteChartButton } from './NoteChartButton';
 import { useNoteChart } from './useNoteChart';
 import { useRootPath } from '../../services/crud/useRootPath';
-import { useQuery } from '@tanstack/react-query';
+import { skipToken, useQuery } from '@tanstack/react-query';
 import { apiInstance } from '../../services/api';
 import type { Controle } from './Controle';
 import { bornesNote, createNoteField, libelleNote } from './noteField';
@@ -132,7 +132,7 @@ const createNoteMatiereColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteCont
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'version', header: 'Version' },
     {
-        accessorFn: (row) => `${row.lastName || ''} ${row.firstName || ''}`,
+        accessorFn: (row) => `${row.lastName ?? ''} ${row.firstName ?? ''}`,
         header: 'Élève',
     },
     {
@@ -180,8 +180,9 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
     // appel, celui qui existait déjà, suffit à alimenter les deux.
     const { data: controle, isLoading: controleLoading } = useQuery<Controle>({
         queryKey: ['controle', controleId],
-        queryFn: () => apiInstance.get<Controle>(`${ENDPOINT_CONTROLE}/${controleId}`).then(r => r.data),
-        enabled: !!controleId,
+        queryFn: controleId
+            ? () => apiInstance.get<Controle>(`${ENDPOINT_CONTROLE}/${controleId}`).then(r => r.data)
+            : skipToken,
     });
 
     const isRattrapage = controle?.is_rattrapage ?? false;

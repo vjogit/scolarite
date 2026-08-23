@@ -67,7 +67,7 @@ export interface Repository<D extends FieldValues> {
     getName: (data: D) => string;
     update: (data: D) => Promise<D>;
     create: (data: D) => Promise<D>;
-    fetch: (ids: string | undefined) => Promise<D>;
+    fetch: (id: string) => Promise<D>;
     fetchAll: () => Promise<D[]>;
     delete: (id: number[]) => Promise<{ success: boolean }>;
     /** Absent si l'entité n'expose pas d'endpoint d'analyse d'impact. */

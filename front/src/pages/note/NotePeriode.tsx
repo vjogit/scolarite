@@ -36,7 +36,7 @@ export const NotePeriodeFields = ({ register, errors, getValues }: RenderProps<N
             <TextField
                 label="Élève"
                 // On affiche le nom complet récupéré par la requête SQL
-                value={`${getValues("lastName") || ''} ${getValues("firstName") || ''}`}
+                value={`${getValues("lastName") ?? ''} ${getValues("firstName") ?? ''}`}
                 variant="outlined"
                 fullWidth
                 disabled
@@ -60,7 +60,7 @@ export const NotePeriodeFields = ({ register, errors, getValues }: RenderProps<N
 
 const notePeriodeColumns: MRT_ColumnDef<NotePeriode>[] = [
     {
-        accessorFn: (row) => `${row.lastName || ''} ${row.firstName || ''}`,
+        accessorFn: (row) => `${row.lastName ?? ''} ${row.firstName ?? ''}`,
         header: 'Élève',
     },
     {

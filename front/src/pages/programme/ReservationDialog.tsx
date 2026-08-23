@@ -193,9 +193,14 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     });
 
     const deleteMutation = useMutation({
-        mutationFn: () => apiInstance.delete(`/api/v0/planning/reservation/${reservation!.id}`, {
-            data: { ids: [reservation!.id] },
-        }),
+        // La mutation n'est atteignable que depuis le bouton « Supprimer »,
+        // qui n'est rendu qu'en édition. On le dit plutôt que de l'affirmer.
+        mutationFn: () => {
+            if (!reservation) throw new Error('Aucune réservation à supprimer.');
+            return apiInstance.delete(`/api/v0/planning/reservation/${reservation.id}`, {
+                data: { ids: [reservation.id] },
+            });
+        },
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ['reservations', periodeId] });
             void queryClient.invalidateQueries({ queryKey: ['heures',       periodeId] });

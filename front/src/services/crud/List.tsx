@@ -227,7 +227,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     onDensityChange: setDensity,
     onIsFullScreenChange: setIsFullScreen,
     columns: datasource.columns,
-    data: data ? data : [], //data must be memoized or stable (useState, useMemo, defined outside of this component, etc.)
+    data: data ?? [], //data must be memoized or stable (useState, useMemo, defined outside of this component, etc.)
     mrtTheme: (theme) => ({
       baseBackgroundColor: theme.palette.mode === 'dark' ?
         darken(theme.palette.background.default, 0.05) : theme.palette.background.default,
