@@ -36,6 +36,19 @@ export function notifyWarning(notifications: Notifications, message: string): vo
 }
 
 /**
+ * Refus qui demande une décision, et non un simple constat.
+ *
+ * Sans durée : le message porte une liste — les lignes d'une fiche refusée,
+ * avec les noms et les valeurs en cause — qu'il faut lire, parfois recopier,
+ * et souvent comparer au fichier ouvert à côté. Les sept secondes d'une erreur
+ * ordinaire l'effaceraient avant qu'on l'ait parcourue, et l'utilisateur
+ * relancerait l'import à l'aveugle.
+ */
+export function notifyBlocking(notifications: Notifications, message: string): void {
+    notifications.show(message, { severity: 'error' });
+}
+
+/**
  * Annulation réussie. Sévérité `warning` pour signaler le retour en arrière,
  * mais durée d'un succès : il n'y a rien à lire au-delà du fait lui-même.
  */
