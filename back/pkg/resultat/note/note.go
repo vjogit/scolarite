@@ -1,12 +1,15 @@
 package note
 
 import (
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx/v5"
@@ -44,7 +47,17 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := queries.CreateNote(r.Context(), gen.CreateNoteParams{
+	// L'écriture et son maillon de registre se valident ensemble : une note
+	// sans maillon serait invisible à la vérification de chaîne.
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
+	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	id, err := queries.WithTx(tx).CreateNote(r.Context(), gen.CreateNoteParams{
 		Note:         input.Note,
 		Remarque:     input.Remarque,
 		UserID:       input.UserID,
@@ -59,6 +72,27 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		services.ServerError(w, r, err)
+		return
+	}
+
+	if _, _, err := registre.AppendNote(r.Context(), tx, registre.NoteEntry{
+		Op:           registre.OpNoteCreate,
+		NoteID:       id,
+		UserID:       input.UserID,
+		ControleID:   input.ControleID,
+		NewNote:      input.Note,
+		NotEvaluated: input.NotEvaluated,
+		IsValidated:  input.IsValidated,
+		RemarqueHash: registre.HashRemarque(input.Remarque),
+		AuthorSub:    services.SubFromCtx(r),
+		EventAt:      time.Now(),
+	}); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 
@@ -306,7 +340,15 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	version, err := queries.UpdateNote(r.Context(), gen.UpdateNoteParams{
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
+	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	version, err := queries.WithTx(tx).UpdateNote(r.Context(), gen.UpdateNoteParams{
 		ID:           input.ID,
 		Version:      input.Version,
 		Note:         input.Note,
@@ -329,6 +371,34 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// L'ancienne valeur vient de la note lue par NoteUse — la ligne réellement
+	// visée, pas le corps de la requête.
+	var oldNote *float32
+	if existing := getNoteFromCtx(r); existing != nil {
+		oldNote = existing.Note
+	}
+	if _, _, err := registre.AppendNote(r.Context(), tx, registre.NoteEntry{
+		Op:           registre.OpNoteUpdate,
+		NoteID:       input.ID,
+		UserID:       input.UserID,
+		ControleID:   controleID,
+		OldNote:      oldNote,
+		NewNote:      input.Note,
+		NotEvaluated: input.NotEvaluated,
+		IsValidated:  input.IsValidated,
+		RemarqueHash: registre.HashRemarque(input.Remarque),
+		AuthorSub:    services.SubFromCtx(r),
+		EventAt:      time.Now(),
+	}); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
+		return
+	}
+
 	slog.Debug("Note mise à jour", "id", input.ID)
 	input.Version = version
 	render.JSON(w, r, input)
@@ -347,9 +417,28 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	err := queries.DeleteNote(r.Context(), input.IDs)
+	// Les maillons note.delete se posent avant le DELETE, dans la même
+	// transaction : l'état détruit doit être lu tant qu'il existe.
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	if _, err := registre.TracerSuppressionNotes(r.Context(), tx, input.IDs, services.SubFromCtx(r)); err != nil {
 		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := queries.WithTx(tx).DeleteNote(r.Context(), input.IDs); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 

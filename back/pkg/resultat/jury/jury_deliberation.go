@@ -1,12 +1,14 @@
 package jury
 
 import (
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat/jury/gen"
 	"cyb-react/pkg/services"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -104,6 +106,8 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 
 	// Filtrer les lignes de cet élève
 	var nbUes int
+	authorSub := services.SubFromCtx(r)
+	delibereAt := time.Now()
 	for _, row := range rows {
 		if row.UserID != int32(userID) {
 			continue
@@ -136,6 +140,22 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 			CompteCumul:         req.CompteCumul,
 		}); err != nil {
 			services.ServerError(w, r, fmt.Errorf("écriture jury_result UE %d: %w", row.UniteEnseignementID, err))
+			return
+		}
+
+		if _, _, err := registre.AppendJury(r.Context(), tx, registre.JuryEntry{
+			Op:                  registre.OpJuryDeliberate,
+			UserID:              int32(userID),
+			PeriodeID:           int32(periodeID),
+			UniteEnseignementID: row.UniteEnseignementID,
+			Grade:               grade,
+			GpaIndex:            gpaIndex,
+			Ects:                ects,
+			CompteCumul:         req.CompteCumul,
+			AuthorSub:           authorSub,
+			EventAt:             delibereAt,
+		}); err != nil {
+			services.ServerError(w, r, err)
 			return
 		}
 		nbUes++
@@ -217,6 +237,8 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	// Compter les UE écrites par userID
 	nbUesByUser := make(map[int32]int, len(req.Users))
 	var errs []string
+	authorSub := services.SubFromCtx(r)
+	delibereAt := time.Now()
 
 	// Les dossiers incomplets sortent de la sélection avant toute écriture, et
 	// sont signalés un par un : une délibération groupée doit dire qui elle a
@@ -264,6 +286,23 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 		}); err != nil {
 			errs = append(errs, fmt.Sprintf("élève %d UE %d: %v", row.UserID, row.UniteEnseignementID, err))
 		} else {
+			// Un échec d'écriture du maillon, lui, est fatal : un résultat
+			// délibéré sans trace ne doit pas pouvoir se committer.
+			if _, _, err := registre.AppendJury(r.Context(), tx, registre.JuryEntry{
+				Op:                  registre.OpJuryDeliberate,
+				UserID:              row.UserID,
+				PeriodeID:           int32(periodeID),
+				UniteEnseignementID: row.UniteEnseignementID,
+				Grade:               grade,
+				GpaIndex:            gpaIndex,
+				Ects:                ects,
+				CompteCumul:         entry.CompteCumul,
+				AuthorSub:           authorSub,
+				EventAt:             delibereAt,
+			}); err != nil {
+				services.ServerError(w, r, err)
+				return
+			}
 			nbUesByUser[row.UserID]++
 		}
 	}
@@ -309,12 +348,34 @@ func AnnulerDeliberation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	queries := getQueriesFromCtx(r)
+	// Les maillons jury.cancel se posent avant le DELETE, dans la même
+	// transaction : les valeurs annulées doivent être lues tant qu'elles
+	// existent.
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
+	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	if _, err := registre.TracerAnnulationJury(r.Context(), tx,
+		int32(userID), int32(periodeID), services.SubFromCtx(r)); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	queries := getQueriesFromCtx(r).WithTx(tx)
 	if err := queries.DeleteJuryResultByUserPeriode(r.Context(), gen.DeleteJuryResultByUserPeriodeParams{
 		UserID:    int32(userID),
 		PeriodeID: int32(periodeID),
 	}); err != nil {
 		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit: %w", err))
 		return
 	}
 

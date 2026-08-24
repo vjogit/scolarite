@@ -1,6 +1,7 @@
 package note
 
 import (
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
 	"errors"
@@ -11,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx/v5"
@@ -219,6 +221,8 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 
 	qtx := queries.WithTx(tx)
 	result := ImportFicheResult{ControleID: controleID, Ignorees: ignorees}
+	authorSub := services.SubFromCtx(r)
+	importAt := time.Now()
 
 	for _, ligne := range aEcrire {
 		note := ligne.note
@@ -239,11 +243,27 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 				services.ServerError(w, r, fmt.Errorf("import fiche : mise à jour impossible (controle %d, user %d): %w", controleID, ligne.userID, err))
 				return
 			}
+			if _, _, err := registre.AppendNote(r.Context(), tx, registre.NoteEntry{
+				Op:           registre.OpNoteUpdate,
+				NoteID:       existante.ID,
+				UserID:       existante.UserID,
+				ControleID:   controleID,
+				OldNote:      existante.Note,
+				NewNote:      &note,
+				NotEvaluated: existante.NotEvaluated,
+				IsValidated:  existante.IsValidated,
+				RemarqueHash: registre.HashRemarque(existante.Remarque),
+				AuthorSub:    authorSub,
+				EventAt:      importAt,
+			}); err != nil {
+				services.ServerError(w, r, err)
+				return
+			}
 			result.Updated++
 			continue
 		}
 
-		_, err = qtx.CreateNote(r.Context(), gen.CreateNoteParams{
+		id, err := qtx.CreateNote(r.Context(), gen.CreateNoteParams{
 			Note:         &note,
 			Remarque:     nil,
 			UserID:       ligne.userID,
@@ -253,6 +273,19 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			services.ServerError(w, r, fmt.Errorf("import fiche : création impossible (controle %d, user %d): %w", controleID, ligne.userID, err))
+			return
+		}
+		if _, _, err := registre.AppendNote(r.Context(), tx, registre.NoteEntry{
+			Op:           registre.OpNoteCreate,
+			NoteID:       id,
+			UserID:       ligne.userID,
+			ControleID:   controleID,
+			NewNote:      &note,
+			RemarqueHash: registre.HashRemarque(nil),
+			AuthorSub:    authorSub,
+			EventAt:      importAt,
+		}); err != nil {
+			services.ServerError(w, r, err)
 			return
 		}
 		result.Created++

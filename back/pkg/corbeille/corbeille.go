@@ -9,6 +9,7 @@ package corbeille
 import (
 	"context"
 	"cyb-react/pkg/corbeille/gen"
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/services"
 	"errors"
 	"fmt"
@@ -376,6 +377,14 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Rollback(r.Context())
+
+	// Chaque note que la cascade va détruire laisse un maillon note.purge dans
+	// le registre — lu avant le DELETE, dans la même transaction. Les volumes
+	// sont bornés : la purge d'une période délibérée est refusée plus haut.
+	if _, err := registre.TracerPurgeNotes(r.Context(), tx, op.RacineType, rootIDs, services.SubFromCtx(r)); err != nil {
+		services.ServerError(w, r, fmt.Errorf("corbeille : traçage de purge impossible (op %d): %w", op.ID, err))
+		return
+	}
 
 	txQueries := gen.New(tx)
 	switch op.RacineType {

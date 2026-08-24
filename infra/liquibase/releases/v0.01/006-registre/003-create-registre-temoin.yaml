@@ -1,0 +1,75 @@
+databaseChangeLog:
+
+  # ---- public.registre_temoin ------------------------------------------------
+  # Journal des témoins externes — PRÉPARÉ, NON CÂBLÉ dans ce lot.
+  # Après chaque ancrage RFC 3161, un témoin (seq + hash + jeton + certificat)
+  # partira par courriel vers une boîte contrôlée par un TIERS : une chaîne
+  # réécrite puis ré-ancrée en base ne peut pas correspondre aux témoins déjà
+  # reçus. Cette table ne porte que le suivi d'envoi (idempotence + couverture) ;
+  # la preuve elle-même vit dans la boîte destinataire.
+  #
+  # RGPD : aucune donnée personnelle — uniquement des références d'ancres.
+  - changeSet:
+      id: v0.01-registre-003-create-table-registre-temoin
+      author: vjo
+      changes:
+        - createTable:
+            tableName: registre_temoin
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ancre_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: registre_seq
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recipient
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sent_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: error
+                  type: TEXT
+        - createIndex:
+            tableName: registre_temoin
+            schemaName: public
+            indexName: idx_registre_temoin_ancre
+            columns:
+              - column:
+                  name: ancre_id
+        - addForeignKeyConstraint:
+            baseTableName: registre_temoin
+            baseTableSchemaName: public
+            baseColumnNames: ancre_id
+            referencedTableSchemaName: public
+            referencedTableName: registre_ancre
+            referencedColumnNames: id
+            constraintName: fk_registre_temoin_ancre
+            onDelete: RESTRICT
+      rollback:
+        - dropTable:
+            tableName: registre_temoin
+            schemaName: public

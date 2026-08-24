@@ -1,0 +1,138 @@
+databaseChangeLog:
+
+  # ---- public.registre -------------------------------------------------------
+  # Registre chaîné des écritures de notes et de résultats de jury.
+  # Chaque maillon dépend du précédent via prev_hash (SHA-256 du maillon N-1) :
+  # toute modification ou suppression a posteriori est détectable par la
+  # vérification de chaîne (pkg/registre.VerifierChaine).
+  #
+  # Une seule chaîne pour les deux domaines : l'ordre total entre maillons de
+  # note et de jury rend prouvable, par la seule position dans la chaîne, qu'une
+  # note a été modifiée après la délibération. Le champ op discrimine la
+  # famille ; les colonnes de l'autre famille restent NULL.
+  #
+  # AUCUNE clé étrangère, à dessein : la purge de la corbeille et l'effacement
+  # RGPD (art. 17) détruisent légitimement des lignes auxquelles le registre
+  # survit. Ses identifiants sont des entiers nus, résolubles tant que la
+  # correspondance (ligne user) existe — voir docs/rgpd-registre.md.
+  #
+  # Minimisation (art. 5.1.c) : jamais de texte libre ni de donnée nominative.
+  # La remarque d'une note n'entre que par son SHA-256 (remarque_hash).
+  - changeSet:
+      id: v0.01-registre-001-create-table-registre
+      author: vjo
+      changes:
+        - createTable:
+            tableName: registre
+            schemaName: public
+            columns:
+              - column:
+                  name: seq
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  # note.create / note.update / note.delete / note.purge /
+                  # note.erase / jury.deliberate / jury.cancel / jury.erase
+                  name: op
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  # L'élève concerné — seul champ commun aux deux familles.
+                  name: user_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              # ---- famille note.* ----
+              - column:
+                  name: note_id
+                  type: INTEGER
+              - column:
+                  name: controle_id
+                  type: INTEGER
+              - column:
+                  name: old_note
+                  type: REAL
+              - column:
+                  name: new_note
+                  type: REAL
+              - column:
+                  name: not_evaluated
+                  type: BOOLEAN
+              - column:
+                  name: is_validated
+                  type: BOOLEAN
+              - column:
+                  # SHA-256 hex de la remarque ; hash de la chaîne vide si absente.
+                  name: remarque_hash
+                  type: CHAR(64)
+              # ---- famille jury.* ----
+              - column:
+                  name: periode_id
+                  type: INTEGER
+              - column:
+                  name: unite_enseignement_id
+                  type: INTEGER
+              - column:
+                  name: grade
+                  type: TEXT
+              - column:
+                  name: gpa_index
+                  type: INTEGER
+              - column:
+                  name: ects
+                  type: REAL
+              - column:
+                  name: compte_cumul
+                  type: BOOLEAN
+              # ---- imputabilité et chaînage ----
+              - column:
+                  # sub Keycloak de l'agent auteur (Code civil 1366).
+                  name: author_sub
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: event_at
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  # Fourni explicitement par l'application (pas de DEFAULT) :
+                  # sa valeur doit être connue avant le calcul du hash.
+                  name: recorded_at
+                  type: TIMESTAMPTZ
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prev_hash
+                  type: CHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hash
+                  type: CHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+        - createIndex:
+            tableName: registre
+            schemaName: public
+            indexName: idx_registre_user
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            tableName: registre
+            schemaName: public
+            indexName: idx_registre_note
+            columns:
+              - column:
+                  name: note_id
+      rollback:
+        - dropTable:
+            tableName: registre
+            schemaName: public

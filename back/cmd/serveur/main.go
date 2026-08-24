@@ -4,6 +4,7 @@ import (
 	"cyb-react/pkg/certification"
 	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/planning"
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure"
@@ -85,6 +86,11 @@ func main() {
 	r.Route("/api/v0/planning", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		planning.RoutePlanning(r)
+	})
+
+	r.Route("/api/v0/registre", func(r chi.Router) {
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
+		registre.RouteRegistre(r)
 	})
 
 	r.Route("/api/v0/corbeille", func(r chi.Router) {

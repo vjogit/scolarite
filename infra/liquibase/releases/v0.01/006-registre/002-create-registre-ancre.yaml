@@ -1,0 +1,78 @@
+databaseChangeLog:
+
+  # ---- public.registre_ancre -------------------------------------------------
+  # Points d'ancrage externes RFC 3161 — PRÉPARÉ, NON CÂBLÉ dans ce lot.
+  # Chaque ancre scellera le dernier hash du registre auprès d'une autorité
+  # d'horodatage (TSA), protégeant l'extrémité de la chaîne (le dernier maillon
+  # n'a pas de successeur). Le jeton et le certificat TSA sont archivés ensemble
+  # pour rester vérifiables même si la TSA disparaît.
+  #
+  # RGPD : seul le hash SHA-256 (32 octets, dont rien n'est déductible)
+  # transitera vers la TSA — contractuel, voir docs/rgpd-registre.md.
+  - changeSet:
+      id: v0.01-registre-002-create-table-registre-ancre
+      author: vjo
+      changes:
+        - createTable:
+            tableName: registre_ancre
+            schemaName: public
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: registre_seq
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: anchored_hash
+                  type: CHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tsa_url
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: hash_algorithm
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  # Jeton d'horodatage RFC 3161 brut (RawToken).
+                  name: token
+                  type: BYTEA
+                  constraints:
+                    nullable: false
+              - column:
+                  # Certificat(s) TSA au format PEM, archivés avec le jeton.
+                  name: tsa_cert
+                  type: BYTEA
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+        # La seule FK du dispositif : une ancre référence un maillon du
+        # registre, et le registre ne se purge jamais — RESTRICT est ici le
+        # comportement voulu (une ancre sans maillon serait une preuve orpheline).
+        - addForeignKeyConstraint:
+            baseTableName: registre_ancre
+            baseTableSchemaName: public
+            baseColumnNames: registre_seq
+            referencedTableSchemaName: public
+            referencedTableName: registre
+            referencedColumnNames: seq
+            constraintName: fk_registre_ancre_registre
+            onDelete: RESTRICT
+      rollback:
+        - dropTable:
+            tableName: registre_ancre
+            schemaName: public

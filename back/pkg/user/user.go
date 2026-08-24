@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/user/gen"
 	"errors"
@@ -337,10 +338,31 @@ func Delete(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig
 		}
 	}
 
-	err := queries.DeleteUser(ctx, input.IDs)
+	// L'effacement d'une personne détruit la correspondance (la ligne user) et,
+	// par cascade, ses notes et résultats de jury. Chaque ligne emportée laisse
+	// un maillon note.erase ou jury.erase dans le registre, écrit avant le
+	// DELETE dans la même transaction — voir docs/rgpd-registre.md.
+	pgCtx := services.GetPgCtx(ctx)
+	tx, err := pgCtx.Db.Begin(ctx)
 	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := registre.TracerEffacementUtilisateurs(ctx, tx, input.IDs, services.SubFromCtx(r)); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := queries.WithTx(tx).DeleteUser(ctx, input.IDs); err != nil {
 		slog.Error("suppression users impossible", "ids", input.IDs, "err", err)
 		services.ServerError(w, r, fmt.Errorf("Erreur lors de la suppression: %w", err))
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 
