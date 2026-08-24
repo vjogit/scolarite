@@ -54,7 +54,7 @@ func fetchGrille(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func fetchGrille(w http.ResponseWriter, r *http.Request) {
 		GroupeID:   groupeID,
 	})
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if lignes == nil {

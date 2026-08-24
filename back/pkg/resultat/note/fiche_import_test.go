@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"cyb-react/pkg/resultat/note/gen"
@@ -130,11 +129,12 @@ func TestLireFiche_NoteSurUnAbsentRefuseLaFiche(t *testing.T) {
 	require.True(t, anomalies[0].conflit, "c'est un conflit d'état, pas un défaut de fichier")
 	require.Empty(t, aEcrire, "rien ne s'écrit tant qu'une anomalie subsiste")
 
-	message := anomalies[0].message
-	require.Contains(t, message, "Ligne 14", "la ligne du tableur doit être désignée")
-	require.Contains(t, message, "Nguyen Chloé", "l'élève doit être nommé")
-	require.Contains(t, message, "Absente justifiée", "le motif consigné rend le conflit arbitrable")
-	require.Contains(t, message, "12", "la note en cause doit figurer")
+	a := anomalies[0].LigneErreur
+	require.Equal(t, 14, a.Ligne, "la ligne du tableur doit être désignée")
+	require.Equal(t, services.MotifNoteSurNonEvalue, a.Motif)
+	require.Equal(t, "Nguyen Chloé", a.Eleve, "l'élève doit être nommé")
+	require.Equal(t, "Absente justifiée", a.Remarque, "le motif consigné rend le conflit arbitrable")
+	require.Equal(t, "12", a.Valeur, "la note en cause doit figurer")
 }
 
 func TestLireFiche_ConflitSansRemarqueResteLisible(t *testing.T) {
@@ -145,7 +145,7 @@ func TestLireFiche_ConflitSansRemarqueResteLisible(t *testing.T) {
 	_, anomalies, _ := lireFiche(lignes([2]string{"7", "9"}), 20, etat)
 
 	require.Len(t, anomalies, 1)
-	require.NotContains(t, anomalies[0].message, "()", "pas de parenthèses vides faute de motif")
+	require.Empty(t, anomalies[0].Remarque, "pas de remarque inventée faute de motif consigné")
 }
 
 // Les conflits d'absence arrivent par paquets : les signaler un à un
@@ -189,12 +189,14 @@ func TestLireFiche_ValeursRefuseesParLeFichier(t *testing.T) {
 	for _, a := range anomalies {
 		require.False(t, a.conflit, "un défaut de fichier n'est pas un conflit d'état")
 	}
-	require.Contains(t, anomalies[0].message, "25")
-	require.Contains(t, anomalies[0].message, "entre 0 et 20")
+	require.Equal(t, services.MotifNoteHorsBareme, anomalies[0].Motif)
+	require.Equal(t, "25", anomalies[0].Valeur)
+	require.Equal(t, 14, anomalies[0].Ligne)
 	// Le repli « illisible vaut non évalué » décidait au nom de l'utilisateur
 	// à partir d'une faute de frappe. Il doit désormais se voir.
-	require.Contains(t, anomalies[1].message, "abs")
-	require.Contains(t, strings.ToLower(anomalies[1].message), "laissez la cellule vide")
+	require.Equal(t, services.MotifCelluleInvalide, anomalies[1].Motif)
+	require.Equal(t, "abs", anomalies[1].Valeur)
+	require.Equal(t, 15, anomalies[1].Ligne)
 }
 
 func TestLireFiche_IgnoreLesLignesHorsDonnees(t *testing.T) {

@@ -22,7 +22,7 @@ func FetchHeuresByPeriode(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
 	rows, err = queries.FetchHeuresByPeriode(r.Context(), int32(periodeID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

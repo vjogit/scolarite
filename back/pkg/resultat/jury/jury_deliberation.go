@@ -77,7 +77,7 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 	pgCtx := services.GetPgCtx(r.Context())
 	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur début transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -87,7 +87,7 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 	// Calcul dynamique des résultats actuels de l'élève
 	rows, err := queries.Get_gpa_ues_by_periode_v5(r.Context(), int32(periodeID))
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("calcul GPA: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("calcul GPA: %w", err))
 		return
 	}
 
@@ -135,7 +135,7 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 			Ects:                ects,
 			CompteCumul:         req.CompteCumul,
 		}); err != nil {
-			services.InternalServerError(w, r, fmt.Sprintf("écriture jury_result UE %d: %v", row.UniteEnseignementID, err), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("écriture jury_result UE %d: %w", row.UniteEnseignementID, err))
 			return
 		}
 		nbUes++
@@ -149,7 +149,7 @@ func DelibererEleve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur commit: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur commit: %w", err))
 		return
 	}
 
@@ -200,7 +200,7 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	pgCtx := services.GetPgCtx(r.Context())
 	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur début transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -210,7 +210,7 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	// Récupérer toutes les lignes GPA de la période en une seule requête
 	rows, err := queries.Get_gpa_ues_by_periode_v5(r.Context(), int32(periodeID))
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("calcul GPA: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("calcul GPA: %w", err))
 		return
 	}
 
@@ -281,7 +281,7 @@ func DelibererBulk(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur commit: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur commit: %w", err))
 		return
 	}
 
@@ -314,7 +314,7 @@ func AnnulerDeliberation(w http.ResponseWriter, r *http.Request) {
 		UserID:    int32(userID),
 		PeriodeID: int32(periodeID),
 	}); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -331,7 +331,7 @@ func FetchDeliberations(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
 	rows, err := queries.FetchJuryResultByPeriode(r.Context(), int32(periodeID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if rows == nil {

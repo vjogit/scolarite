@@ -4,7 +4,6 @@ import (
 	"context"
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
-	"fmt"
 	"strconv"
 )
 
@@ -15,31 +14,22 @@ import (
 // (chk_note_max_absolu) contre les écritures qui contourneraient l'application.
 
 // formatDecimal rend un réel sans décimale superflue : « 20 » et non
-// « 20.00 », pour que les messages affichés à l'utilisateur restent lisibles.
+// « 20.00 », pour que les valeurs transportées restent lisibles telles quelles.
 func formatDecimal(valeur float32) string {
 	return strconv.FormatFloat(float64(valeur), 'f', -1, 32)
 }
 
-// messageHorsBareme est le libellé unique de la borne, partagé par la saisie
-// unitaire et l'import : deux formulations divergentes pour la même règle
-// désorienteraient l'utilisateur qui passe de l'une à l'autre.
-func messageHorsBareme(bareme float32) string {
-	return fmt.Sprintf("La note doit être comprise entre 0 et %s", formatDecimal(bareme))
-}
-
-// validateNote vérifie 0 ≤ note ≤ bareme et retourne le message d'erreur, ou
-// une chaîne vide si la note est acceptable.
+// noteHorsBareme vérifie 0 ≤ note ≤ bareme. Le mot qui accompagne le refus vit
+// dans errorMessages.ts, avec la borne transportée en donnée (Max) — la saisie
+// unitaire et l'import partagent ainsi la même formulation sans la posséder.
 //
 // Une note absente reste valide : c'est le cas « non évalué », où l'absence de
 // valeur est l'information elle-même et non une valeur hors barème.
-func validateNote(note *float32, bareme float32) string {
+func noteHorsBareme(note *float32, bareme float32) bool {
 	if note == nil {
-		return ""
+		return false
 	}
-	if *note < 0 || *note > bareme {
-		return messageHorsBareme(bareme)
-	}
-	return ""
+	return *note < 0 || *note > bareme
 }
 
 // fetchBareme remonte la chaîne controle → matiere → ue → periode → option →
@@ -49,11 +39,12 @@ func fetchBareme(ctx context.Context, queries *gen.Queries, controleID int32) (f
 }
 
 // noteFieldError construit la charge utile attendue par le formulaire : le
-// front route details.errors.<champ> vers setError via fieldErrorsFor.
-func noteFieldError(message string) map[string]interface{} {
-	return map[string]interface{}{
+// front route errors.<champ> vers setError via fieldErrorsFor, et lit Max
+// pour composer « entre 0 et N ».
+func noteFieldError(bareme float32) map[string]any {
+	return map[string]any{
 		"errors": map[string]services.ConstraintError{
-			"note": {Message: message},
+			"note": {Motif: services.MotifNoteHorsBareme, Max: &bareme},
 		},
 	}
 }

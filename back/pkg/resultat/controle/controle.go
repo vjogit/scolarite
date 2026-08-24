@@ -14,15 +14,15 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Controle"
 var controleConstraints = map[string]services.ConstraintRule{
-	"chk_controle_name_length":    {Field: "name", Message: "Ce champ est obligatoire"},
-	"chk_controle_coeff_positive": {Field: "coeff", Message: "Le coefficient doit être positif"},
-	"fk_controles_matieres":       {Field: "matiere_id", Message: "La matière n'existe pas"},
+	"chk_controle_name_length":    {Field: "name", Motif: services.MotifChampObligatoire},
+	"chk_controle_coeff_positive": {Field: "coeff", Motif: services.MotifValeurNegative},
+	"fk_controles_matieres":       {Field: "matiere_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreateControle(w http.ResponseWriter, r *http.Request) {
 	var input gen.Controle
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -44,7 +44,7 @@ func CreateControle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -85,13 +85,13 @@ func FetchControlesByMatiereID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Matière introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	controles, err = queries.FetchControlesByMatiereId(r.Context(), int32(fID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if controles == nil {
@@ -104,7 +104,7 @@ func FetchControlesByMatiereID(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.Controle
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -132,7 +132,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -149,7 +149,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -157,7 +157,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteControle(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

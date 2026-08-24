@@ -14,17 +14,17 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Note"
 var noteConstraints = map[string]services.ConstraintRule{
-	"chk_note_positive":  {Field: "note", Message: "La note doit être positive"},
-	"fk_notes_controles": {Field: "controle_id", Message: "Le contrôle n'existe pas"},
+	"chk_note_positive":  {Field: "note", Motif: services.MotifValeurNegative},
+	"fk_notes_controles": {Field: "controle_id", Motif: services.MotifReferenceInconnue},
 	// Filet de sécurité en base : la borne réelle est le barème de la
 	// promotion, appliquée par validateNote avant l'écriture.
-	"chk_note_max_absolu": {Field: "note", Message: "La note dépasse la valeur maximale autorisée"},
+	"chk_note_max_absolu": {Field: "note", Motif: services.MotifNoteMaxAbsolu},
 }
 
 func CreateNote(w http.ResponseWriter, r *http.Request) {
 	var input gen.Note
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -36,11 +36,11 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
-	if message := validateNote(input.Note, bareme); message != "" {
-		services.InvalidRequestError(w, r, "erreur de validation des données de la note", services.VALIDATION_ERROR, noteFieldError(message))
+	if noteHorsBareme(input.Note, bareme) {
+		services.InvalidRequestError(w, r, "erreur de validation des données de la note", services.VALIDATION_ERROR, noteFieldError(bareme))
 		return
 	}
 
@@ -58,7 +58,7 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "erreur de validation des données de la note", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func fetchGpaByUser(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
 	gpa, err := queries.FetchGpaByUserID(r.Context(), int32(uID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if gpa == nil {
@@ -114,7 +114,7 @@ func fetchNotesByUser(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
 	notes, err := queries.FetchNotesByUserID(r.Context(), int32(uID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if notes == nil {
@@ -145,13 +145,13 @@ func fetchControle(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	notes, err := queries.FetchNotesByControleID(r.Context(), int32(cID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if notes == nil {
@@ -183,13 +183,13 @@ func fetchMatiere(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Matière introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	notes, err := queries.FetchNotesByMatiereID(r.Context(), int32(mID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if notes == nil {
@@ -222,13 +222,13 @@ func fetchUE(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "UE introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	notes, err := queries.GetUeStats(r.Context(), int32(ueID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if notes == nil {
@@ -259,13 +259,13 @@ func fetchPeriode(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Période introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	notes, err := queries.FetchGpaDelibereByPeriodeID(r.Context(), int32(pID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if notes == nil {
@@ -278,7 +278,7 @@ func fetchPeriode(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.Note
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -298,11 +298,11 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
-	if message := validateNote(input.Note, bareme); message != "" {
-		services.InvalidRequestError(w, r, "erreur de validation", services.VALIDATION_ERROR, noteFieldError(message))
+	if noteHorsBareme(input.Note, bareme) {
+		services.InvalidRequestError(w, r, "erreur de validation", services.VALIDATION_ERROR, noteFieldError(bareme))
 		return
 	}
 
@@ -325,7 +325,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -341,7 +341,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -349,7 +349,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteNote(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

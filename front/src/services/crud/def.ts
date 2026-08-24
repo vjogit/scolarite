@@ -268,10 +268,16 @@ export function handleAxiosError(error: unknown) {
     // d'une erreur, et `isAxiosError` est le test que fournit la bibliothèque.
     // Le typer ici évite que chaque `catch` du projet ait à le refaire.
     if (isAxiosError(error) && error.response) {
-        // L'erreur vient du serveur (400, 401, 409...)
-        // `data` est `any` dans les types d'axios : la seule chose honnête est
-        // de le nommer pour ce qu'il est — la réponse d'erreur du serveur.
-        return new ApiError(error.response.status, error.response.data as ErrorResponse);
+        // Seul un corps application/problem+json est une enveloppe formée :
+        // c'est ce qui distingue structurellement une erreur du serveur d'un
+        // HTML de proxy ou d'un backend coupé derrière nginx. Sans enveloppe,
+        // le payload reste vide et l'affichage retombe sur le message
+        // générique — jamais sur un extrait du corps.
+        const contentType = String(error.response.headers['content-type'] ?? '');
+        if (contentType.includes('application/problem+json')) {
+            return new ApiError(error.response.status, error.response.data as ErrorResponse);
+        }
+        return new ApiError(error.response.status, undefined);
     }
     return new Error("Erreur réseau ou serveur injoignable");
 }
@@ -292,8 +298,17 @@ export class ApiError extends Error {
     }
 }
 
+/**
+ * Corps d'erreur RFC 9457 (application/problem+json). `code` est le membre
+ * d'extension sur lequel le front route ; les autres extensions (`errors`,
+ * `lignes`, `reason`, `instance`…) sont lues par errorMessages.ts.
+ */
 export interface ErrorResponse {
+    type?: string
+    title?: string
+    status?: number
+    detail?: string
+    instance?: string
     code: string
-    message: string
-    details?: unknown
+    [extension: string]: unknown
 }

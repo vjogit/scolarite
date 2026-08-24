@@ -14,15 +14,15 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Toeic"
 var toeicConstraints = map[string]services.ConstraintRule{
-	"chk_toeic_name_length":    {Field: "name", Message: "Ce champ est obligatoire"},
-	"chk_toeic_coeff_positive": {Field: "coeff", Message: "Le coefficient doit être positif"},
-	"fk_toeics_matieres":       {Field: "promotion_id", Message: "La matière n'existe pas"},
+	"chk_toeic_name_length":    {Field: "name", Motif: services.MotifChampObligatoire},
+	"chk_toeic_coeff_positive": {Field: "coeff", Motif: services.MotifValeurNegative},
+	"fk_toeics_matieres":       {Field: "promotion_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreateToeic(w http.ResponseWriter, r *http.Request) {
 	var input gen.Toeic
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -44,7 +44,7 @@ func CreateToeic(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -82,13 +82,13 @@ func FetchToeicsByPromotionID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Matière introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	toeics, err := queries.FetchToeicsByPromotionId(r.Context(), int32(fID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if toeics == nil {
@@ -101,7 +101,7 @@ func FetchToeicsByPromotionID(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.Toeic
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -128,7 +128,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -145,7 +145,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -153,7 +153,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteToeic(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

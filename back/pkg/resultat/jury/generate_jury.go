@@ -22,7 +22,7 @@ func GenerateJury(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(periodeID)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "identifiant invalide", services.INVALID_PARAM, nil)
 		return
 	}
 
@@ -38,7 +38,7 @@ func GenerateJury(w http.ResponseWriter, r *http.Request) {
 
 	err = s.GenerateJury(f)
 	if err != nil {
-		services.InternalServerError(w, r, "Erreur lors de la génération du fichier Excel", services.INTERNAL_ERROR, err)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de la génération du fichier Excel: %w", err))
 		return
 	}
 
@@ -47,7 +47,7 @@ func GenerateJury(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"jury_%s.xlsx\"", periodeID))
 
 	if err := f.Write(w); err != nil {
-		services.InternalServerError(w, r, "Erreur lors de l'écriture du fichier Excel", services.INTERNAL_ERROR, err)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de l'écriture du fichier Excel: %w", err))
 		return
 	}
 }

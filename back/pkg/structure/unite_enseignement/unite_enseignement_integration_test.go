@@ -87,7 +87,7 @@ func TestIntegration_CreateUniteEnseignement(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "positif", // Vérifiez que votre mapping d'erreur contient ce mot clé
+			expectedError:  "valeur_negative", // Vérifiez que votre mapping d'erreur contient ce mot clé
 		},
 		{
 			name: "Echec - Période ID Invalide (FK)",
@@ -103,7 +103,7 @@ func TestIntegration_CreateUniteEnseignement(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "n'existe pas",
+			expectedError:  "reference_inconnue",
 		},
 	}
 

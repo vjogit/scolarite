@@ -12,13 +12,13 @@ import (
 )
 
 var salleConstraints = map[string]services.ConstraintRule{
-	"salle_name_key": {Field: "name", Message: "Cette valeur est déjà utilisée"},
+	"salle_name_key": {Field: "name", Motif: services.MotifValeurDejaUtilisee},
 }
 
 func CreateSalle(w http.ResponseWriter, r *http.Request) {
 	var input gen.Salle
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -37,7 +37,7 @@ func CreateSalle(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "erreur de validation", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func FetchAllSalle(w http.ResponseWriter, r *http.Request) {
 
 	salles, err := queries.FetchAllSalle(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if salles == nil {
@@ -71,7 +71,7 @@ func FetchAllSalle(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.Salle
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -96,7 +96,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -112,7 +112,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -120,7 +120,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteSalle(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

@@ -70,7 +70,7 @@ func TestIntegration_CreateOption(t *testing.T) {
 				return gen.Option{Name: "", PromotionID: promoID}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Ce champ est obligatoire",
+			expectedError:  "champ_obligatoire",
 		},
 		{
 			name: "Echec - Promotion ID invalide (FK)",
@@ -82,7 +82,7 @@ func TestIntegration_CreateOption(t *testing.T) {
 				return gen.Option{Name: "Option Orpheline", PromotionID: promoID}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "La promotion spécifiée n'existe pas",
+			expectedError:  "reference_inconnue",
 		},
 	}
 

@@ -1,21 +1,24 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { apiInstance } from "../../services/api";
 import { ENDPOINT_USER, USER } from "./def";
 import { IconButton, Tooltip } from "@mui/material";
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError, notifySuccess } from '../../services/notify';
+import { lignesFor, messageForError, type LignesRefusees } from '../../services/errorMessages';
+import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
 
 /** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
-const LIBELLE = 'Importer des utilisateurs depuis un fichier YAML';
+const LIBELLE = 'Importer des utilisateurs depuis un fichier Excel';
 
 export function UserImportButton() {
 
     const notifications = useNotifications();
     const queryClient = useQueryClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [refus, setRefus] = useState<LignesRefusees | null>(null);
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -29,8 +32,14 @@ export function UserImportButton() {
             void queryClient.invalidateQueries({ queryKey: [USER] });
             notifySuccess(notifications, "Import des utilisateurs réussi.");
         } catch (error) {
-            console.error("Import failed", error);
-            notifyError(notifications, "Erreur lors de l'import.");
+            // Un refus qui désigne ses lignes — email manquant, nature ou rôle
+            // inconnus — s'affiche en tableau, à corriger fichier ouvert à côté.
+            const lignes = lignesFor(error);
+            if (lignes !== null) {
+                setRefus(lignes);
+            } else {
+                notifyError(notifications, messageForError(error));
+            }
         } finally {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
@@ -50,7 +59,12 @@ export function UserImportButton() {
                 ref={fileInputRef}
                 style={{ display: 'none' }}
                 onChange={(event) => { void handleFileChange(event); }}
-                accept=".yaml,.yml"
+                accept=".xlsx"
+            />
+            <LignesRefuseesDialog
+                refus={refus}
+                sousTitre="Aucun utilisateur n'a été importé. Corrigez le fichier puis relancez l'import."
+                onClose={() => { setRefus(null); }}
             />
         </>
     )

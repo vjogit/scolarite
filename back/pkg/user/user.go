@@ -18,8 +18,8 @@ import (
 
 // Définition des contraintes spécifiques au domaine "User"
 var userConstraints = map[string]services.ConstraintRule{
-	"user_email_key":       {Field: "email", Message: "Cet email est déjà utilisé"},
-	"user_keycloak_id_key": {Field: "keycloak_id", Message: "Cet ID Keycloak est déjà associé"},
+	"user_email_key":       {Field: "email", Motif: services.MotifValeurDejaUtilisee},
+	"user_keycloak_id_key": {Field: "keycloak_id", Motif: services.MotifValeurDejaUtilisee},
 }
 
 // Natures possibles d'une personne. La base est la source de vérité de la
@@ -75,14 +75,14 @@ func validateRoles(roles []string) error {
 func CreateUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig) {
 	var req userRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
-		services.InvalidRequestError(w, r, "corps de requête illisible", services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 	input := req.User
 
 	typePersonne, err := normalizeTypePersonne(input.TypePersonne)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.INVALID_PARAM, nil)
+		services.InvalidRequestError(w, r, "nature de personne invalide", services.INVALID_PARAM, nil)
 		return
 	}
 	input.TypePersonne = typePersonne
@@ -94,7 +94,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakCo
 		return
 	}
 	if err := validateRoles(req.Roles); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.INVALID_PARAM, nil)
+		services.InvalidRequestError(w, r, "rôle non attribuable", services.INVALID_PARAM, nil)
 		return
 	}
 
@@ -112,13 +112,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakCo
 		client, token, realm, err := newKeycloakAdminClient(r.Context(), cfg)
 		if err != nil {
 			slog.Error("connexion Keycloak impossible", "err", err)
-			services.InternalServerError(w, r, "Erreur lors de la création Keycloak", services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("Erreur lors de la création Keycloak: %w", err))
 			return
 		}
 		kcID, created, err = createKeycloakUserWithClient(r.Context(), client, token, realm, &input, req.Roles)
 		if err != nil {
 			slog.Error("création Keycloak impossible", "email", *input.Email, "err", err)
-			services.InternalServerError(w, r, "Erreur lors de la création Keycloak", services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("Erreur lors de la création Keycloak: %w", err))
 			return
 		}
 		input.KeycloakID = &kcID
@@ -158,7 +158,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakCo
 			return
 		}
 		slog.Error("insertion user impossible", "err", err)
-		services.InternalServerError(w, r, "Erreur lors de l'enregistrement", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de l'enregistrement: %w", err))
 		return
 	}
 
@@ -173,7 +173,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakCo
 func FetchUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig) {
 	user := getUserFromCtx(r)
 	if user == nil {
-		services.InternalServerError(w, r, "utilisateur absent du contexte", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, errors.New("utilisateur absent du contexte"))
 		return
 	}
 
@@ -198,7 +198,7 @@ func FetchAllUser(w http.ResponseWriter, r *http.Request) {
 	users, err := queries.FetchAllUser(r.Context())
 	if err != nil {
 		slog.Error("lecture des users impossible", "err", err)
-		services.InternalServerError(w, r, "Erreur de lecture", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur de lecture: %w", err))
 		return
 	}
 	if users == nil {
@@ -221,7 +221,7 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := queries.SearchUsers(r.Context(), q)
 	if err != nil {
 		slog.Error("recherche users impossible", "err", err)
-		services.InternalServerError(w, r, "Erreur de recherche", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur de recherche: %w", err))
 		return
 	}
 
@@ -235,7 +235,7 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig) {
 	var req userRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
-		services.InvalidRequestError(w, r, "corps de requête illisible", services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 	input := req.User
@@ -249,13 +249,13 @@ func Update(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig
 	}
 	typePersonne, err := normalizeTypePersonne(input.TypePersonne)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.INVALID_PARAM, nil)
+		services.InvalidRequestError(w, r, "nature de personne invalide", services.INVALID_PARAM, nil)
 		return
 	}
 	input.TypePersonne = typePersonne
 
 	if err := validateRoles(req.Roles); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.INVALID_PARAM, nil)
+		services.InvalidRequestError(w, r, "rôle non attribuable", services.INVALID_PARAM, nil)
 		return
 	}
 
@@ -269,7 +269,7 @@ func Update(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig
 		// rôles » ; une liste (même vide) les remplace.
 		if err := updateKeycloakUser(r.Context(), *currentUser.KeycloakID, &input, req.Roles, cfg); err != nil {
 			slog.Error("mise à jour Keycloak impossible", "keycloak_id", *currentUser.KeycloakID, "err", err)
-			services.InternalServerError(w, r, "Erreur mise à jour Keycloak", services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("Erreur mise à jour Keycloak: %w", err))
 			return
 		}
 	}
@@ -296,7 +296,7 @@ func Update(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig
 			return
 		}
 		slog.Error("mise à jour user impossible", "id", input.ID, "err", err)
-		services.InternalServerError(w, r, "Erreur lors de l'enregistrement", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de l'enregistrement: %w", err))
 		return
 	}
 
@@ -312,7 +312,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, "corps de requête illisible", services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -340,7 +340,7 @@ func Delete(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig
 	err := queries.DeleteUser(ctx, input.IDs)
 	if err != nil {
 		slog.Error("suppression users impossible", "ids", input.IDs, "err", err)
-		services.InternalServerError(w, r, "Erreur lors de la suppression", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de la suppression: %w", err))
 		return
 	}
 

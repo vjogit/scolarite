@@ -25,7 +25,7 @@ func ExportPeriode(w http.ResponseWriter, r *http.Request) {
 	pQueries := periodeGen.New(pgCtx.Db)
 	periodes, err := pQueries.FetchPeriodesByOptionID(ctx, int32(option_.ID))
 	if err != nil {
-		services.InternalServerError(w, r, "Erreur lors de la récupération des périodes", services.INTERNAL_ERROR, err)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de la récupération des périodes: %w", err))
 		return
 	}
 
@@ -49,7 +49,7 @@ func ExportPeriode(w http.ResponseWriter, r *http.Request) {
 
 		ues, err := ueQueries.FetchUniteEnseignementsByPeriodeID(ctx, p.ID)
 		if err != nil {
-			services.InternalServerError(w, r, "Erreur lors de la récupération des UEs", services.INTERNAL_ERROR, err)
+			services.ServerError(w, r, fmt.Errorf("Erreur lors de la récupération des UEs: %w", err))
 			return
 		}
 
@@ -66,7 +66,7 @@ func ExportPeriode(w http.ResponseWriter, r *http.Request) {
 
 			matieres, err := mQueries.FetchMatieresByUniteEnseignementID(ctx, ue.ID)
 			if err != nil {
-				services.InternalServerError(w, r, "Erreur lors de la récupération des matières", services.INTERNAL_ERROR, err)
+				services.ServerError(w, r, fmt.Errorf("Erreur lors de la récupération des matières: %w", err))
 				return
 			}
 
@@ -89,6 +89,6 @@ func ExportPeriode(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"programme_%s.xlsx\"", option_.Name))
 
 	if err := f.Write(w); err != nil {
-		services.InternalServerError(w, r, "Erreur lors de l'écriture du fichier Excel", services.INTERNAL_ERROR, err)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de l'écriture du fichier Excel: %w", err))
 	}
 }

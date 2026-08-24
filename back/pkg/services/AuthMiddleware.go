@@ -100,13 +100,14 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 				// Sans cette trace, un issuer injoignable ou mal configuré ne
 				// se manifeste que par un 503 nu, côté navigateur.
 				slog.Error("découverte OIDC impossible", "issuer", issuer, "err", err)
-				http.Error(w, "Service d'authentification indisponible", http.StatusServiceUnavailable)
+				RenderError(w, r, http.StatusServiceUnavailable, NO_INFORMATION,
+					"Service d'authentification indisponible", nil, "AuthMiddleware")
 				return
 			}
 
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" || len(authHeader) < 7 || authHeader[:7] != "Bearer " {
-				http.Error(w, "Jeton non fourni", http.StatusUnauthorized)
+				AuthenticationError(w, r, "Jeton non fourni", NO_INFORMATION, nil)
 				return
 			}
 			rawToken := authHeader[7:]
@@ -114,7 +115,7 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 			idToken, err := v.Verify(r.Context(), rawToken)
 			if err != nil {
 				slog.Error("token verification failed", "err", err)
-				http.Error(w, "Jeton invalide ou expiré", http.StatusUnauthorized)
+				AuthenticationError(w, r, "Jeton invalide ou expiré", NO_INFORMATION, nil)
 				return
 			}
 
@@ -125,7 +126,7 @@ func AuthMiddleware(cfg *KeycloakConfig, allowedRoles ...string) func(http.Handl
 				} `json:"realm_access"`
 			}
 			if err := idToken.Claims(&claims); err != nil {
-				http.Error(w, "Impossible d'extraire les claims", http.StatusInternalServerError)
+				ServerError(w, r, fmt.Errorf("extraction des claims impossible: %w", err))
 				return
 			}
 

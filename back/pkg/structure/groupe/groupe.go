@@ -13,14 +13,14 @@ import (
 )
 
 var groupeConstraints = map[string]services.ConstraintRule{
-	"chk_groupe_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
-	"fk_groupe_option":       {Field: "option_id", Message: "L'option spécifiée n'existe pas"},
+	"chk_groupe_name_length": {Field: "name", Motif: services.MotifChampObligatoire},
+	"fk_groupe_option":       {Field: "option_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreateGroupe(w http.ResponseWriter, r *http.Request) {
 	var input gen.Groupe
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -36,7 +36,7 @@ func CreateGroupe(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "erreur de validation des données du groupe", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -74,13 +74,13 @@ func FetchGroupesByOptionID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Option introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	groupes, err := queries.FetchGroupesByOptionID(r.Context(), int32(fID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if groupes == nil {
@@ -93,7 +93,7 @@ func FetchGroupesByOptionID(w http.ResponseWriter, r *http.Request) {
 func UpdateGroupe(w http.ResponseWriter, r *http.Request) {
 	var input gen.Groupe
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -114,7 +114,7 @@ func UpdateGroupe(w http.ResponseWriter, r *http.Request) {
 			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -131,7 +131,7 @@ type BulkDeleteRequest struct {
 func DeleteGroupe(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -139,7 +139,7 @@ func DeleteGroupe(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteGroupe(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func FetchUsersInGroupe(w http.ResponseWriter, r *http.Request) {
 
 	users, err := queries.FetchUsersByGroupeID(r.Context(), groupe.ID)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if users == nil {
@@ -173,7 +173,7 @@ func AddUserToGroupe(w http.ResponseWriter, r *http.Request) {
 
 	var input AddUserRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -184,7 +184,7 @@ func AddUserToGroupe(w http.ResponseWriter, r *http.Request) {
 		UserID:   input.UserID,
 	})
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

@@ -67,30 +67,30 @@ func TestIntegration_CreateNote_BorneBareme(t *testing.T) {
 	require.Equal(t, float32(20), bareme, "le défaut de migration doit être 20")
 
 	cas := []struct {
-		nom            string
-		note           *float32
-		notEvaluated   bool
-		statutAttendu  int
-		messageAttendu string
+		nom           string
+		note          *float32
+		notEvaluated  bool
+		statutAttendu int
+		motifAttendu  string
 	}{
 		{nom: "note à 0", note: ptr(0), statutAttendu: http.StatusCreated},
 		{nom: "note au barème exact", note: ptr(20), statutAttendu: http.StatusCreated},
 		{nom: "note intermédiaire", note: ptr(15.5), statutAttendu: http.StatusCreated},
 		{
 			nom: "note à barème + 0.01", note: ptr(20.01),
-			statutAttendu:  http.StatusBadRequest,
-			messageAttendu: "La note doit être comprise entre 0 et 20",
+			statutAttendu: http.StatusBadRequest,
+			motifAttendu:  services.MotifNoteHorsBareme,
 		},
 		{
 			// Le scénario nominal : 155 saisi pour 15,5.
 			nom: "note manifestement hors barème", note: ptr(155),
-			statutAttendu:  http.StatusBadRequest,
-			messageAttendu: "La note doit être comprise entre 0 et 20",
+			statutAttendu: http.StatusBadRequest,
+			motifAttendu:  services.MotifNoteHorsBareme,
 		},
 		{
 			nom: "note négative", note: ptr(-0.01),
-			statutAttendu:  http.StatusBadRequest,
-			messageAttendu: "La note doit être comprise entre 0 et 20",
+			statutAttendu: http.StatusBadRequest,
+			motifAttendu:  services.MotifNoteHorsBareme,
 		},
 		{
 			// Non évalué : l'absence de note n'est pas une note hors barème.
@@ -114,8 +114,9 @@ func TestIntegration_CreateNote_BorneBareme(t *testing.T) {
 			CreateNote(w, req)
 
 			require.Equal(t, c.statutAttendu, w.Code, "corps: %s", w.Body.String())
-			if c.messageAttendu != "" {
-				require.Contains(t, w.Body.String(), c.messageAttendu)
+			if c.motifAttendu != "" {
+				require.Contains(t, w.Body.String(), c.motifAttendu, "le motif doit désigner la borne")
+				require.Contains(t, w.Body.String(), `"max":20`, "la borne voyage en donnée, pas en phrase")
 			}
 
 			var nb int
@@ -152,7 +153,8 @@ func TestIntegration_CreateNote_BorneBareme(t *testing.T) {
 		w = httptest.NewRecorder()
 		CreateNote(w, req)
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		require.Contains(t, w.Body.String(), "La note doit être comprise entre 0 et 100")
+		require.Contains(t, w.Body.String(), services.MotifNoteHorsBareme)
+		require.Contains(t, w.Body.String(), `"max":100`, "la borne du barème relevé doit voyager en donnée")
 	})
 }
 
@@ -190,7 +192,8 @@ func TestIntegration_UpdateNote_BorneBareme(t *testing.T) {
 	t.Run("mise à jour hors barème refusée", func(t *testing.T) {
 		w := appelUpdate(t, ptr(25))
 		require.Equal(t, http.StatusBadRequest, w.Code)
-		require.Contains(t, w.Body.String(), "La note doit être comprise entre 0 et 20")
+		require.Contains(t, w.Body.String(), services.MotifNoteHorsBareme)
+		require.Contains(t, w.Body.String(), `"max":20`, "la borne voyage en donnée, pas en phrase")
 
 		var valeur float32
 		require.NoError(t, pool.QueryRow(ctx, `SELECT note FROM note WHERE id = $1`, noteID).Scan(&valeur))
@@ -280,8 +283,8 @@ func TestIntegration_ImportFiche_BorneBareme(t *testing.T) {
 		ImportFiche(w, requeteImport(t, pool, controleID, fiche))
 
 		require.Equal(t, http.StatusBadRequest, w.Code, "corps: %s", w.Body.String())
-		require.Contains(t, w.Body.String(), "Ligne 15", "le message doit désigner la ligne fautive")
-		require.Contains(t, w.Body.String(), "155", "le message doit désigner la valeur fautive")
+		require.Contains(t, w.Body.String(), `"ligne":15`, "la ligne fautive doit être désignée")
+		require.Contains(t, w.Body.String(), `"valeur":"155"`, "la valeur fautive doit être désignée")
 		require.Equal(t, 0, compter(t), "aucune note ne doit avoir été écrite")
 	})
 

@@ -14,15 +14,15 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Reservation"
 var reservationConstraints = map[string]services.ConstraintRule{
-	"sans_conflit_salle":       {Field: "salles", Message: "Une ou plusieurs salles sont déjà réservées sur ce créneau"},
-	"sans_conflit_intervenant": {Field: "intervenants", Message: "Un ou plusieurs intervenants sont déjà occupés sur ce créneau"},
-	"sans_conflit_groupe":      {Field: "groupes", Message: "Un ou plusieurs groupes sont déjà planifiés sur ce créneau"},
+	"sans_conflit_salle":       {Field: "salles", Motif: services.MotifCreneauDejaReserve},
+	"sans_conflit_intervenant": {Field: "intervenants", Motif: services.MotifCreneauDejaReserve},
+	"sans_conflit_groupe":      {Field: "groupes", Motif: services.MotifCreneauDejaReserve},
 }
 
 func CreateReservation(w http.ResponseWriter, r *http.Request) {
 	var input ReservationInput
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -32,7 +32,7 @@ func CreateReservation(w http.ResponseWriter, r *http.Request) {
 	// Ouverture de la transaction
 	tx, err := pgCtx.Db.Begin(ctx)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	defer tx.Rollback(ctx) // no-op si Commit() a déjà été appelé
@@ -58,7 +58,7 @@ func CreateReservation(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "erreur de validation", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func CreateReservation(w http.ResponseWriter, r *http.Request) {
 
 	// Tout s'est bien passé : on valide
 	if err := tx.Commit(ctx); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -78,13 +78,13 @@ func CreateReservation(w http.ResponseWriter, r *http.Request) {
 	finalQueries := getQueriesFromCtx(r)
 	row, err := finalQueries.FetchReservationByID(ctx, id)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	detail, err := ParseReservationDetail(row)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func FetchReservation(w http.ResponseWriter, r *http.Request) {
 
 	detail, err := ParseReservationDetail(*row)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -113,7 +113,7 @@ func FetchReservationsByPeriode(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := queries.FetchReservationsByPeriode(r.Context(), periodeID)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -121,7 +121,7 @@ func FetchReservationsByPeriode(w http.ResponseWriter, r *http.Request) {
 	for _, row := range rows {
 		detail, err := ParseReservationDetail(gen.FetchReservationByIDRow(row))
 		if err != nil {
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return
 		}
 		details = append(details, detail)
@@ -133,7 +133,7 @@ func FetchReservationsByPeriode(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input ReservationInput
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -143,7 +143,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	// Ouverture de la transaction
 	tx, err := pgCtx.Db.Begin(ctx)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	defer tx.Rollback(ctx) // no-op si Commit() a déjà été appelé
@@ -175,21 +175,21 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	// Remplacement complet des associations dans la même transaction
 	if err := queries.DeleteReservationSalles(ctx, input.ID); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if err := queries.DeleteReservationIntervenants(ctx, input.ID); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if err := queries.DeleteReservationGroupes(ctx, input.ID); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -199,7 +199,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 
 	// Tout s'est bien passé : on valide
 	if err := tx.Commit(ctx); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -209,13 +209,13 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	finalQueries := getQueriesFromCtx(r)
 	row, err := finalQueries.FetchReservationByID(ctx, input.ID)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	detail, err := ParseReservationDetail(row)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -230,7 +230,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -238,7 +238,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Les associations sont supprimées automatiquement par CASCADE
 	if err := queries.DeleteReservation(r.Context(), input.IDs); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -265,7 +265,7 @@ func addAssociations(w http.ResponseWriter, r *http.Request, queries *gen.Querie
 				services.InvalidRequestError(w, r, "conflit de salle", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 				return err
 			}
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return err
 		}
 	}
@@ -281,7 +281,7 @@ func addAssociations(w http.ResponseWriter, r *http.Request, queries *gen.Querie
 				services.InvalidRequestError(w, r, "conflit d'intervenant", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 				return err
 			}
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return err
 		}
 	}
@@ -297,7 +297,7 @@ func addAssociations(w http.ResponseWriter, r *http.Request, queries *gen.Querie
 				services.InvalidRequestError(w, r, "conflit de groupe", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 				return err
 			}
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return err
 		}
 	}

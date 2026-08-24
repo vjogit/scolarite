@@ -6,6 +6,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
+import { messageForError } from '../../services/errorMessages';
 
 interface ImportResult {
     added: number;
@@ -48,8 +49,8 @@ export function GroupeImportButton({ groupeId }: Props) {
 
             notifyPartialSuccess(notifications, message, not_found.length === 0);
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
-        } catch {
-            notifyError(notifications, "Erreur lors de l'import.");
+        } catch (error) {
+            notifyError(notifications, messageForError(error));
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

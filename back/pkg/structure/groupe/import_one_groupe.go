@@ -49,7 +49,7 @@ func ImportOneGroupe(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := f.GetRows(sheets[0])
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -71,7 +71,7 @@ func ImportOneGroupe(w http.ResponseWriter, r *http.Request) {
 				result.NotFound = append(result.NotFound, email)
 				continue
 			}
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return
 		}
 
@@ -79,7 +79,7 @@ func ImportOneGroupe(w http.ResponseWriter, r *http.Request) {
 			GroupeID: groupe.ID,
 			UserID:   user.ID,
 		}); err != nil {
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return
 		}
 		result.Added++
@@ -111,7 +111,7 @@ func RemoveUserFromGroupe(w http.ResponseWriter, r *http.Request) {
 		UserID:   int32(userID),
 	})
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

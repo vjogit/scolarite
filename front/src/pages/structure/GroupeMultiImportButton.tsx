@@ -6,6 +6,7 @@ import DriveFolderUploadIcon from '@mui/icons-material/DriveFolderUpload';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
+import { messageForError } from '../../services/errorMessages';
 
 interface ImportGroupeResult {
     nom: string;
@@ -57,8 +58,8 @@ export function GroupeMultiImportButton({ optionId }: Props) {
 
             notifyPartialSuccess(notifications, message, allNotFound.length === 0);
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, GROUPE, optionId] });
-        } catch {
-            notifyError(notifications, "Erreur lors de l'import multi-groupes.");
+        } catch (error) {
+            notifyError(notifications, messageForError(error));
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }

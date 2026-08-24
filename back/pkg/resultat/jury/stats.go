@@ -20,7 +20,7 @@ func GetStatsJury(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(periodeID)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "identifiant invalide", services.INVALID_PARAM, nil)
 		return
 	}
 
@@ -29,7 +29,7 @@ func GetStatsJury(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := juryService.PrepareJuryData(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

@@ -83,7 +83,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Ce champ est obligatoire",
+			expectedError:  "champ_obligatoire",
 		},
 		{
 			name: "Echec - Dates invalides (Contrainte CHECK)",
@@ -104,7 +104,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "La date de fin doit être après la date de début",
+			expectedError:  "fin_avant_debut",
 		},
 		{
 			name: "Echec - Doublon (Contrainte UNIQUE)",
@@ -129,7 +129,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Cette valeur est déjà utilisée",
+			expectedError:  "valeur_deja_utilisee",
 		},
 		{
 			name: "Echec - Formation ID invalide (Contrainte FK)",
@@ -150,7 +150,7 @@ func TestIntegration_CreatePromotion(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "La formation spécifiée n'existe pas",
+			expectedError:  "reference_inconnue",
 		},
 	}
 

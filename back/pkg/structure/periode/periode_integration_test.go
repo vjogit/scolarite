@@ -87,7 +87,7 @@ func TestIntegration_CreatePeriode(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Ce champ est obligatoire",
+			expectedError:  "champ_obligatoire",
 		},
 		{
 			name: "Echec - Dates invalides (Contrainte CHECK)",
@@ -104,7 +104,7 @@ func TestIntegration_CreatePeriode(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "La date de fin doit être après la date de début",
+			expectedError:  "fin_avant_debut",
 		},
 		{
 			name: "Echec - Option ID invalide (FK)",
@@ -121,7 +121,7 @@ func TestIntegration_CreatePeriode(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "L'option spécifiée n'existe pas",
+			expectedError:  "reference_inconnue",
 		},
 	}
 

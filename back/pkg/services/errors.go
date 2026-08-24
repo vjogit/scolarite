@@ -1,58 +1,95 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"log/slog"
 	"net/http"
-
-	"github.com/go-chi/render"
+	"strings"
 )
 
-type ErrorResponse struct {
-	HTTPStatusCode int       `json:"-"`
-	Code           ErrorCode `json:"code"`
-	Message        string    `json:"message"`
-	Details        any       `json:"details,omitempty"`
-}
+// L'enveloppe d'erreur suit la RFC 9457 (application/problem+json).
+//
+// `code` est un membre d'extension : c'est le contrat historique avec
+// errorMessages.ts, le front route dessus. `type` et `title` s'adressent aux
+// futurs consommateurs ; les URI `/erreurs/...` sont stables et volontairement
+// non déréférençables — aucun contenu n'existe derrière.
+//
+// Le corps ne transporte jamais un err.Error() : le detail est rédigé pour
+// l'humain, l'erreur d'origine part au log serveur (voir ServerError).
 
-func (e *ErrorResponse) Render(w http.ResponseWriter, r *http.Request) error {
-	render.Status(r, e.HTTPStatusCode)
-	return nil
-}
-
-// Fonction générique pour toutes les erreurs
-func RenderError(w http.ResponseWriter, r *http.Request, httpStatus int, code ErrorCode, message string, detail any, logPrefix string) {
-	resp := &ErrorResponse{
-		HTTPStatusCode: httpStatus,
-		Code:           code,
-		Message:        message,
-		Details:        detail,
+// RenderError est l'unique point d'émission : c'est lui qui garantit que le
+// `status` du corps est le statut HTTP réel, et que les extensions ne peuvent
+// pas écraser les membres de l'enveloppe.
+func RenderError(w http.ResponseWriter, r *http.Request, httpStatus int, code ErrorCode, detail string, extensions map[string]any, logPrefix string) {
+	body := map[string]any{
+		"type":   "/erreurs/" + strings.ToLower(strings.ReplaceAll(code.String(), "_", "-")),
+		"title":  errorCodeTitles[code],
+		"status": httpStatus,
+		"code":   code,
 	}
-	slog.Debug("erreur", "type", logPrefix, "response", resp)
-	if err := render.Render(w, r, resp); err != nil {
+	if detail != "" {
+		body["detail"] = detail
+	}
+	for k, v := range extensions {
+		if _, reserve := body[k]; !reserve {
+			body[k] = v
+		}
+	}
+
+	slog.Debug("erreur", "type", logPrefix, "status", httpStatus, "code", code.String(), "detail", detail)
+
+	w.Header().Set("Content-Type", "application/problem+json; charset=utf-8")
+	w.WriteHeader(httpStatus)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
 		slog.Error("unable to render response", "logPrefix", logPrefix, "error", err)
 	}
 }
 
 // Fonctions spécifiques
-func InvalidRequestError(w http.ResponseWriter, r *http.Request, message string, code ErrorCode, detail any) {
-	RenderError(w, r, 400, code, message, detail, "InvalidRequestError")
+func InvalidRequestError(w http.ResponseWriter, r *http.Request, detail string, code ErrorCode, extensions map[string]any) {
+	RenderError(w, r, 400, code, detail, extensions, "InvalidRequestError")
 }
 
-func AuthenticationError(w http.ResponseWriter, r *http.Request, message string, code ErrorCode, detail any) {
-	RenderError(w, r, 401, code, message, detail, "AuthenticationError")
+func AuthenticationError(w http.ResponseWriter, r *http.Request, detail string, code ErrorCode, extensions map[string]any) {
+	RenderError(w, r, 401, code, detail, extensions, "AuthenticationError")
 }
 
-func AuthorizationError(w http.ResponseWriter, r *http.Request, message string, code ErrorCode, detail any) {
-	RenderError(w, r, 403, code, message, detail, "AuthorizationError")
+func AuthorizationError(w http.ResponseWriter, r *http.Request, detail string, code ErrorCode, extensions map[string]any) {
+	RenderError(w, r, 403, code, detail, extensions, "AuthorizationError")
 }
 
-func ConflictError(w http.ResponseWriter, r *http.Request, message string, code ErrorCode, detail any) {
-	RenderError(w, r, 409, code, message, detail, "ConflictError")
+func ConflictError(w http.ResponseWriter, r *http.Request, detail string, code ErrorCode, extensions map[string]any) {
+	RenderError(w, r, 409, code, detail, extensions, "ConflictError")
 }
 
-func InternalServerError(w http.ResponseWriter, r *http.Request, message string, code ErrorCode, detail any) {
-	RenderError(w, r, 500, code, message, detail, "InternalServerError")
+// ServerError est le seul chemin vers un 500 : le client reçoit un detail
+// générique et un identifiant d'incident ; l'erreur d'origine, elle, ne quitte
+// pas le log serveur. L'identifiant figure des deux côtés — c'est lui qui rend
+// un signalement d'utilisateur exploitable dans les logs.
+func ServerError(w http.ResponseWriter, r *http.Request, err error) {
+	incident := incidentID()
+	slog.Error("erreur serveur",
+		"incident", incident,
+		"err", err,
+		"method", r.Method,
+		"path", r.URL.Path,
+	)
+	RenderError(w, r, 500, INTERNAL_ERROR,
+		"Une erreur interne est survenue.",
+		map[string]any{"instance": "/incidents/" + incident},
+		"ServerError")
+}
+
+// incidentID : 8 hexadécimaux, assez pour retrouver une ligne de log, assez
+// court pour être recopié depuis un écran au téléphone.
+func incidentID() string {
+	b := make([]byte, 4)
+	if _, err := rand.Read(b); err != nil {
+		return "00000000"
+	}
+	return hex.EncodeToString(b)
 }
 
 type ErrorCode int
@@ -110,6 +147,26 @@ var errorCodeNames = map[ErrorCode]string{
 	INSUFFICIENT_RIGHTS:        "INSUFFICIENT_RIGHTS",
 	INTERNAL_ERROR:             "INTERNAL_ERROR",
 	NO_RESULT:                  "NO_RESULT",
+}
+
+// errorCodeTitles : le `title` RFC 9457, court et stable comme le veut la RFC.
+// Le message complet destiné à l'écran vit dans errorMessages.ts.
+var errorCodeTitles = map[ErrorCode]string{
+	NO_INFORMATION:             "Erreur",
+	VALIDATION_ERROR:           "Données invalides",
+	OPTIMISTIC_LOCKING_FAILURE: "Conflit de version",
+	MISSING_PARAM:              "Paramètre manquant",
+	INVALID_PARAM:              "Paramètre invalide",
+	NOT_FOUND:                  "Ressource introuvable",
+	BUSINESS_CONFLICT:          "Conflit",
+	INVALID_BODY:               "Corps de requête invalide",
+	INVALID_FILE:               "Fichier refusé",
+	FILE_TOO_LARGE:             "Fichier trop volumineux",
+	FILE_MISSING:               "Fichier manquant",
+	INVALID_FILE_EXTENSION:     "Extension non prise en charge",
+	INSUFFICIENT_RIGHTS:        "Droits insuffisants",
+	INTERNAL_ERROR:             "Erreur interne",
+	NO_RESULT:                  "Aucun résultat",
 }
 
 func (c ErrorCode) String() string {

@@ -5,6 +5,7 @@ import (
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/promotion/gen"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -15,32 +16,32 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Promotion"
 var promotionConstraints = map[string]services.ConstraintRule{
-	"chk_promotion_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
-	"uk_promotion_name_active": {Field: "name", Message: "Cette valeur est déjà utilisée"},
-	"chk_promotion_dates":       {Field: "fin", Message: "La date de fin doit être après la date de début"},
-	"fk_promotion_formation":    {Field: "formation_id", Message: "La formation spécifiée n'existe pas"},
+	"chk_promotion_name_length": {Field: "name", Motif: services.MotifChampObligatoire},
+	"uk_promotion_name_active":  {Field: "name", Motif: services.MotifValeurDejaUtilisee},
+	"chk_promotion_dates":       {Field: "fin", Motif: services.MotifFinAvantDebut},
+	"fk_promotion_formation":    {Field: "formation_id", Motif: services.MotifReferenceInconnue},
 	"chk_promotion_echelle_len": {
-		Field:   "echelle",
-		Message: "L'échelle doit contenir 5 valeurs",
+		Field: "echelle",
+		Motif: services.MotifEchelleLongueur,
 	},
 	"chk_promotion_echelle_desc": {
-		Field:   "echelle",
-		Message: "L'échelle doit être décroissante",
+		Field: "echelle",
+		Motif: services.MotifEchelleDecroissante,
 	},
 	"chk_promotion_bareme_positive": {
-		Field:   "bareme",
-		Message: "Le barème doit être strictement positif",
+		Field: "bareme",
+		Motif: services.MotifValeurNegative,
 	},
 	"chk_promotion_echelle_bareme": {
-		Field:   "echelle",
-		Message: "Les seuils de l'échelle ne peuvent pas dépasser le barème",
+		Field: "echelle",
+		Motif: services.MotifEchelleHorsBareme,
 	},
 }
 
 func CreatePromotion(w http.ResponseWriter, r *http.Request) {
 	var input gen.PromotionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -66,7 +67,7 @@ func CreatePromotion(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -110,7 +111,7 @@ func FetchPromotionsByFormationID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Formation introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -118,7 +119,7 @@ func FetchPromotionsByFormationID(w http.ResponseWriter, r *http.Request) {
 	promotions, err = queries.FetchPromotionsByFormationID(r.Context(), int32(fID))
 
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if promotions == nil {
@@ -131,7 +132,7 @@ func FetchPromotionsByFormationID(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.PromotionActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -164,7 +165,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -182,7 +183,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -192,8 +193,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	// ne doit jamais être détruite, y compris via la cascade d'un parent.
 	nbPeriodesDeliberees, err := queries.CountPromotionJuryDeliberePeriodes(r.Context(), input.IDs)
 	if err != nil {
-		slog.Error("suppression : contrôle du jury impossible", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("suppression : contrôle du jury impossible (ids %v): %w", input.IDs, err))
 		return
 	}
 	if nbPeriodesDeliberees > 0 {
@@ -206,8 +206,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	// partent en corbeille, restaurables jusqu'à purge.
 	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
 		corbeille.RacinePromotion, input.IDs, services.SubFromCtx(r)); err != nil {
-		slog.Error("suppression impossible", "entite", "promotion", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("suppression impossible (entite %v, ids %v): %w", "promotion", input.IDs, err))
 		return
 	}
 

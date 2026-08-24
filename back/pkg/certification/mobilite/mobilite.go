@@ -13,13 +13,13 @@ import (
 )
 
 var mobiliteConstraints = map[string]services.ConstraintRule{
-	"fk_mobilite_user": {Field: "user_id", Message: "L'élève n'existe pas"},
+	"fk_mobilite_user": {Field: "user_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreateMobilite(w http.ResponseWriter, r *http.Request) {
 	var input gen.MobiliteInternationale
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -42,7 +42,7 @@ func CreateMobilite(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "erreur de validation des données", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -80,13 +80,13 @@ func FetchMobilitesByPromotionID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Promotion introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	mobilites, err := queries.FetchMobilitesByPromotionId(r.Context(), int32(fID))
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if mobilites == nil {
@@ -99,7 +99,7 @@ func FetchMobilitesByPromotionID(w http.ResponseWriter, r *http.Request) {
 func UpdateMobilite(w http.ResponseWriter, r *http.Request) {
 	var input gen.MobiliteInternationale
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -126,7 +126,7 @@ func UpdateMobilite(w http.ResponseWriter, r *http.Request) {
 			services.ConflictError(w, r, "Conflit de modification", services.OPTIMISTIC_LOCKING_FAILURE, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -143,14 +143,14 @@ type BulkDeleteRequest struct {
 func DeleteMobilite(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
 	queries := getQueriesFromCtx(r)
 
 	if err := queries.DeleteMobilite(r.Context(), input.IDs); err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

@@ -74,3 +74,11 @@ WHERE c.id = @controle_id
   AND g.id = @groupe_id
   AND u.type_personne = 'ELEVE'
 ORDER BY 2, 3;
+
+-- name: FilterExistingUserIDs :many
+--
+-- Réduit une liste d'identifiants à ceux qui existent : l'import de fiche
+-- vérifie en une requête, avant d'écrire quoi que ce soit, que chaque ligne
+-- désigne un élève connu — sans quoi la violation de fk_notes_users n'aurait
+-- éclaté qu'en pleine transaction, une ligne à la fois.
+SELECT id FROM public."user" WHERE id = ANY(@ids::int[]);

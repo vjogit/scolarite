@@ -7,13 +7,17 @@
  * chaud du composant.
  */
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_BASE, NOTE } from './def';
 import { notifyBlocking, notifyError, notifyPartialSuccess } from '../../services/notify';
-import { blockingMessageFor, fileMessageFor, messageForError } from '../../services/errorMessages';
+import {
+    blockingMessageFor, fileMessageFor, lignesFor, messageForError,
+    type LignesRefusees,
+} from '../../services/errorMessages';
+import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
 interface ImportFicheResult {
     controle_id: number;
@@ -40,6 +44,9 @@ export function useFicheImport() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     // Le contrôle visé est fixé au clic : un seul champ sert toutes les lignes.
     const controleRef = useRef<number | null>(null);
+    // Les lignes fautives du dernier refus : la modale reste ouverte tant
+    // qu'elles ne sont pas lues — un refus se corrige fichier ouvert à côté.
+    const [refus, setRefus] = useState<LignesRefusees | null>(null);
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -77,16 +84,23 @@ export function useFicheImport() {
             );
             void queryClient.invalidateQueries({ queryKey: [NOTE, 'controle', String(controleId)] });
         } catch (error) {
-            // Un refus pour conflit d'état — une note portée sur un élève
-            // déclaré non évalué — énumère les élèves concernés : il demande un
-            // arbitrage et doit rester à l'écran le temps qu'on le rende.
-            const conflit = blockingMessageFor(error);
-            if (conflit !== null) {
-                notifyBlocking(notifications, conflit);
+            // Un refus qui désigne ses lignes — note hors barème, cellule
+            // illisible, élève inconnu, note sur un absent — s'affiche en
+            // tableau : ligne, champ, motif, à corriger fichier ouvert à côté.
+            const lignes = lignesFor(error);
+            if (lignes !== null) {
+                setRefus(lignes);
             } else {
-                // Le serveur nomme la ligne et la valeur en cause quand il refuse
-                // un fichier : ce message vaut mieux que le libellé générique.
-                notifyError(notifications, fileMessageFor(error) ?? messageForError(error));
+                // Refus sans lignes : un conflit d'état rédigé par le serveur
+                // demande un arbitrage et reste à l'écran ; sinon le detail du
+                // fichier refusé (contrôle attendu vs fourni…) vaut mieux que
+                // le libellé générique.
+                const conflit = blockingMessageFor(error);
+                if (conflit !== null) {
+                    notifyBlocking(notifications, conflit);
+                } else {
+                    notifyError(notifications, fileMessageFor(error) ?? messageForError(error));
+                }
             }
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -99,13 +113,20 @@ export function useFicheImport() {
     }, []);
 
     const champ = (
-        <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={(event) => { void handleFileChange(event); }}
-            accept=".xlsx"
-        />
+        <>
+            <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={(event) => { void handleFileChange(event); }}
+                accept=".xlsx"
+            />
+            <LignesRefuseesDialog
+                refus={refus}
+                sousTitre="Aucune note n'a été importée. Corrigez le fichier puis relancez l'import."
+                onClose={() => { setRefus(null); }}
+            />
+        </>
     );
 
     return { declencher, champ };

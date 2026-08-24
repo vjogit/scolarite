@@ -2,7 +2,7 @@ package option
 
 import (
 	"cyb-react/pkg/services"
-	"log/slog"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -23,15 +23,13 @@ func DeleteImpact(w http.ResponseWriter, r *http.Request) {
 
 	names, err := queries.FetchOptionNamesByIds(r.Context(), input.IDs)
 	if err != nil {
-		slog.Error("impact de suppression : lecture des options impossible", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Impossible d'évaluer l'impact de la suppression", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("impact de suppression : lecture des options impossible (ids %v): %w", input.IDs, err))
 		return
 	}
 
 	impact, err := queries.OptionDeleteImpact(r.Context(), input.IDs)
 	if err != nil {
-		slog.Error("impact de suppression : comptage des options impossible", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Impossible d'évaluer l'impact de la suppression", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("impact de suppression : comptage des options impossible (ids %v): %w", input.IDs, err))
 		return
 	}
 

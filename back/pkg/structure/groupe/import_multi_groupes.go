@@ -73,7 +73,7 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 	pgCtx := services.GetPgCtx(r.Context())
 	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur début transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -84,7 +84,7 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 	for _, sheet := range sheets {
 		rows, err := f.GetRows(sheet)
 		if err != nil {
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			services.ServerError(w, r, err)
 			return
 		}
 		if len(rows) == 0 {
@@ -102,7 +102,16 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 			OptionID: int32(optionID),
 		})
 		if err != nil {
-			services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+			// Une option inconnue ou un nom de feuille inutilisable sont des
+			// défauts de la demande, pas des pannes : la table de contraintes
+			// du domaine les traduit champ par champ.
+			errorsMap := services.MapPgErrorToValidationErrors(err, groupeConstraints)
+			if len(errorsMap) > 0 {
+				services.InvalidRequestError(w, r, "erreur de validation du groupe importé", services.VALIDATION_ERROR,
+					map[string]any{"errors": errorsMap})
+				return
+			}
+			services.ServerError(w, r, err)
 			return
 		}
 
@@ -127,7 +136,7 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 					groupeResult.NotFound = append(groupeResult.NotFound, email)
 					continue
 				}
-				services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				services.ServerError(w, r, err)
 				return
 			}
 
@@ -135,7 +144,7 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 				GroupeID: groupeID,
 				UserID:   user.ID,
 			}); err != nil {
-				services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				services.ServerError(w, r, err)
 				return
 			}
 			groupeResult.Added++
@@ -152,7 +161,7 @@ func ImportMultiGroupes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur commit transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 

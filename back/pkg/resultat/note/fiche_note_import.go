@@ -3,14 +3,17 @@ package note
 import (
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/render"
+	"github.com/jackc/pgx/v5"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -58,18 +61,22 @@ const (
 	celluleIllisible
 )
 
-// Une ligne refusée, et pourquoi.
+// Une ligne refusée, et pourquoi — des données, pas une phrase : le front
+// les rend en tableau et possède les mots (errorMessages.ts).
 type anomalieFiche struct {
-	message string
+	services.LigneErreur
 	// Contredit une décision déjà prise dans l'application, par opposition à
 	// un défaut du fichier lui-même. Détermine le statut et le code du refus.
 	conflit bool
 }
 
-// Une ligne validée, en attente d'écriture.
+// Une ligne validée, en attente d'écriture. Le numéro de ligne du tableur
+// l'accompagne : c'est lui qui désigne la ligne fautive si l'élève s'avère
+// inconnu au contrôle d'existence.
 type ligneImportee struct {
 	userID int32
 	note   float32
+	ligne  int
 }
 
 func ImportFiche(w http.ResponseWriter, r *http.Request) {
@@ -116,14 +123,14 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := f.GetRows(sheets[0])
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
 	// Ligne 6 (index 5) : "Controle id:  3"
 	controleID, err := parseControleID(rows)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "l'identifiant du contrôle est introuvable ou illisible dans la fiche", services.INVALID_FILE, nil)
 		return
 	}
 	if controleID != int32(expectedControleID) {
@@ -139,7 +146,11 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 	// comparée en mémoire, ligne par ligne, sans jointure supplémentaire.
 	bareme, err := fetchBareme(r.Context(), queries, controleID)
 	if err != nil {
-		services.InternalServerError(w, r, "barème du contrôle introuvable", services.NO_INFORMATION, nil)
+		if errors.Is(err, pgx.ErrNoRows) {
+			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
+			return
+		}
+		services.ServerError(w, r, fmt.Errorf("barème du contrôle %d illisible: %w", controleID, err))
 		return
 	}
 
@@ -147,7 +158,7 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 	// mise à jour, et à repérer les élèves déclarés non évalués.
 	existingNotes, err := queries.FetchNotesByControleID(r.Context(), controleID)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	noteByUserID := make(map[int32]gen.FetchNotesByControleIDRow, len(existingNotes))
@@ -157,6 +168,35 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 
 	aEcrire, anomalies, ignorees := lireFiche(rows, bareme, noteByUserID)
 
+	// L'existence des élèves se vérifie ici, en une requête, avant d'écrire :
+	// laissée à la passe 2, la violation de fk_notes_users n'aurait éclaté
+	// qu'en pleine transaction, une ligne à la fois — et en 500.
+	if len(aEcrire) > 0 {
+		ids := make([]int32, 0, len(aEcrire))
+		for _, l := range aEcrire {
+			ids = append(ids, l.userID)
+		}
+		connus, err := queries.FilterExistingUserIDs(r.Context(), ids)
+		if err != nil {
+			services.ServerError(w, r, fmt.Errorf("contrôle d'existence des élèves impossible: %w", err))
+			return
+		}
+		existe := make(map[int32]bool, len(connus))
+		for _, id := range connus {
+			existe[id] = true
+		}
+		for _, l := range aEcrire {
+			if !existe[l.userID] {
+				anomalies = append(anomalies, anomalieFiche{LigneErreur: services.LigneErreur{
+					Ligne: l.ligne,
+					Motif: services.MotifEleveInconnu,
+					Champ: "user_id",
+				}})
+			}
+		}
+		sort.Slice(anomalies, func(i, j int) bool { return anomalies[i].Ligne < anomalies[j].Ligne })
+	}
+
 	// Passe 1 close : rien n'a encore été écrit, et « aucune note n'a été
 	// importée » est vrai par construction plutôt que par le jeu d'un rollback.
 	// C'est aussi ce qui permet de signaler *toutes* les lignes fautives d'un
@@ -164,7 +204,7 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 	// marque cinq absents, l'enseignant note ses trente élèves — et refuser un
 	// à un coûterait cinq allers-retours de fichier.
 	if len(anomalies) > 0 {
-		refuserFiche(w, r, anomalies)
+		refuserFiche(w, r, anomalies, bareme)
 		return
 	}
 
@@ -172,7 +212,7 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 	pgCtx := services.GetPgCtx(r.Context())
 	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur début transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -196,10 +236,7 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 				Version:      existante.Version,
 			})
 			if err != nil {
-				slog.Error("import fiche : mise à jour impossible", "controle_id", controleID, "user_id", ligne.userID, "error", err)
-				services.InternalServerError(w, r,
-					fmt.Sprintf("échec de la mise à jour de la note de l'élève %d. Aucune note n'a été importée.", ligne.userID),
-					services.NO_INFORMATION, nil)
+				services.ServerError(w, r, fmt.Errorf("import fiche : mise à jour impossible (controle %d, user %d): %w", controleID, ligne.userID, err))
 				return
 			}
 			result.Updated++
@@ -215,17 +252,14 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 			NotEvaluated: false,
 		})
 		if err != nil {
-			slog.Error("import fiche : création impossible", "controle_id", controleID, "user_id", ligne.userID, "error", err)
-			services.InternalServerError(w, r,
-				fmt.Sprintf("échec de la création de la note de l'élève %d. Aucune note n'a été importée.", ligne.userID),
-				services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("import fiche : création impossible (controle %d, user %d): %w", controleID, ligne.userID, err))
 			return
 		}
 		result.Created++
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		services.InternalServerError(w, r, fmt.Sprintf("erreur commit transaction: %v", err), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 
@@ -274,15 +308,22 @@ func lireFiche(
 			// Le repli qui vivait ici — illisible vaut « non évalué » — était
 			// une décision prise au nom de l'utilisateur à partir d'une faute
 			// de frappe. Une note mal tapée doit se voir, pas se convertir.
-			anomalies = append(anomalies, anomalieFiche{message: fmt.Sprintf(
-				"Ligne %d : « %s » n'est pas une note. Laissez la cellule vide s'il n'y a pas de note.",
-				ligne, strings.TrimSpace(row[3]))})
+			anomalies = append(anomalies, anomalieFiche{LigneErreur: services.LigneErreur{
+				Ligne:  ligne,
+				Champ:  "note",
+				Motif:  services.MotifCelluleInvalide,
+				Valeur: strings.TrimSpace(row[3]),
+			}})
 			continue
 		}
 
-		if message := validateNote(&valeur, bareme); message != "" {
-			anomalies = append(anomalies, anomalieFiche{message: fmt.Sprintf(
-				"Ligne %d : la note %s est refusée. %s.", ligne, formatDecimal(valeur), message)})
+		if noteHorsBareme(&valeur, bareme) {
+			anomalies = append(anomalies, anomalieFiche{LigneErreur: services.LigneErreur{
+				Ligne:  ligne,
+				Champ:  "note",
+				Motif:  services.MotifNoteHorsBareme,
+				Valeur: formatDecimal(valeur),
+			}})
 			continue
 		}
 
@@ -296,28 +337,33 @@ func lireFiche(
 		// qu'elle a consigné accompagne le signalement — c'est l'information
 		// qui permet d'arbitrer.
 		if existante, connue := noteByUserID[int32(userID)]; connue && existante.NotEvaluated {
-			// Forme inclusive courte : le genre n'est pas en base, et le
-			// deviner sur un prénom serait se tromper un jour.
-			anomalies = append(anomalies, anomalieFiche{conflit: true, message: fmt.Sprintf(
-				"Ligne %d : %s est déclaré·e non évalué·e%s, mais la fiche porte la note %s.",
-				ligne, nomEleve(existante), motifNonEvaluation(existante), formatDecimal(valeur))})
+			anomalies = append(anomalies, anomalieFiche{conflit: true, LigneErreur: services.LigneErreur{
+				Ligne:    ligne,
+				Champ:    "note",
+				Motif:    services.MotifNoteSurNonEvalue,
+				Valeur:   formatDecimal(valeur),
+				Eleve:    nomEleve(existante),
+				Remarque: remarqueNonEvaluation(existante),
+			}})
 			continue
 		}
 
-		aEcrire = append(aEcrire, ligneImportee{userID: int32(userID), note: valeur})
+		aEcrire = append(aEcrire, ligneImportee{userID: int32(userID), note: valeur, ligne: ligne})
 	}
 
 	return aEcrire, anomalies, ignorees
 }
 
-// refuserFiche compose un signalement unique et refuse l'import entier.
-func refuserFiche(w http.ResponseWriter, r *http.Request, anomalies []anomalieFiche) {
-	lignes := make([]string, 0, len(anomalies)+1)
-	lignes = append(lignes, "Aucune note n'a été importée.")
+// refuserFiche refuse l'import entier et livre les lignes fautives en données :
+// l'extension `lignes` porte ligne/champ/motif/valeur, le front les rend en
+// tableau et possède les mots. `bareme` accompagne le tout — c'est la borne
+// que le motif note_hors_bareme ne peut pas dire seul.
+func refuserFiche(w http.ResponseWriter, r *http.Request, anomalies []anomalieFiche, bareme float32) {
+	lignes := make([]services.LigneErreur, 0, len(anomalies))
 	for _, a := range anomalies {
-		lignes = append(lignes, "• "+a.message)
+		lignes = append(lignes, a.LigneErreur)
 	}
-	message := strings.Join(lignes, "\n")
+	extensions := map[string]any{"lignes": lignes, "bareme": bareme}
 
 	for _, a := range anomalies {
 		if !a.conflit {
@@ -326,14 +372,14 @@ func refuserFiche(w http.ResponseWriter, r *http.Request, anomalies []anomalieFi
 		// Un conflit d'état n'est pas un défaut de fichier : la feuille est
 		// bien formée, c'est ce qu'elle décrit qui contredit une décision déjà
 		// prise. Le repli d'INVALID_FILE — « le fichier fourni est illisible »
-		// — serait faux, et c'est précisément celui qu'on lirait si le message
-		// rédigé ici n'arrivait pas jusqu'à l'écran.
-		services.ConflictError(w, r, message, services.BUSINESS_CONFLICT,
-			map[string]any{"reason": "note_sur_eleve_non_evalue"})
+		// — serait faux, et c'est précisément celui qu'on lirait si les lignes
+		// transportées ici n'arrivaient pas jusqu'à l'écran.
+		extensions["reason"] = services.MotifNoteSurNonEvalue
+		services.ConflictError(w, r, "Aucune note n'a été importée.", services.BUSINESS_CONFLICT, extensions)
 		return
 	}
 
-	services.InvalidRequestError(w, r, message, services.INVALID_FILE, nil)
+	services.InvalidRequestError(w, r, "Aucune note n'a été importée.", services.INVALID_FILE, extensions)
 }
 
 // parseControleID extrait l'ID du contrôle depuis la ligne "Controle id:  3" (index 5).
@@ -388,12 +434,12 @@ func nomEleve(n gen.FetchNotesByControleIDRow) string {
 	return strings.Join(parties, " ")
 }
 
-// motifNonEvaluation reprend la remarque saisie dans la grille : c'est là que
-// la gestionnaire a consigné le pourquoi, et c'est ce qui rend le signalement
-// arbitrable sans aller rouvrir l'écran.
-func motifNonEvaluation(n gen.FetchNotesByControleIDRow) string {
-	if n.Remarque == nil || strings.TrimSpace(*n.Remarque) == "" {
+// remarqueNonEvaluation reprend la remarque saisie dans la grille : c'est là
+// que la gestionnaire a consigné le pourquoi, et c'est ce qui rend le
+// signalement arbitrable sans aller rouvrir l'écran.
+func remarqueNonEvaluation(n gen.FetchNotesByControleIDRow) string {
+	if n.Remarque == nil {
 		return ""
 	}
-	return fmt.Sprintf(" (%s)", strings.TrimSpace(*n.Remarque))
+	return strings.TrimSpace(*n.Remarque)
 }

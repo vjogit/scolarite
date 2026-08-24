@@ -5,6 +5,7 @@ import (
 	"cyb-react/pkg/resultat/note/gen"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/templates"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -59,7 +60,11 @@ func fetchFicheExport(w http.ResponseWriter, r *http.Request) {
 
 	info, eleves, err := fetchFicheData(r, controleID, groupeID)
 	if err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		if errors.Is(err, pgx.ErrNoRows) {
+			services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
+			return
+		}
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -67,7 +72,7 @@ func fetchFicheExport(w http.ResponseWriter, r *http.Request) {
 
 	buf, err := generateFiche(d)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -111,7 +116,7 @@ func fetchFicheData(r *http.Request, controleID int, groupeID int) (*gen.FetchIn
 
 	fetchInformationsFicheRow, err := queries.FetchInformationsFiche(r.Context(), int32(controleID))
 	if err == pgx.ErrNoRows {
-		return nil, nil, fmt.Errorf("contrôle id=%d introuvable", controleID)
+		return nil, nil, fmt.Errorf("contrôle id=%d introuvable: %w", controleID, pgx.ErrNoRows)
 	}
 	if err != nil {
 		return nil, nil, fmt.Errorf("requête fiche: %w", err)

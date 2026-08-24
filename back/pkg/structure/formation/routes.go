@@ -41,7 +41,7 @@ func FormationUse(next http.Handler) http.Handler {
 
 			id, err := strconv.Atoi(formationID)
 			if err != nil {
-				services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				services.InvalidRequestError(w, r, "identifiant invalide", services.INVALID_PARAM, nil)
 				return
 			}
 
@@ -52,7 +52,7 @@ func FormationUse(next http.Handler) http.Handler {
 				return
 			}
 			if err != nil {
-				services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+				services.ServerError(w, r, err)
 				return
 			}
 

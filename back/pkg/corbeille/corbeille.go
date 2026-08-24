@@ -12,7 +12,6 @@ import (
 	"cyb-react/pkg/services"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -174,8 +173,7 @@ func Lister(w http.ResponseWriter, r *http.Request) {
 
 	ops, err := queries.FetchOperations(r.Context())
 	if err != nil {
-		slog.Error("corbeille : lecture des opérations impossible", "error", err)
-		services.InternalServerError(w, r, "Impossible de lire la corbeille", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : lecture des opérations impossible: %w", err))
 		return
 	}
 
@@ -183,8 +181,7 @@ func Lister(w http.ResponseWriter, r *http.Request) {
 	for _, op := range ops {
 		roots, err := queries.FetchOperationRoots(r.Context(), op.ID)
 		if err != nil {
-			slog.Error("corbeille : lecture des racines impossible", "op", op.ID, "error", err)
-			services.InternalServerError(w, r, "Impossible de lire la corbeille", services.INTERNAL_ERROR, nil)
+			services.ServerError(w, r, fmt.Errorf("corbeille : lecture des racines impossible (op %d): %w", op.ID, err))
 			return
 		}
 
@@ -200,8 +197,7 @@ func Lister(w http.ResponseWriter, r *http.Request) {
 			Ids:        rootIDs,
 		})
 		if err != nil {
-			slog.Error("corbeille : chiffrage impossible", "op", op.ID, "error", err)
-			services.InternalServerError(w, r, "Impossible de lire la corbeille", services.INTERNAL_ERROR, nil)
+			services.ServerError(w, r, fmt.Errorf("corbeille : chiffrage impossible (op %d): %w", op.ID, err))
 			return
 		}
 		resp := impactVersReponse(impact)
@@ -255,8 +251,7 @@ func opFromURL(w http.ResponseWriter, r *http.Request) (gen.CorbeilleOperation, 
 		return gen.CorbeilleOperation{}, false
 	}
 	if err != nil {
-		slog.Error("corbeille : lecture de l'opération impossible", "op", id, "error", err)
-		services.InternalServerError(w, r, "Impossible de lire la corbeille", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : lecture de l'opération impossible (op %d): %w", id, err))
 		return gen.CorbeilleOperation{}, false
 	}
 	return op, true
@@ -276,8 +271,7 @@ func Restaurer(w http.ResponseWriter, r *http.Request) {
 
 	parents, err := queries.FetchDeletedParentsOfOperation(r.Context(), op.ID)
 	if err != nil {
-		slog.Error("corbeille : contrôle des parents impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Restauration impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : contrôle des parents impossible (op %d): %w", op.ID, err))
 		return
 	}
 	if len(parents) > 0 {
@@ -294,8 +288,7 @@ func Restaurer(w http.ResponseWriter, r *http.Request) {
 	pool := getPoolFromCtx(r)
 	tx, err := pool.Begin(r.Context())
 	if err != nil {
-		slog.Error("corbeille : transaction impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Restauration impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : transaction impossible (op %d): %w", op.ID, err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -319,8 +312,7 @@ func Restaurer(w http.ResponseWriter, r *http.Request) {
 				services.BUSINESS_CONFLICT, map[string]interface{}{"reason": "homonyme_actif"})
 			return
 		}
-		slog.Error("corbeille : restauration impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Restauration impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : restauration impossible (op %d): %w", op.ID, err))
 		return
 	}
 
@@ -355,8 +347,7 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 
 	roots, err := queries.FetchOperationRoots(r.Context(), op.ID)
 	if err != nil {
-		slog.Error("corbeille : lecture des racines impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Purge impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : lecture des racines impossible (op %d): %w", op.ID, err))
 		return
 	}
 	rootIDs := make([]int32, 0, len(roots))
@@ -369,8 +360,7 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 		Ids:        rootIDs,
 	})
 	if err != nil {
-		slog.Error("corbeille : contrôle du jury impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Purge impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : contrôle du jury impossible (op %d): %w", op.ID, err))
 		return
 	}
 	if impact.JuryPeriodeCount > 0 {
@@ -382,8 +372,7 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 	pool := getPoolFromCtx(r)
 	tx, err := pool.Begin(r.Context())
 	if err != nil {
-		slog.Error("corbeille : transaction impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Purge impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : transaction impossible (op %d): %w", op.ID, err))
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -410,8 +399,7 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 		err = tx.Commit(r.Context())
 	}
 	if err != nil {
-		slog.Error("corbeille : purge impossible", "op", op.ID, "error", err)
-		services.InternalServerError(w, r, "Purge impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("corbeille : purge impossible (op %d): %w", op.ID, err))
 		return
 	}
 

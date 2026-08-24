@@ -95,7 +95,7 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Ce champ est obligatoire",
+			expectedError:  "champ_obligatoire",
 		},
 		{
 			name: "Echec - Heures négatives (Contrainte CHECK)",
@@ -112,7 +112,7 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "positif", // Vérifiez votre mapping d'erreur
+			expectedError:  "valeur_negative", // Vérifiez votre mapping d'erreur
 		},
 		{
 			name: "Echec - Coefficient négatif (Contrainte CHECK)",
@@ -129,7 +129,7 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "positif", // Vérifiez votre mapping d'erreur
+			expectedError:  "valeur_negative", // Vérifiez votre mapping d'erreur
 		},
 		{
 			name: "Echec - UE ID Invalide (FK)",
@@ -146,7 +146,7 @@ func TestIntegration_CreateMatiere(t *testing.T) {
 				}
 			},
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "n'existe pas",
+			expectedError:  "reference_inconnue",
 		},
 	}
 

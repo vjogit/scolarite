@@ -5,6 +5,7 @@ import (
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/periode/gen"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -15,15 +16,15 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Periode"
 var periodeConstraints = map[string]services.ConstraintRule{
-	"chk_periode_name_length": {Field: "name", Message: "Ce champ est obligatoire"},
-	"chk_periode_dates":       {Field: "fin", Message: "La date de fin doit être après la date de début"},
-	"fk_periode_option":       {Field: "option_id", Message: "L'option spécifiée n'existe pas"},
+	"chk_periode_name_length": {Field: "name", Motif: services.MotifChampObligatoire},
+	"chk_periode_dates":       {Field: "fin", Motif: services.MotifFinAvantDebut},
+	"fk_periode_option":       {Field: "option_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreatePeriode(w http.ResponseWriter, r *http.Request) {
 	var input gen.PeriodeActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -44,7 +45,7 @@ func CreatePeriode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -89,7 +90,7 @@ func FetchPeriodesByOptionID(w http.ResponseWriter, r *http.Request) {
 			services.InvalidRequestError(w, r, "Option introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -97,7 +98,7 @@ func FetchPeriodesByOptionID(w http.ResponseWriter, r *http.Request) {
 	periodes, err = queries.FetchPeriodesByOptionID(r.Context(), int32(fID))
 
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if periodes == nil {
@@ -110,7 +111,7 @@ func FetchPeriodesByOptionID(w http.ResponseWriter, r *http.Request) {
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.PeriodeActive
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -138,7 +139,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -156,7 +157,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -166,8 +167,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	// ne doit jamais être détruite, y compris via la cascade d'un parent.
 	nbPeriodesDeliberees, err := queries.CountPeriodeJuryDeliberePeriodes(r.Context(), input.IDs)
 	if err != nil {
-		slog.Error("suppression : contrôle du jury impossible", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("suppression : contrôle du jury impossible (ids %v): %w", input.IDs, err))
 		return
 	}
 	if nbPeriodesDeliberees > 0 {
@@ -180,8 +180,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	// partent en corbeille, restaurables jusqu'à purge.
 	if _, err := corbeille.MettreEnCorbeille(r.Context(), services.GetPgCtx(r.Context()).Db,
 		corbeille.RacinePeriode, input.IDs, services.SubFromCtx(r)); err != nil {
-		slog.Error("suppression impossible", "entite", "periode", "ids", input.IDs, "error", err)
-		services.InternalServerError(w, r, "Suppression impossible", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("suppression impossible (entite %v, ids %v): %w", "periode", input.IDs, err))
 		return
 	}
 

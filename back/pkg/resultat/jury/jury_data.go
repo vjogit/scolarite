@@ -38,11 +38,11 @@ type RemplacementEntry struct {
 
 // JuryData contient toutes les données nécessaires pour générer le fichier Excel du jury.
 type JuryData struct {
-	Hierarchy      *Hierarchie                `json:"hierarchy"`
-	Students       []StudentEntry             `json:"students"`
-	StatsUe        map[int32]map[int32]UeStat `json:"statsUe"`
-	Rattrapages    []RattrapageEntry          `json:"rattrapages"`
-	Remplacements  []RemplacementEntry        `json:"remplacements"`
+	Hierarchy     *Hierarchie                `json:"hierarchy"`
+	Students      []StudentEntry             `json:"students"`
+	StatsUe       map[int32]map[int32]UeStat `json:"statsUe"`
+	Rattrapages   []RattrapageEntry          `json:"rattrapages"`
+	Remplacements []RemplacementEntry        `json:"remplacements"`
 }
 
 type StudentEntry struct {

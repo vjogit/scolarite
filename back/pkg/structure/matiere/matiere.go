@@ -14,16 +14,16 @@ import (
 
 // Définition des contraintes spécifiques au domaine "Matiere"
 var matiereConstraints = map[string]services.ConstraintRule{
-	"chk_matiere_name_length":    {Field: "name", Message: "Ce champ est obligatoire"},
-	"chk_matiere_heure_positive": {Field: "heure", Message: "Le nombre d'heures doit être positif"},
-	"chk_matiere_coeff_positive": {Field: "coeff", Message: "Le coefficient doit être positif"},
-	"fk_matiere_ue":              {Field: "unite_enseignement_id", Message: "L'UE n'existe pas"},
+	"chk_matiere_name_length":    {Field: "name", Motif: services.MotifChampObligatoire},
+	"chk_matiere_heure_positive": {Field: "heure", Motif: services.MotifValeurNegative},
+	"chk_matiere_coeff_positive": {Field: "coeff", Motif: services.MotifValeurNegative},
+	"fk_matiere_ue":              {Field: "unite_enseignement_id", Motif: services.MotifReferenceInconnue},
 }
 
 func CreateMatiere(w http.ResponseWriter, r *http.Request) {
 	var input gen.Matiere
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -45,7 +45,7 @@ func CreateMatiere(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -90,7 +90,7 @@ func FetchMatieresByUniteEnseignementID(w http.ResponseWriter, r *http.Request) 
 			services.InvalidRequestError(w, r, "UniteEnseignement introuvable", services.NOT_FOUND, nil)
 			return
 		}
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func FetchMatieresByUniteEnseignementID(w http.ResponseWriter, r *http.Request) 
 	ues, err = queries.FetchMatieresByUniteEnseignementID(r.Context(), int32(fID))
 
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 	if ues == nil {
@@ -111,7 +111,7 @@ func FetchMatieresByUniteEnseignementID(w http.ResponseWriter, r *http.Request) 
 func Update(w http.ResponseWriter, r *http.Request) {
 	var input gen.Matiere
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -140,7 +140,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 
@@ -158,7 +158,7 @@ type BulkDeleteRequest struct {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
-		services.InvalidRequestError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
@@ -166,7 +166,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	err := queries.DeleteMatiere(r.Context(), input.IDs)
 	if err != nil {
-		services.InternalServerError(w, r, err.Error(), services.NO_INFORMATION, nil)
+		services.ServerError(w, r, err)
 		return
 	}
 

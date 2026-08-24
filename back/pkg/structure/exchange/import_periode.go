@@ -68,6 +68,20 @@ type MatiereRequest struct {
 	Coeff float32
 }
 
+// errFichierInvalide marque les échecs imputables au fichier lui-même :
+// illisible, vide — un 400 INVALID_FILE, jamais un 500.
+var errFichierInvalide = errors.New("fichier invalide")
+
+// erreurStructure : le fichier se lit mais ne décrit pas la hiérarchie
+// attendue. La valeur trouvée part en donnée dans l'extension `lignes`.
+type erreurStructure struct {
+	trouve string
+}
+
+func (e *erreurStructure) Error() string {
+	return "attend " + TypePeriode + ", trouve " + e.trouve
+}
+
 func ImportPeriode(w http.ResponseWriter, r *http.Request) {
 
 	option_ := option.GetOptionFromCtx(r)
@@ -94,12 +108,18 @@ func ImportPeriode(w http.ResponseWriter, r *http.Request) {
 
 	err = ImportPeriodeFromExcel(r.Context(), file, int(option_.ID))
 	if err != nil {
-		// Distinction des erreurs 400 vs 500
-		msg := err.Error()
-		if strings.Contains(msg, "transaction") {
-			services.InternalServerError(w, r, "Erreur interne lors de l'import", services.INTERNAL_ERROR, err)
-		} else {
-			services.InvalidRequestError(w, r, msg, services.NO_INFORMATION, nil)
+		var structure *erreurStructure
+		switch {
+		case errors.As(err, &structure):
+			services.InvalidRequestError(w, r, "la structure du fichier n'est pas celle attendue", services.INVALID_FILE,
+				map[string]any{"lignes": []services.LigneErreur{{
+					Motif:  services.MotifStructureInattendue,
+					Valeur: structure.trouve,
+				}}})
+		case errors.Is(err, errFichierInvalide):
+			services.InvalidRequestError(w, r, "le fichier est illisible ou vide", services.INVALID_FILE, nil)
+		default:
+			services.ServerError(w, r, fmt.Errorf("import de périodes impossible: %w", err))
 		}
 		return
 	}
@@ -111,7 +131,7 @@ func ImportPeriode(w http.ResponseWriter, r *http.Request) {
 func ImportPeriodeFromExcel(ctx context.Context, file multipart.File, idOption int) error {
 	f, err := excelize.OpenReader(file)
 	if err != nil {
-		return fmt.Errorf("erreur lecture fichier Excel: %w", err)
+		return fmt.Errorf("lecture du fichier Excel (%v): %w", err, errFichierInvalide)
 	}
 	defer f.Close()
 
@@ -119,12 +139,12 @@ func ImportPeriodeFromExcel(ctx context.Context, file multipart.File, idOption i
 	sheetNames := f.GetSheetList()
 
 	if len(sheetNames) == 0 {
-		return errors.New("pas de données dans le fichier à importer")
+		return fmt.Errorf("pas de données dans le fichier à importer: %w", errFichierInvalide)
 	}
 
 	rows, err := f.GetRows(sheetNames[0])
 	if err != nil {
-		return fmt.Errorf("erreur lecture lignes Excel: %w", err)
+		return fmt.Errorf("lecture des lignes Excel (%v): %w", err, errFichierInvalide)
 	}
 
 	offset := getOffset(rows)
@@ -141,7 +161,7 @@ func ImportPeriodeFromExcel(ctx context.Context, file multipart.File, idOption i
 
 	periodes, err := parseExcelStructure(&filteredRows)
 	if err != nil {
-		return fmt.Errorf("erreur de structure du fichier: %w", err)
+		return err
 	}
 
 	return runInTransaction(ctx, func(ctx context.Context, tx pgx.Tx) error {
@@ -161,7 +181,7 @@ func parseExcelStructure(rows *[][]string) ([]PeriodeRequest, error) {
 		case TypeInconnue:
 			consumeRow(rows)
 		default:
-			return nil, errors.New("attend semestre, mais  trouve " + typeFormation)
+			return nil, &erreurStructure{trouve: typeFormation}
 		}
 	}
 	return periodes, nil

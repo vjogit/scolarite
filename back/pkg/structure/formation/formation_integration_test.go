@@ -51,7 +51,7 @@ func TestIntegration_CreateFormation(t *testing.T) {
 			},
 			inputBody:      gen.Formation{Name: ""}, // Violates chk_formation_name_length
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Ce champ est obligatoire",
+			expectedError:  "champ_obligatoire",
 		},
 		{
 			name: "Echec - Contrainte UNIQUE (Doublon)",
@@ -63,7 +63,7 @@ func TestIntegration_CreateFormation(t *testing.T) {
 			},
 			inputBody:      gen.Formation{Name: "Mathématiques"}, // Violates formation_name_key
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "Cette valeur est déjà utilisée",
+			expectedError:  "valeur_deja_utilisee",
 		},
 	}
 

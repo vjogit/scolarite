@@ -17,13 +17,13 @@ import (
 
 // Format du fichier d'import (première feuille, ligne 1 = en-têtes) :
 //
-//	Nom | Prénom | Email | Nature | Rôles
+//		Nom | Prénom | Email | Nature | Rôles
 //
-//   - Nature : ELEVE ou AGENT (vide = AGENT). La nature est persistée en base,
-//     c'est elle qui distingue un élève d'un agent.
-//   - Rôles : liste séparée par des virgules, parmi services.AssignableRoles.
-//     Les rôles ne concernent que les agents et ne vont que dans Keycloak.
-//     Un élève ne doit en porter aucun.
+//	  - Nature : ELEVE ou AGENT (vide = AGENT). La nature est persistée en base,
+//	    c'est elle qui distingue un élève d'un agent.
+//	  - Rôles : liste séparée par des virgules, parmi services.AssignableRoles.
+//	    Les rôles ne concernent que les agents et ne vont que dans Keycloak.
+//	    Un élève ne doit en porter aucun.
 //
 // Il n'y a plus de colonne mot de passe : l'application n'en définit jamais.
 // Chaque agent créé reçoit un courriel Keycloak UPDATE_PASSWORD pour choisir
@@ -77,7 +77,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 
 	// Colonnes attendues : Nom | Prénom | Email | Nature | Rôles
 	var users []UserImport
-	var lignesInvalides []string
+	var lignesInvalides []services.LigneErreur
 	for i, row := range rows[1:] { // Ignorer la ligne d'en-têtes
 		numLigne := i + 2
 		get := func(col int) string {
@@ -96,28 +96,36 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 			continue // ligne vide
 		}
 		if email == "" {
-			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : email manquant", numLigne))
+			lignesInvalides = append(lignesInvalides, services.LigneErreur{
+				Ligne: numLigne, Champ: "email", Motif: services.MotifEmailManquant})
 			continue
 		}
 
 		typePersonne, err := normalizeTypePersonne(natureRaw)
 		if err != nil {
-			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : %v", numLigne, err))
+			lignesInvalides = append(lignesInvalides, services.LigneErreur{
+				Ligne: numLigne, Champ: "nature", Motif: services.MotifNatureInvalide, Valeur: natureRaw})
 			continue
 		}
 
 		var roles []string
+		roleInconnu := ""
 		for r := range strings.SplitSeq(rolesRaw, ",") {
 			if role := strings.TrimSpace(r); role != "" {
+				if !services.IsAssignableRole(role) && roleInconnu == "" {
+					roleInconnu = role
+				}
 				roles = append(roles, role)
 			}
 		}
-		if err := validateRoles(roles); err != nil {
-			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : %v", numLigne, err))
+		if roleInconnu != "" {
+			lignesInvalides = append(lignesInvalides, services.LigneErreur{
+				Ligne: numLigne, Champ: "roles", Motif: services.MotifRoleInconnu, Valeur: roleInconnu})
 			continue
 		}
 		if typePersonne == TypePersonneEleve && len(roles) > 0 {
-			lignesInvalides = append(lignesInvalides, fmt.Sprintf("ligne %d : un élève ne porte pas de rôle applicatif", numLigne))
+			lignesInvalides = append(lignesInvalides, services.LigneErreur{
+				Ligne: numLigne, Champ: "roles", Motif: services.MotifRoleSurEleve})
 			continue
 		}
 
@@ -141,8 +149,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	// 3. Auth Keycloak une seule fois pour tout l'import
 	kcClient, accessToken, realm, err := newKeycloakAdminClient(ctx, cfg)
 	if err != nil {
-		slog.Error("auth Keycloak impossible pour l'import", "err", err)
-		services.InternalServerError(w, r, "Erreur auth Keycloak", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur auth Keycloak: %w", err))
 		return
 	}
 
@@ -195,8 +202,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		for _, id := range createdKeycloakIDs {
 			_ = deleteKeycloakUser(context.Background(), id, cfg)
 		}
-		slog.Error("import Keycloak en échec", "err", err)
-		services.InternalServerError(w, r, "Erreur lors de la création des comptes", services.NO_INFORMATION, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur lors de la création des comptes: %w", err))
 		return
 	}
 
@@ -207,7 +213,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		for _, id := range createdKeycloakIDs {
 			_ = deleteKeycloakUser(context.Background(), id, cfg)
 		}
-		services.InternalServerError(w, r, "Erreur initialisation transaction", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur initialisation transaction: %w", err))
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -230,8 +236,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 			for _, id := range createdKeycloakIDs {
 				_ = deleteKeycloakUser(context.Background(), id, cfg)
 			}
-			slog.Error("insertion user impossible pendant l'import", "email", u.Email, "err", err)
-			services.InternalServerError(w, r, "Erreur DB pour "+u.Email, services.NO_INFORMATION, nil)
+			services.ServerError(w, r, fmt.Errorf("insertion user %s impossible: %w", u.Email, err))
 			return
 		}
 	}
@@ -240,7 +245,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		for _, id := range createdKeycloakIDs {
 			_ = deleteKeycloakUser(context.Background(), id, cfg)
 		}
-		services.InternalServerError(w, r, "Erreur Commit Transaction", services.INTERNAL_ERROR, nil)
+		services.ServerError(w, r, fmt.Errorf("Erreur Commit Transaction: %w", err))
 		return
 	}
 

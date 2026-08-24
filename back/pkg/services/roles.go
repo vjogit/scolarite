@@ -14,15 +14,15 @@ import (
 // realm_access.roles. C'est pourquoi le code ne teste JAMAIS ADMIN — si une
 // route semble l'exiger, c'est qu'il manque un rôle fonctionnel.
 const (
-	RoleConsultation           = "CONSULTATION"
-	RoleStructureEcriture      = "STRUCTURE_ECRITURE"
-	RoleNotesEcriture          = "NOTES_ECRITURE"
-	RoleJuryEcriture           = "JURY_ECRITURE"
-	RoleProgrammeEcriture      = "PROGRAMME_ECRITURE"
-	RoleSallesEcriture         = "SALLES_ECRITURE"
-	RoleCertificationEcriture  = "CERTIFICATION_ECRITURE"
-	RoleUtilisateursEcriture   = "UTILISATEURS_ECRITURE"
-	RoleAdmin                  = "ADMIN" // attribuable, jamais testé
+	RoleConsultation          = "CONSULTATION"
+	RoleStructureEcriture     = "STRUCTURE_ECRITURE"
+	RoleNotesEcriture         = "NOTES_ECRITURE"
+	RoleJuryEcriture          = "JURY_ECRITURE"
+	RoleProgrammeEcriture     = "PROGRAMME_ECRITURE"
+	RoleSallesEcriture        = "SALLES_ECRITURE"
+	RoleCertificationEcriture = "CERTIFICATION_ECRITURE"
+	RoleUtilisateursEcriture  = "UTILISATEURS_ECRITURE"
+	RoleAdmin                 = "ADMIN" // attribuable, jamais testé
 )
 
 // RolesFonctionnels est la liste des huit rôles que le composite ADMIN
