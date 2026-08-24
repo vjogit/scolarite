@@ -4,7 +4,7 @@ import { useLocation } from 'react-router';
 import { ENDPOINT_PAR_NIVEAU, NIVEAUX, type ContexteHierarchique, type EntiteNommee, type Niveau } from './niveaux';
 import { FORMATION, OPTION, PERIODE, PROMOTION } from '../../pages/structure/def';
 import { extraireContexte, fusionnerContexte } from './navigation';
-import { trouverWorkflow } from './workflows';
+import { trouverWorkflow, WORKFLOWS_HIERARCHIQUES } from './workflows';
 import { etatNavigation, majEtatNavigation, sAbonnerNavigation, type EtatNavigation } from './stockage';
 import { ContexteHierarchie, type NiveauResolu, type ValeurContexteHierarchie } from './contexte';
 import { depotFreres } from './freres';
@@ -51,6 +51,14 @@ export function ContexteHierarchieProvider({ children }: { children: ReactNode }
         [contexteUrl, memoire],
     );
 
+    // Le dernier workflow retenu est celui de la barre de tâches, et lui seul :
+    // Salles et Utilisateurs sont des workflows au sens du descripteur, mais ce
+    // sont des destinations globales. Les compter ici ferait revenir « Scolarité »
+    // sur les salles qu'on vient de quitter, au lieu de la tâche en cours.
+    const dernierWorkflow = workflowCourant !== null && WORKFLOWS_HIERARCHIQUES.includes(workflowCourant)
+        ? workflowCourant.id
+        : memoire.dernierWorkflow;
+
     // Synchronisation vers le magasin : la mémoire suit l'URL, jamais l'inverse.
     useEffect(() => {
         const chemins = { ...memoire.chemins };
@@ -59,9 +67,9 @@ export function ContexteHierarchieProvider({ children }: { children: ReactNode }
             chemins[workflowCourant.id] = pathname;
         }
 
-        const suivant: EtatNavigation = { contexte: pourNavigation, chemins };
+        const suivant: EtatNavigation = { contexte: pourNavigation, chemins, dernierWorkflow };
         majEtatNavigation(suivant);
-    }, [pathname, workflowCourant, pourNavigation, memoire]);
+    }, [pathname, workflowCourant, pourNavigation, memoire, dernierWorkflow]);
 
     // Les noms ne servent qu'au fil. Là où un arbre le remplace, les résoudre
     // serait quatre requêtes par navigation sans destinataire : `useNomResolu`
@@ -83,7 +91,11 @@ export function ContexteHierarchieProvider({ children }: { children: ReactNode }
             const resolu = parNiveau[niveau];
             if (resolu !== undefined) parUrl[niveau] = resolu;
         }
-        return { parUrl, pourNavigation, workflowCourant, chemins: memoire.chemins };
+        return {
+            parUrl, pourNavigation, workflowCourant,
+            chemins: memoire.chemins,
+            dernierWorkflow: memoire.dernierWorkflow ?? null,
+        };
     }, [formation, promotion, option, periode, pourNavigation, workflowCourant, memoire]);
 
     return <ContexteHierarchie value={valeur}>{children}</ContexteHierarchie>;

@@ -29,6 +29,7 @@ import { PROGRAMME_WORKFLOW, ProgrammeIndex, ProgrammeLayout } from './pages/pro
 import { createProgrammeHierarchyRoutes } from './pages/programme/routes.tsx';
 import { CORBEILLE_WORKFLOW } from './pages/corbeille/def.ts';
 import { CorbeillePage } from './pages/corbeille/Corbeille.tsx';
+import { RetourScolarite, SEGMENT_SCOLARITE } from './services/context/RetourScolarite.tsx';
 
 
 
@@ -42,6 +43,17 @@ const routes = [
         path: '/',
         Component: Layout,
         children: [
+          // Reprendre la tâche en cours : l'entrée « Scolarité » du menu
+          // latéral, et l'atterrissage à la racine — même composant, une seule
+          // définition de « reprendre où j'en étais ».
+          {
+            index: true,
+            element: <RoleGuard roles={[Role.CONSULTATION]}><RetourScolarite /></RoleGuard>,
+          },
+          {
+            path: SEGMENT_SCOLARITE,
+            element: <RoleGuard roles={[Role.CONSULTATION]}><RetourScolarite /></RoleGuard>,
+          },
           {
             path: USER_WORKFLOW,
             element: <RoleGuard roles={[Role.CONSULTATION]}><UserLayout /></RoleGuard>,

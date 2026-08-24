@@ -13,23 +13,12 @@ import 'dayjs/locale/fr';
 import { setupAxiosInterceptors } from './services/api';
 import { ContexteHierarchieProvider } from './services/context/ContexteProvider';
 import { possedeTousLesRoles, possedeUnRole } from './services/context/workflows';
-import { CATALOG_WORKFLOW } from './pages/catalog/def';
-import { NOTE_ELEVE, NOTE_WORKFLOW } from './pages/note/def';
-import { CERTIFICATION_WORKFLOW } from './pages/certification/def';
-import { JURY_WORKFLOW } from './pages/jury/def';
-import { PROGRAMME_WORKFLOW } from './pages/programme/def';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { SALLE_WORKFLOW } from './pages/salle/def';
 import { CORBEILLE_WORKFLOW } from './pages/corbeille/def';
+import { SEGMENT_SCOLARITE } from './services/context/RetourScolarite';
 import SchoolIcon from '@mui/icons-material/School';
-import GradingIcon from '@mui/icons-material/Grading';
-import AnalyticsIcon from '@mui/icons-material/Analytics';
-import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
-import GavelIcon from '@mui/icons-material/Gavel';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import DateRangeIcon from '@mui/icons-material/DateRange';
-import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 
@@ -41,45 +30,40 @@ type NavigationItemWithRoles = NavigationItem & {
   children?: NavigationItemWithRoles[]
 };
 
+/**
+ * Le menu latéral.
+ *
+ * Deux navigations coexistent, et la frontière entre elles est la règle à
+ * suivre pour toute entrée future :
+ *
+ *   barre centrale = tâches ancrées sur le contexte hiérarchique ;
+ *   menu latéral   = destinations globales, sans contexte.
+ *
+ * Les cinq tâches — Structure, Notes, Programme, Jury, Certifications — sont
+ * dans `BarreWorkflows`, qui les fait basculer en conservant la position dans
+ * la hiérarchie. Elles ont longtemps été ici *aussi*, avec un comportement
+ * différent : le latéral rejouait le dernier chemin du workflow, l'onglet
+ * tronquait le contexte courant. Deux résultats pour « aller au Jury ».
+ *
+ * Ne reste donc ici que ce qui ne dépend d'aucun contexte, plus « Scolarité »
+ * qui ramène à la tâche en cours : sans elle, les salles, les utilisateurs et
+ * la corbeille seraient des impasses.
+ */
 const NAVIGATION: NavigationItemWithRoles[] = [
   {
-    segment: CATALOG_WORKFLOW,
-    title: 'Formation',
+    segment: SEGMENT_SCOLARITE,
+    title: 'Scolarité',
     icon: <SchoolIcon />,
     requiredRoles: [Role.CONSULTATION],
   },
+  { kind: 'divider' },
   {
-    segment: 'resultat',
-    title: 'Resultat',
-    icon: <GradingIcon />,
+    // Segment composé : Salle a quitté le dossier « Planning », vidé de ses
+    // autres entrées, sans que son URL bouge.
+    segment: `planning/${SALLE_WORKFLOW}`,
+    title: 'Salle',
+    icon: <MeetingRoomIcon />,
     requiredRoles: [Role.CONSULTATION],
-    children: [
-      {
-        segment: NOTE_WORKFLOW,
-        title: 'Note',
-        icon: <AnalyticsIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-      {
-        segment: NOTE_ELEVE,
-        title: "Notes d'un élève",
-        icon: <AssignmentIndIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-
-      {
-        segment: CERTIFICATION_WORKFLOW,
-        title: 'Certification',
-        icon: <WorkspacePremiumIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-      {
-        segment: JURY_WORKFLOW,
-        title: 'Jury',
-        icon: <GavelIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-    ]
   },
   {
     segment: USER_WORKFLOW,
@@ -95,26 +79,6 @@ const NAVIGATION: NavigationItemWithRoles[] = [
     // ADMIN, sans jamais tester son nom.
     requiresAllRoles: ROLES_FONCTIONNELS,
   },
-  {
-    segment: 'planning',
-    title: 'Planning',
-    icon: <CalendarMonthIcon />,
-    requiredRoles: [Role.CONSULTATION],
-    children: [
-      {
-        segment: PROGRAMME_WORKFLOW,
-        title: 'Programme',
-        icon: <DateRangeIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-      {
-        segment: SALLE_WORKFLOW,
-        title: 'Salle',
-        icon: <MeetingRoomIcon />,
-        requiredRoles: [Role.CONSULTATION],
-      },
-    ]
-  }
 ];
 
 const BRANDING = {

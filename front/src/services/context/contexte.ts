@@ -31,6 +31,8 @@ export interface ValeurContexteHierarchie {
     readonly workflowCourant: DescripteurWorkflow | null;
     /** Dernier chemin visité par workflow. */
     readonly chemins: Readonly<Record<string, string | undefined>>;
+    /** Dernier workflow de la barre de tâches visité, `null` en session neuve. */
+    readonly dernierWorkflow: string | null;
 }
 
 export const ContexteHierarchie = createContext<ValeurContexteHierarchie | null>(null);

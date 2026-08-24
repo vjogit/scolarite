@@ -1,11 +1,11 @@
 /**
  * Mémoire de navigation, en une seule clé de session.
  *
- * Elle remplace les sept clés `*_last_path` d'origine et porte deux choses :
- * le contexte hiérarchique partagé, et le dernier chemin visité dans chaque
- * workflow. Le contexte n'est jamais une source de vérité — il est écrit
- * depuis l'URL et ne sert qu'à prolonger celle-ci vers le bas quand elle est
- * moins profonde.
+ * Elle remplace les sept clés `*_last_path` d'origine et porte trois choses :
+ * le contexte hiérarchique partagé, le dernier chemin visité dans chaque
+ * workflow, et lequel de ces workflows a été visité en dernier. Le contexte
+ * n'est jamais une source de vérité — il est écrit depuis l'URL et ne sert
+ * qu'à prolonger celle-ci vers le bas quand elle est moins profonde.
  */
 
 import { NIVEAUX, type ContexteHierarchique } from './niveaux';
@@ -39,9 +39,19 @@ export interface EtatNavigation {
     readonly contexte: ContexteHierarchique;
     /** Dernier chemin visité, indexé par identifiant de workflow. */
     readonly chemins: Readonly<Record<string, string>>;
+    /**
+     * Identifiant du dernier workflow de la barre de tâches où l'on a
+     * travaillé. `chemins` dit où l'on en était dans chacun, mais pas lequel
+     * on avait sous les yeux : c'est ce que l'entrée « Scolarité » du menu
+     * latéral demande pour ramener au bon workflow. `undefined` tant qu'aucun
+     * n'a été visité — session neuve.
+     */
+    readonly dernierWorkflow: string | undefined;
 }
 
-export const ETAT_NAVIGATION_VIDE: EtatNavigation = { contexte: {}, chemins: {} };
+export const ETAT_NAVIGATION_VIDE: EtatNavigation = {
+    contexte: {}, chemins: {}, dernierWorkflow: undefined,
+};
 
 function estObjet(valeur: unknown): valeur is Record<string, unknown> {
     return typeof valeur === 'object' && valeur !== null && !Array.isArray(valeur);
@@ -74,9 +84,12 @@ export function lireEtatNavigation(): EtatNavigation {
         const analyse: unknown = JSON.parse(brut);
         if (!estObjet(analyse)) return ETAT_NAVIGATION_VIDE;
 
+        const dernier = analyse.dernierWorkflow;
+
         return {
             contexte: lireContexte(analyse.contexte),
             chemins: lireChemins(analyse.chemins),
+            dernierWorkflow: typeof dernier === 'string' ? dernier : undefined,
         };
     } catch {
         // Session illisible ou stockage indisponible : on repart d'un contexte vide.
@@ -132,7 +145,9 @@ export function sAbonnerNavigation(surChangement: () => void): () => void {
 
 /** Sans changement, on ne notifie pas : c'est ce qui arrête la boucle de synchronisation. */
 export function majEtatNavigation(suivant: EtatNavigation): void {
-    if (memeContexte(etatCourant.contexte, suivant.contexte) && memesChemins(etatCourant.chemins, suivant.chemins)) {
+    if (memeContexte(etatCourant.contexte, suivant.contexte)
+        && memesChemins(etatCourant.chemins, suivant.chemins)
+        && etatCourant.dernierWorkflow === suivant.dernierWorkflow) {
         return;
     }
 
