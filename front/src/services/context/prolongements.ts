@@ -24,13 +24,15 @@ import { CATALOG_WORKFLOW, MEMBRES } from '../../pages/catalog/def';
 import { CERTIFICATION_WORKFLOW, MOBILITE, TOEIC } from '../../pages/certification/def';
 import { JURY, JURY_WORKFLOW } from '../../pages/jury/def';
 import {
-    CONTROLE, ENDPOINT_CONTROLE, ENDPOINT_NOTE_CONTROLE, NOTE, NOTE_WORKFLOW,
+    CONTROLE, ELEVE, ENDPOINT_CONTROLE, ENDPOINT_NOTE_CONTROLE, NOTE, NOTE_WORKFLOW,
 } from '../../pages/note/def';
 import { createControleRepository } from '../../pages/note/entites/controle';
+import { createNotePeriodeRepository } from '../../pages/note/entites/notePeriode';
 import { PROGRAMME, PROGRAMME_WORKFLOW } from '../../pages/programme/def';
 import {
     ENDPOINT_GROUPE, ENDPOINT_MATIERE, ENDPOINT_UES, GROUPE, MATIERE, UES,
 } from '../../pages/structure/def';
+import { ENDPOINT_USER } from '../../pages/user/def';
 import { createGroupeRepository } from '../../pages/structure/entites/groupe';
 import { createMatiereRepository } from '../../pages/structure/entites/matiere';
 import { createUeRepository } from '../../pages/structure/entites/ue';
@@ -109,6 +111,26 @@ const SEGMENT_GROUPE: SegmentProlonge = {
     resoudre: resolveurNomme(GROUPE, ENDPOINT_GROUPE),
 };
 
+/**
+ * L'axe Élève des notes.
+ *
+ * Ses frères sont l'effectif de la période — les élèves qui y ont au moins une
+ * note — servis par le repository de l'axe Période, sous sa clé. Le sélecteur
+ * pré-filtré que réclamait cet axe est donc le menu du fil, sans rien de plus :
+ * même requête, même entrée de cache, aucune route serveur nouvelle.
+ */
+const SEGMENT_ELEVE: SegmentProlonge = {
+    segment: ELEVE,
+    libelle: 'Élève',
+    depot: periodeId => depot(createNotePeriodeRepository(periodeId)),
+    // Le détail d'un utilisateur, pas la liste : c'est ce qui donne le nom même
+    // quand on arrive par un lien collé, sans avoir traversé la période.
+    resoudre: resolveur<{ firstName?: string | null; lastName?: string | null }>(
+        ELEVE, ENDPOINT_USER,
+        donnee => [donnee.lastName, donnee.firstName].filter(Boolean).join(' '),
+    ),
+};
+
 /** Le détail d'une note se nomme par son élève ; pas de frères en menu. */
 const SEGMENT_NOTE: SegmentProlonge = {
     segment: NOTE,
@@ -124,7 +146,7 @@ const SEGMENTS_PAR_WORKFLOW: Readonly<Record<string, readonly SegmentProlonge[]>
         SEGMENT_UE, SEGMENT_MATIERE, SEGMENT_GROUPE,
         { segment: MEMBRES, libelle: 'Membres' },
     ],
-    [NOTE_WORKFLOW]: [SEGMENT_UE, SEGMENT_MATIERE, SEGMENT_CONTROLE, SEGMENT_NOTE],
+    [NOTE_WORKFLOW]: [SEGMENT_UE, SEGMENT_MATIERE, SEGMENT_CONTROLE, SEGMENT_ELEVE, SEGMENT_NOTE],
     [JURY_WORKFLOW]: [{ segment: JURY, libelle: 'Jury' }],
     [PROGRAMME_WORKFLOW]: [{ segment: PROGRAMME, libelle: 'Programme' }],
     [CERTIFICATION_WORKFLOW]: [

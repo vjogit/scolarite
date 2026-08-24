@@ -78,6 +78,28 @@ export interface LigneGrille {
     message: string | null;
 }
 
+/**
+ * L'élève d'une ligne, et rien d'autre : ce dont une action de ligne a besoin.
+ *
+ * Un alias de type et non une interface, à dessein — c'est ce qui le rend
+ * assignable à `FieldValues`, donc utilisable avec `ActionLigne`, sans ajouter
+ * la moindre signature d'index : TypeScript en infère une pour les alias,
+ * jamais pour les interfaces. Déclarer l'action sur cette forme réduite plutôt
+ * que sur `LigneGrille` dit aussi ce qu'elle lit — l'identité de l'élève, pas
+ * l'état de sa saisie.
+ */
+// `consistent-type-definitions` voudrait une interface. C'est précisément ce
+// qu'il ne faut pas ici : une interface n'obtient pas de signature d'index
+// implicite, et ne satisfait donc pas `FieldValues`. L'alternative serait un
+// transtypage à chaque appel d'action, ou un `any` — la règle de style coûterait
+// plus qu'elle ne rapporte.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+export type LigneEleve = {
+    userId: number;
+    nom: string;
+    prenom: string;
+};
+
 /** Identifiants d'écriture d'une ligne, tenus à part de l'état de rendu. */
 export interface IdentiteNote {
     noteId: number | null;
@@ -91,6 +113,18 @@ export interface IdentiteNote {
 export function formaterNote(valeur: number | null): string {
     return valeur == null ? '' : String(valeur).replace('.', ',');
 }
+
+/**
+ * Une ligne que rien n'a encore renseignée. C'est l'état d'un élève de
+ * l'effectif sans note, et celui où retombe une ligne dont la note vient d'être
+ * supprimée : les deux se ressemblent parce qu'ils disent la même chose.
+ */
+export const SAISIE_VIERGE: SaisieLigne = {
+    note: '',
+    notEvaluated: false,
+    isValidated: false,
+    remarque: '',
+};
 
 export function saisieDepuisServeur(ligne: LigneGrilleServeur): SaisieLigne {
     return {

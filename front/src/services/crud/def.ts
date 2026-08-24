@@ -134,7 +134,18 @@ export interface DescriptionEntite {
  */
 export type EntiteCrud<D extends FieldValues> = Repository<D> & DescriptionEntite;
 
-export interface Datasource<D extends FieldValues> extends Repository<D>, ViewConfig<D>, DescriptionEntite {
+/**
+ * Ce dont une liste a besoin, et rien de plus : la collection, ses libellés,
+ * ses colonnes, ses actions.
+ *
+ * Ni `schema`, ni `emptyValue`, ni `render` — `List.tsx` n'en a jamais rien
+ * fait, ils n'appartiennent qu'au formulaire. Les séparer donne son contrat à
+ * l'écran de consultation : celui qui affiche des valeurs calculées par le
+ * serveur n'a aucun formulaire à décrire, puisqu'il n'a aucune route
+ * d'écriture. Il ne peut donc plus en décrire un par mégarde.
+ */
+export interface DatasourceListe<D extends FieldValues> extends Repository<D>, DescriptionEntite {
+    columns: MRT_ColumnDef<D>[]
     isAction: boolean
     isReadOnly?: boolean
     /**
@@ -146,6 +157,9 @@ export interface Datasource<D extends FieldValues> extends Repository<D>, ViewCo
     isTopToolbar: boolean
     renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
 }
+
+/** Une liste doublée de son formulaire : le cycle CRUD complet. */
+export interface Datasource<D extends FieldValues> extends DatasourceListe<D>, ViewConfig<D> {}
 
 interface RepositoryConfig<D extends FieldValues> {
     endpoint: string;

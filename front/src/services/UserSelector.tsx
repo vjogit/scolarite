@@ -27,6 +27,14 @@ interface UserSelectorProps<T extends FormFields> {
     getValues: UseFormGetValues<T>;
     setValue: UseFormSetValue<T>;
     isReadOnly?: boolean;
+    /**
+     * Prévenu du choix, en plus de l'écriture dans le formulaire. L'axe Élève
+     * porte l'élève dans l'URL et non dans un état : il navigue ici, plutôt que
+     * d'observer le champ et de naviguer depuis un effet — ce qui republierait
+     * la même entrée d'historique à chaque rendu et ferait boucler le retour
+     * navigateur.
+     */
+    onChoisir?: (eleve: UserOption | null) => void;
 }
 
 export const UserSelector = <T extends FormFields>({
@@ -34,7 +42,8 @@ export const UserSelector = <T extends FormFields>({
     errors,
     getValues,
     setValue,
-    isReadOnly = false
+    isReadOnly = false,
+    onChoisir,
 }: UserSelectorProps<T>) => {
     const [inputValue, setInputValue] = useState('');
     const [debouncedInputValue, setDebouncedInputValue] = useState('');
@@ -90,6 +99,7 @@ export const UserSelector = <T extends FormFields>({
                         setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
                         setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
                         setSelectedUser(newValue);
+                        onChoisir?.(newValue);
                     }}
                     renderInput={(params) => (
                         <TextField

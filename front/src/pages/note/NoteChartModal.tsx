@@ -13,8 +13,12 @@ import type { NameType, ValueType } from 'recharts/types/component/DefaultToolti
 
 export interface NoteData {
     note?: number | null;
-    firstName?: string;
-    lastName?: string;
+    // `null` et pas seulement `undefined` : les requêtes de notes lisent
+    // `u."firstName"` sans contrainte de non-nullité, et sqlc les rend en
+    // `*string`. Les trois lectures ci-dessous traitaient déjà l'absence ; le
+    // type, lui, la niait.
+    firstName?: string | null;
+    lastName?: string | null;
 }
 
 // --- COMPOSANTS UTILITAIRES ---

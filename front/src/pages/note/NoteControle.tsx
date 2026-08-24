@@ -46,7 +46,7 @@ const createNoteControleSchema = (bareme?: number) => z.object({
 
 export type NoteControle = z.infer<ReturnType<typeof createNoteControleSchema>>;
 
-const createNoteMatiereFields = (isRattrapage: boolean, bareme?: number) =>
+const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
     ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<NoteControle>) => {
         const notEvaluated = useWatch({ control, name: 'not_evaluated' });
         return (
@@ -158,7 +158,7 @@ const noteControleViewConfig = (controleId: string, isRattrapage: boolean, barem
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
         columns: createNoteControleColumns(isRattrapage),
-        render: createNoteMatiereFields(isRattrapage, bareme),
+        render: createNoteControleFields(isRattrapage, bareme),
     }
 };
 const createNoteControleRepository = (controleId: string) => {
@@ -207,7 +207,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!controleId || !datasource) return (
-        <Typography>Le paramètre matiereId est obligatoire</Typography>
+        <Typography>Le paramètre controleId est obligatoire</Typography>
     )
 
     // On attend le contrôle avant de monter le formulaire : sans le barème, le

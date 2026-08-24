@@ -62,7 +62,7 @@ const NAVIGATION: NavigationItemWithRoles[] = [
       },
       {
         segment: NOTE_ELEVE,
-        title: 'Note eleve',
+        title: "Notes d'un élève",
         icon: <AssignmentIndIcon />,
         requiredRoles: [Role.CONSULTATION],
       },

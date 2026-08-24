@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router';
-import type { Datasource } from './def';
+import type { DatasourceListe } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
@@ -23,7 +23,12 @@ import { MenuActionsLigne } from './MenuActionsLigne';
 
 
 interface Props<D extends FieldValues> {
-  datasource: Datasource<D>
+  /**
+   * `DatasourceListe` et non `Datasource` : la liste ne lit ni le schéma, ni la
+   * valeur vierge, ni le rendu du formulaire. L'exiger fermait cet écran aux
+   * axes de consultation, qui n'ont pas de formulaire à décrire.
+   */
+  datasource: DatasourceListe<D>
 }
 
 /** Encombrement d'une `IconButton` MUI de densité par défaut, en pixels. */

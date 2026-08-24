@@ -12,6 +12,18 @@ export const RESULTAT = 'resultat'
 export const NOTE ="note"
 export const CONTROLE="controle"
 
+/**
+ * Segment de l'axe Élève, chaînon frère de `ues` sous la période.
+ *
+ * Les quatre autres axes étaient déjà dans l'URL sans qu'on les y ait nommés :
+ * l'axe d'un écran de notes est le segment qui porte le dernier identifiant
+ * avant `note`. `eleve` complète la série dans la même grammaire, ce qui lui
+ * vaut d'un coup le fil de contexte, le menu de ses frères — l'effectif de la
+ * période, donc le sélecteur pré-filtré — et la survie au rechargement.
+ */
+export const ELEVE="eleve"
+
+/** Ancienne entrée hors contexte, conservée pour la seule redirection. */
 export const NOTE_ELEVE="note_eleve"
 
 

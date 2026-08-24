@@ -12,6 +12,15 @@ JOIN public."user" u ON n.user_id = u.id
 WHERE n.id = @id;
 
 -- name: FetchGpaByUserID :many
+--
+-- GPA par période d'un élève, lu dans le relevé de jury.
+--
+-- Les deux moyennes sont castées en my_null_float et non en float : leur
+-- dénominateur est un NULLIF, elles sont donc nullables pour de bon. Sans le
+-- domaine, sqlc les typait `float64` non pointeur et pgx échouait au scan d'un
+-- NULL — un dossier délibéré sans ECTS exploitable faisait répondre 500 là où
+-- il fallait afficher « non calculé ». Sa sœur FetchGpaDelibereByPeriodeID le
+-- fait déjà : les deux lisent le même relevé et doivent se comporter pareil.
 SELECT
     jr.periode_id,
     p.name AS periode_name,
@@ -19,12 +28,12 @@ SELECT
         CASE WHEN jr.gpa_index > 0 AND jr.ects IS NOT NULL
              THEN prom.echelle_gpa[jr.gpa_index] * jr.ects
              ELSE 0 END
-    ) / NULLIF(SUM(jr.ects) FILTER (WHERE jr.gpa_index IS NOT NULL AND jr.ects IS NOT NULL), 0))::float AS gpa_periode,
+    ) / NULLIF(SUM(jr.ects) FILTER (WHERE jr.gpa_index IS NOT NULL AND jr.ects IS NOT NULL), 0))::my_null_float AS gpa_periode,
     (SUM(
         CASE WHEN jr.gpa_index > 0 AND jr.ects IS NOT NULL AND ue.academique = TRUE
              THEN prom.echelle_gpa[jr.gpa_index] * jr.ects
              ELSE 0 END
-    ) / NULLIF(SUM(jr.ects) FILTER (WHERE jr.gpa_index IS NOT NULL AND jr.ects IS NOT NULL AND ue.academique = TRUE), 0))::float AS gpa_academique_periode
+    ) / NULLIF(SUM(jr.ects) FILTER (WHERE jr.gpa_index IS NOT NULL AND jr.ects IS NOT NULL AND ue.academique = TRUE), 0))::my_null_float AS gpa_academique_periode
 FROM public.jury_result jr
 JOIN public.periode_active p ON p.id = jr.periode_id
 JOIN public.option_active o ON o.id = p.option_id

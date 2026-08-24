@@ -12,6 +12,7 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import {
     Alert, Autocomplete, Box, Chip, CircularProgress, IconButton, Paper, Stack,
     TextField, Tooltip, Typography,
@@ -25,11 +26,12 @@ import type { Groupe } from '../structure/Groupe';
 import type { Controle } from './Controle';
 import { FicheExportModal } from './FicheExportModal';
 import { FicheImportButton } from './FicheImportButton';
-import {  } from './useFicheImport';
 import { NoteChartButton } from './NoteChartButton';
 import { NoteChartModal, type NoteData } from './NoteChartModal';
 import { GrilleNotesTable } from './GrilleNotesTable';
-import { analyserNote, estPourvue, type LigneGrille } from './ligneNote';
+import { analyserNote, estPourvue, type LigneEleve, type LigneGrille } from './ligneNote';
+import { AXE_CONTROLE, cheminVersEleve } from './axes';
+import type { ActionLigne } from '../../services/crud/actions';
 import { createNoteField } from './noteField';
 import { formatNombre } from '../../services/format';
 import { useDroits } from '../../services/context/droits';
@@ -55,6 +57,28 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
     // consulter les notes reste légitime, seule la saisie disparaît.
     const { possedeRole } = useDroits();
     const lectureSeule = !possedeRole(Role.NOTES_ECRITURE);
+
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
+
+    /**
+     * La couture entre l'axe de saisie et l'axe Élève : depuis la ligne d'un
+     * élève, son relevé complet. Sans icône, donc dans le menu à libellés et
+     * non promue en bouton — une icône de plus dans une grille de saisie
+     * détournerait du geste principal, qui est de taper des notes.
+     *
+     * Une action de rappel et non de navigation : la cible ne se déduit pas
+     * d'un `rootPath` mais des chaînons de l'URL, la période du contexte étant
+     * conservée et tout ce qui la suit abandonné.
+     */
+    const actionsLigne = useMemo<readonly ActionLigne<LigneEleve>[]>(() => [{
+        id: 'notes-eleve',
+        libelle: "Voir les notes de l'élève",
+        onSelect: (ligne: LigneEleve) => {
+            const chemin = cheminVersEleve(pathname, ligne.userId);
+            if (chemin !== null) void navigate(chemin);
+        },
+    }], [pathname, navigate]);
 
     const [groupeId, setGroupeId] = useState<string | null>(
         () => sessionStorage.getItem(cleGroupeMemorise(controleId)),
@@ -100,6 +124,12 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
     return (
         <Paper sx={{ p: 2 }}>
             <Stack spacing={2}>
+                {/* Même annonce de nature que sur les quatre autres axes : ce que
+                    l'écran est, dit par lui et non déduit de ce qu'il permet. */}
+                <Alert severity="info" icon={false} variant="outlined" sx={{ py: 0.25 }}>
+                    {AXE_CONTROLE.annonce}
+                </Alert>
+
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
                         <Typography variant="h6">{controle?.name ?? 'Notes du contrôle'}</Typography>
@@ -146,11 +176,13 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         <Typography variant="body2" aria-label="Progression de la saisie">
                             Saisie : <strong>{pourvues}/{lignes.length}</strong>
                         </Typography>
-                        {!lectureSeule && (
-                            <Typography variant="caption" color="text.secondary">
-                                Entrée ou Tab enregistre la ligne et passe à l'élève suivant.
-                            </Typography>
-                        )}
+                        {/* Sans ce second cas, une grille aux champs tous grisés
+                            n'expliquait pas pourquoi : elle passait pour en panne. */}
+                        <Typography variant="caption" color="text.secondary">
+                            {lectureSeule
+                                ? "Consultation seule : la saisie demande le rôle d'écriture des notes."
+                                : "Entrée ou Tab enregistre la ligne et passe à l'élève suivant."}
+                        </Typography>
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -188,6 +220,7 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         isRattrapage={isRattrapage}
                         lectureSeule={lectureSeule}
                         onLignesChange={setLignes}
+                        actionsLigne={actionsLigne}
                     />
                 )}
             </Stack>

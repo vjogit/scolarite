@@ -9,6 +9,7 @@
  * l'écran.
  */
 
+import type { ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router';
 import { Box } from '@mui/material';
 
@@ -17,11 +18,22 @@ import { useContexteHierarchie } from './contexte';
 import { construireCheminWorkflow, ecranTerminalDuChemin, estCheminCompatible } from './navigation';
 import type { DescripteurWorkflow } from './workflows';
 
-/** Workflow hiérarchique : une seule barre, onglets de tâches et fil de contexte. */
-export function WorkflowLayout({ workflow }: { workflow: DescripteurWorkflow }) {
+/**
+ * Workflow hiérarchique : une seule barre, onglets de tâches et fil de contexte.
+ *
+ * `enTete` intercale une commande propre au workflow entre la barre partagée et
+ * l'écran — le commutateur d'axe des notes est le seul à ce jour. Il ne va pas
+ * dans `BarreWorkflows`, que les cinq workflows partagent et à laquelle rien de
+ * particulier n'a sa place ; il ne justifie pas non plus de recopier ce layout.
+ */
+export function WorkflowLayout({ workflow, enTete }: {
+    workflow: DescripteurWorkflow;
+    enTete?: ReactNode;
+}) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <BarreWorkflows workflowCourant={workflow} />
+            {enTete}
             <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <Outlet />
             </Box>

@@ -16,7 +16,7 @@ import { createCertificationHierarchyRoutes } from './pages/certification/routes
 import { CERTIFICATION_WORKFLOW } from './pages/certification/def.ts';
 import { createNoteHierarchyRoutes } from './pages/note/routes.tsx';
 import { NOTE_ELEVE, NOTE_WORKFLOW } from './pages/note/def.ts';
-import { NoteEleveDetail } from './pages/note/NoteEleveLayout.tsx';
+import { RedirectionNoteEleve } from './pages/note/RedirectionNoteEleve.tsx';
 import { JuryIndex, JuryLayout } from './pages/jury/JuryLayout.tsx';
 import { createJuryHierarchyRoutes } from './pages/jury/routes.tsx';
 import { JURY_WORKFLOW } from './pages/jury/def.ts';
@@ -86,8 +86,10 @@ const routes = [
                 ]
               },
               {
+                // Ancienne entrée hors contexte : l'axe Élève l'a absorbée.
+                // La route survit pour que les liens en circulation aboutissent.
                 path: NOTE_ELEVE,
-                element: <RoleGuard roles={[Role.CONSULTATION]}><NoteEleveDetail /></RoleGuard>,
+                element: <RoleGuard roles={[Role.CONSULTATION]}><RedirectionNoteEleve /></RoleGuard>,
               },
             ]
           },

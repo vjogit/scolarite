@@ -17,23 +17,29 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import {
-    Alert, Box, Checkbox, CircularProgress, IconButton, Skeleton, Table, TableBody,
+    Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
+    DialogContentText, DialogTitle, IconButton, Skeleton, Table, TableBody,
     TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip,
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
+import { useNotifications } from '@toolpad/core/useNotifications';
 
 import { apiInstance } from '../../services/api';
+import { notifyUndone } from '../../services/notify';
+import { estNavigation, type ActionLigne } from '../../services/crud/actions';
+import { MenuActionsLigne } from '../../services/crud/MenuActionsLigne';
 import { codeFor, fieldErrorsFor, messageForError } from '../../services/errorMessages';
 import { ENDPOINT_NOTE_CONTROLE, ENDPOINT_NOTE_GRILLE, NOTE } from './def';
 import { bornesNote, createNoteField, libelleNote } from './noteField';
 import {
     analyserNote, empreinte, formaterNote, identiteDepuisServeur,
-    ligneDepuisServeur, type IdentiteNote, type LigneGrille, type LigneGrilleServeur,
-    type NoteEnregistree, type SaisieLigne, type StatutLigne,
+    ligneDepuisServeur, SAISIE_VIERGE, type IdentiteNote, type LigneEleve, type LigneGrille,
+    type LigneGrilleServeur, type NoteEnregistree, type SaisieLigne, type StatutLigne,
 } from './ligneNote';
 
 /**
@@ -71,9 +77,16 @@ interface Props {
     lectureSeule: boolean;
     /** Remonte l'état affiché : compteur de progression et graphique. */
     onLignesChange: (lignes: LigneGrille[]) => void;
+    /**
+     * Actions de ligne, déclarées par l'écran selon le contrat d'`actions.ts`.
+     * Cette table n'est pas une liste CRUD — ses lignes viennent de l'effectif,
+     * pas des notes — mais la colonne d'actions, elle, est la même : un menu à
+     * libellés, pas des icônes muettes.
+     */
+    actionsLigne?: readonly ActionLigne<LigneEleve>[];
 }
 
-export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, lectureSeule, onLignesChange }: Props) {
+export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, lectureSeule, onLignesChange, actionsLigne = [] }: Props) {
     const champNote = useMemo(() => createNoteField(bareme), [bareme]);
 
     const { data, isLoading, error } = useQuery<LigneGrilleServeur[]>({
@@ -84,6 +97,10 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
     });
 
     const [lignes, setLignes] = useState<LigneGrille[]>([]);
+    /** Ligne dont la suppression est proposée ; `null` hors confirmation. */
+    const [aSupprimer, setASupprimer] = useState<LigneGrille | null>(null);
+
+    const notifications = useNotifications();
 
     // Miroir de l'état, lu par les enregistrements qui se résolvent après coup.
     // Toutes les écritures passent par `appliquerLignes` : l'état de rendu et le
@@ -288,6 +305,70 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
         enregistrerSiModifiee(userId);
     }, [enregistrerSiModifiee]);
 
+    const supprimerNote = useCallback(async (ligne: LigneGrille) => {
+        const noteId = identitesRef.current.get(ligne.userId)?.noteId;
+        // La ligne a pu être vidée entre l'ouverture du menu et la confirmation.
+        if (noteId == null) return;
+
+        majLigne(ligne.userId, l => ({ ...l, statut: 'en-attente', message: null }));
+        try {
+            // Le point d'entrée est collectif malgré l'apparence de sa route :
+            // `DELETE /controle/{noteID}` ignore l'identifiant du chemin et lit
+            // `{ ids }` dans le corps. `createRepository` l'appelle déjà ainsi,
+            // avec `bulk` en guise d'identifiant ; on ne s'en écarte pas.
+            await apiInstance.delete(`${ENDPOINT_NOTE_CONTROLE}/bulk`, { data: { ids: [noteId] } });
+
+            // L'élève reste à l'effectif, sa note n'existe plus : la ligne
+            // redevient exactement celle d'un élève jamais noté. Oublier
+            // l'identité est ce qui compte — sans quoi la saisie suivante
+            // tenterait un PUT sur une note détruite.
+            identitesRef.current.delete(ligne.userId);
+            tentativesRef.current.delete(ligne.userId);
+            majLigne(ligne.userId, l => ({
+                ...l,
+                saisie: SAISIE_VIERGE,
+                enregistre: SAISIE_VIERGE,
+                statut: 'inchange',
+                message: null,
+            }));
+            notifyUndone(notifications, `Note de ${ligne.nom} ${ligne.prenom} supprimée.`.trim());
+        } catch (erreur) {
+            majLigne(ligne.userId, l => ({ ...l, statut: 'erreur', message: messageForError(erreur) }));
+        }
+    }, [majLigne, notifications]);
+
+    // Même file que les écritures : une suppression et un enregistrement en vol
+    // sur la même ligne se disputeraient `identitesRef`, et la seconde écrirait
+    // sur une note que la première vient de détruire.
+    const planifierSuppression = useCallback((ligne: LigneGrille) => {
+        const precedente = chainesRef.current.get(ligne.userId) ?? Promise.resolve();
+        chainesRef.current.set(ligne.userId, precedente.then(() => supprimerNote(ligne)));
+    }, [supprimerNote]);
+
+    /**
+     * Les actions d'une ligne : celles que l'écran déclare, plus la suppression.
+     *
+     * `actions.ts` veut que l'écran déclare ce qu'une ligne permet. La table
+     * ajoute pourtant celle-ci, et c'est délibéré : elle est seule à savoir si
+     * la ligne porte réellement une note — l'identifiant vit dans
+     * `identitesRef`, hors de l'état de rendu — et seule à pouvoir remettre la
+     * ligne d'aplomb après coup. L'écran ne pourrait déclarer ni sa visibilité,
+     * ni son effet.
+     */
+    const actionsPourLigne = useCallback((ligne: LigneGrille): ActionLigne<LigneEleve>[] => {
+        const declarees = actionsLigne.filter(action => action.estVisible?.(ligne) ?? true);
+        if (lectureSeule || identitesRef.current.get(ligne.userId)?.noteId == null) {
+            return declarees;
+        }
+        return [...declarees, {
+            id: 'supprimer-note',
+            libelle: 'Supprimer la note',
+            icone: DeleteOutlineIcon,
+            destructive: true,
+            onSelect: () => { setASupprimer(ligne); },
+        }];
+    }, [actionsLigne, lectureSeule]);
+
     const basculerNonEvalue = useCallback((userId: number, index: number, coche: boolean) => {
         majLigne(userId, l => ({
             ...l,
@@ -352,6 +433,11 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                         {isRattrapage && <TableCell sx={{ width: 90 }} align="center">Validée</TableCell>}
                         <TableCell>Remarque</TableCell>
                         <TableCell sx={{ width: 80 }} align="center">État</TableCell>
+                        {/* La colonne existe dès qu'une ligne peut porter une
+                            action : celles que l'écran déclare, ou la suppression
+                            que la table ajoute pour qui a le droit d'écrire. */}
+                        {(actionsLigne.length > 0 || !lectureSeule)
+                            && <TableCell sx={{ width: 64 }} align="center">Actions</TableCell>}
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -430,12 +516,93 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                         onRecharger={() => { void rechargerLigne(ligne.userId); }}
                                     />
                                 </TableCell>
+                                {(actionsLigne.length > 0 || !lectureSeule) && (
+                                <TableCell align="center">
+                                    <MenuActionsLigne
+                                        actions={actionsPourLigne(ligne)}
+                                        nomLigne={eleve}
+                                        onChoisir={(action) => {
+                                            // Aucune navigation déclarative ici : la cible de
+                                            // l'axe Élève ne se déduit pas d'un `rootPath`,
+                                            // elle se calcule depuis les chaînons de l'URL.
+                                            if (!estNavigation(action)) action.onSelect(ligne);
+                                        }}
+                                    />
+                                </TableCell>
+                                )}
                             </TableRow>
                         );
                     })}
                 </TableBody>
             </Table>
+
+            <ConfirmerSuppressionNote
+                ligne={aSupprimer}
+                onAnnuler={() => { setASupprimer(null); }}
+                onConfirmer={() => {
+                    if (aSupprimer) planifierSuppression(aSupprimer);
+                    setASupprimer(null);
+                }}
+            />
         </TableContainer>
+    );
+}
+
+/**
+ * Confirmation de la suppression d'une note.
+ *
+ * Une modale dédiée plutôt que `DeleteConfirmDialog` : celle-ci est bâtie pour
+ * une collection CRUD — elle réclame un repository, un endpoint d'analyse
+ * d'impact et une sélection de lignes, dont rien n'existe ici.
+ *
+ * Elle dit surtout ce qu'une confirmation générique ne dirait pas : supprimer
+ * n'est pas déclarer l'élève non évalué. La case « N.É. » affirme qu'il était
+ * concerné sans être évalué ; supprimer retire la ligne des calculs comme si
+ * elle n'avait jamais existé. Ce sont deux gestes différents, et c'est le seul
+ * endroit où l'on peut encore les distinguer avant que l'un soit irréversible.
+ */
+function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
+    ligne: LigneGrille | null;
+    onAnnuler: () => void;
+    onConfirmer: () => void;
+}) {
+    // `keepMounted` absent : la modale se démonte, mais `ligne` doit survivre au
+    // rendu de fermeture pour que le nom ne disparaisse pas pendant l'animation.
+    const [derniere, setDerniere] = useState<LigneGrille | null>(null);
+    if (ligne !== null && ligne !== derniere) {
+        setDerniere(ligne);
+    }
+    const affichee = ligne ?? derniere;
+    if (!affichee) return null;
+
+    const eleve = `${affichee.nom} ${affichee.prenom}`.trim();
+    const valeur = affichee.enregistre.notEvaluated
+        ? 'déclaré non évalué'
+        : affichee.enregistre.note.trim() === ''
+            ? 'sans valeur'
+            : `noté ${affichee.enregistre.note}`;
+
+    return (
+        <Dialog open={ligne !== null} onClose={onAnnuler} maxWidth="xs" fullWidth>
+            <DialogTitle>Supprimer la note ?</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                    La note de <strong>{eleve}</strong> ({valeur}) sera définitivement
+                    supprimée. Cette action est irréversible.
+                </DialogContentText>
+                <DialogContentText sx={{ mt: 2 }}>
+                    Pour signaler une absence, cochez « N.É. » plutôt que de supprimer :
+                    la ligne disparaîtra sinon des calculs comme si elle n'avait jamais
+                    existé.
+                </DialogContentText>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onAnnuler}>Annuler</Button>
+                <Button onClick={onConfirmer} color="error" variant="contained">
+                    Supprimer
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }
 

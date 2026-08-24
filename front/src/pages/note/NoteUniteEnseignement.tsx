@@ -1,130 +1,62 @@
-import { Crud } from "../../services/crud/Crud";
+/**
+ * Axe UE : la moyenne de chaque élève pour une unité d'enseignement, son grade
+ * et le verdict d'élimination.
+ *
+ * Écran de consultation, calculé par `note_read_ue.sql` depuis les moyennes de
+ * matière — elles-mêmes calculées depuis les notes de contrôle.
+ */
+
+import { useMemo } from 'react';
 import { useParams } from 'react-router';
-import { useMemo } from "react";
-import { z } from 'zod';
-import { TextField, Typography } from "@mui/material";
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
+import { Alert } from '@mui/material';
 import type { MRT_ColumnDef } from 'material-react-table';
-import { NoteChartModal } from './NoteChartModal';
-import { ENDPOINT_NOTE_UE, NOTE } from './def';
-import { NoteChartButton } from './NoteChartButton';
-import { useNoteChart } from './useNoteChart';
-import { useRootPath } from '../../services/crud/useRootPath';
-import { createNoteField } from './noteField';
 
-const noteUeSchema = z.object({
+import type { DatasourceListe } from '../../services/crud/def';
+import { AXE_UE } from './axes';
+import { AxeCalcule } from './AxeCalcule';
+import { CelluleNoteCalculee } from './CelluleNote';
+import { nomEleve } from './entites/noteMatiere';
+import { createNoteUeRepository, noteUeEntite, type NoteUe } from './entites/noteUe';
 
-    // Moyenne d'UE : même unité que les notes, mais champ en lecture seule et
-    // barème non chargé par cet écran.
-    note: createNoteField(),
-    a_matiere_eliminatoire: z.boolean(),
-    grade_lettre: z.string(),
-    unite_enseignement_id: z.number(),
-    user_id: z.number({
-        message: "Veuillez sélectionner un élève"
-    }),
-    firstName: z.string(),
-    lastName: z.string(),
-})
-
-type NoteUe = z.infer<typeof noteUeSchema>;
-
-export const NoteUeFields = ({ register, errors, getValues }: RenderProps<NoteUe>) => {
-    return (
-        <>
-            <TextField
-                label="Élève"
-                // On affiche le nom complet récupéré par la requête SQL
-                value={`${getValues("lastName") || ''} ${getValues("firstName") || ''}`}
-                variant="outlined"
-                fullWidth
-                disabled
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("note", { valueAsNumber: true })}
-                label="Note"
-                variant="outlined"
-                fullWidth
-                type="number"
-                disabled
-                error={!!errors.note}
-                helperText={errors.note?.message}
-                slotProps={{ htmlInput: { step: "0.01" } }}
-                sx={{ mb: 2 }}
-            />
-        </>
-    );
-};
-
-const noteUeColumns: MRT_ColumnDef<NoteUe>[] = [
-    {
-        accessorFn: (row) => `${row.lastName || ''} ${row.firstName || ''}`,
-        header: 'Élève',
-    },
-    {
-        accessorKey: 'note',
-        header: 'Note',
-        // On personnalise uniquement le rendu visuel de la cellule
-        Cell: ({ cell }) => {
-            const valeur = cell.getValue<number | null>();
-            return valeur != null ? valeur.toFixed(2) : 'N.E.';
-        }
-    },
-    { accessorKey: 'grade_lettre', header: 'Grade' },
-    { accessorFn: (data) => data.a_matiere_eliminatoire ? 'Oui' : '-', header: 'Matière éliminatoire' },
-]
-
-const createNoteUeViewConfig = (ueId: string): ViewConfig<NoteUe> => {
-    return {
-        schema: noteUeSchema,
-        emptyValue: { unite_enseignement_id: parseInt(ueId) },
-        columns: noteUeColumns,
-        render: NoteUeFields,
-    }
-};
-
-// Partie statique : à l'extérieur du composant
-const createNoteUeRepository = (ueId: string) => {
-    return createRepository<NoteUe>({
-        endpoint: ENDPOINT_NOTE_UE,
-        queryParams: `?unite_enseignement_id=${ueId}`,
-        queryKey: [NOTE, 'ue', ueId],
-        getId: () => -1,
-    })
+/**
+ * Trois états et non deux. `a_matiere_eliminatoire` est `NULL` quand l'UE n'est
+ * pas évaluée, et la requête dit pourquoi : sans moyenne complète, on ne sait
+ * pas si une matière est éliminatoire. L'écran rendait ce `NULL` comme un `-`,
+ * c'est-à-dire comme le « non » que le serveur refuse d'affirmer.
+ */
+function eliminatoire(ligne: NoteUe): string {
+    if (ligne.a_matiere_eliminatoire === null) return 'Indéterminé';
+    return ligne.a_matiere_eliminatoire ? 'Oui' : 'Non';
 }
 
-export function CrudNoteUniteEnseignement({ mode, workflow, isAction, isTopToolbar, actionsLigne }: CrudProps<NoteUe>) {
+const colonnes: MRT_ColumnDef<NoteUe>[] = [
+    { accessorFn: nomEleve, id: 'eleve', header: 'Élève' },
+    {
+        accessorKey: 'note',
+        header: 'Moyenne',
+        Cell: ({ cell, row }) => (
+            <CelluleNoteCalculee
+                valeur={cell.getValue<number | null>()}
+                provenance={row.original.provenance}
+            />
+        ),
+    },
+    { accessorKey: 'grade_lettre', header: 'Grade' },
+    { accessorFn: eliminatoire, id: 'eliminatoire', header: 'Matière éliminatoire' },
+];
 
+export function AxeNoteUniteEnseignement() {
     const { ueId } = useParams();
-    const rootPath = useRootPath(mode);
-    const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteUe>();
 
-    const datasource = useMemo((): Datasource<NoteUe> | null => ueId ? ({
+    const datasource = useMemo((): DatasourceListe<NoteUe> | null => ueId ? ({
         ...createNoteUeRepository(ueId),
-        ...createNoteUeViewConfig(ueId),
-        title: "Notes de l'UE",
-        entityLabel: "la note",
-        entityLabelPlural: "notes",
-        isAction,
-        actionsLigne,
-        isTopToolbar,
-        renderTopToolbarCustomActions: ({ table }) => (
-            <NoteChartButton onClick={() => { handleOpenChart(table); }} />
-        )
-    }) : null, [ueId, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
+        ...noteUeEntite,
+        columns: colonnes,
+        isAction: false,
+        isTopToolbar: true,
+    }) : null, [ueId]);
 
-    // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
-    // rendu : sans le paramètre, le mémo ne construit rien.
-    if (!datasource) return (
-        <Typography>Le paramètre ueId est obligatoire</Typography>
-    )
+    if (!datasource) return <Alert severity="error">Le paramètre ueId est obligatoire.</Alert>;
 
-
-    return (
-        <>
-            <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath}/>
-            <NoteChartModal open={chartOpen} onClose={() => { setChartOpen(false); }} data={chartData} />
-        </>
-    )
+    return <AxeCalcule datasource={datasource} axe={AXE_UE} />;
 }
