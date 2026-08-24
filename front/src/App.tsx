@@ -204,7 +204,7 @@ export default function App() {
               authentication={AUTHENTICATION}
               localeText={{
                 accountSignInLabel: "Connexion",
-                accountSignOutLabel: "Deconexion",
+                accountSignOutLabel: "Déconnexion",
               }}
             >
               {/* Le contexte résout des noms par l'API : il ne se monte qu'une

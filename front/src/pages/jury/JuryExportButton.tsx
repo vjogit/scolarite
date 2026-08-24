@@ -1,6 +1,6 @@
 import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
-import { nomDeFichierDepuis } from '../../services/telechargement';
+import { telecharger } from '../../services/telechargement';
 import { useCallback } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -23,19 +23,11 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
 
     const handleExport = useCallback(async () => {
         try {
-            const response = await apiInstance.get(`${ENDPOINT_JURY}/excel/${periodeId}`, {
+            const response = await apiInstance.get<Blob>(`${ENDPOINT_JURY}/excel/${periodeId}`, {
                 responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-
-            link.setAttribute('download', nomDeFichierDepuis(response, `jury_${periodeId}.xlsx`));
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            telecharger(response, `jury_${periodeId}.xlsx`);
 
             notifySuccess(notifications, 'Export réussi.');
         } catch (err) {

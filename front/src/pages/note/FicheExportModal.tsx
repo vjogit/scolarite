@@ -6,6 +6,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { apiInstance } from '../../services/api';
+import { telecharger } from '../../services/telechargement';
 import { ENDPOINT_GROUPE } from '../structure/def';
 import { ENDPOINT_BASE } from './def';
 import type { Groupe } from '../structure/Groupe';
@@ -39,18 +40,12 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
         if (!controleId || !selectedGroupe) return;
         setDownloading(true);
         try {
-            const response = await apiInstance.get(
+            const response = await apiInstance.get<Blob>(
                 `${ENDPOINT_BASE}/note/fiche/export?controle_id=${controleId}&groupe_id=${selectedGroupe.id}`,
                 { responseType: 'blob' },
             );
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `fiche_${controleId}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            // Le serveur nomme la fiche ; le repli ne sert que s'il se tait.
+            telecharger(response, `fiche_${controleId}.xlsx`);
             handleClose();
         } catch (error) {
             // Sans ce `catch`, l'échec ne se voyait nulle part : la modale

@@ -4,7 +4,7 @@ import { useParams } from 'react-router';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
-import { nomDeFichierDepuis } from '../../services/telechargement';
+import { telecharger } from '../../services/telechargement';
 import { notifyError } from '../../services/notify';
 
 /** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
@@ -18,20 +18,11 @@ export function PeriodeExportButton() {
         if (!optionId) return;
 
         try {
-            const response = await apiInstance.get(`/api/v0/structure/option/${optionId}/export`, {
+            const response = await apiInstance.get<Blob>(`/api/v0/structure/option/${optionId}/export`, {
                 responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-
-            link.setAttribute('download', nomDeFichierDepuis(response, 'programme.xlsx'));
-
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            telecharger(response, 'programme.xlsx');
         } catch (error) {
             console.error(error);
             notifyError(notifications, "Erreur lors de l'export.");

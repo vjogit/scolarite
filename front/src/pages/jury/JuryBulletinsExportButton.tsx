@@ -1,6 +1,6 @@
 import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
-import { nomDeFichierDepuis } from '../../services/telechargement';
+import { telecharger } from '../../services/telechargement';
 import { useCallback, useState } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import ArticleIcon from '@mui/icons-material/Article';
@@ -27,19 +27,11 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
     const handleExport = useCallback(async (params: BulletinParams) => {
         setLoading(true);
         try {
-            const response = await apiInstance.post(`${ENDPOINT_JURY}/bulletins/${periodeId}`, params, {
+            const response = await apiInstance.post<Blob>(`${ENDPOINT_JURY}/bulletins/${periodeId}`, params, {
                 responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-
-            link.setAttribute('download', nomDeFichierDepuis(response, `bulletins_jury_${periodeId}.zip`));
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            telecharger(response, `bulletins_jury_${periodeId}.zip`);
 
             notifySuccess(notifications, 'Export des bulletins réussi.');
             setOpen(false);
