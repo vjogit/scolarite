@@ -128,7 +128,7 @@ const createNoteMatiereFields = (isRattrapage: boolean, bareme?: number) =>
         );
     };
 
-const createNoteMatiereColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteControle>[] => [
+const createNoteControleColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteControle>[] => [
     { accessorKey: 'id', header: 'ID' },
     { accessorKey: 'version', header: 'Version' },
     {
@@ -157,7 +157,7 @@ const noteControleViewConfig = (controleId: string, isRattrapage: boolean, barem
     return {
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
-        columns: createNoteMatiereColumns(isRattrapage),
+        columns: createNoteControleColumns(isRattrapage),
         render: createNoteMatiereFields(isRattrapage, bareme),
     }
 };

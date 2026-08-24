@@ -198,7 +198,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
     );
 };
 
-const matiereColumns: MRT_ColumnDef<Mobilite>[] =
+const mobiliteColumns: MRT_ColumnDef<Mobilite>[] =
     [
         { accessorKey: 'id', header: 'ID' },
         { accessorKey: 'version', header: 'Version' },
@@ -224,7 +224,7 @@ const matiereColumns: MRT_ColumnDef<Mobilite>[] =
         },
     ]
 
-const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mobilite> => {
+const createMobiliteViewConfig = (promotionId: string): ViewConfig<Mobilite> => {
     return {
         schema: mobiliteSchema,
         emptyValue: {
@@ -233,13 +233,13 @@ const createNotePeriodeViewConfig = (promotionId: string): ViewConfig<Mobilite> 
             promotion_id: parseInt(promotionId),
             est_valide: false,
         },
-        columns: matiereColumns,
+        columns: mobiliteColumns,
         render: MobiliteFields,
     }
 };
 
 // Partie statique : à l'extérieur du composant
-const createPeriodeRepository = (promotionId: string) => {
+const createMobiliteRepository = (promotionId: string) => {
     return createRepository<Mobilite>({
         endpoint: ENDPOINT_MOBILITE,
         queryParams: `?promotion_id=${promotionId}`,
@@ -254,8 +254,8 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
     const rootPath = useRootPath(mode);
 
     const datasource = useMemo((): Datasource<Mobilite> | null => promotionId ? ({
-        ...createPeriodeRepository(promotionId),
-        ...createNotePeriodeViewConfig(promotionId),
+        ...createMobiliteRepository(promotionId),
+        ...createMobiliteViewConfig(promotionId),
         title: "Mobilité Internationale",
         roleEcriture: Role.CERTIFICATION_ECRITURE,
         entityLabel: "la mobilité",
