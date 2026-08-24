@@ -112,10 +112,49 @@ champs portent les valeurs détruites — le maillon reste autoportant) :
 
     op|user_id|periode_id|unite_enseignement_id|grade|gpa_index|ects|compte_cumul|author_sub|event_at|recorded_at|prev_hash
 
-## Étages préparés, non câblés
+## Ancrage externe et témoins — câblés
 
-Le schéma prépare l'ancrage RFC 3161 (`registre_ancre`) et les témoins
-courriel (`registre_temoin`) sans les activer. Contrats déjà actés : seul le
-hash de tête transite vers la TSA ; le témoin ne contient que des références
-d'ancres (seq, hash, date, URL TSA) — aucune donnée personnelle ne quittera
-l'établissement.
+L'ancrage RFC 3161 (`registre_ancre`) et les témoins courriel
+(`registre_temoin`) sont en service (portage de rex-imt, mêmes garanties).
+Toutes les heures — et à la demande (`make ancrer`, écran
+Registre) — le dernier hash de la chaîne est scellé auprès d'une autorité
+d'horodatage, puis envoyé par courriel vers une boîte témoin externe.
+
+**Ce qui quitte l'établissement, et rien d'autre** :
+
+* vers la TSA : l'empreinte SHA-256 du maillon de tête — 32 octets dont rien
+  n'est déductible ;
+* dans le témoin courriel : `registre_seq`, `anchored_hash`, la date
+  d'ancrage, l'URL de la TSA, le jeton RFC 3161 et le certificat TSA en pièces
+  jointes. Aucun nom, aucune note, aucun identifiant d'élève — le contenu est
+  verrouillé par un test (`TestBuildWitnessMessage_NoPII`).
+
+Le jeton et le certificat TSA sont archivés **ensemble** dans
+`registre_ancre` : la preuve reste vérifiable même si la TSA disparaît. Le
+dispositif garantit la **détectabilité** d'une réécriture par un initié, pas
+son impossibilité : une chaîne réécrite puis ré-ancrée ne peut pas
+correspondre aux témoins déjà reçus chez le tiers.
+
+L'ancrage observe la chaîne, il ne la gouverne pas : aucun échec (TSA
+injoignable, SMTP en panne) ne bloque une écriture de note ou de jury ; les
+échecs se loguent et l'écran Registre affiche la date de la dernière ancre
+réussie.
+
+### Exigences de déploiement (impératives, non vérifiables par le code)
+
+Reprises de rex-imt (`docs/temoin-externe.md`), à vérifier au déploiement —
+le code ne peut pas les garantir :
+
+1. **Séparation des pouvoirs** : la boîte destinataire
+   (`registre.witness.recipients`) est contrôlée par une personne ou un rôle
+   **distinct** de ceux qui détiennent les accès base/infrastructure (DPO,
+   direction des études, boîte institutionnelle d'un autre établissement…).
+   Un initié qui contrôlerait la boîte annulerait le dispositif.
+2. **Accès d'envoi uniquement** : le compte SMTP configuré
+   (`registre.witness.smtp`) n'a **que le droit d'envoyer** — aucun droit de
+   lecture, de modification ou de suppression sur la boîte destinataire.
+
+En développement local, le témoin part vers Mailpit et une adresse fictive
+(`[DEV-LOCAL]` dans `infra/env/config-local.env`) : rien ne quitte réellement
+la machine. La boîte témoin réelle et sa gouvernance relèvent du chantier
+environnements.

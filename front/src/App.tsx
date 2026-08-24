@@ -15,11 +15,13 @@ import { ContexteHierarchieProvider } from './services/context/ContexteProvider'
 import { possedeTousLesRoles, possedeUnRole } from './services/context/workflows';
 import { SALLE_WORKFLOW } from './pages/salle/def';
 import { CORBEILLE_WORKFLOW } from './pages/corbeille/def';
+import { REGISTRE_WORKFLOW } from './pages/registre/def';
 import { SEGMENT_SCOLARITE } from './services/context/RetourScolarite';
 import SchoolIcon from '@mui/icons-material/School';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 
 
 
@@ -77,6 +79,14 @@ const NAVIGATION: NavigationItemWithRoles[] = [
     icon: <DeleteOutlineIcon />,
     // Réservée aux porteurs de tous les rôles fonctionnels — le composite
     // ADMIN, sans jamais tester son nom.
+    requiresAllRoles: ROLES_FONCTIONNELS,
+  },
+  {
+    segment: REGISTRE_WORKFLOW,
+    title: 'Registre',
+    icon: <VerifiedUserIcon />,
+    // Même règle que la corbeille : intégrité, ancrage et témoins sont des
+    // gestes d'administration.
     requiresAllRoles: ROLES_FONCTIONNELS,
   },
 ];

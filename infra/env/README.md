@@ -60,6 +60,19 @@ Pour la production, il faut en plus `secrets-prod.env`.
 `keycloak` / `keycloak-prod` le réécrit après chaque `terraform apply`, à
 partir de la valeur générée par Keycloak.
 
+Si l'ancrage TSA du registre est actif (`REGISTRE_ANCRAGE_ENABLED=true`), le
+certificat racine FreeTSA doit exister à l'emplacement `REGISTRE_TSA_CA_CERT` :
+
+```sh
+make fetch-freetsa-cert
+```
+
+C'est un acte volontaire — la cible affiche l'empreinte SHA-256, à confronter
+à https://freetsa.org avant de s'y fier. Le fichier n'est ni versionné ni
+téléchargé silencieusement au démarrage ; s'il manque, le serveur démarre et
+le signale en erreur dans les logs (l'ancrage observe la chaîne, il ne la
+gouverne pas).
+
 ## Source unique de vérité pour Keycloak
 
 Il n'y a **pas** de fichier `.tfvars`. Le module `infra/keycloak` ne lit aucune

@@ -54,6 +54,48 @@ ORDER BY seq ASC;
 -- le hash scellé par la TSA devra exister dans la chaîne actuelle).
 SELECT seq, event_at, recorded_at FROM public.registre WHERE hash = @hash;
 
+-- ── Ancrage RFC 3161 et témoin externe (portage rex-imt) ─────────────────────
+-- Les tables registre_ancre et registre_temoin sont celles du lot précédent
+-- (infra/liquibase/releases/v0.01/006-registre). Seules les fonctions
+-- d'ancrage (anchor.go, witness.go) écrivent ici.
+
+-- name: InsertAncre :one
+-- Archive un jeton RFC 3161 AVEC le certificat TSA : la preuve reste
+-- vérifiable même si la TSA disparaît.
+INSERT INTO public.registre_ancre (registre_seq, anchored_hash, tsa_url, hash_algorithm, token, tsa_cert)
+VALUES (@registre_seq, @anchored_hash, @tsa_url, @hash_algorithm, @token, @tsa_cert)
+RETURNING id;
+
+-- name: ListAncres :many
+-- Toutes les ancres : vérification en masse et repères temporels de l'écran
+-- d'administration (ces dates viennent de la base et ne sont pas une preuve —
+-- la preuve reste les témoins externes).
+SELECT id, registre_seq, anchored_hash, tsa_url, hash_algorithm, token, tsa_cert, created_at
+FROM public.registre_ancre
+ORDER BY id;
+
+-- name: GetAncresByRegistreSeq :many
+-- Ancres existantes pour un maillon donné (idempotence d'AnchorLast).
+SELECT id, tsa_url FROM public.registre_ancre WHERE registre_seq = @registre_seq;
+
+-- name: GetAncreByID :one
+-- Charge une ancre pour construire son témoin courriel.
+SELECT id, registre_seq, anchored_hash, tsa_url, token, tsa_cert, created_at
+FROM public.registre_ancre WHERE id = @id;
+
+-- name: HasSentTemoin :one
+-- Idempotence du témoin : un destinataire déjà SENT n'est pas recontacté.
+SELECT EXISTS (
+  SELECT 1 FROM public.registre_temoin
+  WHERE ancre_id = @ancre_id AND recipient = @recipient AND status = 'SENT'
+);
+
+-- name: InsertTemoin :one
+-- Trace chaque tentative d'envoi (SENT/FAILED) pour l'idempotence et le renvoi.
+INSERT INTO public.registre_temoin (ancre_id, registre_seq, recipient, status, error)
+VALUES (@ancre_id, @registre_seq, @recipient, @status, @error)
+RETURNING id;
+
 -- name: ListNotesByIds :many
 -- État des notes visées par une suppression en masse, lu avant le DELETE.
 SELECT n.id, n.note, n.remarque, n.user_id, n.controle_id, n.is_validated, n.not_evaluated

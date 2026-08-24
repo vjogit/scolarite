@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -14,7 +15,53 @@ type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Keycloak KeycloakConfig `yaml:"keycloak"`
 	Log      LogConfig      `yaml:"log"`
+	Registre RegistreConfig `yaml:"registre"`
 }
+
+// RegistreConfig porte l'étage d'ancrage externe du registre chaîné :
+// horodatage RFC 3161 et témoin courriel. Provenance : rex-imt
+// (backend/common/pkg/services/config.go, PresenceConfig) — même structure,
+// sans le tokenSecret spécifique aux pointages.
+type RegistreConfig struct {
+	Timestamp TimestampConfig `yaml:"timestamp"`
+	Witness   WitnessConfig   `yaml:"witness"`
+}
+
+// TimestampConfig configures RFC 3161 external anchoring.
+// All fields have safe defaults; enabled=false when absent.
+type TimestampConfig struct {
+	Enabled       bool          `yaml:"enabled"`
+	URLs          []string      `yaml:"urls"`          // TSA endpoints; defaults to FreeTSA if empty
+	HashAlgorithm string        `yaml:"hashAlgorithm"` // "sha256" (only value currently supported)
+	Timeout       time.Duration `yaml:"timeout"`       // per-TSA HTTP timeout, e.g. 10s
+	CaCertPath    string        `yaml:"caCertPath"`    // path to TSA root CA PEM for offline verification
+}
+
+// WitnessConfig configures the external witness email sent after each new
+// RFC 3161 anchor. The recipient mailbox MUST be controlled by a role distinct
+// from the infrastructure administrators, and the application must only have
+// send rights on it (see docs/rgpd-registre.md) — the code cannot enforce
+// this; it is a deployment requirement.
+type WitnessConfig struct {
+	Enabled    bool       `yaml:"enabled"`
+	Recipients []string   `yaml:"recipients"` // external mailboxes receiving the witness
+	SMTP       SMTPConfig `yaml:"smtp"`
+}
+
+// SMTPConfig holds send-only SMTP parameters. Secrets come from env vars via
+// the ${VAR} substitution done by LoadConfigYaml.
+type SMTPConfig struct {
+	Host     string        `yaml:"host"`
+	Port     int           `yaml:"port"`
+	Username string        `yaml:"username"`
+	Password string        `yaml:"password"`
+	From     string        `yaml:"from"`
+	StartTLS bool          `yaml:"startTLS"` // upgrade the connection with STARTTLS before auth
+	Timeout  time.Duration `yaml:"timeout"`  // network timeout, e.g. 10s
+}
+
+// DefaultTSAURL is used when TimestampConfig.URLs is empty.
+const DefaultTSAURL = "https://freetsa.org/tsr"
 
 // LogConfig porte le niveau minimum des logs : debug, info, warn ou error.
 // Vide vaut info — le défaut sûr, un environnement doit demander debug

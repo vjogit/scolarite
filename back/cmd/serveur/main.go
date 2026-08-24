@@ -90,13 +90,27 @@ func main() {
 
 	r.Route("/api/v0/registre", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
-		registre.RouteRegistre(r)
+		registre.RouteRegistre(r, cfg.Registre)
 	})
 
 	r.Route("/api/v0/corbeille", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		corbeille.RouteCorbeille(r)
 	})
+
+	// Ancrage RFC 3161 périodique du registre (portage rex-imt). L'ancrage
+	// OBSERVE la chaîne, il ne la gouverne pas : un certificat racine absent ou
+	// une TSA injoignable se loguent et n'empêchent ni le démarrage ni les
+	// écritures métier. Le certificat racine s'obtient par un acte visible :
+	// `make fetch-freetsa-cert`.
+	if ca := cfg.Registre.Timestamp.CaCertPath; cfg.Registre.Timestamp.Enabled && ca != "" {
+		if _, err := os.Stat(ca); err != nil {
+			slog.Error("Certificat racine TSA introuvable : la vérification hors ligne des témoins échouera",
+				"caCertPath", ca,
+				"remede", "make fetch-freetsa-cert")
+		}
+	}
+	registre.StartAnchorScheduler(&cfg.Database, cfg.Registre)
 
 	slog.Info("Serveur démarré", "host", cfg.Server.Port, "port", cfg.Server.Host)
 	error := http.ListenAndServe(

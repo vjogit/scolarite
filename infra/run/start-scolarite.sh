@@ -60,6 +60,17 @@ if [ "$ENV_NAME" = "local" ] && command -v mkcert >/dev/null 2>&1; then
 fi
 export SCOLARITE_CA_CERT
 
+# registre.timestamp.caCertPath : même mécanisme que SCOLARITE_CA_CERT — le
+# certificat racine FreeTSA vit sur l'hôte (REGISTRE_TSA_CA_CERT, obtenu par
+# `make fetch-freetsa-cert`), le conteneur ne voit que sa copie dans le
+# répertoire de conf monté. S'il n'a pas été téléchargé, le chemin hôte est
+# rendu tel quel : le backend démarre et signale le fichier manquant en erreur
+# (l'ancrage observe la chaîne, il ne la gouverne pas).
+if [ -n "${REGISTRE_TSA_CA_CERT:-}" ] && [ -f "$REGISTRE_TSA_CA_CERT" ]; then
+    cp "$REGISTRE_TSA_CA_CERT" "$CONF_DIR/freetsa-cacert.pem"
+    export REGISTRE_TSA_CA_CERT=/opt/scolarite/conf/freetsa-cacert.pem
+fi
+
 # Le backend conteneurisé n'est joignable que derrière nginx : son issuer OIDC
 # doit donc être l'URL de nginx, pas celle du serveur Vite que porte
 # KC_HOSTNAME dans l'espace de travail local. En prod les deux coïncident déjà,

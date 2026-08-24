@@ -19,7 +19,29 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer
+
+# ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
+# Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
+# (config-local.env). Acte VOLONTAIRE et visible : c'est une racine de
+# confiance — vérifier l'empreinte affichée sur https://freetsa.org avant de
+# s'y fier. Jamais commité, jamais téléchargé silencieusement au démarrage.
+# Invocation par le makefile racine : `make fetch-freetsa-cert`, `make ancrer`.
+fetch-freetsa-cert:
+	@echo "--- 🔒 Téléchargement du certificat racine FreeTSA ---"
+	@mkdir -p $(dir $(REGISTRE_TSA_CA_CERT))
+	@curl -fsSL --output $(REGISTRE_TSA_CA_CERT) https://freetsa.org/files/cacert.pem
+	@echo "--- ✅ Certificat enregistré dans $(REGISTRE_TSA_CA_CERT) ---"
+	@echo "--- 🔍 Empreinte SHA-256 (à vérifier sur https://freetsa.org) ---"
+	@openssl x509 -in $(REGISTRE_TSA_CA_CERT) -noout -fingerprint -sha256
+
+# Déclenche un passage d'ancrage immédiat, sans attendre le ticker horaire de
+# l'ordonnanceur. Garde d'idempotence : tête de chaîne inchangée = aucune
+# ancre, aucune requête TSA, aucun témoin. Les variables REGISTRE_* viennent
+# des include ci-dessus (config-local.env + secrets-local.env).
+ancrer:
+	@echo "--- ⚓ Passage d'ancrage RFC 3161 ---"
+	cd $(BACK_DIR) && go run ./cmd/ancrage ./cmd/serveur/config.yaml
 
 
 

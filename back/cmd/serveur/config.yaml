@@ -27,6 +27,45 @@ server:
 log:
   level: ${SCOLARITE_LOG_LEVEL}
 
+# Ancrage RFC 3161 et témoin externe du registre chaîné (portage rex-imt,
+# backend/admin/cmd/config.yaml bloc presence). L'ancrage OBSERVE la chaîne,
+# il ne la gouverne pas : aucun échec ici ne bloque une écriture de note ou de
+# jury.
+registre:
+  timestamp:
+    # Vide vaut false : un binaire lancé hors contexte n'ancre pas dans le
+    # vide. Activé par environnement (infra/env/config-<env>.env).
+    enabled: ${REGISTRE_ANCRAGE_ENABLED}
+    urls:
+      - https://freetsa.org/tsr        # valeur par défaut ; ajouter d'autres TSA pour redondance
+    hashAlgorithm: sha256
+    timeout: 10s
+    # L'ancrage automatique tourne toutes les heures (ordonnanceur intégré) ;
+    # aucune ancre n'est créée si la tête de chaîne n'a pas bougé.
+    # Certificat racine FreeTSA — obtenu par un acte VISIBLE :
+    # `make fetch-freetsa-cert` (empreinte affichée, à
+    # confronter à https://freetsa.org). Jamais commité, jamais téléchargé au
+    # démarrage. Archivé avec chaque jeton pour rester vérifiable même si la
+    # TSA disparaît.
+    caCertPath: ${REGISTRE_TSA_CA_CERT}
+  # Témoin externe : après chaque nouvelle ancre, la tête de chaîne (seq + hash
+  # + jeton RFC 3161 + cert TSA) est envoyée vers une boîte EXTERNE.
+  # EXIGENCES DE DÉPLOIEMENT (voir docs/rgpd-registre.md) :
+  #   - la boîte destinataire doit être gérée par un rôle distinct de l'admin infra ;
+  #   - le compte SMTP ci-dessous ne doit avoir QUE le droit d'envoi.
+  witness:
+    enabled: ${REGISTRE_TEMOIN_ENABLED}
+    recipients:
+      - ${REGISTRE_TEMOIN_RECIPIENT}
+    smtp:
+      host: ${REGISTRE_SMTP_HOST}
+      port: ${REGISTRE_SMTP_PORT}
+      username: ${REGISTRE_SMTP_USER}
+      password: ${REGISTRE_SMTP_PASSWORD}
+      from: ${REGISTRE_SMTP_FROM}
+      startTLS: ${REGISTRE_SMTP_STARTTLS}
+      timeout: 10s
+
 keycloak:
   host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
   issuer: ${KC_HOSTNAME}

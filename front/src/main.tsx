@@ -29,6 +29,8 @@ import { PROGRAMME_WORKFLOW, ProgrammeIndex, ProgrammeLayout } from './pages/pro
 import { createProgrammeHierarchyRoutes } from './pages/programme/routes.tsx';
 import { CORBEILLE_WORKFLOW } from './pages/corbeille/def.ts';
 import { CorbeillePage } from './pages/corbeille/Corbeille.tsx';
+import { REGISTRE_WORKFLOW } from './pages/registre/def.ts';
+import { RegistrePage } from './pages/registre/Registre.tsx';
 import { RetourScolarite, SEGMENT_SCOLARITE } from './services/context/RetourScolarite.tsx';
 
 
@@ -108,6 +110,13 @@ const routes = [
           {
             path: CORBEILLE_WORKFLOW,
             element: <RoleGuard roles={ROLES_FONCTIONNELS} requireAll><CorbeillePage /></RoleGuard>,
+          },
+          {
+            // L'écran mêle lecture (intégrité) et gestes d'administration
+            // (ancrage manuel, dépôt de témoin) : réservé au composite ADMIN,
+            // comme la corbeille.
+            path: REGISTRE_WORKFLOW,
+            element: <RoleGuard roles={ROLES_FONCTIONNELS} requireAll><RegistrePage /></RoleGuard>,
           },
           {
             path: 'planning',
