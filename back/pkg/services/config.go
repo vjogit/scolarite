@@ -1,7 +1,10 @@
 package services
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -10,6 +13,32 @@ type Config struct {
 	Database DatabaseConfig `yaml:"database"`
 	Server   ServerConfig   `yaml:"server"`
 	Keycloak KeycloakConfig `yaml:"keycloak"`
+	Log      LogConfig      `yaml:"log"`
+}
+
+// LogConfig porte le niveau minimum des logs : debug, info, warn ou error.
+// Vide vaut info — le défaut sûr, un environnement doit demander debug
+// explicitement plutôt que l'obtenir par oubli.
+type LogConfig struct {
+	Level string `yaml:"level"`
+}
+
+// SlogLevel traduit le niveau configuré. Une valeur inconnue est une erreur :
+// la faute de frappe qui ferait tourner la prod en debug doit arrêter le
+// démarrage, pas passer inaperçue.
+func (l LogConfig) SlogLevel() (slog.Level, error) {
+	switch strings.ToLower(strings.TrimSpace(l.Level)) {
+	case "", "info":
+		return slog.LevelInfo, nil
+	case "debug":
+		return slog.LevelDebug, nil
+	case "warn":
+		return slog.LevelWarn, nil
+	case "error":
+		return slog.LevelError, nil
+	default:
+		return 0, fmt.Errorf("niveau de log inconnu : %q (attendu debug, info, warn ou error)", l.Level)
+	}
 }
 
 type DatabaseConfig struct {

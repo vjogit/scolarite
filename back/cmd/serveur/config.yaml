@@ -21,6 +21,12 @@ server:
   host: localhost
   port: 3333
 
+# Niveau minimum des logs : debug, info, warn ou error. Vide vaut info ; une
+# valeur inconnue arrête le démarrage. Hors conteneur, si la variable n'est
+# pas définie, os.Expand rend la chaîne vide et le défaut s'applique.
+log:
+  level: ${SCOLARITE_LOG_LEVEL}
+
 keycloak:
   host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
   issuer: ${KC_HOSTNAME}

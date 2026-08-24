@@ -25,20 +25,9 @@ var (
 )
 
 func main() {
-	// 1. Configuration du Handler (JSON pour faciliter le parsing par Loki/ELK)
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelDebug, // On définit le niveau minimum
-	}
-
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
-
-	// 2. Définir comme logger par défaut
-	slog.SetDefault(logger)
-
-	// Affiche les informations de compilation
-	slog.Info("Application version: ", "version", version)
-	slog.Info("Compilation time: ", "buildTime", buildTime)
-
+	// La configuration d'abord : c'est elle qui porte le niveau de log
+	// (log.level du config.yaml). Les erreurs d'ici utilisent le logger par
+	// défaut de slog — il n'y a rien d'autre à ce stade.
 	configPath := "./config.yaml"
 	if len(os.Args) > 1 {
 		configPath = os.Args[1]
@@ -46,9 +35,23 @@ func main() {
 
 	cfg, err := services.LoadConfigYaml[services.Config](configPath)
 	if err != nil {
-		slog.Info("Erreur chargement config YAML :", "erreuer:", err)
+		slog.Error("Erreur chargement config YAML", "erreur", err)
 		os.Exit(1)
 	}
+
+	level, err := cfg.Log.SlogLevel()
+	if err != nil {
+		slog.Error("Configuration de log invalide", "erreur", err)
+		os.Exit(1)
+	}
+
+	// Handler JSON pour faciliter le parsing par Loki/ELK.
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+	slog.SetDefault(logger)
+
+	// Affiche les informations de compilation
+	slog.Info("Application version: ", "version", version)
+	slog.Info("Compilation time: ", "buildTime", buildTime)
 
 	r := chi.NewRouter()
 
