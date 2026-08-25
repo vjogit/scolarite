@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from "../../services/api";
 import { ENDPOINT_USER, USER } from "./def";
 import { IconButton, Tooltip } from "@mui/material";
@@ -9,14 +10,13 @@ import { notifyError, notifySuccess } from '../../services/notify';
 import { lignesFor, messageForError, type LignesRefusees } from '../../services/errorMessages';
 import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
-
-/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
-const LIBELLE = 'Importer des utilisateurs depuis un fichier Excel';
-
 export function UserImportButton() {
 
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('user');
+    // Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger.
+    const libelle = t('import.libelle');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [refus, setRefus] = useState<LignesRefusees | null>(null);
 
@@ -30,7 +30,7 @@ export function UserImportButton() {
         try {
             await apiInstance.post(`${ENDPOINT_USER}/import`, formData);
             void queryClient.invalidateQueries({ queryKey: [USER] });
-            notifySuccess(notifications, "Import des utilisateurs réussi.");
+            notifySuccess(notifications, t('import.succes'));
         } catch (error) {
             // Un refus qui désigne ses lignes — email manquant, nature ou rôle
             // inconnus — s'affiche en tableau, à corriger fichier ouvert à côté.
@@ -45,12 +45,12 @@ export function UserImportButton() {
                 fileInputRef.current.value = '';
             }
         }
-    }, [notifications, queryClient])
+    }, [notifications, queryClient, t])
 
     return (
         <>
-            <Tooltip title={LIBELLE}>
-                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={libelle}>
+                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>
@@ -63,7 +63,7 @@ export function UserImportButton() {
             />
             <LignesRefuseesDialog
                 refus={refus}
-                sousTitre="Aucun utilisateur n'a été importé. Corrigez le fichier puis relancez l'import."
+                sousTitre={t('import.sousTitreRefus')}
                 onClose={() => { setRefus(null); }}
             />
         </>

@@ -1,0 +1,41 @@
+{
+  "actionProgrammeLibelle": "Programme",
+  "planning": {
+    "coursSansType": "Cours",
+    "couleurParMatiere": "Couleur par matière",
+    "couleurParType": "Couleur par type de cours",
+    "masquerHeures": "Masquer les heures",
+    "afficherHeures": "Afficher les heures",
+    "creneauExistant": " (créneau existant : {{debut}}–{{fin}})"
+  },
+  "heuresPanel": {
+    "totalPeriode": "Total période",
+    "sansAffectation": "Sans affectation",
+    "nonAffectees": "Non affectées",
+    "depasse": "+{{heures}}h dépassé",
+    "restantes": "{{heures}}h restantes"
+  },
+  "reservationDialog": {
+    "titreModifier": "Modifier la réservation",
+    "titreCreer": "Nouvelle réservation",
+    "champDebut": "Début",
+    "champFin": "Fin",
+    "champTypeCours": "Type de cours",
+    "aucun": "Aucun",
+    "champMatiere": "Matière",
+    "aucune": "Aucune",
+    "champSalles": "Salles",
+    "champIntervenants": "Intervenants",
+    "champGroupes": "Groupes",
+    "champDistanciel": "Distanciel",
+    "champDescription": "Description",
+    "supprimer": "Supprimer",
+    "annuler": "Annuler",
+    "enregistrer": "Enregistrer",
+    "creer": "Créer",
+    "aucuneReservationASupprimer": "Aucune réservation à supprimer.",
+    "conflitIntervenant": "{{nom}} est déjà occupé·e de {{debut}} à {{fin}}",
+    "conflitSalle": "La salle {{nom}} est déjà réservée de {{debut}} à {{fin}}",
+    "conflitGroupe": "Le groupe {{nom}} est déjà planifié de {{debut}} à {{fin}}"
+  }
+}

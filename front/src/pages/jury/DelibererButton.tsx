@@ -8,6 +8,7 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import UndoIcon from '@mui/icons-material/Undo';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_DELIBERER } from './def';
 import { notifyError, notifySuccess, notifyUndone } from '../../services/notify';
@@ -31,6 +32,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
     const [compteCumul, setCompteCumul] = useState(compteCumulActuel ?? true);
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('jury');
 
     const deliberationKey = ['jury-deliberations', periodeId];
 
@@ -38,12 +40,12 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`, { compte_cumul: compteCumul }),
         onSuccess: () => {
-            notifySuccess(notifications, `Délibération enregistrée pour ${userName}.`);
+            notifySuccess(notifications, t('delibererBouton.succes', { nom: userName }));
             void queryClient.invalidateQueries({ queryKey: deliberationKey });
             setOpen(false);
         },
         onError: () => {
-            notifyError(notifications, 'Erreur lors de la délibération.');
+            notifyError(notifications, t('delibererBouton.erreur'));
         },
     });
 
@@ -51,11 +53,11 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.delete(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`),
         onSuccess: () => {
-            notifyUndone(notifications, `Délibération annulée pour ${userName}.`);
+            notifyUndone(notifications, t('delibererBouton.annulationSucces', { nom: userName }));
             void queryClient.invalidateQueries({ queryKey: deliberationKey });
         },
         onError: () => {
-            notifyError(notifications, "Erreur lors de l'annulation.");
+            notifyError(notifications, t('delibererBouton.annulationErreur'));
         },
     });
 
@@ -66,13 +68,13 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
 
     if (isDelibere) {
         return (
-            <Tooltip title="Annuler la délibération (correction possible)">
+            <Tooltip title={t('delibererBouton.annulerTooltip')}>
                 <span>
                     <IconButton
                         // Le `Tooltip` nomme son enfant direct, ici le `<span>`
                         // qui porte l'infobulle du bouton désactivé : sans cet
                         // attribut, le bouton n'a aucun nom.
-                        aria-label={`Annuler la délibération de ${userName} (correction possible)`}
+                        aria-label={t('delibererBouton.annulerAriaLabel', { nom: userName })}
                         size="small"
                         color="warning"
                         onClick={() => { annuler.mutate(); }}
@@ -93,12 +95,12 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
             <Tooltip
                 title={
                     <>
-                        Délibération impossible : dossier incomplet.
+                        {t('delibererBouton.impossibleTitre')}
                         <br />
-                        {uesNonEvaluees.length > 1 ? 'Unités non évaluées' : 'Unité non évaluée'} :{' '}
+                        {t('delibererBouton.uniteNonEvaluee', { count: uesNonEvaluees.length })} :{' '}
                         {uesNonEvaluees.join(', ')}.
                         <br />
-                        {userName} repassera en jury une fois ses notes complètes.
+                        {t('delibererBouton.repasseraEnJury', { nom: userName })}
                     </>
                 }
             >
@@ -106,7 +108,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                     <IconButton
                         size="small"
                         disabled
-                        aria-label={`Délibération impossible pour ${userName} : dossier incomplet`}
+                        aria-label={t('delibererBouton.impossibleAriaLabel', { nom: userName })}
                     >
                         <GavelIcon fontSize="small" />
                     </IconButton>
@@ -117,9 +119,9 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
 
     return (
         <>
-            <Tooltip title="Délibérer">
+            <Tooltip title={t('delibererBouton.delibererTooltip')}>
                 <IconButton
-                    aria-label={`Délibérer — ${userName}`}
+                    aria-label={t('delibererBouton.delibererAriaLabel', { nom: userName })}
                     size="small"
                     color="primary"
                     onClick={handleOpen}
@@ -129,10 +131,10 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
             </Tooltip>
 
             <Dialog open={open} onClose={() => { setOpen(false); }} maxWidth="xs" fullWidth>
-                <DialogTitle>Délibérer — {userName}</DialogTitle>
+                <DialogTitle>{t('delibererBouton.titreDialog', { nom: userName })}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" sx={{ mb: 2 }}>
-                        Les résultats actuels de cet élève seront figés dans <strong>jury_result</strong> et pris en compte dans le GPA cumulé des périodes futures.
+                        {t('delibererBouton.descriptionPrefixe')}<strong>jury_result</strong>{t('delibererBouton.descriptionSuffixe')}
                     </Typography>
                     <FormControlLabel
                         control={
@@ -143,23 +145,23 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         }
                         label={
                             <span>
-                                Compter dans le GPA cumulé
+                                {t('delibererBouton.compterGpaCumule')}
                                 <Typography variant="caption" display="block" color="text.secondary">
-                                    Décocher si c'est une année échouée (redoublant)
+                                    {t('delibererBouton.decocherRedoublant')}
                                 </Typography>
                             </span>
                         }
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => { setOpen(false); }}>Annuler</Button>
+                    <Button onClick={() => { setOpen(false); }}>{t('commun.annuler')}</Button>
                     <Button
                         variant="contained"
                         onClick={() => { deliberer.mutate(); }}
                         disabled={deliberer.isPending}
                         startIcon={deliberer.isPending ? <CircularProgress size={16} /> : <GavelIcon />}
                     >
-                        Confirmer
+                        {t('commun.confirmer')}
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
 import type { ReservationDetail } from './def';
@@ -37,6 +38,7 @@ interface Props {
 // ─── Composant ────────────────────────────────────────────────────────────────
 
 export function ReservationDialog({ open, onClose, reservation, start, end, periodeId, optionId }: Props) {
+    const { t } = useTranslation('programme');
 
     // ── État du formulaire ──────────────────────────────────────────────────
     const [startDate,           setStartDate]           = useState<Dayjs | null>(null);
@@ -161,15 +163,15 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
 
             if (field === 'intervenants') {
                 const u = selectedIntervenants.find(i => i.id === entityId);
-                return `${u ? userName(u) : `#${entityId}`} est déjà occupé·e de ${existingStart} à ${existingEnd}`;
+                return t('reservationDialog.conflitIntervenant', { nom: u ? userName(u) : `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             if (field === 'salles') {
                 const s = selectedSalles.find(s => s.id === entityId);
-                return `La salle ${s?.name ?? `#${entityId}`} est déjà réservée de ${existingStart} à ${existingEnd}`;
+                return t('reservationDialog.conflitSalle', { nom: s?.name ?? `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             if (field === 'groupes') {
                 const g = selectedGroupes.find(g => g.id === entityId);
-                return `Le groupe ${g?.name ?? `#${entityId}`} est déjà planifié de ${existingStart} à ${existingEnd}`;
+                return t('reservationDialog.conflitGroupe', { nom: g?.name ?? `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             return errorMessage('BUSINESS_CONFLICT');
         });
@@ -196,7 +198,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         // La mutation n'est atteignable que depuis le bouton « Supprimer »,
         // qui n'est rendu qu'en édition. On le dit plutôt que de l'affirmer.
         mutationFn: () => {
-            if (!reservation) throw new Error('Aucune réservation à supprimer.');
+            if (!reservation) throw new Error(t('reservationDialog.aucuneReservationASupprimer'));
             return apiInstance.delete(`/api/v0/planning/reservation/${reservation.id}`, {
                 data: { ids: [reservation.id] },
             });
@@ -240,7 +242,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             slotProps={{ transition: { onEnter: initialiser } }}
         >
             <DialogTitle>
-                {reservation ? 'Modifier la réservation' : 'Nouvelle réservation'}
+                {reservation ? t('reservationDialog.titreModifier') : t('reservationDialog.titreCreer')}
             </DialogTitle>
 
             <DialogContent>
@@ -255,14 +257,14 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
 
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <DateTimePicker
-                            label="Début"
+                            label={t('reservationDialog.champDebut')}
                             value={startDate}
                             onChange={setStartDate}
                             ampm={false}
                             sx={{ flex: 1 }}
                         />
                         <DateTimePicker
-                            label="Fin"
+                            label={t('reservationDialog.champFin')}
                             value={endDate}
                             onChange={setEndDate}
                             ampm={false}
@@ -271,27 +273,27 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                     </Box>
 
                     <FormControl fullWidth>
-                        <InputLabel>Type de cours</InputLabel>
+                        <InputLabel>{t('reservationDialog.champTypeCours')}</InputLabel>
                         <Select
                             value={typeCours}
                             onChange={e => { setTypeCours(e.target.value); }}
-                            label="Type de cours"
+                            label={t('reservationDialog.champTypeCours')}
                         >
-                            <MenuItem value=""><em>Aucun</em></MenuItem>
-                            {TYPE_COURS_OPTIONS.map(t => (
-                                <MenuItem key={t} value={t}>{t}</MenuItem>
+                            <MenuItem value=""><em>{t('reservationDialog.aucun')}</em></MenuItem>
+                            {TYPE_COURS_OPTIONS.map(type => (
+                                <MenuItem key={type} value={type}>{type}</MenuItem>
                             ))}
                         </Select>
                     </FormControl>
 
                     <FormControl fullWidth>
-                        <InputLabel>Matière</InputLabel>
+                        <InputLabel>{t('reservationDialog.champMatiere')}</InputLabel>
                         <Select
                             value={matiereId}
                             onChange={e => { setMatiereId(e.target.value as number | ''); }}
-                            label="Matière"
+                            label={t('reservationDialog.champMatiere')}
                         >
-                            <MenuItem value=""><em>Aucune</em></MenuItem>
+                            <MenuItem value=""><em>{t('reservationDialog.aucune')}</em></MenuItem>
                             {matieres.map(m => (
                                 <MenuItem key={m.id} value={m.id}>
                                     {m.ueName} — {m.name}
@@ -307,7 +309,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         onChange={(_, v) => { setSallesChoisies(v); }}
                         getOptionLabel={s => `${s.name}${s.batiment ? ` (${s.batiment})` : ''}`}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
-                        renderInput={params => <TextField {...params} label="Salles" />}
+                        renderInput={params => <TextField {...params} label={t('reservationDialog.champSalles')} />}
                     />
 
                     <Autocomplete
@@ -320,7 +322,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         getOptionLabel={userName}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
                         filterOptions={x => x}
-                        renderInput={params => <TextField {...params} label="Intervenants" />}
+                        renderInput={params => <TextField {...params} label={t('reservationDialog.champIntervenants')} />}
                     />
 
                     <Autocomplete
@@ -330,7 +332,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         onChange={(_, v) => { setGroupesChoisis(v); }}
                         getOptionLabel={g => g.name}
                         isOptionEqualToValue={(a, b) => a.id === b.id}
-                        renderInput={params => <TextField {...params} label="Groupes" />}
+                        renderInput={params => <TextField {...params} label={t('reservationDialog.champGroupes')} />}
                     />
 
                     <FormControlLabel
@@ -340,11 +342,11 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                                 onChange={e => { setIsDistanciel(e.target.checked); }}
                             />
                         }
-                        label="Distanciel"
+                        label={t('reservationDialog.champDistanciel')}
                     />
 
                     <TextField
-                        label="Description"
+                        label={t('reservationDialog.champDescription')}
                         multiline
                         rows={2}
                         value={description}
@@ -362,16 +364,16 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         disabled={deleteMutation.isPending}
                         sx={{ mr: 'auto' }}
                     >
-                        Supprimer
+                        {t('reservationDialog.supprimer')}
                     </Button>
                 )}
-                <Button onClick={onClose}>Annuler</Button>
+                <Button onClick={onClose}>{t('reservationDialog.annuler')}</Button>
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
                     disabled={mutation.isPending || !startDate || !endDate}
                 >
-                    {reservation ? 'Enregistrer' : 'Créer'}
+                    {reservation ? t('reservationDialog.enregistrer') : t('reservationDialog.creer')}
                 </Button>
             </DialogActions>
         </Dialog>

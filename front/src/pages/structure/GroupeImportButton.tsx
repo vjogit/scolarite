@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
@@ -19,12 +20,12 @@ interface Props {
     groupeId: string;
 }
 
-/** « depuis Excel » seul serait ambigu : c'est l'effectif qu'on importe. */
-const LIBELLE = 'Importer des élèves depuis Excel';
-
 export function GroupeImportButton({ groupeId }: Props) {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('structure');
+    // « depuis Excel » seul serait ambigu : c'est l'effectif qu'on importe.
+    const libelle = t('groupe.importer.libelle');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,9 +43,9 @@ export function GroupeImportButton({ groupeId }: Props) {
             );
 
             const { added, not_found = [] } = res.data;
-            let message = `${added} élève(s) ajouté(s).`;
+            let message = t('groupe.importer.elevesAjoutes', { count: added });
             if (not_found.length > 0) {
-                message += ` Emails introuvables : ${not_found.join(', ')}`;
+                message += t('groupe.importer.emailsIntrouvables', { liste: not_found.join(', ') });
             }
 
             notifyPartialSuccess(notifications, message, not_found.length === 0);
@@ -54,12 +55,12 @@ export function GroupeImportButton({ groupeId }: Props) {
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [groupeId, notifications, queryClient]);
+    }, [groupeId, notifications, queryClient, t]);
 
     return (
         <>
-            <Tooltip title={LIBELLE}>
-                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={libelle}>
+                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>

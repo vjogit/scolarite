@@ -6,12 +6,14 @@
  */
 
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 import PublicIcon from '@mui/icons-material/Public';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_CERTIFICATION } from '../../services/context/workflows';
 import type { ActionNavigation } from '../../services/crud/actions';
+import i18n from '../../i18n/config';
 
 import { FORMATION, PROMOTION } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
@@ -40,19 +42,24 @@ const CERTIFICATION: ReglagesNiveau = {
  * comme n'importe quelle autre action, et sous les mêmes libellés que le fil
  * de contexte.
  */
-const ACTION_TOEIC: ActionNavigation<FieldValues> = {
-    id: 'toeic',
-    libelle: 'TOEIC',
-    icone: WorkspacePremiumIcon,
-    segment: TOEIC,
-};
+function actionToeic(): ActionNavigation<FieldValues> {
+    return {
+        id: 'toeic',
+        libelle: 'TOEIC',
+        icone: WorkspacePremiumIcon,
+        segment: TOEIC,
+    };
+}
 
-const ACTION_MOBILITE: ActionNavigation<FieldValues> = {
-    id: 'mobilite',
-    libelle: 'Mobilité internationale',
-    icone: PublicIcon,
-    segment: MOBILITE,
-};
+function actionMobilite(t?: TFunction<'certification'>): ActionNavigation<FieldValues> {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'certification'>);
+    return {
+        id: 'mobilite',
+        libelle: traduire('actionMobiliteLibelle'),
+        icone: PublicIcon,
+        segment: MOBILITE,
+    };
+}
 
 export function createCertificationHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_CERTIFICATION, {
@@ -60,7 +67,7 @@ export function createCertificationHierarchyRoutes() {
             [FORMATION]: enrober(CrudFormation, TRAVERSEE),
             [PROMOTION]: enrober(CrudPromotion, {
                 ...TRAVERSEE,
-                actionsLigne: [ACTION_TOEIC, ACTION_MOBILITE],
+                actionsLigne: [actionToeic(), actionMobilite()],
             }),
         },
         greffes: [

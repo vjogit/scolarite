@@ -1,0 +1,47 @@
+{
+  "titre": "Registre",
+  "sousTitre": "Le registre chaîné trace toute écriture de note et de jury. Son intégrité se vérifie ici, et les témoins reçus par la boîte externe s'y confrontent à la chaîne actuelle.",
+  "integrite": {
+    "titre": "Intégrité de la chaîne",
+    "recalcul": "Recalcul de la chaîne…",
+    "erreurVerification": "Impossible de vérifier la chaîne ({{erreur}}).",
+    "valide_one": "Chaîne valide — {{count}} maillon vérifié.",
+    "valide_other": "Chaîne valide — {{count}} maillons vérifiés.",
+    "rompue": "Chaîne rompue au maillon {{maillon}} : {{erreur}}",
+    "reverifier": "Revérifier"
+  },
+  "ancrage": {
+    "titre": "Ancrage externe (RFC 3161)",
+    "lecture": "Lecture des ancres…",
+    "erreurLecture": "Impossible de lire les ancres ({{erreur}}).",
+    "derniereAncrePrefixe": "Dernière ancre réussie le ",
+    "derniereAncreSuffixe_one": " — maillon {{maillon}}, via {{tsa}} ({{count}} ancre au total).",
+    "derniereAncreSuffixe_other": " — maillon {{maillon}}, via {{tsa}} ({{count}} ancres au total).",
+    "aucuneAncre": "Aucune ancre en base : la tête de chaîne n'a encore jamais été scellée.",
+    "resultatEchec": "{{tsa}} : échec d'ancrage — {{erreur}}",
+    "resultatCree": "{{tsa}} : nouvelle ancre archivée (jeton et certificat conservés).",
+    "resultatDejaAncre": "{{tsa}} : tête de chaîne déjà ancrée, aucune requête émise.",
+    "ancrerMaintenant": "Ancrer maintenant",
+    "echecNotif": "L'ancrage a échoué pour au moins une autorité d'horodatage.",
+    "succesNotif": "Nouvelle ancre archivée, témoin envoyé.",
+    "dejaAncreNotif": "Tête de chaîne déjà ancrée : rien à faire."
+  },
+  "temoin": {
+    "titre": "Vérifier un témoin",
+    "description": "Déposez le jeton reçu par courriel depuis la boîte témoin (pièce jointe .tsr, ou son contenu collé). La confrontation avec la chaîne actuelle détecte toute réécriture postérieure au scellement.",
+    "fichierBouton": "Fichier .tsr",
+    "jetonLabel": "Jeton (contenu du .tsr, base64 ou PEM)",
+    "certLabel": "Certificat TSA (PEM, optionnel — sinon le certificat racine configuré)",
+    "verifier": "Vérifier le témoin",
+    "scelleLePrefixe": "Scellé le ",
+    "parTsa": " par {{tsa}}",
+    "rattacheMaillon": " — rattaché au maillon {{maillon}}",
+    "verdicts": {
+      "CONFORME": "Témoin conforme",
+      "REECRITURE_DETECTEE": "Réécriture détectée",
+      "CHAINE_CORROMPUE": "Chaîne corrompue",
+      "TOKEN_INVALIDE": "Jeton illisible",
+      "SIGNATURE_INVALIDE": "Signature non probante"
+    }
+  }
+}

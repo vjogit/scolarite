@@ -1,0 +1,34 @@
+{
+  "roles": {
+    "ADMIN": "Administrateur",
+    "CONSULTATION": "Consultation",
+    "STRUCTURE_ECRITURE": "Structure (écriture)",
+    "NOTES_ECRITURE": "Notes (écriture)",
+    "JURY_ECRITURE": "Jury (écriture)",
+    "PROGRAMME_ECRITURE": "Programme (écriture)",
+    "SALLES_ECRITURE": "Salles (écriture)",
+    "CERTIFICATION_ECRITURE": "Certifications (écriture)",
+    "UTILISATEURS_ECRITURE": "Utilisateurs (écriture)"
+  },
+  "champs": {
+    "prenom": "Prénom",
+    "nom": "Nom",
+    "email": "Email",
+    "motDePasse": "Mot de passe",
+    "roles": "Rôles"
+  },
+  "colonnes": {
+    "id": "ID",
+    "keycloakId": "Keycloak Id",
+    "version": "Version",
+    "prenom": "Prénom",
+    "nom": "Nom",
+    "email": "Email",
+    "roles": "Rôles"
+  },
+  "import": {
+    "libelle": "Importer des utilisateurs depuis un fichier Excel",
+    "succes": "Import des utilisateurs réussi.",
+    "sousTitreRefus": "Aucun utilisateur n'a été importé. Corrigez le fichier puis relancez l'import."
+  }
+}

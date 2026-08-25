@@ -4,11 +4,13 @@
  */
 
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_PROGRAMME } from '../../services/context/workflows';
 import type { ActionNavigation } from '../../services/crud/actions';
+import i18n from '../../i18n/config';
 
 import { FORMATION, PROMOTION, OPTION, PERIODE } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
@@ -33,12 +35,15 @@ const TRAVERSEE: ReglagesNiveau = {
  * Le planning de la période. Seule action métier de l'écran : depuis le
  * programme, on ne descend pas dans les UE.
  */
-const ACTION_PROGRAMME: ActionNavigation<FieldValues> = {
-    id: 'programme',
-    libelle: 'Programme',
-    icone: CalendarMonthIcon,
-    segment: PROGRAMME,
-};
+function actionProgramme(t?: TFunction<'programme'>): ActionNavigation<FieldValues> {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'programme'>);
+    return {
+        id: 'programme',
+        libelle: traduire('actionProgrammeLibelle'),
+        icone: CalendarMonthIcon,
+        segment: PROGRAMME,
+    };
+}
 
 export function createProgrammeHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_PROGRAMME, {
@@ -49,7 +54,7 @@ export function createProgrammeHierarchyRoutes() {
             [PERIODE]: enrober(CrudPeriode, {
                 ...TRAVERSEE,
                 isTopToolbar: true,
-                actionsLigne: [ACTION_PROGRAMME],
+                actionsLigne: [actionProgramme()],
             }),
         },
         greffes: [

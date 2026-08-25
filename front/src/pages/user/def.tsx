@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+import i18n from '../../i18n/config';
 
 export const USER = "user"
 export const USER_WORKFLOW = "user_workflow"
@@ -34,14 +36,17 @@ export const ROLES_FONCTIONNELS: readonly string[] = [
     Role.UTILISATEURS_ECRITURE,
 ];
 
-export const AVAILABLE_ROLES = [
-    { id: Role.ADMIN, label: 'Administrateur' },
-    { id: Role.CONSULTATION, label: 'Consultation' },
-    { id: Role.STRUCTURE_ECRITURE, label: 'Structure (écriture)' },
-    { id: Role.NOTES_ECRITURE, label: 'Notes (écriture)' },
-    { id: Role.JURY_ECRITURE, label: 'Jury (écriture)' },
-    { id: Role.PROGRAMME_ECRITURE, label: 'Programme (écriture)' },
-    { id: Role.SALLES_ECRITURE, label: 'Salles (écriture)' },
-    { id: Role.CERTIFICATION_ECRITURE, label: 'Certifications (écriture)' },
-    { id: Role.UTILISATEURS_ECRITURE, label: 'Utilisateurs (écriture)' },
-];
+export function availableRoles(t?: TFunction<'user'>): { id: string; label: string }[] {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'user'>);
+    return [
+        { id: Role.ADMIN, label: traduire('roles.ADMIN') },
+        { id: Role.CONSULTATION, label: traduire('roles.CONSULTATION') },
+        { id: Role.STRUCTURE_ECRITURE, label: traduire('roles.STRUCTURE_ECRITURE') },
+        { id: Role.NOTES_ECRITURE, label: traduire('roles.NOTES_ECRITURE') },
+        { id: Role.JURY_ECRITURE, label: traduire('roles.JURY_ECRITURE') },
+        { id: Role.PROGRAMME_ECRITURE, label: traduire('roles.PROGRAMME_ECRITURE') },
+        { id: Role.SALLES_ECRITURE, label: traduire('roles.SALLES_ECRITURE') },
+        { id: Role.CERTIFICATION_ECRITURE, label: traduire('roles.CERTIFICATION_ECRITURE') },
+        { id: Role.UTILISATEURS_ECRITURE, label: traduire('roles.UTILISATEURS_ECRITURE') },
+    ];
+}

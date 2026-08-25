@@ -2,6 +2,7 @@ import { TextField, FormControlLabel, Switch, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
 import { Controller, useWatch } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -18,11 +19,12 @@ export type { Promotion } from './entites/promotion';
 
 const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<Promotion>) => {
     const matiereEliminatoire = useWatch({ control, name: 'matiere_eliminatoire' });
+    const { t } = useTranslation('structure');
 
     return <>
         <TextField
             {...register("name")}
-            label="Titre de la promotion"
+            label={t('promotion.champTitre')}
             variant="outlined"
             fullWidth
             disabled={isReadOnly}
@@ -35,7 +37,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             control={control}
             render={({ field }) => (
                 <DatePicker
-                    label="Date de début"
+                    label={t('commun.dateDebut')}
                     // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
                     // pas : en création, react-hook-form donne `undefined`. Et
                     // `dayjs(undefined)` rend l'heure courante, pas une date
@@ -63,7 +65,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             control={control}
             render={({ field }) => (
                 <DatePicker
-                    label="Date de fin"
+                    label={t('commun.dateFin')}
                     // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
                     // pas : en création, react-hook-form donne `undefined`. Et
                     // `dayjs(undefined)` rend l'heure courante, pas une date
@@ -104,7 +106,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         // peut se perdre. Le repli est ce qui le garde contrôlé.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
-                        label="Échelle GPA"
+                        label={t('promotion.champEchelleGpa')}
                         variant="outlined"
                         fullWidth
                         disabled={isReadOnly}
@@ -132,7 +134,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         // peut se perdre. Le repli est ce qui le garde contrôlé.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
-                        label="Échelle"
+                        label={t('promotion.champEchelle')}
                         variant="outlined"
                         fullWidth
                         disabled={isReadOnly}
@@ -146,13 +148,13 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
 
         <TextField
             {...register("bareme", { valueAsNumber: true })}
-            label="Barème"
+            label={t('promotion.champBareme')}
             variant="outlined"
             fullWidth
             type="number"
             disabled={isReadOnly}
             error={!!errors.bareme}
-            helperText={errors.bareme?.message ?? "Note maximale de la promotion. Les seuils de l'échelle s'expriment sur ce barème."}
+            helperText={errors.bareme?.message ?? t('promotion.baremeAide')}
             slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
             sx={{ mb: 2 }}
         />
@@ -171,14 +173,14 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                     )}
                 />
             }
-            label="Matière éliminatoire"
+            label={t('promotion.champMatiereEliminatoire')}
             sx={{ mb: 2, display: 'block' }}
         />
 
         {matiereEliminatoire && (
             <TextField
                 {...register("value_matiere_eliminatoire", { valueAsNumber: true })}
-                label="Note éliminatoire"
+                label={t('promotion.champNoteEliminatoire')}
                 variant="outlined"
                 fullWidth
                 type="number"
@@ -192,38 +194,40 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
     </>
 };
 
-const promotionColumns: MRT_ColumnDef<Promotion>[] = [
-    {
-        accessorKey: 'id',
-        header: 'ID',
-    },
-    {
-        accessorKey: 'version',
-        header: 'Version',
-    },
-    {
-        accessorKey: 'name',
-        header: 'Nom',
-    },
-    {
-        accessorKey: 'debut',
-        header: 'Début',
-        Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
-    },
+function promotionColumns(t: TFunction<'structure'>): MRT_ColumnDef<Promotion>[] {
+    return [
+        {
+            accessorKey: 'id',
+            header: t('commun.id'),
+        },
+        {
+            accessorKey: 'version',
+            header: t('commun.version'),
+        },
+        {
+            accessorKey: 'name',
+            header: t('commun.nom'),
+        },
+        {
+            accessorKey: 'debut',
+            header: t('commun.debut'),
+            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+        },
 
-    {
-        accessorKey: 'fin',
-        header: 'Fin',
-        Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
-    },
-  
-]
+        {
+            accessorKey: 'fin',
+            header: t('commun.fin'),
+            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+        },
 
-const createPromotionViewConfig = (formationId: string): ViewConfig<Promotion> => {
+    ];
+}
+
+function createPromotionViewConfig(formationId: string, t: TFunction<'structure'>): ViewConfig<Promotion> {
     return {
         schema: promotionSchema,
         emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), bareme: 20 },
-        columns: promotionColumns,
+        columns: promotionColumns(t),
         render: PromotionFields,
     }
 }
@@ -233,22 +237,23 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
     const { t } = useTranslation('crud');
+    const { t: tStructure } = useTranslation('structure');
 
     const datasource = useMemo((): Datasource<Promotion> | null => formationId ? ({
         ...createPromotionRepository(formationId),
-        ...createPromotionViewConfig(formationId),
+        ...createPromotionViewConfig(formationId, tStructure),
         ...promotionEntite(t),
         isAction,
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t)],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>Le paramètre formationId est obligatoire</Typography>
+        <Typography>{tStructure('promotion.erreurFormationIdObligatoire')}</Typography>
     )
 
     return (

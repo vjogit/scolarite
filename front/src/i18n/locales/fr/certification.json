@@ -1,0 +1,38 @@
+{
+  "parametrePromotionIdObligatoire": "Le paramètre promotionId est obligatoire",
+  "actionMobiliteLibelle": "Mobilité internationale",
+  "commun": {
+    "oui": "Oui",
+    "non": "Non"
+  },
+  "toic": {
+    "champScore": "Score",
+    "champDatePassage": "Date de passage",
+    "champRemarque": "Remarque",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Nom",
+    "colonnePrenom": "Prénom",
+    "colonneScore": "Score",
+    "colonneDatePassage": "Date passage"
+  },
+  "mobilite": {
+    "champPays": "Pays",
+    "champVille": "Ville",
+    "champTypeMobilite": "Type de mobilité",
+    "champDateDebut": "Date de début",
+    "champDateFin": "Date de fin",
+    "champValidee": "Validée",
+    "champRemarque": "Remarque",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Nom",
+    "colonnePrenom": "Prénom",
+    "colonnePays": "Pays",
+    "colonneVille": "Ville",
+    "colonneType": "Type",
+    "colonneDateDebut": "Date début",
+    "colonneDateFin": "Date fin",
+    "colonneValidee": "Validée"
+  }
+}

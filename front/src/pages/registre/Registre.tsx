@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
     Alert,
     Box,
@@ -48,13 +50,15 @@ const SEVERITE_VERDICT: Record<VerdictTemoin['verdict'], 'success' | 'error' | '
     SIGNATURE_INVALIDE: 'warning',
 };
 
-const LIBELLE_VERDICT: Record<VerdictTemoin['verdict'], string> = {
-    CONFORME: 'Témoin conforme',
-    REECRITURE_DETECTEE: 'Réécriture détectée',
-    CHAINE_CORROMPUE: 'Chaîne corrompue',
-    TOKEN_INVALIDE: 'Jeton illisible',
-    SIGNATURE_INVALIDE: 'Signature non probante',
-};
+function libelleVerdict(verdict: VerdictTemoin['verdict'], t: TFunction<'registre'>): string {
+    switch (verdict) {
+        case 'CONFORME': return t('temoin.verdicts.CONFORME');
+        case 'REECRITURE_DETECTEE': return t('temoin.verdicts.REECRITURE_DETECTEE');
+        case 'CHAINE_CORROMPUE': return t('temoin.verdicts.CHAINE_CORROMPUE');
+        case 'TOKEN_INVALIDE': return t('temoin.verdicts.TOKEN_INVALIDE');
+        case 'SIGNATURE_INVALIDE': return t('temoin.verdicts.SIGNATURE_INVALIDE');
+    }
+}
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleString();
@@ -62,6 +66,7 @@ function formatDate(iso: string): string {
 
 /** Intégrité interne : recalcul de toute la chaîne, verdict affiché tel quel. */
 function CarteIntegrite() {
+    const { t } = useTranslation('registre');
     const query = useQuery({
         queryKey: [REGISTRE, 'verification'],
         queryFn: fetchVerification,
@@ -70,25 +75,25 @@ function CarteIntegrite() {
     return (
         <Card variant="outlined">
             <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>Intégrité de la chaîne</Typography>
+                <Typography variant="h6" sx={{ mb: 1 }}>{t('integrite.titre')}</Typography>
                 {query.isPending && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CircularProgress size={18} />
-                        <Typography variant="body2">Recalcul de la chaîne…</Typography>
+                        <Typography variant="body2">{t('integrite.recalcul')}</Typography>
                     </Box>
                 )}
                 {query.isError && (
                     <Alert severity="error">
-                        Impossible de vérifier la chaîne ({messageForError(query.error)}).
+                        {t('integrite.erreurVerification', { erreur: messageForError(query.error) })}
                     </Alert>
                 )}
                 {query.data && (query.data.ok ? (
                     <Alert severity="success">
-                        Chaîne valide — {query.data.maillons} maillon{query.data.maillons > 1 ? 's' : ''} vérifié{query.data.maillons > 1 ? 's' : ''}.
+                        {t('integrite.valide', { count: query.data.maillons })}
                     </Alert>
                 ) : (
                     <Alert severity="error">
-                        Chaîne rompue au maillon {query.data.broken_at ?? '?'} : {query.data.error}
+                        {t('integrite.rompue', { maillon: query.data.broken_at ?? '?', erreur: query.data.error })}
                     </Alert>
                 ))}
             </CardContent>
@@ -98,7 +103,7 @@ function CarteIntegrite() {
                     onClick={() => { void query.refetch(); }}
                     disabled={query.isFetching}
                 >
-                    Revérifier
+                    {t('integrite.reverifier')}
                 </Button>
             </CardActions>
         </Card>
@@ -111,6 +116,7 @@ function CarteIntegrite() {
  * l'ancrage observe la chaîne, il ne la gouverne pas.
  */
 function CarteAncrage() {
+    const { t } = useTranslation('registre');
     const notifications = useNotifications();
     const queryClient = useQueryClient();
     const [resultats, setResultats] = useState<ResultatAncrage[] | null>(null);
@@ -128,11 +134,11 @@ function CarteAncrage() {
             const creees = results.filter((r) => r.created).length;
             const echecs = results.filter((r) => r.error).length;
             if (echecs > 0) {
-                notifyError(notifications, "L'ancrage a échoué pour au moins une autorité d'horodatage.");
+                notifyError(notifications, t('ancrage.echecNotif'));
             } else if (creees > 0) {
-                notifySuccess(notifications, 'Nouvelle ancre archivée, témoin envoyé.');
+                notifySuccess(notifications, t('ancrage.succesNotif'));
             } else {
-                notifySuccess(notifications, "Tête de chaîne déjà ancrée : rien à faire.");
+                notifySuccess(notifications, t('ancrage.dejaAncreNotif'));
             }
         },
         onError: (error) => {
@@ -146,26 +152,26 @@ function CarteAncrage() {
     return (
         <Card variant="outlined">
             <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>Ancrage externe (RFC 3161)</Typography>
+                <Typography variant="h6" sx={{ mb: 1 }}>{t('ancrage.titre')}</Typography>
                 {query.isPending && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <CircularProgress size={18} />
-                        <Typography variant="body2">Lecture des ancres…</Typography>
+                        <Typography variant="body2">{t('ancrage.lecture')}</Typography>
                     </Box>
                 )}
                 {query.isError && (
                     <Alert severity="error">
-                        Impossible de lire les ancres ({messageForError(query.error)}).
+                        {t('ancrage.erreurLecture', { erreur: messageForError(query.error) })}
                     </Alert>
                 )}
                 {query.data && (derniere ? (
                     <Alert severity="info">
-                        Dernière ancre réussie le <strong>{formatDate(derniere.created_at)}</strong> —
-                        maillon {derniere.registre_seq}, via {derniere.tsa_url} ({ancres.length} ancre{ancres.length > 1 ? 's' : ''} au total).
+                        {t('ancrage.derniereAncrePrefixe')}<strong>{formatDate(derniere.created_at)}</strong>
+                        {t('ancrage.derniereAncreSuffixe', { maillon: derniere.registre_seq, tsa: derniere.tsa_url, count: ancres.length })}
                     </Alert>
                 ) : (
                     <Alert severity="warning">
-                        Aucune ancre en base : la tête de chaîne n'a encore jamais été scellée.
+                        {t('ancrage.aucuneAncre')}
                     </Alert>
                 ))}
                 {resultats?.map((r) => (
@@ -175,10 +181,10 @@ function CarteAncrage() {
                         sx={{ mt: 1 }}
                     >
                         {r.error
-                            ? `${r.tsa_url} : échec d'ancrage — ${r.error}`
+                            ? t('ancrage.resultatEchec', { tsa: r.tsa_url, erreur: r.error })
                             : r.created
-                                ? `${r.tsa_url} : nouvelle ancre archivée (jeton et certificat conservés).`
-                                : `${r.tsa_url} : tête de chaîne déjà ancrée, aucune requête émise.`}
+                                ? t('ancrage.resultatCree', { tsa: r.tsa_url })
+                                : t('ancrage.resultatDejaAncre', { tsa: r.tsa_url })}
                     </Alert>
                 ))}
             </CardContent>
@@ -188,7 +194,7 @@ function CarteAncrage() {
                     onClick={() => { ancrage.mutate(); }}
                     disabled={ancrage.isPending}
                 >
-                    Ancrer maintenant
+                    {t('ancrage.ancrerMaintenant')}
                 </Button>
             </CardActions>
         </Card>
@@ -201,6 +207,7 @@ function CarteAncrage() {
  * seule côté serveur ; le verdict s'affiche tel que le serveur le rend.
  */
 function CarteTemoin() {
+    const { t } = useTranslation('registre');
     const notifications = useNotifications();
     const [token, setToken] = useState('');
     const [cert, setCert] = useState('');
@@ -233,11 +240,9 @@ function CarteTemoin() {
     return (
         <Card variant="outlined">
             <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>Vérifier un témoin</Typography>
+                <Typography variant="h6" sx={{ mb: 1 }}>{t('temoin.titre')}</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Déposez le jeton reçu par courriel depuis la boîte témoin (pièce
-                    jointe .tsr, ou son contenu collé). La confrontation avec la chaîne
-                    actuelle détecte toute réécriture postérieure au scellement.
+                    {t('temoin.description')}
                 </Typography>
                 <Stack spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -246,7 +251,7 @@ function CarteTemoin() {
                             variant="outlined"
                             onClick={() => { fichierRef.current?.click(); }}
                         >
-                            Fichier .tsr
+                            {t('temoin.fichierBouton')}
                         </Button>
                         <input
                             ref={fichierRef}
@@ -264,7 +269,7 @@ function CarteTemoin() {
                         )}
                     </Box>
                     <TextField
-                        label="Jeton (contenu du .tsr, base64 ou PEM)"
+                        label={t('temoin.jetonLabel')}
                         value={token}
                         onChange={(event) => {
                             setToken(event.target.value);
@@ -278,7 +283,7 @@ function CarteTemoin() {
                         slotProps={{ input: { sx: { fontFamily: 'monospace', fontSize: 13 } } }}
                     />
                     <TextField
-                        label="Certificat TSA (PEM, optionnel — sinon le certificat racine configuré)"
+                        label={t('temoin.certLabel')}
                         value={cert}
                         onChange={(event) => { setCert(event.target.value); setVerdict(null); }}
                         multiline
@@ -290,13 +295,13 @@ function CarteTemoin() {
                     {verdict && (
                         <Alert severity={SEVERITE_VERDICT[verdict.verdict]}>
                             <Typography variant="body2" component="div">
-                                <strong>{LIBELLE_VERDICT[verdict.verdict]}</strong> — {verdict.message}
+                                <strong>{libelleVerdict(verdict.verdict, t)}</strong> — {verdict.message}
                             </Typography>
                             {verdict.sealedAt && (
                                 <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
-                                    Scellé le {formatDate(verdict.sealedAt)}
-                                    {verdict.tsaName ? ` par ${verdict.tsaName}` : ''}
-                                    {verdict.coverageSeq ? ` — rattaché au maillon ${verdict.coverageSeq}` : ''}.
+                                    {t('temoin.scelleLePrefixe')}{formatDate(verdict.sealedAt)}
+                                    {verdict.tsaName ? t('temoin.parTsa', { tsa: verdict.tsaName }) : ''}
+                                    {verdict.coverageSeq ? t('temoin.rattacheMaillon', { maillon: verdict.coverageSeq }) : ''}.
                                 </Typography>
                             )}
                         </Alert>
@@ -308,7 +313,7 @@ function CarteTemoin() {
                     disabled={token.trim() === '' || verification.isPending}
                     onClick={() => { verification.mutate(); }}
                 >
-                    Vérifier le témoin
+                    {t('temoin.verifier')}
                 </Button>
             </CardActions>
         </Card>
@@ -316,15 +321,14 @@ function CarteTemoin() {
 }
 
 export function RegistrePage() {
+    const { t } = useTranslation('registre');
     return (
         <Box sx={{ p: 2, maxWidth: 900 }}>
             <Typography variant="h5" sx={{ mb: 0.5 }}>
-                Registre
+                {t('titre')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Le registre chaîné trace toute écriture de note et de jury. Son
-                intégrité se vérifie ici, et les témoins reçus par la boîte externe
-                s'y confrontent à la chaîne actuelle.
+                {t('sousTitre')}
             </Typography>
             <Stack spacing={2}>
                 <CarteIntegrite />

@@ -1,0 +1,16 @@
+{
+  "exportProgramme": {
+    "libelle": "Exporter le programme en Excel",
+    "erreur": "Erreur lors de l'export."
+  },
+  "importProgramme": {
+    "libelle": "Importer le programme depuis Excel",
+    "succes": "Import du programme réussi.",
+    "sousTitreRefus": "Le programme n'a pas été importé. Corrigez le fichier puis relancez l'import."
+  },
+  "structureLayout": {
+    "titre": "Structure",
+    "arborescence": "Arborescence",
+    "ouvrirArborescence": "Ouvrir l'arborescence"
+  }
+}

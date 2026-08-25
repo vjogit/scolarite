@@ -1,0 +1,92 @@
+{
+  "actionJuryLibelle": "Jury",
+  "commun": {
+    "oui": "Yes",
+    "non": "No",
+    "annuler": "Cancel",
+    "confirmer": "Confirm"
+  },
+  "erreurPeriodeIdObligatoire": "The periodeId parameter is required",
+  "erreurChargementSynthese": "Error while loading the summary: {{erreur}}",
+  "erreurDeliberationGroupee": "Error during bulk deliberation.",
+  "deliberationGroupee_one": "{{formatted}} student deliberated.",
+  "deliberationGroupee_other": "{{formatted}} students deliberated.",
+  "colonnes": {
+    "statut": "Status",
+    "nom": "Last name",
+    "prenom": "First name",
+    "grade": "Grade",
+    "gpaAca": "Aca GPA",
+    "gpaAcaInfobulle": "Academic GPA",
+    "gpa": "GPA",
+    "gpaInfobulle": "Term GPA",
+    "toeic": "Toeic",
+    "toeicInfobulle": "TOEIC score",
+    "mobilite": "Mobility",
+    "mobiliteInfobulle": "Validated mobility",
+    "ectsValides": "ECTS\nEarned",
+    "ectsValidesInfobulle": "Total ECTS earned",
+    "ectsEchecs": "Failed\n(ECTS)",
+    "ectsEchecsInfobulle": "ECTS not earned (F grades)"
+  },
+  "statut": {
+    "delibere": "Deliberated",
+    "redoublant": "Repeating",
+    "incomplet": "Incomplete",
+    "enAttente": "Pending",
+    "nonEvalueePrefixe": "Not evaluated: "
+  },
+  "aucunEleve": "No student in this term.",
+  "compteurDeliberes": "{{delibere}} / {{total}} deliberated",
+  "dossiersIncomplets_one": "{{count}} incomplete record",
+  "dossiersIncomplets_other": "{{count}} incomplete records",
+  "tooltipDossiersIncomplets": "These students have at least one course unit not yet evaluated. They will come back before the jury once their grades are complete.",
+  "delibererSelection": "Deliberate {{count}} selected",
+  "delibererBouton": {
+    "annulerTooltip": "Cancel the deliberation (correction possible)",
+    "annulerAriaLabel": "Cancel {{nom}}'s deliberation (correction possible)",
+    "impossibleTitre": "Deliberation not possible: incomplete record.",
+    "uniteNonEvaluee_one": "Unit not evaluated",
+    "uniteNonEvaluee_other": "Units not evaluated",
+    "repasseraEnJury": "{{nom}} will come back before the jury once their grades are complete.",
+    "impossibleAriaLabel": "Deliberation not possible for {{nom}}: incomplete record",
+    "delibererTooltip": "Deliberate",
+    "delibererAriaLabel": "Deliberate — {{nom}}",
+    "titreDialog": "Deliberate — {{nom}}",
+    "descriptionPrefixe": "This student's current results will be locked into ",
+    "descriptionSuffixe": " and counted toward the cumulative GPA of future terms.",
+    "compterGpaCumule": "Count toward the cumulative GPA",
+    "decocherRedoublant": "Uncheck if this is a failed year (repeating)",
+    "succes": "Deliberation recorded for {{nom}}.",
+    "erreur": "Error during deliberation.",
+    "annulationSucces": "Deliberation cancelled for {{nom}}.",
+    "annulationErreur": "Error during cancellation."
+  },
+  "delibererBulkDialog": {
+    "titre_one": "Deliberate {{count}} student",
+    "titre_other": "Deliberate {{count}} students",
+    "compterGpaCumule": "Count toward the cumulative GPA",
+    "decocherRedoublants": "Uncheck if the failed year should not count (repeating students)"
+  },
+  "exportJury": {
+    "libelle": "Export the jury to Excel",
+    "succes": "Export successful.",
+    "erreur": "Error during export."
+  },
+  "exportBulletins": {
+    "libelle": "Export transcripts (ZIP)",
+    "succes": "Transcript export successful.",
+    "erreur": "Error while exporting transcripts.",
+    "titreParametres": "Transcript settings",
+    "champEnteteLigne1": "Header line 1",
+    "champEnteteLigne2": "Header line 2",
+    "champEnteteLigne3": "Header line 3",
+    "champEnteteLigne4": "Header line 4",
+    "champEnteteLigne5": "Header line 5",
+    "champPeriode": "Term",
+    "champEnteteUe": "Unit header",
+    "champDateJury": "Jury date",
+    "champNomResponsable": "Responsible name",
+    "exporter": "Export"
+  }
+}

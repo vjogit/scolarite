@@ -9,12 +9,17 @@ import { UserSelector } from '../../services/UserSelector';
 import { Controller } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
+import type { TFunction } from 'i18next';
 import { ENDPOINT_MOBILITE } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
 
+// Valeurs stockées telles quelles en base (pas d'identifiant séparé du
+// libellé) : contrairement à `type_salle`, ce champ ne peut pas se traduire à
+// l'affichage sans faire diverger la valeur soumise de la donnée existante.
+// Laissé en français, hors du périmètre de cette migration.
 const TYPE_MOBILITE_OPTIONS = [
     "Stage",
     "Semestre académique",
@@ -49,6 +54,7 @@ const mobiliteSchema = z.object({
 type Mobilite = z.infer<typeof mobiliteSchema>;
 
 const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<Mobilite>) => {
+    const { t } = useTranslation('certification');
     return (
         <Grid container spacing={8}>
             {/* COLONNE GAUCHE */}
@@ -63,7 +69,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
 
                 <TextField
                     {...register("pays")}
-                    label="Pays"
+                    label={t('mobilite.champPays')}
                     fullWidth
                     disabled={isReadOnly}
                     error={!!errors.pays}
@@ -73,7 +79,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
 
                 <TextField
                     {...register("ville")}
-                    label="Ville"
+                    label={t('mobilite.champVille')}
                     fullWidth
                     disabled={isReadOnly}
                     error={!!errors.ville}
@@ -91,7 +97,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                         <TextField
                             {...field}
                             select
-                            label="Type de mobilité"
+                            label={t('mobilite.champTypeMobilite')}
                             fullWidth
                             disabled={isReadOnly}
                             error={!!errors.type_mobilite}
@@ -113,7 +119,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     control={control}
                     render={({ field }) => (
                         <DatePicker
-                            label="Date de début"
+                            label={t('mobilite.champDateDebut')}
                             // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
                             // pas : en création, react-hook-form donne `undefined`. Et
                             // `dayjs(undefined)` rend l'heure courante, pas une date
@@ -140,7 +146,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     control={control}
                     render={({ field }) => (
                         <DatePicker
-                            label="Date de fin"
+                            label={t('mobilite.champDateFin')}
                             // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
                             // pas : en création, react-hook-form donne `undefined`. Et
                             // `dayjs(undefined)` rend l'heure courante, pas une date
@@ -179,13 +185,13 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                             )}
                         />
                     }
-                    label="Validée"
+                    label={t('mobilite.champValidee')}
                     sx={{ mb: 2, display: 'block' }}
                 />
 
                 <TextField
                     {...register("remarque")}
-                    label="Remarque"
+                    label={t('mobilite.champRemarque')}
                     variant="outlined"
                     fullWidth
                     multiline
@@ -200,33 +206,34 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
     );
 };
 
-const mobiliteColumns: MRT_ColumnDef<Mobilite>[] =
-    [
-        { accessorKey: 'id', header: 'ID' },
-        { accessorKey: 'version', header: 'Version' },
-        { accessorKey: 'lastName', header: 'Nom' },
-        { accessorKey: 'firstName', header: 'Prénom' },
-        { accessorKey: 'pays', header: 'Pays' },
-        { accessorKey: 'ville', header: 'Ville' },
-        { accessorKey: 'type_mobilite', header: 'Type' },
+function mobiliteColumns(t: TFunction<'certification'>): MRT_ColumnDef<Mobilite>[] {
+    return [
+        { accessorKey: 'id', header: t('mobilite.colonneId') },
+        { accessorKey: 'version', header: t('mobilite.colonneVersion') },
+        { accessorKey: 'lastName', header: t('mobilite.colonneNom') },
+        { accessorKey: 'firstName', header: t('mobilite.colonnePrenom') },
+        { accessorKey: 'pays', header: t('mobilite.colonnePays') },
+        { accessorKey: 'ville', header: t('mobilite.colonneVille') },
+        { accessorKey: 'type_mobilite', header: t('mobilite.colonneType') },
         {
             accessorKey: 'date_debut',
-            header: 'Date début',
+            header: t('mobilite.colonneDateDebut'),
             Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
         {
             accessorKey: 'date_fin',
-            header: 'Date fin',
+            header: t('mobilite.colonneDateFin'),
             Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
         {
             accessorKey: 'est_valide',
-            header: 'Validée',
-            Cell: ({ cell }) => cell.getValue<boolean>() ? 'Oui' : 'Non',
+            header: t('mobilite.colonneValidee'),
+            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
         },
-    ]
+    ];
+}
 
-const createMobiliteViewConfig = (promotionId: string): ViewConfig<Mobilite> => {
+const createMobiliteViewConfig = (promotionId: string, t: TFunction<'certification'>): ViewConfig<Mobilite> => {
     return {
         schema: mobiliteSchema,
         emptyValue: {
@@ -235,7 +242,7 @@ const createMobiliteViewConfig = (promotionId: string): ViewConfig<Mobilite> => 
             promotion_id: parseInt(promotionId),
             est_valide: false,
         },
-        columns: mobiliteColumns,
+        columns: mobiliteColumns(t),
         render: MobiliteFields,
     }
 };
@@ -254,26 +261,27 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
-    const { t } = useTranslation('crud');
+    const { t: tCrud } = useTranslation('crud');
+    const { t: tCertification } = useTranslation('certification');
 
     const datasource = useMemo((): Datasource<Mobilite> | null => promotionId ? ({
         ...createMobiliteRepository(promotionId),
-        ...createMobiliteViewConfig(promotionId),
-        title: t('entites.mobiliteInternationale.title'),
+        ...createMobiliteViewConfig(promotionId, tCertification),
+        title: tCrud('entites.mobiliteInternationale.title'),
         roleEcriture: Role.CERTIFICATION_ECRITURE,
-        entityLabel: t('entites.mobiliteInternationale.nom'),
-        entityLabelAvecArticle: t('entites.mobiliteInternationale.nomAvecArticle'),
-        entityLabelPlural: t('entites.mobiliteInternationale.nomPluriel'),
+        entityLabel: tCrud('entites.mobiliteInternationale.nom'),
+        entityLabelAvecArticle: tCrud('entites.mobiliteInternationale.nomAvecArticle'),
+        entityLabelPlural: tCrud('entites.mobiliteInternationale.nomPluriel'),
         entityGender: 'f',
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
+    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tCertification]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>Le paramètre promotionId est obligatoire</Typography>
+        <Typography>{tCertification('parametrePromotionIdObligatoire')}</Typography>
     )
 
     return (

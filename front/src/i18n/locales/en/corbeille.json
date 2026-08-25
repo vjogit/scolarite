@@ -1,0 +1,37 @@
+{
+  "titre": "Trash",
+  "sousTitre": "Restorable deletions, most recent first. Purging is permanent.",
+  "chargement": "Loading the trash…",
+  "erreurLecture": "Could not read the trash ({{erreur}}).",
+  "vide": "The trash is empty. Restorable deletions will appear here.",
+  "aucuneDonneeLiee": "No linked data.",
+  "contientPrefixe": "Contains ",
+  "supprimeLe": "Deleted on {{date}} by {{auteur}}",
+  "restaurer": "Restore",
+  "purger": "Purge",
+  "annuler": "Cancel",
+  "purgerDefinitivement": "Purge permanently",
+  "purgerTitre": "Purge {{titre}}?",
+  "restaurerTitre": "Restore {{titre}}?",
+  "purgeIrreversible": "Purging permanently destroys this data. No restoration will be possible afterwards.",
+  "confirmerSaisiePrefixe": "To confirm, type",
+  "confirmationLabel": "Confirmation",
+  "restaurationTout": "Everything this deletion took with it will be restored",
+  "restaurationToutSuffixe": " — {{liste}}.",
+  "restaurationSucces": "{{titre}}: restoration completed.",
+  "purgeSucces": "{{titre}}: permanent purge completed.",
+  "motConfirmation": "CONFIRM",
+  "et": "and",
+  "racines": {
+    "formation": "Program",
+    "promotion": "Cohort",
+    "option": "Option",
+    "periode": "Period"
+  },
+  "racinesPluriel": {
+    "formation": "programs",
+    "promotion": "cohorts",
+    "option": "options",
+    "periode": "periods"
+  }
+}

@@ -2,6 +2,8 @@ import { Box, Button, Chip, darken, Tooltip, Typography } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { JuryData, JuryResult, StudentEntry } from './def';
 import { uesNonEvaluees } from './def';
 import { apiInstance } from '../../services/api';
@@ -17,6 +19,7 @@ import {
     type MRT_Row,
 } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
+import { MRT_Localization_EN } from 'material-react-table/locales/en';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
 import { ENDPOINT_DELIBERER, ENDPOINT_JURY } from './def';
 import { JuryExportButton } from './JuryExportButton';
@@ -75,10 +78,10 @@ const EctsEchecCell = memo(({ value }: { value: number }) => (
 ));
 
 /** Cellule Booléenne pour afficher Oui/Non ou — */
-const BooleanCell = memo(({ value }: { value: boolean | null | undefined }) => {
+const BooleanCell = memo(({ value, oui, non }: { value: boolean | null | undefined; oui: string; non: string }) => {
     if (value === null || value === undefined)
         return <Typography variant="body2" color="text.disabled">—</Typography>;
-    return <Typography variant="body2">{value ? 'Oui' : 'Non'}</Typography>;
+    return <Typography variant="body2">{value ? oui : non}</Typography>;
 });
 
 /** Cellule Entier pour afficher un nombre entier ou — */
@@ -112,7 +115,9 @@ const enteteInfobulle = (titre: string, libelle: string, multiligne = false) => 
 
 const celluleGpa: CelluleJury = ({ cell }) => <GpaCell value={cell.getValue<number | null>()} />;
 const celluleEntier: CelluleJury = ({ cell }) => <IntegerCell value={cell.getValue<number | null>()} />;
-const celluleBooleen: CelluleJury = ({ cell }) => <BooleanCell value={cell.getValue<boolean | null>()} />;
+function celluleBooleen(t: TFunction<'jury'>): CelluleJury {
+    return ({ cell }) => <BooleanCell value={cell.getValue<boolean | null>()} oui={t('commun.oui')} non={t('commun.non')} />;
+}
 const celluleEctsEchec: CelluleJury = ({ cell }) => <EctsEchecCell value={cell.getValue<number>()} />;
 
 const celluleEctsValides: CelluleJury = ({ cell }) => (
@@ -154,6 +159,7 @@ const celluleStatut = (
     deliberationByUser: DeliberationParEleve,
     dossiersIncomplets: ReadonlyMap<number, string[]>,
     peutDeliberer: boolean,
+    t: TFunction<'jury'>,
 ): CelluleJury => ({ row }) => {
     const info = deliberationByUser.get(row.original.userID);
     const nom = `${row.original.juryStat.lastName ?? ''} ${row.original.juryStat.firstName ?? ''}`.trim();
@@ -162,7 +168,7 @@ const celluleStatut = (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             {info?.delibere ? (
                 <Chip
-                    label={info.compteCumul ? 'Délibéré' : 'Redoublant'}
+                    label={info.compteCumul ? t('statut.delibere') : t('statut.redoublant')}
                     size="small"
                     color={info.compteCumul ? 'success' : 'warning'}
                     sx={{ fontSize: '0.68rem', height: 20 }}
@@ -170,9 +176,9 @@ const celluleStatut = (
             ) : incompletes ? (
                 // « En attente » dirait qu'il ne manque qu'une décision.
                 // Ici c'est une note qui manque, et le jury doit le voir.
-                <Tooltip title={`Non évaluée : ${incompletes.join(', ')}`}>
+                <Tooltip title={`${t('statut.nonEvalueePrefixe')}${incompletes.join(', ')}`}>
                     <Chip
-                        label="Incomplet"
+                        label={t('statut.incomplet')}
                         size="small"
                         color="warning"
                         variant="outlined"
@@ -180,7 +186,7 @@ const celluleStatut = (
                     />
                 </Tooltip>
             ) : (
-                <Chip label="En attente" size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
+                <Chip label={t('statut.enAttente')} size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
             )}
             {peutDeliberer && (
                 <DelibererButton
@@ -205,9 +211,8 @@ const celluleStatut = (
 const EMPTY_STUDENTS: StudentEntry[] = [];
 
 /** « 1 élève délibéré. » / « 12 élèves délibérés. » */
-function messageDeliberationGroupee(nombre: number): string {
-    const pluriel = nombre > 1 ? 's' : '';
-    return `${formatNombre.format(nombre)} élève${pluriel} délibéré${pluriel}.`;
+function messageDeliberationGroupee(nombre: number, t: TFunction<'jury'>): string {
+    return t('deliberationGroupee', { count: nombre, formatted: formatNombre.format(nombre) });
 }
 
 const TABLE_THEME = (theme: Theme) => ({
@@ -233,8 +238,8 @@ const ROW_VIRTUALIZER_OPTIONS = {
     overscan: 10,              // pré-rend 10 lignes au-delà de la fenêtre
 } as const;
 
-const fetchSynthese = async (periodeId: string | undefined): Promise<JuryData> => {
-    if (!periodeId) throw new Error('Le paramètre periodeId est obligatoire');
+const fetchSynthese = async (periodeId: string | undefined, t: TFunction<'jury'>): Promise<JuryData> => {
+    if (!periodeId) throw new Error(t('erreurPeriodeIdObligatoire'));
     try {
         const rep = await apiInstance.get<JuryData>(`${ENDPOINT_JURY}/data/${periodeId}`);
         return rep.data;
@@ -251,6 +256,7 @@ export const JuryPeriode = () => {
     const { periodeId } = useParams();
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t, i18n: i18nInstance } = useTranslation('jury');
 
     // Consulter la synthèse et exporter sont des lectures ; délibérer, annuler
     // et la sélection qui y mène exigent le rôle d'écriture du jury.
@@ -263,7 +269,7 @@ export const JuryPeriode = () => {
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['syntheseJury', periodeId],
-        queryFn: () => fetchSynthese(periodeId),
+        queryFn: () => fetchSynthese(periodeId, t),
         staleTime: 5 * 60 * 1000,
     });
 
@@ -317,24 +323,24 @@ export const JuryPeriode = () => {
         const baseCols: MRT_ColumnDef<StudentEntry>[] = [
             {
                 id: 'statut',
-                header: 'Statut',
+                header: t('colonnes.statut'),
                 size: 110,
                 enableSorting: false,
                 enableColumnFilter: false,
                 accessorFn: (row) => deliberationByUser.get(row.userID)?.delibere ?? false,
-                Cell: periodeId ? celluleStatut(periodeId, deliberationByUser, dossiersIncomplets, peutDeliberer) : () => null,
+                Cell: periodeId ? celluleStatut(periodeId, deliberationByUser, dossiersIncomplets, peutDeliberer, t) : () => null,
                 muiTableHeadCellProps: { sx: { fontWeight: 700 } },
             },
             {
                 id: 'lastName',
-                header: 'Nom',
+                header: t('colonnes.nom'),
                 size: 140,
                 accessorFn: (row) => row.juryStat.lastName,
                 muiTableHeadCellProps: { sx: { fontWeight: 700 } },
             },
             {
                 id: 'firstName',
-                header: 'Prénom',
+                header: t('colonnes.prenom'),
                 size: 130,
                 accessorFn: (row) => row.juryStat.firstName,
                 muiTableHeadCellProps: { sx: { fontWeight: 700 } },
@@ -361,7 +367,7 @@ export const JuryPeriode = () => {
             columns: [
                 {
                     id: `ue_${ue.id}_grade`,
-                    header: 'Grade',
+                    header: t('colonnes.grade'),
                     size: 140,
                     accessorFn: (row) => data.statsUe[row.userID]?.[ue.id]?.grade_lettre,
                     Cell: celluleGrade,
@@ -387,8 +393,8 @@ export const JuryPeriode = () => {
         const endCols: MRT_ColumnDef<StudentEntry>[] = [
             {
                 id: 'gpa_academique_periode',
-                header: 'GPA aca',
-                Header: enteteInfobulle('GPA Académique', 'GPA aca'),
+                header: t('colonnes.gpaAca'),
+                Header: enteteInfobulle(t('colonnes.gpaAcaInfobulle'), t('colonnes.gpaAca')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_academique_periode,
                 Cell: celluleGpa,
@@ -397,8 +403,8 @@ export const JuryPeriode = () => {
             },
             {
                 id: 'gpa',
-                header: 'GPA',
-                Header: enteteInfobulle('GPA Période', 'GPA'),
+                header: t('colonnes.gpa'),
+                Header: enteteInfobulle(t('colonnes.gpaInfobulle'), t('colonnes.gpa')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_periode,
                 Cell: celluleGpa,
@@ -407,8 +413,8 @@ export const JuryPeriode = () => {
             },
              {
                 id: 'toeic',
-                header: 'Toeic',
-                Header: enteteInfobulle('Score TOEIC', 'Toeic'),
+                header: t('colonnes.toeic'),
+                Header: enteteInfobulle(t('colonnes.toeicInfobulle'), t('colonnes.toeic')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.toeic,
                 Cell: celluleEntier,
@@ -417,18 +423,18 @@ export const JuryPeriode = () => {
             },
              {
                 id: 'mobilite_valide',
-                header: 'Mobilite',
-                Header: enteteInfobulle('Mobilité Validée', 'Mobilite'),
+                header: t('colonnes.mobilite'),
+                Header: enteteInfobulle(t('colonnes.mobiliteInfobulle'), t('colonnes.mobilite')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.mobilite_valide,
-                Cell: celluleBooleen,
+                Cell: celluleBooleen(t),
                 muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
                 muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
             },
             {
                 id: 'ects_acquis',
-                header: 'ECTS\nValidés',
-                Header: enteteInfobulle('Total ECTS Validés', 'ECTS\nValidés', true),
+                header: t('colonnes.ectsValides'),
+                Header: enteteInfobulle(t('colonnes.ectsValidesInfobulle'), t('colonnes.ectsValides'), true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_valides,
                 Cell: celluleEctsValides,
@@ -436,8 +442,8 @@ export const JuryPeriode = () => {
             },
             {
                 id: 'ects_non_valides',
-                header: 'Échecs\n(ECTS)',
-                Header: enteteInfobulle('ECTS non validés (Grades F)', 'Échecs\n(ECTS)', true),
+                header: t('colonnes.ectsEchecs'),
+                Header: enteteInfobulle(t('colonnes.ectsEchecsInfobulle'), t('colonnes.ectsEchecs'), true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_periode - row.juryStat.total_ects_valides,
                 Cell: celluleEctsEchec,
@@ -446,7 +452,7 @@ export const JuryPeriode = () => {
         ];
 
         return [...baseCols, ...ueCols, ...endCols];
-    }, [data, deliberationByUser, dossiersIncomplets, periodeId, peutDeliberer]);
+    }, [data, deliberationByUser, dossiersIncomplets, periodeId, peutDeliberer, t]);
 
     // ── Données mémoïsées — évite un nouveau [] à chaque render ─────────────
     const students = useMemo(() => data?.students ?? EMPTY_STUDENTS, [data?.students]);
@@ -473,16 +479,16 @@ export const JuryPeriode = () => {
         setBulkLoading(true);
         try {
             await apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/bulk`, { users: entries });
-            notifySuccess(notifications, messageDeliberationGroupee(entries.length));
+            notifySuccess(notifications, messageDeliberationGroupee(entries.length, t));
             void queryClient.invalidateQueries({ queryKey: ['jury-deliberations', periodeId] });
             setRowSelection({});
             setBulkDialogOpen(false);
         } catch {
-            notifyError(notifications, 'Erreur lors de la délibération groupée.');
+            notifyError(notifications, t('erreurDeliberationGroupee'));
         } finally {
             setBulkLoading(false);
         }
-    }, [periodeId, notifications, queryClient]);
+    }, [periodeId, notifications, queryClient, t]);
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     const renderTopToolbarCustomActions = useCallback(() => {
@@ -493,15 +499,15 @@ export const JuryPeriode = () => {
                     {data?.hierarchy?.periode}
                 </Typography>
                 <Chip
-                    label={`${nbDeliberes} / ${nbTotal} délibéré(s)`}
+                    label={t('compteurDeliberes', { delibere: nbDeliberes, total: nbTotal })}
                     size="small"
                     color={nbDeliberes === nbTotal && nbTotal > 0 ? 'success' : 'default'}
                     variant={nbDeliberes === nbTotal && nbTotal > 0 ? 'filled' : 'outlined'}
                 />
                 {nbIncomplets > 0 && (
-                    <Tooltip title="Ces élèves ont au moins une unité d'enseignement non évaluée. Ils repasseront en jury une fois leurs notes complètes.">
+                    <Tooltip title={t('tooltipDossiersIncomplets')}>
                         <Chip
-                            label={`${nbIncomplets} dossier${nbIncomplets > 1 ? 's' : ''} incomplet${nbIncomplets > 1 ? 's' : ''}`}
+                            label={t('dossiersIncomplets', { count: nbIncomplets })}
                             size="small"
                             color="warning"
                             variant="outlined"
@@ -515,14 +521,14 @@ export const JuryPeriode = () => {
                         startIcon={<GavelIcon />}
                         onClick={() => { setBulkDialogOpen(true); }}
                     >
-                        Délibérer {selectedStudents.length} sélectionné(s)
+                        {t('delibererSelection', { count: selectedStudents.length })}
                     </Button>
                 )}
                 <JuryExportButton periodeId={periodeId} />
                 <JuryBulletinsExportButton periodeId={periodeId} />
             </Box>
         );
-    }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents]);
+    }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents, t]);
 
     // ── Props de lignes mémoïsées ─────────────────────────────────────────────
     const rowProps = useCallback(({ row }: { row: MRT_Row<StudentEntry> }) => ({
@@ -545,11 +551,11 @@ export const JuryPeriode = () => {
     const table = useMaterialReactTable({
         columns,
         data: students,
-        localization: MRT_Localization_FR,
+        localization: i18nInstance.language.startsWith('en') ? MRT_Localization_EN : MRT_Localization_FR,
         // Écran de synthèse : l'effectif vient de la structure, on n'y crée
         // pas d'élève. Le message constate, sans inviter.
         renderEmptyRowsFallback: ({ table }) => (
-            <EtatVideTable table={table} message="Aucun élève dans cette période." />
+            <EtatVideTable table={table} message={t('aucunEleve')} />
         ),
         state: { isLoading, rowSelection },
         onRowSelectionChange: setRowSelection,
@@ -596,7 +602,7 @@ export const JuryPeriode = () => {
     if (isError) {
         return (
             <Alert severity="error">
-                Erreur lors du chargement de la synthèse : {messageForError(error)}
+                {t('erreurChargementSynthese', { erreur: messageForError(error) })}
             </Alert>
         );
     }

@@ -3,6 +3,7 @@ import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, TextField, Stack, CircularProgress,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import ArticleIcon from '@mui/icons-material/Article';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ interface Props {
 
 export function JuryBulletinsExportModal({ open, loading, onClose, onConfirm }: Props) {
     const [params, setParams] = useState<BulletinParams>(defaultParams);
+    const { t } = useTranslation('jury');
 
     const set = (key: keyof BulletinParams) => (e: React.ChangeEvent<HTMLInputElement>) => {
         setParams(prev => ({ ...prev, [key]: e.target.value }));
@@ -49,29 +51,29 @@ export function JuryBulletinsExportModal({ open, loading, onClose, onConfirm }: 
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Paramètres des bulletins</DialogTitle>
+            <DialogTitle>{t('exportBulletins.titreParametres')}</DialogTitle>
             <DialogContent>
                 <Stack spacing={2} sx={{ mt: 1 }}>
-                    <TextField label="En-tête ligne 1" value={params.entete_ligne_1} onChange={set('entete_ligne_1')} size="small" fullWidth />
-                    <TextField label="En-tête ligne 2" value={params.entete_ligne_2} onChange={set('entete_ligne_2')} size="small" fullWidth />
-                    <TextField label="En-tête ligne 3" value={params.entete_ligne_3} onChange={set('entete_ligne_3')} size="small" fullWidth />
-                    <TextField label="En-tête ligne 4" value={params.entete_ligne_4} onChange={set('entete_ligne_4')} size="small" fullWidth />
-                    <TextField label="En-tête ligne 5" value={params.entete_ligne_5} onChange={set('entete_ligne_5')} size="small" fullWidth />
-                    <TextField label="Période" value={params.periode} onChange={set('periode')} size="small" fullWidth />
-                    <TextField label="En-tête UE" value={params.entete_ue} onChange={set('entete_ue')} size="small" fullWidth />
-                    <TextField label="Date du jury" value={params.date_jury} onChange={set('date_jury')} size="small" fullWidth />
-                    <TextField label="Nom responsable" value={params.nom_responsable} onChange={set('nom_responsable')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteLigne1')} value={params.entete_ligne_1} onChange={set('entete_ligne_1')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteLigne2')} value={params.entete_ligne_2} onChange={set('entete_ligne_2')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteLigne3')} value={params.entete_ligne_3} onChange={set('entete_ligne_3')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteLigne4')} value={params.entete_ligne_4} onChange={set('entete_ligne_4')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteLigne5')} value={params.entete_ligne_5} onChange={set('entete_ligne_5')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champPeriode')} value={params.periode} onChange={set('periode')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champEnteteUe')} value={params.entete_ue} onChange={set('entete_ue')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champDateJury')} value={params.date_jury} onChange={set('date_jury')} size="small" fullWidth />
+                    <TextField label={t('exportBulletins.champNomResponsable')} value={params.nom_responsable} onChange={set('nom_responsable')} size="small" fullWidth />
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={loading}>Annuler</Button>
+                <Button onClick={onClose} disabled={loading}>{t('commun.annuler')}</Button>
                 <Button
                     variant="contained"
                     onClick={handleConfirm}
                     disabled={loading}
                     startIcon={loading ? <CircularProgress size={16} /> : <ArticleIcon />}
                 >
-                    Exporter
+                    {t('exportBulletins.exporter')}
                 </Button>
             </DialogActions>
         </Dialog>

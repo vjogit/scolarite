@@ -1,0 +1,37 @@
+{
+  "titre": "Corbeille",
+  "sousTitre": "Les suppressions restaurables, de la plus récente à la plus ancienne. La purge est définitive.",
+  "chargement": "Chargement de la corbeille…",
+  "erreurLecture": "Impossible de lire la corbeille ({{erreur}}).",
+  "vide": "La corbeille est vide. Les suppressions restaurables apparaîtront ici.",
+  "aucuneDonneeLiee": "Aucune donnée liée.",
+  "contientPrefixe": "Contient ",
+  "supprimeLe": "Supprimé le {{date}} par {{auteur}}",
+  "restaurer": "Restaurer",
+  "purger": "Purger",
+  "annuler": "Annuler",
+  "purgerDefinitivement": "Purger définitivement",
+  "purgerTitre": "Purger {{titre}} ?",
+  "restaurerTitre": "Restaurer {{titre}} ?",
+  "purgeIrreversible": "La purge détruit définitivement ces données. Aucune restauration ne sera possible ensuite.",
+  "confirmerSaisiePrefixe": "Pour confirmer, saisissez",
+  "confirmationLabel": "Confirmation",
+  "restaurationTout": "Tout ce que cette suppression avait emporté sera rétabli",
+  "restaurationToutSuffixe": " — {{liste}}.",
+  "restaurationSucces": "{{titre}} : restauration effectuée.",
+  "purgeSucces": "{{titre}} : purge définitive effectuée.",
+  "motConfirmation": "CONFIRMER",
+  "et": "et",
+  "racines": {
+    "formation": "Formation",
+    "promotion": "Promotion",
+    "option": "Option",
+    "periode": "Période"
+  },
+  "racinesPluriel": {
+    "formation": "formations",
+    "promotion": "promotions",
+    "option": "options",
+    "periode": "périodes"
+  }
+}

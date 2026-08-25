@@ -1,0 +1,75 @@
+{
+  "commun": {
+    "id": "ID",
+    "version": "Version",
+    "nom": "Nom",
+    "prenom": "Prénom",
+    "debut": "Début",
+    "fin": "Fin",
+    "dateDebut": "Date de début",
+    "dateFin": "Date de fin",
+    "oui": "Oui",
+    "non": "Non",
+    "email": "Email",
+    "ajouter": "Ajouter",
+    "retour": "Retour"
+  },
+  "formation": {
+    "champTitre": "Titre de la formation"
+  },
+  "promotion": {
+    "champTitre": "Titre de la promotion",
+    "champEchelleGpa": "Échelle GPA",
+    "champEchelle": "Échelle",
+    "champBareme": "Barème",
+    "baremeAide": "Note maximale de la promotion. Les seuils de l'échelle s'expriment sur ce barème.",
+    "champMatiereEliminatoire": "Matière éliminatoire",
+    "champNoteEliminatoire": "Note éliminatoire",
+    "erreurFormationIdObligatoire": "Le paramètre formationId est obligatoire"
+  },
+  "option": {
+    "champNom": "Nom de l'option",
+    "erreurFormationIdObligatoire": "Le paramètre formationId est obligatoire"
+  },
+  "periode": {
+    "champNom": "Nom de la période",
+    "erreurOptionIdObligatoire": "Le paramètre optionId est obligatoire"
+  },
+  "ue": {
+    "champNom": "Nom de l'UE",
+    "champAcademique": "Académique",
+    "erreurPeriodeIdObligatoire": "Le paramètre periodeId est obligatoire"
+  },
+  "matiere": {
+    "champNom": "Nom de la matière",
+    "champCoefficient": "Coefficient",
+    "champHeures": "Heures",
+    "colonneCoeff": "Coeff",
+    "champCouleur": "Couleur",
+    "erreurUeIdObligatoire": "Le paramètre ueId est obligatoire"
+  },
+  "groupe": {
+    "champNom": "Nom du groupe",
+    "erreurOptionIdObligatoire": "Le paramètre optionId est obligatoire",
+    "importer": {
+      "libelle": "Importer des élèves depuis Excel",
+      "elevesAjoutes_one": "{{count}} élève ajouté.",
+      "elevesAjoutes_other": "{{count}} élèves ajoutés.",
+      "emailsIntrouvables": " Emails introuvables : {{liste}}"
+    },
+    "importerMulti": {
+      "libelle": "Importer plusieurs groupes depuis Excel",
+      "groupesCrees_one": "{{count}} groupe créé",
+      "groupesCrees_other": "{{count}} groupes créés",
+      "elevesAjoutes_one": "{{count}} élève ajouté.",
+      "elevesAjoutes_other": "{{count}} élèves ajoutés.",
+      "emailsIntrouvables": " Emails introuvables : {{liste}}"
+    }
+  },
+  "membres": {
+    "titre": "Membres du groupe",
+    "retirer": "Retirer du groupe",
+    "retirerAriaLabel": "Retirer {{nom}} du groupe",
+    "aucunMembre": "Aucun membre dans ce groupe."
+  }
+}

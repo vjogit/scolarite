@@ -1,0 +1,34 @@
+{
+  "roles": {
+    "ADMIN": "Administrator",
+    "CONSULTATION": "View only",
+    "STRUCTURE_ECRITURE": "Structure (write)",
+    "NOTES_ECRITURE": "Grades (write)",
+    "JURY_ECRITURE": "Jury (write)",
+    "PROGRAMME_ECRITURE": "Schedule (write)",
+    "SALLES_ECRITURE": "Rooms (write)",
+    "CERTIFICATION_ECRITURE": "Certifications (write)",
+    "UTILISATEURS_ECRITURE": "Users (write)"
+  },
+  "champs": {
+    "prenom": "First name",
+    "nom": "Last name",
+    "email": "Email",
+    "motDePasse": "Password",
+    "roles": "Roles"
+  },
+  "colonnes": {
+    "id": "ID",
+    "keycloakId": "Keycloak Id",
+    "version": "Version",
+    "prenom": "First name",
+    "nom": "Last name",
+    "email": "Email",
+    "roles": "Roles"
+  },
+  "import": {
+    "libelle": "Import users from an Excel file",
+    "succes": "User import successful.",
+    "sousTitreRefus": "No user was imported. Fix the file then run the import again."
+  }
+}

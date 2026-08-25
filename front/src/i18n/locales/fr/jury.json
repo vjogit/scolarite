@@ -1,0 +1,92 @@
+{
+  "actionJuryLibelle": "Jury",
+  "commun": {
+    "oui": "Oui",
+    "non": "Non",
+    "annuler": "Annuler",
+    "confirmer": "Confirmer"
+  },
+  "erreurPeriodeIdObligatoire": "Le paramètre periodeId est obligatoire",
+  "erreurChargementSynthese": "Erreur lors du chargement de la synthèse : {{erreur}}",
+  "erreurDeliberationGroupee": "Erreur lors de la délibération groupée.",
+  "deliberationGroupee_one": "{{formatted}} élève délibéré.",
+  "deliberationGroupee_other": "{{formatted}} élèves délibérés.",
+  "colonnes": {
+    "statut": "Statut",
+    "nom": "Nom",
+    "prenom": "Prénom",
+    "grade": "Grade",
+    "gpaAca": "GPA aca",
+    "gpaAcaInfobulle": "GPA Académique",
+    "gpa": "GPA",
+    "gpaInfobulle": "GPA Période",
+    "toeic": "Toeic",
+    "toeicInfobulle": "Score TOEIC",
+    "mobilite": "Mobilite",
+    "mobiliteInfobulle": "Mobilité Validée",
+    "ectsValides": "ECTS\nValidés",
+    "ectsValidesInfobulle": "Total ECTS Validés",
+    "ectsEchecs": "Échecs\n(ECTS)",
+    "ectsEchecsInfobulle": "ECTS non validés (Grades F)"
+  },
+  "statut": {
+    "delibere": "Délibéré",
+    "redoublant": "Redoublant",
+    "incomplet": "Incomplet",
+    "enAttente": "En attente",
+    "nonEvalueePrefixe": "Non évaluée : "
+  },
+  "aucunEleve": "Aucun élève dans cette période.",
+  "compteurDeliberes": "{{delibere}} / {{total}} délibéré(s)",
+  "dossiersIncomplets_one": "{{count}} dossier incomplet",
+  "dossiersIncomplets_other": "{{count}} dossiers incomplets",
+  "tooltipDossiersIncomplets": "Ces élèves ont au moins une unité d'enseignement non évaluée. Ils repasseront en jury une fois leurs notes complètes.",
+  "delibererSelection": "Délibérer {{count}} sélectionné(s)",
+  "delibererBouton": {
+    "annulerTooltip": "Annuler la délibération (correction possible)",
+    "annulerAriaLabel": "Annuler la délibération de {{nom}} (correction possible)",
+    "impossibleTitre": "Délibération impossible : dossier incomplet.",
+    "uniteNonEvaluee_one": "Unité non évaluée",
+    "uniteNonEvaluee_other": "Unités non évaluées",
+    "repasseraEnJury": "{{nom}} repassera en jury une fois ses notes complètes.",
+    "impossibleAriaLabel": "Délibération impossible pour {{nom}} : dossier incomplet",
+    "delibererTooltip": "Délibérer",
+    "delibererAriaLabel": "Délibérer — {{nom}}",
+    "titreDialog": "Délibérer — {{nom}}",
+    "descriptionPrefixe": "Les résultats actuels de cet élève seront figés dans ",
+    "descriptionSuffixe": " et pris en compte dans le GPA cumulé des périodes futures.",
+    "compterGpaCumule": "Compter dans le GPA cumulé",
+    "decocherRedoublant": "Décocher si c'est une année échouée (redoublant)",
+    "succes": "Délibération enregistrée pour {{nom}}.",
+    "erreur": "Erreur lors de la délibération.",
+    "annulationSucces": "Délibération annulée pour {{nom}}.",
+    "annulationErreur": "Erreur lors de l'annulation."
+  },
+  "delibererBulkDialog": {
+    "titre_one": "Délibérer {{count}} élève",
+    "titre_other": "Délibérer {{count}} élèves",
+    "compterGpaCumule": "Compter dans le GPA cumulé",
+    "decocherRedoublants": "Décocher si l'année échouée ne doit pas compter (redoublants)"
+  },
+  "exportJury": {
+    "libelle": "Exporter le jury en Excel",
+    "succes": "Export réussi.",
+    "erreur": "Erreur lors de l'export."
+  },
+  "exportBulletins": {
+    "libelle": "Exporter les bulletins (ZIP)",
+    "succes": "Export des bulletins réussi.",
+    "erreur": "Erreur lors de l'export des bulletins.",
+    "titreParametres": "Paramètres des bulletins",
+    "champEnteteLigne1": "En-tête ligne 1",
+    "champEnteteLigne2": "En-tête ligne 2",
+    "champEnteteLigne3": "En-tête ligne 3",
+    "champEnteteLigne4": "En-tête ligne 4",
+    "champEnteteLigne5": "En-tête ligne 5",
+    "champPeriode": "Période",
+    "champEnteteUe": "En-tête UE",
+    "champDateJury": "Date du jury",
+    "champNomResponsable": "Nom responsable",
+    "exporter": "Exporter"
+  }
+}

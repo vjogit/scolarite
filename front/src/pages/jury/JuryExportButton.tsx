@@ -3,6 +3,7 @@ import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { ENDPOINT_JURY } from './def';
 import { notifyError, notifySuccess } from '../../services/notify';
@@ -15,11 +16,11 @@ interface JuryExportButtonProps {
     periodeId: string;
 }
 
-/** Deux exports voisinent dans la barre : le nom doit dire lequel. */
-const LIBELLE = 'Exporter le jury en Excel';
-
 export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
     const notifications = useNotifications();
+    const { t } = useTranslation('jury');
+    // Deux exports voisinent dans la barre : le nom doit dire lequel.
+    const libelle = t('exportJury.libelle');
 
     const handleExport = useCallback(async () => {
         try {
@@ -29,16 +30,16 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
 
             telecharger(response, `jury_${periodeId}.xlsx`);
 
-            notifySuccess(notifications, 'Export réussi.');
+            notifySuccess(notifications, t('exportJury.succes'));
         } catch (err) {
             console.error(err);
-            notifyError(notifications, "Erreur lors de l'export.");
+            notifyError(notifications, t('exportJury.erreur'));
         }
-    }, [periodeId, notifications]);
+    }, [periodeId, notifications, t]);
 
     return (
-        <Tooltip title={LIBELLE}>
-            <IconButton aria-label={LIBELLE} onClick={() => { void handleExport(); }} size="small" color="primary">
+        <Tooltip title={libelle}>
+            <IconButton aria-label={libelle} onClick={() => { void handleExport(); }} size="small" color="primary">
                 <FileDownloadIcon fontSize="small" />
             </IconButton>
         </Tooltip>

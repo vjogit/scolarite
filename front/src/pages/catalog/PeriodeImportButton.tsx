@@ -4,6 +4,7 @@ import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { apiInstance } from '../../services/api';
 import { PERIODE, STRUCTURE } from "../structure/def";
@@ -15,14 +16,12 @@ import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 // Encapsule les hooks (useRef, useCallback, useParams…) dans un vrai composant
 // React afin de pouvoir être rendu depuis renderTopToolbarCustomActions.
 
-
-/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
-const LIBELLE = 'Importer le programme depuis Excel';
-
 export function PeriodeImportButton() {
     const { optionId } = useParams();
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('catalog');
+    const libelle = t('importProgramme.libelle');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [refus, setRefus] = useState<LignesRefusees | null>(null);
 
@@ -37,7 +36,7 @@ export function PeriodeImportButton() {
             await apiInstance.post(`/api/v0/structure/option/${optionId}/import`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            notifySuccess(notifications, 'Import du programme réussi.');
+            notifySuccess(notifications, t('importProgramme.succes'));
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, PERIODE, optionId] });
         } catch (error) {
             // Un fichier à la structure inattendue est désigné en tableau ;
@@ -53,12 +52,12 @@ export function PeriodeImportButton() {
                 fileInputRef.current.value = '';
             }
         }
-    }, [optionId, notifications, queryClient]);
+    }, [optionId, notifications, queryClient, t]);
 
     return (
         <>
-            <Tooltip title={LIBELLE}>
-                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={libelle}>
+                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
                     <UploadFileIcon />
                 </IconButton>
             </Tooltip>
@@ -71,7 +70,7 @@ export function PeriodeImportButton() {
             />
             <LignesRefuseesDialog
                 refus={refus}
-                sousTitre="Le programme n'a pas été importé. Corrigez le fichier puis relancez l'import."
+                sousTitre={t('importProgramme.sousTitreRefus')}
                 onClose={() => { setRefus(null); }}
             />
         </>

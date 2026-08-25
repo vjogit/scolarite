@@ -188,5 +188,9 @@
       "gererPeriodes": "Gérer les périodes",
       "gererMembres": "Gérer les membres"
     }
+  },
+  "arbre": {
+    "chargementImpossible": "Chargement impossible.",
+    "ariaLabel": "Arborescence de la structure"
   }
 }

@@ -2,17 +2,17 @@ import { useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
 import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { notifyError } from '../../services/notify';
 
-/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
-const LIBELLE = 'Exporter le programme en Excel';
-
 export function PeriodeExportButton() {
     const { optionId } = useParams();
     const notifications = useNotifications();
+    const { t } = useTranslation('catalog');
+    const libelle = t('exportProgramme.libelle');
 
     const handleExport = useCallback(async () => {
         if (!optionId) return;
@@ -25,13 +25,13 @@ export function PeriodeExportButton() {
             telecharger(response, 'programme.xlsx');
         } catch (error) {
             console.error(error);
-            notifyError(notifications, "Erreur lors de l'export.");
+            notifyError(notifications, t('exportProgramme.erreur'));
         }
-    }, [optionId, notifications]);
+    }, [optionId, notifications, t]);
 
     return (
-        <Tooltip title={LIBELLE}>
-            <IconButton aria-label={LIBELLE} onClick={() => { void handleExport(); }}>
+        <Tooltip title={libelle}>
+            <IconButton aria-label={libelle} onClick={() => { void handleExport(); }}>
                 <DownloadIcon />
             </IconButton>
         </Tooltip>

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, LinearProgress, Divider } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 
 interface MatiereHeures {
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function HeuresPanel({ periodeId }: Props) {
+    const { t } = useTranslation('programme');
     const { data = [] } = useQuery<MatiereHeures[]>({
         queryKey: ['heures', periodeId],
         queryFn:  () => apiInstance.get<MatiereHeures[]>(`/api/v0/planning/reservation/heures?periode_id=${periodeId}`).then(r => r.data),
@@ -49,7 +51,7 @@ export function HeuresPanel({ periodeId }: Props) {
             {/* Totaux */}
             <Box>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="subtitle2" fontWeight="bold">Total période</Typography>
+                    <Typography variant="subtitle2" fontWeight="bold">{t('heuresPanel.totalPeriode')}</Typography>
                     <Typography variant="caption" color="text.secondary">
                         {totalConsommees.toFixed(1)}&thinsp;/&thinsp;{totalPrevues}h
                     </Typography>
@@ -73,12 +75,12 @@ export function HeuresPanel({ periodeId }: Props) {
                             fontWeight="bold"
                             sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
                         >
-                            Sans affectation
+                            {t('heuresPanel.sansAffectation')}
                         </Typography>
                         <Box sx={{ mt: 0.75 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
                                 <Typography variant="caption" sx={{ fontWeight: 500, color: 'warning.main' }}>
-                                    Non affectées
+                                    {t('heuresPanel.nonAffectees')}
                                 </Typography>
                                 <Typography variant="caption" color="warning.main">
                                     {nonAffectees.heures_consommees.toFixed(1)}h
@@ -132,8 +134,8 @@ export function HeuresPanel({ periodeId }: Props) {
                                     />
                                     <Typography variant="caption" sx={{ fontSize: '0.65rem', color: depassement ? 'error.main' : 'text.disabled' }}>
                                         {depassement
-                                            ? `+${(m.heures_consommees - m.heures_prevues).toFixed(1)}h dépassé`
-                                            : `${restant.toFixed(1)}h restantes`
+                                            ? t('heuresPanel.depasse', { heures: (m.heures_consommees - m.heures_prevues).toFixed(1) })
+                                            : t('heuresPanel.restantes', { heures: restant.toFixed(1) })
                                         }
                                     </Typography>
                                 </Box>

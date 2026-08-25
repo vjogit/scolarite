@@ -7,6 +7,9 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_Row } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
+import { MRT_Localization_EN } from 'material-react-table/locales/en';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
@@ -42,17 +45,20 @@ function nomLisible(user: User): string {
     return `#${String(user.id)}`;
 }
 
-const userColumns: MRT_ColumnDef<User>[] = [
-    { accessorKey: 'lastName', header: 'Nom' },
-    { accessorKey: 'firstName', header: 'Prénom' },
-    { accessorKey: 'email', header: 'Email' },
-];
+function userColumns(t: TFunction<'structure'>): MRT_ColumnDef<User>[] {
+    return [
+        { accessorKey: 'lastName', header: t('commun.nom') },
+        { accessorKey: 'firstName', header: t('commun.prenom') },
+        { accessorKey: 'email', header: t('commun.email') },
+    ];
+}
 
 export function GroupeUserPage() {
     const { groupeId } = useParams<{ groupeId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const notifications = useNotifications();
+    const { t, i18n: i18nInstance } = useTranslation('structure');
 
     // Lister les membres est une lecture ; ajouter, retirer et importer
     // écrivent la structure.
@@ -96,13 +102,13 @@ export function GroupeUserPage() {
     };
 
     const table = useMaterialReactTable<User>({
-        columns: userColumns,
+        columns: userColumns(t),
         data: members,
-        localization: MRT_Localization_FR,
+        localization: i18nInstance.language.startsWith('en') ? MRT_Localization_EN : MRT_Localization_FR,
         // Aucune création ici : on rattache un élève existant par le
         // sélecteur au-dessus de la table, il n'y a pas de route « /new ».
         renderEmptyRowsFallback: ({ table }) => (
-            <EtatVideTable table={table} message="Aucun membre dans ce groupe." />
+            <EtatVideTable table={table} message={t('membres.aucunMembre')} />
         ),
         state: { isLoading },
         initialState: { density: 'compact' },
@@ -112,11 +118,11 @@ export function GroupeUserPage() {
         rowVirtualizerOptions: { overscan: 5 },
         enablePagination: false,
         renderRowActions: ({ row }: { row: MRT_Row<User> }) => (
-            <Tooltip title="Retirer du groupe">
+            <Tooltip title={t('membres.retirer')}>
                 <IconButton
                     // Hors contexte visuel, « Retirer du groupe » est le même
                     // nom sur toutes les lignes : il faut dire laquelle.
-                    aria-label={`Retirer ${nomLisible(row.original)} du groupe`}
+                    aria-label={t('membres.retirerAriaLabel', { nom: nomLisible(row.original) })}
                     size="small"
                     color="error"
                     disabled={removeMutation.isPending}
@@ -153,12 +159,12 @@ export function GroupeUserPage() {
     return (
         <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
-                <Tooltip title="Retour">
-                    <IconButton aria-label="Retour" onClick={() => { void navigate(-1); }}>
+                <Tooltip title={t('commun.retour')}>
+                    <IconButton aria-label={t('commun.retour')} onClick={() => { void navigate(-1); }}>
                         <ArrowBackIcon />
                     </IconButton>
                 </Tooltip>
-                <Typography variant="h6" sx={{ flex: 1 }}>Membres du groupe</Typography>
+                <Typography variant="h6" sx={{ flex: 1 }}>{t('membres.titre')}</Typography>
                 {peutEcrire && groupeId && <GroupeImportButton groupeId={groupeId} />}
             </Box>
 
@@ -180,7 +186,7 @@ export function GroupeUserPage() {
                             disabled={addMutation.isPending}
                             sx={{ mt: 0.5 }}
                         >
-                            Ajouter
+                            {t('commun.ajouter')}
                         </Button>
                     </Box>
                 </Box>

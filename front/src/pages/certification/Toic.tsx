@@ -9,6 +9,7 @@ import { UserSelector } from '../../services/UserSelector';
 import { Controller } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
+import type { TFunction } from 'i18next';
 import { ENDPOINT_TOEIC } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
@@ -30,6 +31,7 @@ export type Toeic = z.infer<typeof toeicSchema>;
 
 // Formulaire d'édition
 const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<Toeic>) => {
+    const { t } = useTranslation('certification');
     return (
         <>
             <UserSelector
@@ -41,7 +43,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
             />
             <TextField
                 {...register("score", { valueAsNumber: true })}
-                label="Score"
+                label={t('toic.champScore')}
                 type="number"
                 disabled={isReadOnly}
                 fullWidth
@@ -54,7 +56,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 control={control}
                 render={({ field }) => (
                     <DatePicker
-                        label="Date de passage"
+                        label={t('toic.champDatePassage')}
                         // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
                         // pas : en création, react-hook-form donne `undefined`. Et
                         // `dayjs(undefined)` rend l'heure courante, pas une date
@@ -79,7 +81,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
 
             <TextField
                 {...register("remarque")}
-                label="Remarque"
+                label={t('toic.champRemarque')}
                 variant="outlined"
                 fullWidth
                 multiline
@@ -93,40 +95,42 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
     );
 };
 
-const toeicColumns: MRT_ColumnDef<Toeic>[] = [
-    {
-        accessorKey: 'id',
-        header: 'ID',
-    },
-    {
-        accessorKey: 'version',
-        header: 'Version',
-    },
+function toeicColumns(t: TFunction<'certification'>): MRT_ColumnDef<Toeic>[] {
+    return [
+        {
+            accessorKey: 'id',
+            header: t('toic.colonneId'),
+        },
+        {
+            accessorKey: 'version',
+            header: t('toic.colonneVersion'),
+        },
 
-    {
-        accessorKey: 'lastName',
-        header: 'Nom',
-    },
+        {
+            accessorKey: 'lastName',
+            header: t('toic.colonneNom'),
+        },
 
-    {
-        accessorKey: 'firstName',
-        header: 'Prénom',
-    },
+        {
+            accessorKey: 'firstName',
+            header: t('toic.colonnePrenom'),
+        },
 
-    { accessorKey: 'score', header: 'Score' },
+        { accessorKey: 'score', header: t('toic.colonneScore') },
 
-    {
-        accessorKey: 'date_passage',
-        header: 'Date passage',
-        Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
-    },
-]
+        {
+            accessorKey: 'date_passage',
+            header: t('toic.colonneDatePassage'),
+            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+        },
+    ];
+}
 
-const createToeicViewConfig = (promotionId: string): ViewConfig<Toeic> => {
+const createToeicViewConfig = (promotionId: string, t: TFunction<'certification'>): ViewConfig<Toeic> => {
     return {
         schema: toeicSchema,
         emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId) },
-        columns: toeicColumns,
+        columns: toeicColumns(t),
         render: ToeicFields,
     }
 };
@@ -145,25 +149,26 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
-    const { t } = useTranslation('crud');
+    const { t: tCrud } = useTranslation('crud');
+    const { t: tCertification } = useTranslation('certification');
 
     const datasource = useMemo((): Datasource<Toeic> | null => promotionId ? ({
         ...toeicDatasourceBase(promotionId),
-        ...createToeicViewConfig(promotionId),
-        title: t('entites.toic.title'),
+        ...createToeicViewConfig(promotionId, tCertification),
+        title: tCrud('entites.toic.title'),
         roleEcriture: Role.CERTIFICATION_ECRITURE,
-        entityLabel: t('entites.toic.nom'),
-        entityLabelAvecArticle: t('entites.toic.nomAvecArticle'),
-        entityLabelPlural: t('entites.toic.nomPluriel'),
+        entityLabel: tCrud('entites.toic.nom'),
+        entityLabelAvecArticle: tCrud('entites.toic.nomAvecArticle'),
+        entityLabelPlural: tCrud('entites.toic.nomPluriel'),
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
+    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tCertification]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>Le paramètre promotionId est obligatoire</Typography>
+        <Typography>{tCertification('parametrePromotionIdObligatoire')}</Typography>
     )
 
     return (

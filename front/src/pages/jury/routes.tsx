@@ -4,11 +4,13 @@
  */
 
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 import BalanceIcon from '@mui/icons-material/Balance';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_JURY } from '../../services/context/workflows';
 import type { ActionNavigation } from '../../services/crud/actions';
+import i18n from '../../i18n/config';
 
 import { FORMATION, PROMOTION, OPTION, PERIODE } from '../structure/def';
 import { CrudFormation } from '../structure/Formation';
@@ -29,12 +31,15 @@ const TRAVERSEE: ReglagesNiveau = {
  * La délibération de la période. Seule action métier de l'écran : depuis le
  * jury, on ne descend pas dans les UE.
  */
-const ACTION_JURY: ActionNavigation<FieldValues> = {
-    id: 'jury',
-    libelle: 'Jury',
-    icone: BalanceIcon,
-    segment: JURY,
-};
+function actionJury(t?: TFunction<'jury'>): ActionNavigation<FieldValues> {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'jury'>);
+    return {
+        id: 'jury',
+        libelle: traduire('actionJuryLibelle'),
+        icone: BalanceIcon,
+        segment: JURY,
+    };
+}
 
 export function createJuryHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_JURY, {
@@ -45,7 +50,7 @@ export function createJuryHierarchyRoutes() {
             [PERIODE]: enrober(CrudPeriode, {
                 ...TRAVERSEE,
                 isTopToolbar: true,
-                actionsLigne: [ACTION_JURY],
+                actionsLigne: [actionJury()],
             }),
         },
         greffes: [

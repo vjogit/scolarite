@@ -1,0 +1,47 @@
+{
+  "titre": "Ledger",
+  "sousTitre": "The chained ledger records every write to a grade or a jury decision. Its integrity is verified here, and witnesses received from the external mailbox are checked against the current chain.",
+  "integrite": {
+    "titre": "Chain integrity",
+    "recalcul": "Recomputing the chain…",
+    "erreurVerification": "Could not verify the chain ({{erreur}}).",
+    "valide_one": "Chain valid — {{count}} link verified.",
+    "valide_other": "Chain valid — {{count}} links verified.",
+    "rompue": "Chain broken at link {{maillon}}: {{erreur}}",
+    "reverifier": "Re-verify"
+  },
+  "ancrage": {
+    "titre": "External anchoring (RFC 3161)",
+    "lecture": "Reading anchors…",
+    "erreurLecture": "Could not read the anchors ({{erreur}}).",
+    "derniereAncrePrefixe": "Last successful anchor on ",
+    "derniereAncreSuffixe_one": " — link {{maillon}}, via {{tsa}} ({{count}} anchor total).",
+    "derniereAncreSuffixe_other": " — link {{maillon}}, via {{tsa}} ({{count}} anchors total).",
+    "aucuneAncre": "No anchor in the database: the chain head has never been sealed yet.",
+    "resultatEchec": "{{tsa}}: anchoring failed — {{erreur}}",
+    "resultatCree": "{{tsa}}: new anchor archived (token and certificate kept).",
+    "resultatDejaAncre": "{{tsa}}: chain head already anchored, no request sent.",
+    "ancrerMaintenant": "Anchor now",
+    "echecNotif": "Anchoring failed for at least one timestamping authority.",
+    "succesNotif": "New anchor archived, witness sent.",
+    "dejaAncreNotif": "Chain head already anchored: nothing to do."
+  },
+  "temoin": {
+    "titre": "Verify a witness",
+    "description": "Drop the token received by email from the witness mailbox (.tsr attachment, or its pasted content). Checking it against the current chain detects any rewrite that happened after sealing.",
+    "fichierBouton": ".tsr file",
+    "jetonLabel": "Token (.tsr content, base64 or PEM)",
+    "certLabel": "TSA certificate (PEM, optional — otherwise the configured root certificate)",
+    "verifier": "Verify the witness",
+    "scelleLePrefixe": "Sealed on ",
+    "parTsa": " by {{tsa}}",
+    "rattacheMaillon": " — attached to link {{maillon}}",
+    "verdicts": {
+      "CONFORME": "Witness conforms",
+      "REECRITURE_DETECTEE": "Rewrite detected",
+      "CHAINE_CORROMPUE": "Chain corrupted",
+      "TOKEN_INVALIDE": "Unreadable token",
+      "SIGNATURE_INVALIDE": "Signature not conclusive"
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { useRef, useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import DriveFolderUploadIcon from '@mui/icons-material/DriveFolderUpload';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
@@ -25,12 +26,12 @@ interface Props {
     optionId: string;
 }
 
-/** Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger. */
-const LIBELLE = 'Importer plusieurs groupes depuis Excel';
-
 export function GroupeMultiImportButton({ optionId }: Props) {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('structure');
+    // Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger.
+    const libelle = t('groupe.importerMulti.libelle');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,9 +52,9 @@ export function GroupeMultiImportButton({ optionId }: Props) {
             const totalAdded = groupes.reduce((sum, g) => sum + g.added, 0);
             const allNotFound = groupes.flatMap(g => g.not_found ?? []);
 
-            let message = `${groupes.length} groupe(s) créé(s), ${totalAdded} élève(s) ajouté(s).`;
+            let message = `${t('groupe.importerMulti.groupesCrees', { count: groupes.length })}, ${t('groupe.importerMulti.elevesAjoutes', { count: totalAdded })}`;
             if (allNotFound.length > 0) {
-                message += ` Emails introuvables : ${allNotFound.join(', ')}`;
+                message += t('groupe.importerMulti.emailsIntrouvables', { liste: allNotFound.join(', ') });
             }
 
             notifyPartialSuccess(notifications, message, allNotFound.length === 0);
@@ -63,12 +64,12 @@ export function GroupeMultiImportButton({ optionId }: Props) {
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [optionId, notifications, queryClient]);
+    }, [optionId, notifications, queryClient, t]);
 
     return (
         <>
-            <Tooltip title={LIBELLE}>
-                <IconButton aria-label={LIBELLE} onClick={() => fileInputRef.current?.click()}>
+            <Tooltip title={libelle}>
+                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
                     <DriveFolderUploadIcon />
                 </IconButton>
             </Tooltip>

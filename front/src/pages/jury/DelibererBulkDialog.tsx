@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import GavelIcon from '@mui/icons-material/Gavel';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ interface Props {
 export function DelibererBulkDialog({ open, students, loading, onClose, onConfirm }: Props) {
     // compte_cumul global (appliqué à tous)
     const [compteCumul, setCompteCumul] = useState(true);
+    const { t } = useTranslation('jury');
 
     const handleConfirm = () => {
         onConfirm(students.map(s => ({ user_id: s.userId, compte_cumul: compteCumul })));
@@ -32,7 +34,7 @@ export function DelibererBulkDialog({ open, students, loading, onClose, onConfir
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-            <DialogTitle>Délibérer {students.length} élève{students.length > 1 ? 's' : ''}</DialogTitle>
+            <DialogTitle>{t('delibererBulkDialog.titre', { count: students.length })}</DialogTitle>
             <DialogContent>
                 <FormControlLabel
                     control={
@@ -43,9 +45,9 @@ export function DelibererBulkDialog({ open, students, loading, onClose, onConfir
                     }
                     label={
                         <span>
-                            Compter dans le GPA cumulé
+                            {t('delibererBulkDialog.compterGpaCumule')}
                             <Typography variant="caption" display="block" color="text.secondary">
-                                Décocher si l'année échouée ne doit pas compter (redoublants)
+                                {t('delibererBulkDialog.decocherRedoublants')}
                             </Typography>
                         </span>
                     }
@@ -63,14 +65,14 @@ export function DelibererBulkDialog({ open, students, loading, onClose, onConfir
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} disabled={loading}>Annuler</Button>
+                <Button onClick={onClose} disabled={loading}>{t('commun.annuler')}</Button>
                 <Button
                     variant="contained"
                     onClick={handleConfirm}
                     disabled={loading || students.length === 0}
                     startIcon={loading ? <CircularProgress size={16} /> : <GavelIcon />}
                 >
-                    Confirmer
+                    {t('commun.confirmer')}
                 </Button>
             </DialogActions>
         </Dialog>

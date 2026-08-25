@@ -1,0 +1,21 @@
+{
+  "champs": {
+    "nom": "Name",
+    "capacite": "Capacity",
+    "typeSalle": "Room type",
+    "batiment": "Building",
+    "equipement": "Equipment"
+  },
+  "colonnes": {
+    "id": "ID",
+    "version": "Version",
+    "type": "Type"
+  },
+  "types": {
+    "AMPHI": "Lecture hall",
+    "TD": "Tutorial room",
+    "TP": "Lab room",
+    "LABO": "Laboratory",
+    "INFORMATIQUE": "Computer room"
+  }
+}

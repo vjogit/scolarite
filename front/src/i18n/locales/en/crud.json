@@ -180,5 +180,9 @@
       "gererPeriodes": "Manage periods",
       "gererMembres": "Manage members"
     }
+  },
+  "arbre": {
+    "chargementImpossible": "Could not load.",
+    "ariaLabel": "Structure tree"
   }
 }

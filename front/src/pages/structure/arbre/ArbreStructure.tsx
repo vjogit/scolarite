@@ -190,8 +190,8 @@ function Collection({ chemin, niveau, identifiantParent, deplie }: PropsCollecti
     });
 
     if (!deplie) return <NoeudInerte itemId={`${chemin}#attente`} texte="…" />;
-    if (isError) return <NoeudInerte itemId={`${chemin}#erreur`} texte="Chargement impossible." />;
-    if (data === undefined) return <NoeudInerte itemId={`${chemin}#chargement`} texte="Chargement…" />;
+    if (isError) return <NoeudInerte itemId={`${chemin}#erreur`} texte={t('arbre.chargementImpossible')} />;
+    if (data === undefined) return <NoeudInerte itemId={`${chemin}#chargement`} texte={t('form.chargement')} />;
     if (data.length === 0) return <NoeudVide chemin={chemin} entite={entite} />;
 
     return data.map(noeud => (
@@ -306,6 +306,7 @@ interface Props {
 export function ArbreStructure({
     cheminRacine, selection, deplies, ecritureAutorisee, onDeplier, onSelectionner,
 }: Props) {
+    const { t } = useTranslation('crud');
     const valeur = useMemo<ValeurContexteArbre>(
         () => ({ deplies: new Set(deplies), ecritureAutorisee, selectionner: onSelectionner }),
         [deplies, ecritureAutorisee, onSelectionner],
@@ -314,7 +315,7 @@ export function ArbreStructure({
     return (
         <ContexteArbre value={valeur}>
             <SimpleTreeView
-                aria-label="Arborescence de la structure"
+                aria-label={t('arbre.ariaLabel')}
                 selectedItems={selection}
                 onSelectedItemsChange={(_evenement, itemId) => {
                     if (itemId !== null && itemId !== selection) onSelectionner(itemId);

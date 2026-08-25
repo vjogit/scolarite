@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
 import { Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, TextField } from "@mui/material";
 import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
-import { AVAILABLE_ROLES, ENDPOINT_USER, Role, USER } from './def';
+import { availableRoles, ENDPOINT_USER, Role, USER } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { messageValidation } from '../../i18n/validation';
@@ -27,109 +28,116 @@ const userSchema = z.object({
 
 export type User = z.infer<typeof userSchema>;
 
-const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>) => (
-    <>
-        <TextField
-            {...register("firstName")}
-            label="Prénom"
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.firstName}
-            helperText={errors.firstName?.message}
-            sx={{ mb: 2 }}
-        />
-        <TextField
-            {...register("lastName")}
-            label="Nom"
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.lastName}
-            helperText={errors.lastName?.message}
-            sx={{ mb: 2 }}
-        />
-        <TextField
-            {...register("email")}
-            label="Email"
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.email}
-            helperText={errors.email?.message}
-            sx={{ mb: 2 }}
-        />
-        {!isReadOnly && (
+const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>) => {
+    const { t } = useTranslation('user');
+    return (
+        <>
             <TextField
-                {...register("password")}
-                label="Mot de passe"
-                type="password"
+                {...register("firstName")}
+                label={t('champs.prenom')}
                 variant="outlined"
                 fullWidth
-                error={!!errors.password}
-                helperText={errors.password?.message}
+                disabled={isReadOnly}
+                error={!!errors.firstName}
+                helperText={errors.firstName?.message}
                 sx={{ mb: 2 }}
             />
-        )}
-        <Controller
-            name="roles"
-            control={control}
-            render={({ field }) => {
-                const currentRoles = Array.isArray(field.value) ? field.value : [];
-                return (
-                    <FormControl component="fieldset" error={!!errors.roles} disabled={isReadOnly} sx={{ mb: 2, width: '100%' }}>
-                        <FormLabel component="legend">Rôles</FormLabel>
-                        <FormGroup row>
-                            {AVAILABLE_ROLES.map((role) => (
-                                <FormControlLabel
-                                    key={role.id}
-                                    control={
-                                        <Checkbox
-                                            checked={currentRoles.includes(role.id)}
-                                            onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                const newRoles = checked
-                                                    ? [...currentRoles, role.id]
-                                                    : currentRoles.filter((r: string) => r !== role.id);
-                                                field.onChange(newRoles);
-                                            }}
-                                        />
-                                    }
-                                    label={role.label}
-                                />
-                            ))}
-                        </FormGroup>
-                        {errors.roles && <FormHelperText>{errors.roles.message}</FormHelperText>}
-                    </FormControl>
-                );
-            }}
-        />
-    </>
-);
-
-const userColumns: MRT_ColumnDef<User>[] = [
-    { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'keycloak_id', header: 'Keycloak Id' },
-    { accessorKey: 'version', header: "Version" },
-    { accessorKey: 'firstName', header: 'Prénom' },
-    { accessorKey: 'lastName', header: 'Nom' },
-    { accessorKey: 'email', header: 'Email' },
-    {
-        accessorKey: 'roles',
-        header: 'Rôles',
-        Cell: ({ cell }) => {
-            const roles = cell.getValue<string[]>();
-            return Array.isArray(roles) ? roles.map(r => AVAILABLE_ROLES.find(ar => ar.id === r)?.label ?? r).join(', ') : '';
-        }
-    },
-]
-
-const userViewConfig: ViewConfig<User> = {
-    schema: userSchema,
-    emptyValue: { id: -1, version: 0, keycloak_id: "-", roles: [] },
-    columns: userColumns,
-    render: UserFields,
+            <TextField
+                {...register("lastName")}
+                label={t('champs.nom')}
+                variant="outlined"
+                fullWidth
+                disabled={isReadOnly}
+                error={!!errors.lastName}
+                helperText={errors.lastName?.message}
+                sx={{ mb: 2 }}
+            />
+            <TextField
+                {...register("email")}
+                label={t('champs.email')}
+                variant="outlined"
+                fullWidth
+                disabled={isReadOnly}
+                error={!!errors.email}
+                helperText={errors.email?.message}
+                sx={{ mb: 2 }}
+            />
+            {!isReadOnly && (
+                <TextField
+                    {...register("password")}
+                    label={t('champs.motDePasse')}
+                    type="password"
+                    variant="outlined"
+                    fullWidth
+                    error={!!errors.password}
+                    helperText={errors.password?.message}
+                    sx={{ mb: 2 }}
+                />
+            )}
+            <Controller
+                name="roles"
+                control={control}
+                render={({ field }) => {
+                    const currentRoles = Array.isArray(field.value) ? field.value : [];
+                    return (
+                        <FormControl component="fieldset" error={!!errors.roles} disabled={isReadOnly} sx={{ mb: 2, width: '100%' }}>
+                            <FormLabel component="legend">{t('champs.roles')}</FormLabel>
+                            <FormGroup row>
+                                {availableRoles(t).map((role) => (
+                                    <FormControlLabel
+                                        key={role.id}
+                                        control={
+                                            <Checkbox
+                                                checked={currentRoles.includes(role.id)}
+                                                onChange={(e) => {
+                                                    const checked = e.target.checked;
+                                                    const newRoles = checked
+                                                        ? [...currentRoles, role.id]
+                                                        : currentRoles.filter((r: string) => r !== role.id);
+                                                    field.onChange(newRoles);
+                                                }}
+                                            />
+                                        }
+                                        label={role.label}
+                                    />
+                                ))}
+                            </FormGroup>
+                            {errors.roles && <FormHelperText>{errors.roles.message}</FormHelperText>}
+                        </FormControl>
+                    );
+                }}
+            />
+        </>
+    );
 };
+
+function userColumns(t: TFunction<'user'>): MRT_ColumnDef<User>[] {
+    return [
+        { accessorKey: 'id', header: t('colonnes.id') },
+        { accessorKey: 'keycloak_id', header: t('colonnes.keycloakId') },
+        { accessorKey: 'version', header: t('colonnes.version') },
+        { accessorKey: 'firstName', header: t('colonnes.prenom') },
+        { accessorKey: 'lastName', header: t('colonnes.nom') },
+        { accessorKey: 'email', header: t('colonnes.email') },
+        {
+            accessorKey: 'roles',
+            header: t('colonnes.roles'),
+            Cell: ({ cell }) => {
+                const roles = cell.getValue<string[]>();
+                return Array.isArray(roles) ? roles.map(r => availableRoles(t).find(ar => ar.id === r)?.label ?? r).join(', ') : '';
+            }
+        },
+    ];
+}
+
+function userViewConfig(t: TFunction<'user'>): ViewConfig<User> {
+    return {
+        schema: userSchema,
+        emptyValue: { id: -1, version: 0, keycloak_id: "-", roles: [] },
+        columns: userColumns(t),
+        render: UserFields,
+    };
+}
 
 // Partie statique : à l'extérieur du composant
 const userDatasourceBase = createRepository<User>({
@@ -142,20 +150,21 @@ const userDatasourceBase = createRepository<User>({
 export function CrudUser({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<User>) {
 
     const rootPath = useRootPath(mode);
-    const { t } = useTranslation('crud');
+    const { t: tCrud } = useTranslation('crud');
+    const { t: tUser } = useTranslation('user');
 
     const datasource = useMemo((): Datasource<User> => ({
         ...userDatasourceBase,
-        ...userViewConfig,
-        title: t('entites.user.title'),
+        ...userViewConfig(tUser),
+        title: tCrud('entites.user.title'),
         roleEcriture: Role.UTILISATEURS_ECRITURE,
-        entityLabel: t('entites.user.nom'),
-        entityLabelAvecArticle: t('entites.user.nomAvecArticle'),
-        entityLabelPlural: t('entites.user.nomPluriel'),
+        entityLabel: tCrud('entites.user.nom'),
+        entityLabelAvecArticle: tCrud('entites.user.nomAvecArticle'),
+        entityLabelPlural: tCrud('entites.user.nomPluriel'),
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
+    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tUser]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

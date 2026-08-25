@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
     Alert,
     Box,
@@ -28,39 +30,38 @@ import { blockingMessageFor, messageForError } from '../../services/errorMessage
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
 
-/** Mot à recopier pour purger une opération à plusieurs racines. */
-const MOT_CONFIRMATION = 'CONFIRMER';
-
-/** Libellés des types de racine, accordés pour les titres. */
-const LIBELLE_RACINE: Record<string, string> = {
-    formation: 'Formation',
-    promotion: 'Promotion',
-    option: 'Option',
-    periode: 'Période',
-};
-
 /** « 3 promotions », « 1 847 notes » — même règle que la modale de suppression. */
 function formatEntry(entry: DeleteImpactEntry): string {
     return `${formatNombre.format(entry.count)} ${entry.label}`;
 }
 
-/** Énumération française : « a, b et c ». */
-function joinFr(parts: string[]): string {
+/** Énumération : « a, b et c » (le séparateur final vient du namespace `corbeille`). */
+function joinEnumeration(parts: string[], t: TFunction<'corbeille'>): string {
     if (parts.length <= 1) return parts[0] ?? '';
-    return `${parts.slice(0, -1).join(', ')} et ${parts.at(-1) ?? ''}`;
+    return `${parts.slice(0, -1).join(', ')} ${t('et')} ${parts.at(-1) ?? ''}`;
 }
 
-function titreOperation(op: OperationCorbeille): string {
-    const type = LIBELLE_RACINE[op.racineType] ?? op.racineType;
+/** Le type de racine (`formation`, `promotion`, `option`, `periode`) traduit. */
+function libelleRacine(racineType: string, pluriel: boolean, t: TFunction<'corbeille'>): string {
+    switch (racineType) {
+        case 'formation': return pluriel ? t('racinesPluriel.formation') : t('racines.formation');
+        case 'promotion': return pluriel ? t('racinesPluriel.promotion') : t('racines.promotion');
+        case 'option': return pluriel ? t('racinesPluriel.option') : t('racines.option');
+        case 'periode': return pluriel ? t('racinesPluriel.periode') : t('racines.periode');
+        default: return racineType;
+    }
+}
+
+function titreOperation(op: OperationCorbeille, t: TFunction<'corbeille'>): string {
     const noms = op.items.map((item) => `« ${item.name} »`);
-    if (noms.length === 1) return `${type} ${noms[0] ?? ''}`;
-    return `${formatNombre.format(noms.length)} ${type.toLowerCase()}s : ${joinFr(noms)}`;
+    if (noms.length === 1) return `${libelleRacine(op.racineType, false, t)} ${noms[0] ?? ''}`;
+    return `${formatNombre.format(noms.length)} ${libelleRacine(op.racineType, true, t)} : ${joinEnumeration(noms, t)}`;
 }
 
-function sousTitreOperation(op: OperationCorbeille): string {
+function sousTitreOperation(op: OperationCorbeille, t: TFunction<'corbeille'>): string {
     const date = new Date(op.deletedAt).toLocaleString();
     const auteur = op.deletedByNom ?? op.deletedBy;
-    return `Supprimé le ${date} par ${auteur}`;
+    return t('supprimeLe', { date, auteur });
 }
 
 /**
@@ -80,12 +81,13 @@ function PurgeDialog({
     onConfirm: (op: OperationCorbeille) => void;
     enCours: boolean;
 }) {
+    const { t } = useTranslation('corbeille');
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
 
     const [seulElement] = operation?.items ?? [];
     const phraseAttendue =
-        operation?.items.length === 1 && seulElement ? seulElement.name : MOT_CONFIRMATION;
+        operation?.items.length === 1 && seulElement ? seulElement.name : t('motConfirmation');
     const confirmationOk = operation !== null && saisie.trim() === phraseAttendue;
 
     const fermer = () => {
@@ -105,24 +107,23 @@ function PurgeDialog({
             slotProps={{ transition: { onEntered: () => { saisieRef.current?.focus(); } } }}
         >
             <DialogTitle>
-                {operation ? `Purger ${titreOperation(operation)} ?` : ''}
+                {operation ? t('purgerTitre', { titre: titreOperation(operation, t) }) : ''}
             </DialogTitle>
             <DialogContent>
                 <Stack spacing={2}>
                     {operation && operation.cascade.length > 0 && (
                         <Alert severity="warning">
                             <Typography variant="body2" component="span">
-                                Contient <strong>{joinFr(operation.cascade.map(formatEntry))}</strong>.
+                                {t('contientPrefixe')}<strong>{joinEnumeration(operation.cascade.map(formatEntry), t)}</strong>.
                             </Typography>
                         </Alert>
                     )}
                     <DialogContentText>
-                        La purge détruit définitivement ces données. Aucune restauration ne
-                        sera possible ensuite.
+                        {t('purgeIrreversible')}
                     </DialogContentText>
                     <Box>
                         <Typography variant="body2" sx={{ mb: 1 }}>
-                            Pour confirmer, saisissez <strong>{phraseAttendue}</strong> :
+                            {t('confirmerSaisiePrefixe')} <strong>{phraseAttendue}</strong> :
                         </Typography>
                         <TextField
                             inputRef={saisieRef}
@@ -131,21 +132,21 @@ function PurgeDialog({
                             size="small"
                             fullWidth
                             autoComplete="off"
-                            label="Confirmation"
+                            label={t('confirmationLabel')}
                         />
                     </Box>
                 </Stack>
             </DialogContent>
             <DialogActions>
                 <Button onClick={fermer}>
-                    Annuler
+                    {t('annuler')}
                 </Button>
                 <Button
                     color="error"
                     disabled={!confirmationOk || enCours}
                     onClick={() => { if (operation) onConfirm(operation); }}
                 >
-                    Purger définitivement
+                    {t('purgerDefinitivement')}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -164,29 +165,30 @@ function RestoreDialog({
     onConfirm: (op: OperationCorbeille) => void;
     enCours: boolean;
 }) {
+    const { t } = useTranslation('corbeille');
     return (
         <Dialog open={operation !== null} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>
-                {operation ? `Restaurer ${titreOperation(operation)} ?` : ''}
+                {operation ? t('restaurerTitre', { titre: titreOperation(operation, t) }) : ''}
             </DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Tout ce que cette suppression avait emporté sera rétabli
+                    {t('restaurationTout')}
                     {operation && operation.cascade.length > 0
-                        ? ` — ${joinFr(operation.cascade.map(formatEntry))}.`
+                        ? t('restaurationToutSuffixe', { liste: joinEnumeration(operation.cascade.map(formatEntry), t) })
                         : '.'}
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} autoFocus>
-                    Annuler
+                    {t('annuler')}
                 </Button>
                 <Button
                     color="primary"
                     disabled={enCours}
                     onClick={() => { if (operation) onConfirm(operation); }}
                 >
-                    Restaurer
+                    {t('restaurer')}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -196,6 +198,7 @@ function RestoreDialog({
 export function CorbeillePage() {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('corbeille');
 
     const [aRestaurer, setARestaurer] = useState<OperationCorbeille | null>(null);
     const [aPurger, setAPurger] = useState<OperationCorbeille | null>(null);
@@ -215,7 +218,7 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setARestaurer(null);
             void invalidateTout();
-            notifySuccess(notifications, `${titreOperation(op)} : restauration effectuée.`);
+            notifySuccess(notifications, t('restaurationSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setARestaurer(null);
@@ -228,7 +231,7 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setAPurger(null);
             void invalidateTout();
-            notifySuccess(notifications, `${titreOperation(op)} : purge définitive effectuée.`);
+            notifySuccess(notifications, t('purgeSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setAPurger(null);
@@ -242,7 +245,7 @@ export function CorbeillePage() {
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
                 <CircularProgress size={18} />
-                <Typography variant="body2">Chargement de la corbeille…</Typography>
+                <Typography variant="body2">{t('chargement')}</Typography>
             </Box>
         );
     }
@@ -250,7 +253,7 @@ export function CorbeillePage() {
     if (query.isError) {
         return (
             <Alert severity="error" sx={{ m: 2 }}>
-                Impossible de lire la corbeille ({messageForError(query.error)}).
+                {t('erreurLecture', { erreur: messageForError(query.error) })}
             </Alert>
         );
     }
@@ -258,18 +261,17 @@ export function CorbeillePage() {
     return (
         <Box sx={{ p: 2 }}>
             <Typography variant="h5" sx={{ mb: 0.5 }}>
-                Corbeille
+                {t('titre')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Les suppressions restaurables, de la plus récente à la plus ancienne.
-                La purge est définitive.
+                {t('sousTitre')}
             </Typography>
 
             {/* Rien à créer dans une corbeille : le message se suffit, et dit
                 d'où viendra ce qui s'y trouvera. */}
             {operations.length === 0 && (
                 <Alert severity="info">
-                    La corbeille est vide. Les suppressions restaurables apparaîtront ici.
+                    {t('vide')}
                 </Alert>
             )}
 
@@ -277,16 +279,16 @@ export function CorbeillePage() {
                 {operations.map((op) => (
                     <Card key={op.id} variant="outlined">
                         <CardContent>
-                            <Typography variant="h6">{titreOperation(op)}</Typography>
+                            <Typography variant="h6">{titreOperation(op, t)}</Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                {sousTitreOperation(op)}
+                                {sousTitreOperation(op, t)}
                             </Typography>
                             {op.cascade.length > 0 ? (
                                 <Typography variant="body2">
-                                    Contient {joinFr(op.cascade.map(formatEntry))}.
+                                    {t('contientPrefixe')}{joinEnumeration(op.cascade.map(formatEntry), t)}.
                                 </Typography>
                             ) : (
-                                <Typography variant="body2">Aucune donnée liée.</Typography>
+                                <Typography variant="body2">{t('aucuneDonneeLiee')}</Typography>
                             )}
                             {op.blocking.length > 0 && (
                                 <Alert severity="error" sx={{ mt: 1 }}>
@@ -304,7 +306,7 @@ export function CorbeillePage() {
                                 onClick={() => { setARestaurer(op); }}
                                 disabled={restauration.isPending || purge.isPending}
                             >
-                                Restaurer
+                                {t('restaurer')}
                             </Button>
                             <Button
                                 color="error"
@@ -312,7 +314,7 @@ export function CorbeillePage() {
                                 onClick={() => { setAPurger(op); }}
                                 disabled={op.blocking.length > 0 || restauration.isPending || purge.isPending}
                             >
-                                Purger
+                                {t('purger')}
                             </Button>
                         </CardActions>
                     </Card>

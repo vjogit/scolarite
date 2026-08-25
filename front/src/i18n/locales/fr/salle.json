@@ -1,0 +1,21 @@
+{
+  "champs": {
+    "nom": "Nom",
+    "capacite": "Capacité",
+    "typeSalle": "Type de salle",
+    "batiment": "Bâtiment",
+    "equipement": "Équipement"
+  },
+  "colonnes": {
+    "id": "ID",
+    "version": "Version",
+    "type": "Type"
+  },
+  "types": {
+    "AMPHI": "Amphithéâtre",
+    "TD": "Salle TD",
+    "TP": "Salle TP",
+    "LABO": "Laboratoire",
+    "INFORMATIQUE": "Salle informatique"
+  }
+}

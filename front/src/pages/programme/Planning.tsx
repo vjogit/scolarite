@@ -8,9 +8,11 @@ import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/reac
 import { useParams } from 'react-router';
 import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import PaletteIcon from '@mui/icons-material/Palette';
+import type { TFunction } from 'i18next';
 import { apiInstance } from '../../services/api';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
@@ -38,8 +40,8 @@ function defaultMatiereColor(id: number): string {
     return `hsl(${hue}, 55%, 40%)`;
 }
 
-function toEvent(r: ReservationDetail, colorMode: ColorMode) {
-    const typeLabel = r.type_cours ?? r.description ?? 'Cours';
+function toEvent(r: ReservationDetail, colorMode: ColorMode, t: TFunction<'programme'>) {
+    const typeLabel = r.type_cours ?? r.description ?? t('planning.coursSansType');
     const matiereLabel = r.matiere_name ?? '';
     const sallesLabel = r.salles.map(s => s.name).join(', ');
     const intervenantsLabel = r.intervenants
@@ -85,6 +87,7 @@ function buildUpdateInput(r: ReservationDetail, start: Date, end: Date) {
 export function Planning() {
     const { periodeId, optionId } = useParams();
     const queryClient = useQueryClient();
+    const { t, i18n: i18nInstance } = useTranslation('programme');
 
     // ── Données ─────────────────────────────────────────────────────────────
     const { data: reservations = [] } = useQuery<ReservationDetail[]>({
@@ -134,8 +137,8 @@ export function Planning() {
     );
     useEffect(() => { sessionStorage.setItem('planning_panel_open', String(panelOpen)); }, [panelOpen]);
 
-    const libelleCouleur = colorMode === 'type' ? 'Couleur par matière' : 'Couleur par type de cours';
-    const libelleHeures = panelOpen ? 'Masquer les heures' : 'Afficher les heures';
+    const libelleCouleur = colorMode === 'type' ? t('planning.couleurParMatiere') : t('planning.couleurParType');
+    const libelleHeures = panelOpen ? t('planning.masquerHeures') : t('planning.afficherHeures');
     const [conflictMsg, setConflictMsg] = useState<string | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
@@ -163,11 +166,11 @@ export function Planning() {
         if (first.detail) {
             const match = /conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(first.detail);
             if (match) {
-                msg += ` (créneau existant : ${dayjs(match[1]).format('HH:mm')}–${dayjs(match[2]).format('HH:mm')})`;
+                msg += t('planning.creneauExistant', { debut: dayjs(match[1]).format('HH:mm'), fin: dayjs(match[2]).format('HH:mm') });
             }
         }
         setConflictMsg(msg);
-    }, []);
+    }, [t]);
 
     /**
      * Déplacement et redimensionnement aboutissent au même appel : la
@@ -208,13 +211,13 @@ export function Planning() {
                     initialView="timeGridWeek"
                     initialDate={initialDate}
                     datesSet={handleDatesSet}
-                    locale={frLocale}
+                    locale={i18nInstance.language.startsWith('en') ? undefined : frLocale}
                     headerToolbar={{
                         left: 'prev,next today',
                         center: 'title',
                         right: 'dayGridMonth,timeGridWeek,timeGridDay',
                     }}
-                    events={reservations.map(r => toEvent(r, colorMode))}
+                    events={reservations.map(r => toEvent(r, colorMode, t))}
                     allDaySlot={false}
                     slotMinTime="07:00:00"
                     slotMaxTime="21:00:00"

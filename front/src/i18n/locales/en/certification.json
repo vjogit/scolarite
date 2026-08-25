@@ -1,0 +1,38 @@
+{
+  "parametrePromotionIdObligatoire": "The promotionId parameter is required",
+  "actionMobiliteLibelle": "International mobility",
+  "commun": {
+    "oui": "Yes",
+    "non": "No"
+  },
+  "toic": {
+    "champScore": "Score",
+    "champDatePassage": "Test date",
+    "champRemarque": "Remark",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Last name",
+    "colonnePrenom": "First name",
+    "colonneScore": "Score",
+    "colonneDatePassage": "Test date"
+  },
+  "mobilite": {
+    "champPays": "Country",
+    "champVille": "City",
+    "champTypeMobilite": "Mobility type",
+    "champDateDebut": "Start date",
+    "champDateFin": "End date",
+    "champValidee": "Validated",
+    "champRemarque": "Remark",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Last name",
+    "colonnePrenom": "First name",
+    "colonnePays": "Country",
+    "colonneVille": "City",
+    "colonneType": "Type",
+    "colonneDateDebut": "Start date",
+    "colonneDateFin": "End date",
+    "colonneValidee": "Validated"
+  }
+}

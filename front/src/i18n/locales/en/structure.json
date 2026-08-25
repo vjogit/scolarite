@@ -1,0 +1,75 @@
+{
+  "commun": {
+    "id": "ID",
+    "version": "Version",
+    "nom": "Name",
+    "prenom": "First name",
+    "debut": "Start",
+    "fin": "End",
+    "dateDebut": "Start date",
+    "dateFin": "End date",
+    "oui": "Yes",
+    "non": "No",
+    "email": "Email",
+    "ajouter": "Add",
+    "retour": "Back"
+  },
+  "formation": {
+    "champTitre": "Program title"
+  },
+  "promotion": {
+    "champTitre": "Cohort title",
+    "champEchelleGpa": "GPA scale",
+    "champEchelle": "Scale",
+    "champBareme": "Grading scale",
+    "baremeAide": "Maximum grade for the cohort. The scale thresholds are expressed on this grading scale.",
+    "champMatiereEliminatoire": "Eliminatory subject",
+    "champNoteEliminatoire": "Eliminatory grade",
+    "erreurFormationIdObligatoire": "The formationId parameter is required"
+  },
+  "option": {
+    "champNom": "Option name",
+    "erreurFormationIdObligatoire": "The formationId parameter is required"
+  },
+  "periode": {
+    "champNom": "Term name",
+    "erreurOptionIdObligatoire": "The optionId parameter is required"
+  },
+  "ue": {
+    "champNom": "Unit name",
+    "champAcademique": "Academic",
+    "erreurPeriodeIdObligatoire": "The periodeId parameter is required"
+  },
+  "matiere": {
+    "champNom": "Subject name",
+    "champCoefficient": "Coefficient",
+    "champHeures": "Hours",
+    "colonneCoeff": "Coeff",
+    "champCouleur": "Color",
+    "erreurUeIdObligatoire": "The ueId parameter is required"
+  },
+  "groupe": {
+    "champNom": "Group name",
+    "erreurOptionIdObligatoire": "The optionId parameter is required",
+    "importer": {
+      "libelle": "Import students from Excel",
+      "elevesAjoutes_one": "{{count}} student added.",
+      "elevesAjoutes_other": "{{count}} students added.",
+      "emailsIntrouvables": " Emails not found: {{liste}}"
+    },
+    "importerMulti": {
+      "libelle": "Import several groups from Excel",
+      "groupesCrees_one": "{{count}} group created",
+      "groupesCrees_other": "{{count}} groups created",
+      "elevesAjoutes_one": "{{count}} student added.",
+      "elevesAjoutes_other": "{{count}} students added.",
+      "emailsIntrouvables": " Emails not found: {{liste}}"
+    }
+  },
+  "membres": {
+    "titre": "Group members",
+    "retirer": "Remove from group",
+    "retirerAriaLabel": "Remove {{nom}} from the group",
+    "aucunMembre": "No members in this group."
+  }
+}

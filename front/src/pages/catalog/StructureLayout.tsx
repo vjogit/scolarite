@@ -137,6 +137,7 @@ export function StructureLayout() {
     const { peutEcrire } = useDroits();
     const etroit = useMediaQuery(theme.breakpoints.down('md'));
     const { t } = useTranslation('crud');
+    const { t: tCatalog } = useTranslation('catalog');
 
     const etat = useEtatArbre(pathname, CATALOG_WORKFLOW, t);
     const nom = useNomEnCache(etat.titre?.nomme ?? null);
@@ -172,7 +173,7 @@ export function StructureLayout() {
     const arbre = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
-                <Typography variant="subtitle2" sx={{ flex: 1 }}>Structure</Typography>
+                <Typography variant="subtitle2" sx={{ flex: 1 }}>{tCatalog('structureLayout.titre')}</Typography>
                 {ecritureFormation && (
                     <Tooltip title={CREER_FORMATION(t).libelle}>
                         <IconButton
@@ -231,10 +232,10 @@ export function StructureLayout() {
                         }}
                     >
                         {etroit && (
-                            <Tooltip title="Arborescence">
+                            <Tooltip title={tCatalog('structureLayout.arborescence')}>
                                 <IconButton
                                     size="small"
-                                    aria-label="Ouvrir l'arborescence"
+                                    aria-label={tCatalog('structureLayout.ouvrirArborescence')}
                                     onClick={() => { setTiroirOuvert(true); }}
                                 >
                                     <AccountTreeIcon />

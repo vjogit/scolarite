@@ -1,0 +1,41 @@
+{
+  "actionProgrammeLibelle": "Schedule",
+  "planning": {
+    "coursSansType": "Class",
+    "couleurParMatiere": "Color by subject",
+    "couleurParType": "Color by class type",
+    "masquerHeures": "Hide hours",
+    "afficherHeures": "Show hours",
+    "creneauExistant": " (existing slot: {{debut}}–{{fin}})"
+  },
+  "heuresPanel": {
+    "totalPeriode": "Term total",
+    "sansAffectation": "Unassigned",
+    "nonAffectees": "Not assigned",
+    "depasse": "+{{heures}}h over",
+    "restantes": "{{heures}}h remaining"
+  },
+  "reservationDialog": {
+    "titreModifier": "Edit the booking",
+    "titreCreer": "New booking",
+    "champDebut": "Start",
+    "champFin": "End",
+    "champTypeCours": "Class type",
+    "aucun": "None",
+    "champMatiere": "Subject",
+    "aucune": "None",
+    "champSalles": "Rooms",
+    "champIntervenants": "Instructors",
+    "champGroupes": "Groups",
+    "champDistanciel": "Remote",
+    "champDescription": "Description",
+    "supprimer": "Delete",
+    "annuler": "Cancel",
+    "enregistrer": "Save",
+    "creer": "Create",
+    "aucuneReservationASupprimer": "No booking to delete.",
+    "conflitIntervenant": "{{nom}} is already busy from {{debut}} to {{fin}}",
+    "conflitSalle": "Room {{nom}} is already booked from {{debut}} to {{fin}}",
+    "conflitGroupe": "Group {{nom}} is already scheduled from {{debut}} to {{fin}}"
+  }
+}

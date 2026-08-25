@@ -2,6 +2,7 @@ import { Box, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
@@ -10,105 +11,111 @@ import { matiereSchema, type Matiere, createMatiereRepository, matiereEntite } f
 
 export type { Matiere } from './entites/matiere';
 
-const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) => (
-    <>
-        <TextField
-            {...register("name")}
-            label="Nom de la matière"
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.name}
-            helperText={errors.name?.message}
-            sx={{ mb: 2 }}
-        />
-        <TextField
-            {...register("coeff", { valueAsNumber: true })}
-            label="Coefficient"
-            variant="outlined"
-            fullWidth
-            type="number"
-            disabled={isReadOnly}
-            error={!!errors.coeff}
-            helperText={errors.coeff?.message}
-            sx={{ mb: 2 }}
-        />
-        <TextField
-            {...register("heure", { valueAsNumber: true })}
-            label="Heures"
-            variant="outlined"
-            fullWidth
-            type="number"
-            disabled={isReadOnly}
-            error={!!errors.heure}
-            helperText={errors.heure?.message}
-            sx={{ mb: 2 }}
-        />
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">Couleur</Typography>
-            <input
-                type="color"
-                {...register("color")}
+const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) => {
+    const { t } = useTranslation('structure');
+    return (
+        <>
+            <TextField
+                {...register("name")}
+                label={t('matiere.champNom')}
+                variant="outlined"
+                fullWidth
                 disabled={isReadOnly}
-                style={{ width: 48, height: 36, cursor: isReadOnly ? 'default' : 'pointer', border: 'none', padding: 0 }}
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                sx={{ mb: 2 }}
             />
-        </Box>
-    </>
-);
+            <TextField
+                {...register("coeff", { valueAsNumber: true })}
+                label={t('matiere.champCoefficient')}
+                variant="outlined"
+                fullWidth
+                type="number"
+                disabled={isReadOnly}
+                error={!!errors.coeff}
+                helperText={errors.coeff?.message}
+                sx={{ mb: 2 }}
+            />
+            <TextField
+                {...register("heure", { valueAsNumber: true })}
+                label={t('matiere.champHeures')}
+                variant="outlined"
+                fullWidth
+                type="number"
+                disabled={isReadOnly}
+                error={!!errors.heure}
+                helperText={errors.heure?.message}
+                sx={{ mb: 2 }}
+            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">{t('matiere.champCouleur')}</Typography>
+                <input
+                    type="color"
+                    {...register("color")}
+                    disabled={isReadOnly}
+                    style={{ width: 48, height: 36, cursor: isReadOnly ? 'default' : 'pointer', border: 'none', padding: 0 }}
+                />
+            </Box>
+        </>
+    );
+};
 
-const matiereColumns: MRT_ColumnDef<Matiere>[] = [
-    {
-        accessorKey: 'id',
-        header: 'ID',
-    },
-    {
-        accessorKey: 'version',
-        header: 'Version',
-    },
-    {
-        accessorKey: 'name',
-        header: 'Nom',
-    },
-    {
-        accessorKey: 'coeff',
-        header: 'Coeff',
-    },
-    {
-        accessorKey: 'heure',
-        header: 'Heures',
-    },
-]
+function matiereColumns(t: TFunction<'structure'>): MRT_ColumnDef<Matiere>[] {
+    return [
+        {
+            accessorKey: 'id',
+            header: t('commun.id'),
+        },
+        {
+            accessorKey: 'version',
+            header: t('commun.version'),
+        },
+        {
+            accessorKey: 'name',
+            header: t('commun.nom'),
+        },
+        {
+            accessorKey: 'coeff',
+            header: t('matiere.colonneCoeff'),
+        },
+        {
+            accessorKey: 'heure',
+            header: t('matiere.champHeures'),
+        },
+    ];
+}
 
-const createMatiereViewConfig = (ueId: string): ViewConfig<Matiere> => {
+function createMatiereViewConfig(ueId: string, t: TFunction<'structure'>): ViewConfig<Matiere> {
     return {
         schema: matiereSchema,
         emptyValue: { id: -1, version: -1, unite_enseignement_id: parseInt(ueId) },
-        columns: matiereColumns,
+        columns: matiereColumns(t),
         render: MatiereFields,
     }
-};
+}
 
 export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Matiere>) {
 
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
     const { t } = useTranslation('crud');
+    const { t: tStructure } = useTranslation('structure');
 
     const datasource = useMemo((): Datasource<Matiere> | null => ueId ? ({
         ...createMatiereRepository(ueId),
-        ...createMatiereViewConfig(ueId),
+        ...createMatiereViewConfig(ueId, tStructure),
         ...matiereEntite(t),
         isAction,
         isReadOnly,
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
+    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>Le paramètre ueId est obligatoire</Typography>
+        <Typography>{tStructure('matiere.erreurUeIdObligatoire')}</Typography>
     )
 
     return (
