@@ -1,0 +1,67 @@
+{
+  "codes": {
+    "NO_INFORMATION": "An error occurred.",
+    "VALIDATION_ERROR": "Some fields in the form are invalid.",
+    "OPTIMISTIC_LOCKING_FAILURE": "This data was modified by another user. Please reload the page and try again.",
+    "MISSING_PARAM": "A required parameter is missing.",
+    "INVALID_PARAM": "A provided parameter is invalid.",
+    "NOT_FOUND": "The requested resource could not be found.",
+    "BUSINESS_CONFLICT": "A conflict was detected (slot or resource already booked).",
+    "INVALID_BODY": "The request format is invalid.",
+    "INVALID_FILE": "The provided file is unreadable or has an incorrect format.",
+    "FILE_TOO_LARGE": "The file exceeds the maximum allowed size.",
+    "FILE_MISSING": "No file was provided.",
+    "INVALID_FILE_EXTENSION": "This file extension is not supported.",
+    "INSUFFICIENT_RIGHTS": "You do not have the required rights to perform this action.",
+    "INTERNAL_ERROR": "An internal error occurred. Please try again later.",
+    "NO_RESULT": "No result found.",
+    "PAYLOAD_TOO_LARGE": "The request is too large.",
+    "RATE_LIMITED": "Too many requests in a short time. Please wait a few seconds before trying again."
+  },
+  "avecIncident": "{{message}} (incident code: {{incident}})",
+
+  "motifChamp": {
+    "champ_obligatoire": "This field is required",
+    "valeur_deja_utilisee": "This value is already used",
+    "valeur_negative": "The value must be positive",
+    "note_max_absolu": "The grade exceeds the maximum allowed value",
+    "fin_avant_debut": "The end date must be after the start date",
+    "echelle_longueur": "The scale must contain 5 values",
+    "echelle_decroissante": "The scale must be decreasing",
+    "echelle_hors_bareme": "The scale thresholds cannot exceed the grading scale"
+  },
+  "noteHorsBaremeAvecMax": "The grade must be between 0 and {{max}}",
+  "noteDepasseBareme": "The grade exceeds the grading scale",
+  "referenceInconnue": "{{reference}} does not exist",
+  "referenceGenerique": "The referenced resource",
+  "reference": {
+    "controle_id": "The assessment",
+    "user_id": "The student",
+    "option_id": "The option",
+    "periode_id": "The period",
+    "matiere_id": "The subject",
+    "unite_enseignement_id": "The course unit",
+    "formation_id": "The program",
+    "promotion_id": "The cohort"
+  },
+  "creneauDejaReserveGenerique": "This slot is already booked",
+  "creneau": {
+    "salles": "One or more rooms are already booked for this slot",
+    "intervenants": "One or more instructors are already busy for this slot",
+    "groupes": "One or more groups are already scheduled for this slot"
+  },
+
+  "ligneRefusee": {
+    "cellule_invalide": "\"{{valeur}}\" is not a grade. Leave the cell empty if there is no grade.",
+    "note_hors_bareme_avec_bareme": "The grade {{valeur}} is out of scale (between 0 and {{bareme}}).",
+    "note_hors_bareme_sans_bareme": "The grade {{valeur}} is out of scale.",
+    "eleve_inconnu": "This identifier does not match any student.",
+    "note_sur_eleve_non_evalue": "{{eleve}} is marked as not assessed{{remarque}}, but the sheet carries the grade {{valeur}}.",
+    "eleveParDefaut": "This student",
+    "email_manquant": "The email is missing.",
+    "nature_invalide": "Unknown type: \"{{valeur}}\". Expected: ELEVE or AGENT.",
+    "role_inconnu": "Role cannot be assigned: \"{{valeur}}\".",
+    "role_sur_eleve": "A student does not carry an application role.",
+    "structure_inattendue": "Unexpected structure: \"{{valeur}}\" where a semester was expected."
+  }
+}

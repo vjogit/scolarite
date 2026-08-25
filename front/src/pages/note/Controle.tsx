@@ -2,6 +2,7 @@ import { FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import type { ActionLigne } from '../../services/crud/actions';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
@@ -9,101 +10,107 @@ import { Controller } from 'react-hook-form';
 import { useRootPath } from '../../services/crud/useRootPath';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
+import type { TFunction } from 'i18next';
 import { FicheExportModal } from './FicheExportModal';
-import { useFicheImport, LIBELLE_IMPORT_FICHE } from './useFicheImport';
+import { useFicheImport, libelleImportFiche } from './useFicheImport';
 import { Role } from '../user/def';
 import { controleSchema, type Controle, createControleRepository } from './entites/controle';
 
 export type { Controle } from './entites/controle';
 
-const ControleFields = ({ register, control, errors, isReadOnly }: RenderProps<Controle>) => (
-    <>
-        <TextField
-            {...register("name")}
-            label="Nom du contrôle"
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.name}
-            helperText={errors.name?.message}
-            sx={{ mb: 2 }}
-        />
-        <TextField
-            {...register("coeff", { valueAsNumber: true })}
-            label="Coefficient"
-            variant="outlined"
-            fullWidth
-            type="number"
-            disabled={isReadOnly}
-            error={!!errors.coeff}
-            helperText={errors.coeff?.message}
-            sx={{ mb: 2 }}
-        />
-        <FormControlLabel
-            control={
-                <Controller
-                    name="is_rattrapage"
-                    control={control}
-                    render={({ field }) => (
-                        <Switch
-                            {...field}
-                            checked={field.value}
-                            disabled={isReadOnly}
-                        />
-                    )}
-                />
-            }
-            label="Rattrapage"
-            sx={{ mb: 2, display: 'block' }}
-        />
-        <TextField
-            {...register("remarque")}
-            label="Remarque"
-            variant="outlined"
-            fullWidth
-            multiline
-            rows={4}
-            disabled={isReadOnly}
-            error={!!errors.remarque}
-            helperText={errors.remarque?.message}
-            sx={{ mb: 2 }}
-        />
-    </>
-);
+const ControleFields = ({ register, control, errors, isReadOnly }: RenderProps<Controle>) => {
+    const { t } = useTranslation('note');
+    return (
+        <>
+            <TextField
+                {...register("name")}
+                label={t('controle.nomLabel')}
+                variant="outlined"
+                fullWidth
+                disabled={isReadOnly}
+                error={!!errors.name}
+                helperText={errors.name?.message}
+                sx={{ mb: 2 }}
+            />
+            <TextField
+                {...register("coeff", { valueAsNumber: true })}
+                label={t('controle.coefficientLabel')}
+                variant="outlined"
+                fullWidth
+                type="number"
+                disabled={isReadOnly}
+                error={!!errors.coeff}
+                helperText={errors.coeff?.message}
+                sx={{ mb: 2 }}
+            />
+            <FormControlLabel
+                control={
+                    <Controller
+                        name="is_rattrapage"
+                        control={control}
+                        render={({ field }) => (
+                            <Switch
+                                {...field}
+                                checked={field.value}
+                                disabled={isReadOnly}
+                            />
+                        )}
+                    />
+                }
+                label={t('controle.rattrapageLabel')}
+                sx={{ mb: 2, display: 'block' }}
+            />
+            <TextField
+                {...register("remarque")}
+                label={t('controle.remarqueLabel')}
+                variant="outlined"
+                fullWidth
+                multiline
+                rows={4}
+                disabled={isReadOnly}
+                error={!!errors.remarque}
+                helperText={errors.remarque?.message}
+                sx={{ mb: 2 }}
+            />
+        </>
+    );
+};
 
-const controleColumns: MRT_ColumnDef<Controle>[] = [
-    {
-        accessorKey: 'id',
-        header: 'ID',
-    },
-    {
-        accessorKey: 'version',
-        header: 'Version',
-    },
-    {
-        accessorKey: 'name',
-        header: 'Nom',
-    },
-    {
-        accessorKey: 'coeff',
-        header: 'Coeff',
-    },
-    {
-        accessorKey: 'is_rattrapage',
-        header: 'Rattrapage',
-        Cell: ({ cell }) => cell.getValue<boolean>() ? 'Oui' : 'Non',
-    },
-    {
-        accessorKey: 'remarque',
-        header: 'Remarque',
-    },
-]
+function controleColumns(t: TFunction<'note'>): MRT_ColumnDef<Controle>[] {
+    return [
+        {
+            accessorKey: 'id',
+            header: t('controle.colonneId'),
+        },
+        {
+            accessorKey: 'version',
+            header: t('controle.colonneVersion'),
+        },
+        {
+            accessorKey: 'name',
+            header: t('controle.colonneNom'),
+        },
+        {
+            accessorKey: 'coeff',
+            header: t('controle.colonneCoeff'),
+        },
+        {
+            accessorKey: 'is_rattrapage',
+            header: t('controle.colonneRattrapage'),
+            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
+        },
+        {
+            accessorKey: 'remarque',
+            header: t('controle.colonneRemarque'),
+        },
+    ];
+}
 
-const createControleViewConfig = (matiereId: string): ViewConfig<Controle> => {
+const createControleViewConfig = (matiereId: string, t: TFunction<'note'>): ViewConfig<Controle> => {
     return {
         schema: controleSchema,
         emptyValue: { id: -1, version: -1, matiere_id: parseInt(matiereId), is_rattrapage: false },
-        columns: controleColumns,
+        columns: controleColumns(t),
         render: ControleFields,
     }
 };
@@ -111,6 +118,8 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
 
     const { matiereId, optionId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t: tCrud } = useTranslation('crud');
+    const { t: tNote } = useTranslation('note');
 
     const [exportOpen, setExportOpen] = useState(false);
     const [exportControleId, setExportControleId] = useState<number | null>(null);
@@ -126,36 +135,37 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
     const actionsFiche: ActionLigne<Controle>[] = useMemo(() => [
         {
             id: 'import-fiche',
-            libelle: LIBELLE_IMPORT_FICHE,
+            libelle: libelleImportFiche(tNote),
             icone: FileUploadIcon,
             exigeEcriture: true,
             onSelect: (controle) => { declencherImport(controle.id); },
         },
         {
             id: 'export-fiche',
-            libelle: 'Exporter la fiche',
+            libelle: tNote('controle.exporterLaFiche'),
             icone: FileDownloadIcon,
             onSelect: (controle) => { handleExportOpen(controle.id); },
         },
-    ], [declencherImport, handleExportOpen]);
+    ], [declencherImport, handleExportOpen, tNote]);
 
     const datasource = useMemo((): Datasource<Controle> | null => matiereId ? ({
         ...createControleRepository(matiereId),
-        ...createControleViewConfig(matiereId),
-        title: "Contrôles",
+        ...createControleViewConfig(matiereId, tNote),
+        title: tCrud('entites.controle.title'),
         roleEcriture: Role.NOTES_ECRITURE,
-        entityLabel: "le contrôle",
-        entityLabelPlural: "contrôles",
+        entityLabel: tCrud('entites.controle.nom'),
+        entityLabelAvecArticle: tCrud('entites.controle.nomAvecArticle'),
+        entityLabelPlural: tCrud('entites.controle.nomPluriel'),
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
         actionsLigne: [...(actionsLigne ?? []), ...actionsFiche],
-    }) : null, [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche]);
+    }) : null, [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche, tCrud, tNote]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>Le paramètre matiereId est obligatoire</Typography>
+        <Typography>{tNote('controle.parametreMatiereIdObligatoire')}</Typography>
     )
 
     return (

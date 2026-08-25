@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { ENDPOINT_GROUPE } from '../structure/def';
@@ -22,6 +23,7 @@ interface Props {
 
 export function FicheExportModal({ open, controleId, optionId, onClose }: Props) {
     const notifications = useNotifications();
+    const { t } = useTranslation('note');
     const [selectedGroupe, setSelectedGroupe] = useState<Groupe | null>(null);
     const [downloading, setDownloading] = useState(false);
 
@@ -59,7 +61,7 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
 
     return (
         <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-            <DialogTitle>Exporter la fiche de notes</DialogTitle>
+            <DialogTitle>{t('ficheExportModal.titre')}</DialogTitle>
             <DialogContent>
                 <Box sx={{ mt: 1 }}>
                     <Autocomplete
@@ -71,8 +73,8 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                label="Groupe d'élèves"
-                                placeholder="Rechercher un groupe..."
+                                label={t('ficheExportModal.groupeLabel')}
+                                placeholder={t('ficheExportModal.groupePlaceholder')}
                                 slotProps={{
                                     input: {
                                         ...params.InputProps,
@@ -90,14 +92,14 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={handleClose}>Annuler</Button>
+                <Button onClick={handleClose}>{t('commun.annuler')}</Button>
                 <Button
                     variant="contained"
                     onClick={() => { void handleDownload(); }}
                     disabled={!selectedGroupe || downloading}
                     startIcon={downloading ? <CircularProgress size={16} /> : undefined}
                 >
-                    Télécharger
+                    {t('ficheExportModal.telecharger')}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -1,6 +1,7 @@
 import { TextField } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { Crud } from '../../services/crud/Crud';
 import { useRootPath } from '../../services/crud/useRootPath';
@@ -48,17 +49,18 @@ const formationViewConfig: ViewConfig<Formation> = {
 export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOnly, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Formation>) {
 
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Formation> => ({
         ...formationRepository,
         ...formationViewConfig,
-        ...formationEntite,
+        ...formationEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS],
+        actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS(t)],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }), [isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

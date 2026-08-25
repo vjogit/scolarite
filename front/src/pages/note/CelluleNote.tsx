@@ -6,9 +6,10 @@
  */
 
 import { Box, Chip, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 import {
-    formatNote, LIBELLE_NON_EVALUEE, ORIGINE_RATTRAPAGE, type Provenance,
+    formatNote, libelleNonEvaluee, origineRattrapage, type Provenance,
 } from './provenance';
 
 /**
@@ -31,13 +32,14 @@ interface Props {
 }
 
 export function CelluleNoteCalculee({ valeur, provenance }: Props) {
+    const { t } = useTranslation('note');
     // Une valeur absente est « non évaluée », que le serveur l'ait nommée ou
     // non : le `null` et la provenance disent la même chose, et l'affichage ne
     // doit pas dépendre de leur accord.
     if (valeur == null || provenance === 'non_evaluee') {
         return (
             <Typography component="span" variant="body2" color="text.secondary">
-                {LIBELLE_NON_EVALUEE}
+                {libelleNonEvaluee()}
             </Typography>
         );
     }
@@ -48,8 +50,8 @@ export function CelluleNoteCalculee({ valeur, provenance }: Props) {
         return (
             <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
                 {texte}
-                <Chip size="small" variant="outlined" color="secondary" label="Rattrapage" />
-                <Box component="span" sx={POUR_LECTEUR_ECRAN}>{ORIGINE_RATTRAPAGE}</Box>
+                <Chip size="small" variant="outlined" color="secondary" label={t('celluleNote.rattrapage')} />
+                <Box component="span" sx={POUR_LECTEUR_ECRAN}>{origineRattrapage()}</Box>
             </Box>
         );
     }

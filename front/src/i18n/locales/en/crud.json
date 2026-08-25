@@ -1,0 +1,184 @@
+{
+  "creation": "{{nom}} \"{{valeur}}\" created.",
+  "creationSansEntite": "\"{{valeur}}\" created.",
+
+  "enregistrement": "{{nom}} \"{{valeur}}\" saved.",
+  "enregistrementSansEntite": "\"{{valeur}}\" saved.",
+
+  "suppression": "{{nom}} \"{{valeur}}\" deleted.",
+  "suppressionSansEntite": "\"{{valeur}}\" deleted.",
+
+  "miseEnCorbeille": "{{nom}} \"{{valeur}}\" moved to trash.",
+  "miseEnCorbeilleSansEntite": "\"{{valeur}}\" moved to trash.",
+
+  "suppressionPluriel": "{{nombre}} {{pluriel}} deleted.",
+  "miseEnCorbeillePluriel": "{{nombre}} {{pluriel}} moved to trash.",
+
+  "suppressionSansGenre": "{{nombre}} items deleted.",
+  "miseEnCorbeilleSansGenre": "{{nombre}} items moved to trash.",
+
+  "listeVide": "No {{nom}} recorded.",
+  "listeVideSansEntite": "Nothing to display.",
+
+  "creationInvite": "Create {{nom}}",
+  "creationInviteSansEntite": "Add",
+
+  "actions": {
+    "voir": "View",
+    "editer": "Edit",
+    "supprimer": "Delete",
+    "menu": "Actions",
+    "menuLigne": "Actions — {{nom}}",
+    "supprimerSelection": "Delete selection",
+    "retour": "Back"
+  },
+
+  "list": {
+    "chargementEchec": "Error while loading"
+  },
+
+  "form": {
+    "titreDetails": "Details",
+    "titreModifier": "Edit",
+    "titreAjouter": "Add",
+    "retour": "Back",
+    "annuler": "Cancel",
+    "chargement": "Loading…",
+    "mettreAJour": "Update",
+    "ajouter": "Add"
+  },
+
+  "unsavedDialog": {
+    "titre": "Unsaved changes",
+    "corps": "The changes made to this form will be lost if you leave now.",
+    "rester": "Stay on this page",
+    "quitter": "Leave without saving"
+  },
+
+  "deleteDialog": {
+    "motConfirmation": "CONFIRM",
+    "pluralielGenerique": "items",
+    "titreUn": "Delete {{libelle}}\"{{nom}}\"?",
+    "titrePluriel": "Delete {{nombre}} {{pluriel}}?",
+    "objetsSelectionnes": "Selected items:",
+    "etAutres_one": "and {{nombre}} more",
+    "etAutres_other": "and {{nombre}} more",
+    "analyseEnCours": "Analyzing impact…",
+    "impactEchec": "Unable to evaluate the impact of this deletion ({{erreur}}). Related data may exist and would be permanently lost.",
+    "aucuneDonneeLiee": "No related data.",
+    "cascadeUnContient": "\"{{nom}}\" contains ",
+    "cascadeSelectionContient": "The selection contains ",
+    "cascadeCorbeille": "Everything will be moved to trash.",
+    "cascadeDefinitive": "Everything will be permanently deleted.",
+    "restaurable": "This deletion can be undone: an administrator can restore everything from the trash until it is permanently purged.",
+    "detache": "Will not be deleted, but will lose its link: {{liste}}.",
+    "irreversible": "This action cannot be undone.",
+    "confirmerSaisiePrefixe": "To confirm, type",
+    "confirmationLabel": "Confirmation",
+    "annuler": "Cancel",
+    "supprimer": "Delete",
+    "et": "and"
+  },
+
+  "entites": {
+    "formation": {
+      "title": "Training programs",
+      "nom": "program",
+      "nomAvecArticle": "the training program",
+      "nomPluriel": "programs"
+    },
+    "promotion": {
+      "title": "Cohorts",
+      "nom": "cohort",
+      "nomAvecArticle": "the cohort",
+      "nomPluriel": "cohorts"
+    },
+    "option": {
+      "title": "Options",
+      "nom": "option",
+      "nomAvecArticle": "the option",
+      "nomPluriel": "options"
+    },
+    "periode": {
+      "title": "Periods",
+      "nom": "period",
+      "nomAvecArticle": "the period",
+      "nomPluriel": "periods"
+    },
+    "ue": {
+      "title": "Course units",
+      "nom": "course unit",
+      "nomAvecArticle": "the course unit",
+      "nomPluriel": "course units"
+    },
+    "matiere": {
+      "title": "Subjects",
+      "nom": "subject",
+      "nomAvecArticle": "the subject",
+      "nomPluriel": "subjects"
+    },
+    "groupe": {
+      "title": "Groups",
+      "nom": "group",
+      "nomAvecArticle": "the group",
+      "nomPluriel": "groups"
+    },
+    "noteMatiere": {
+      "title": "Subject averages",
+      "nom": "average",
+      "nomAvecArticle": "the average",
+      "nomPluriel": "averages"
+    },
+    "noteUe": {
+      "title": "Course unit averages",
+      "nom": "average",
+      "nomAvecArticle": "the average",
+      "nomPluriel": "averages"
+    },
+    "notePeriode": {
+      "title": "Deliberated GPA",
+      "nom": "deliberated GPA",
+      "nomAvecArticle": "the deliberated GPA",
+      "nomPluriel": "deliberated GPAs"
+    },
+    "salle": {
+      "title": "Rooms",
+      "nom": "room",
+      "nomAvecArticle": "the room",
+      "nomPluriel": "rooms"
+    },
+    "user": {
+      "title": "Users",
+      "nom": "user",
+      "nomAvecArticle": "the user",
+      "nomPluriel": "users"
+    },
+    "toic": {
+      "title": "TOEIC",
+      "nom": "TOEIC result",
+      "nomAvecArticle": "the TOEIC result",
+      "nomPluriel": "TOEIC results"
+    },
+    "mobiliteInternationale": {
+      "title": "International Mobility",
+      "nom": "mobility placement",
+      "nomAvecArticle": "the mobility placement",
+      "nomPluriel": "mobility placements"
+    },
+    "controle": {
+      "title": "Assessments",
+      "nom": "assessment",
+      "nomAvecArticle": "the assessment",
+      "nomPluriel": "assessments"
+    },
+    "actions": {
+      "gererUe": "Manage course units",
+      "gererMatieres": "Manage subjects",
+      "gererPromotions": "Manage cohorts",
+      "gererOptions": "Manage options",
+      "gererGroupes": "Manage groups",
+      "gererPeriodes": "Manage periods",
+      "gererMembres": "Manage members"
+    }
+  }
+}

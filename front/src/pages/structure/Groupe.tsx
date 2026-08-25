@@ -1,6 +1,7 @@
 import { TextField, Typography, Box } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo, useCallback, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
@@ -41,6 +42,7 @@ const createGroupeViewConfig = (optionId: string): ViewConfig<Groupe> => ({
 export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Groupe>) {
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const defaultRenderTopToolbar = useCallback(({ defaultActions, peutEcrire }: { defaultActions: ReactNode; peutEcrire: boolean }): ReactNode => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -52,13 +54,13 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
     const datasource = useMemo((): Datasource<Groupe> | null => optionId ? ({
         ...createGroupeRepository(optionId),
         ...createGroupeViewConfig(optionId),
-        ...groupeEntite,
+        ...groupeEntite(t),
         isAction,
         isReadOnly,
         isTopToolbar,
-        actionsLigne: actionsLigne ?? [ACTION_MEMBRES],
+        actionsLigne: actionsLigne ?? [ACTION_MEMBRES(t)],
         renderTopToolbarCustomActions: renderTopToolbarCustomActions ?? defaultRenderTopToolbar,
-    }) : null, [optionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, defaultRenderTopToolbar]);
+    }) : null, [optionId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, defaultRenderTopToolbar, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

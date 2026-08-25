@@ -14,7 +14,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import { apiInstance } from '../../services/api';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
-import { conflitsDetaillesFor, ERROR_MESSAGES } from '../../services/errorMessages';
+import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
 import { ReservationDialog } from './ReservationDialog';
 import { HeuresPanel } from './HeuresPanel';
 import type { ReservationDetail } from './def';
@@ -159,7 +159,7 @@ export function Planning() {
         const first = Object.values(errors)[0];
         if (!first) return;
 
-        let msg = ERROR_MESSAGES.BUSINESS_CONFLICT;
+        let msg = errorMessage('BUSINESS_CONFLICT');
         if (first.detail) {
             const match = /conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(first.detail);
             if (match) {

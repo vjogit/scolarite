@@ -15,6 +15,7 @@
  */
 
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 import SchoolIcon from '@mui/icons-material/School';
 import ClassIcon from '@mui/icons-material/Class';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
@@ -71,10 +72,10 @@ function entite<D extends FieldValues>(
  * compose déjà pour l'invite des listes vides et le bouton « Ajouter » : les
  * trois mènent au même formulaire, ils portent donc le même nom.
  */
-function actionCreer(segment: string, enfant: DescriptionEntite): ActionNavigation<FieldValues> {
+function actionCreer(segment: string, enfant: DescriptionEntite, t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: `creer-${segment}`,
-        libelle: libelleCreation(enfant),
+        libelle: libelleCreation(enfant, t),
         icone: AddBoxIcon,
         segment: `${segment}/new`,
         exigeEcriture: true,
@@ -101,32 +102,38 @@ export interface NiveauArbre {
     readonly enfants: readonly EnfantArbre[];
     /**
      * L'entité du niveau : sa collection filtrée par le parent, ses libellés,
-     * son rôle d'écriture. Le niveau racine ignore l'identifiant reçu.
+     * son rôle d'écriture. Le niveau racine ignore l'identifiant reçu. `t`
+     * optionnel — cf. `actions` ci-dessous.
      */
-    readonly entite: (identifiantParent: string) => EntiteCrud<FieldValues>;
+    readonly entite: (identifiantParent: string, t?: TFunction<'crud'>) => EntiteCrud<FieldValues>;
     /**
      * Actions déclarées du niveau, dans l'ordre voulu. « Voir » et « Éditer »
      * sont ajoutés par `actionsDeLaLigne`, la suppression par le bandeau qui
      * détient la modale : les déclarer ici serait les redoubler.
+     *
+     * Fonction et non tableau figé : les libellés viennent d'i18next, et
+     * `NIVEAUX` est construit une seule fois au chargement du module — sans
+     * ça, ils gèleraient dans la langue active à cet instant. Appeler sans
+     * `t` reste correct (relit l'instance i18next globale) mais ne rend pas
+     * l'appelant réactif à un changement de langue en cours de session ; les
+     * quelques appelants qui le sont déjà (le bandeau de `StructureLayout`)
+     * passent le leur.
      */
-    readonly actions: readonly ActionLigne<FieldValues>[];
+    readonly actions: (t?: TFunction<'crud'>) => readonly ActionLigne<FieldValues>[];
 }
 
-const ENTITE_FORMATION = entite(formationRepository, formationEntite);
-const entitePromotion = (formationId: string) => entite(createPromotionRepository(formationId), promotionEntite);
-const entiteOption = (promotionId: string) => entite(createOptionRepository(promotionId), optionEntite);
-const entitePeriode = (optionId: string) => entite(createPeriodeRepository(optionId), periodeEntite);
-const entiteUe = (periodeId: string) => entite(createUeRepository(periodeId), ueEntite);
-const entiteMatiere = (ueId: string) => entite(createMatiereRepository(ueId), matiereEntite);
-const entiteGroupe = (optionId: string) => entite(createGroupeRepository(optionId), groupeEntite);
+const entiteFormation = (_identifiantParent: string, t?: TFunction<'crud'>) => entite(formationRepository, formationEntite(t));
+const entitePromotion = (formationId: string, t?: TFunction<'crud'>) => entite(createPromotionRepository(formationId), promotionEntite(t));
+const entiteOption = (promotionId: string, t?: TFunction<'crud'>) => entite(createOptionRepository(promotionId), optionEntite(t));
+const entitePeriode = (optionId: string, t?: TFunction<'crud'>) => entite(createPeriodeRepository(optionId), periodeEntite(t));
+const entiteUe = (periodeId: string, t?: TFunction<'crud'>) => entite(createUeRepository(periodeId), ueEntite(t));
+const entiteMatiere = (ueId: string, t?: TFunction<'crud'>) => entite(createMatiereRepository(ueId), matiereEntite(t));
+const entiteGroupe = (optionId: string, t?: TFunction<'crud'>) => entite(createGroupeRepository(optionId), groupeEntite(t));
 
-const CREER_PROMOTION = actionCreer(PROMOTION, promotionEntite);
-const CREER_OPTION = actionCreer(OPTION, optionEntite);
-const CREER_PERIODE = actionCreer(PERIODE, periodeEntite);
-const CREER_UE = actionCreer(UES, ueEntite);
-const CREER_MATIERE = actionCreer(MATIERE, matiereEntite);
-const CREER_GROUPE = actionCreer(GROUPE, groupeEntite);
-export const CREER_FORMATION = actionCreer(FORMATION, formationEntite);
+/** Le libellé « Créer un/une … » de chaque niveau, calculé sur son entité. */
+export function CREER_FORMATION(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return actionCreer(FORMATION, formationEntite(t), t);
+}
 
 const NIVEAUX: readonly NiveauArbre[] = [
     {
@@ -135,8 +142,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         libellePluriel: 'Formations',
         icone: SchoolIcon,
         enfants: [{ segment: PROMOTION }],
-        entite: () => ENTITE_FORMATION,
-        actions: [ACTION_PROMOTIONS, CREER_PROMOTION],
+        entite: entiteFormation,
+        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t)],
     },
     {
         segment: PROMOTION,
@@ -145,7 +152,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: ClassIcon,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
-        actions: [ACTION_OPTIONS, CREER_OPTION],
+        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t)],
     },
     {
         segment: OPTION,
@@ -154,7 +161,10 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: AltRouteIcon,
         enfants: [{ segment: PERIODE }, { segment: GROUPE, categorie: 'Groupes' }],
         entite: entiteOption,
-        actions: [ACTION_PERIODES, CREER_PERIODE, ACTION_GROUPES, CREER_GROUPE],
+        actions: (t) => [
+            ACTION_PERIODES(t), actionCreer(PERIODE, periodeEntite(t), t),
+            ACTION_GROUPES(t), actionCreer(GROUPE, groupeEntite(t), t),
+        ],
     },
     {
         segment: PERIODE,
@@ -163,7 +173,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: DateRangeIcon,
         enfants: [{ segment: UES }],
         entite: entitePeriode,
-        actions: [ACTION_UES, CREER_UE],
+        actions: (t) => [ACTION_UES(t), actionCreer(UES, ueEntite(t), t)],
     },
     {
         segment: UES,
@@ -172,7 +182,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: MenuBookIcon,
         enfants: [{ segment: MATIERE }],
         entite: entiteUe,
-        actions: [ACTION_MATIERES, CREER_MATIERE],
+        actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t)],
     },
     {
         segment: MATIERE,
@@ -181,7 +191,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: SubjectIcon,
         enfants: [],
         entite: entiteMatiere,
-        actions: [],
+        actions: () => [],
     },
     {
         // L'affectation d'élèves n'est pas un niveau de structure : elle reste
@@ -192,7 +202,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: GroupsIcon,
         enfants: [],
         entite: entiteGroupe,
-        actions: [ACTION_MEMBRES],
+        actions: (t) => [ACTION_MEMBRES(t)],
     },
 ];
 

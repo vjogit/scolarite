@@ -9,6 +9,10 @@ import Keycloak from 'keycloak-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { useTranslation } from 'react-i18next';
+// Enregistre la locale FR de dayjs sans l'activer globalement (dayjs reste
+// en 'en' par défaut) : c'est `adapterLocale`, ci-dessous, qui choisit,
+// instance par instance, en suivant la langue active de i18next.
 import 'dayjs/locale/fr';
 import { setupAxiosInterceptors } from './services/api';
 import { ContexteHierarchieProvider } from './services/context/ContexteProvider';
@@ -118,6 +122,7 @@ function sessionDepuis(kc: Keycloak) {
 
 export default function App() {
 
+  const { i18n } = useTranslation();
 
   // Keycloak est un magasin externe : on s'y abonne et on le lit, plutôt que
   // d'en recopier l'état dans React. Le rendu voit `null` tant que
@@ -170,7 +175,7 @@ export default function App() {
     <SessionContext value={sessionContextValue}>
       <KeycloakContext value={{ keycloak, loading }}>
         <QueryClientProvider client={queryClient}>
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={i18n.language}>
             <ReactRouterAppProvider
               navigation={filteredNavigation}
               branding={BRANDING}

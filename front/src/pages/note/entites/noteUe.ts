@@ -10,7 +10,9 @@
  * ce « non » que la requête refuse.
  */
 
+import type { TFunction } from 'i18next';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
 import { ENDPOINT_NOTE_UE, NOTE } from '../def';
 import type { Provenance } from '../provenance';
 import { nomEleve } from './noteMatiere';
@@ -36,8 +38,13 @@ export const createNoteUeRepository = (ueId: string) =>
         getName: (data: NoteUe) => nomEleve(data),
     });
 
-export const noteUeEntite: DescriptionEntite = {
-    title: "Moyennes de l'UE",
-    entityLabel: "la moyenne",
-    entityLabelPlural: "moyennes",
-};
+export function noteUeEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.noteUe.title', { ns: 'crud' }),
+        entityLabel: traduire('entites.noteUe.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.noteUe.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.noteUe.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+    };
+}

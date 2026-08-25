@@ -2,14 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, type DefaultValues, type FieldValues, type Resolver } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { type Datasource } from './def';
 import { fieldErrorsFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
 import { messageCreation, messageEnregistrement } from './entityMessages';
 
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { Box, Button } from '@mui/material';
 import { useCrudContext } from './useCrudContext';
@@ -27,6 +26,7 @@ interface Props<D extends FieldValues> {
 }
 
 export function Form<D extends FieldValues>({ initialData, mode, datasource, }: Props<D>) {
+  const { t } = useTranslation('crud');
   const { rootPath } = useCrudContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -114,8 +114,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
   }, [champsRefuses]);
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-
+    <>
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
         {/*
           noValidate : les bornes natives (min/max sur les champs numériques)
@@ -127,7 +126,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
         */}
         <form ref={formulaireRef} noValidate onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
           <h2>
-            {mode === 'show' ? 'Détails' : mode === 'edit' ? 'Modifier' : 'Ajouter'}
+            {mode === 'show' ? t('form.titreDetails') : mode === 'edit' ? t('form.titreModifier') : t('form.titreAjouter')}
           </h2>
 
           {/* Utilisation de la fonction/composant extraite */}
@@ -139,11 +138,11 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
               variant="outlined"
               onClick={() => { guard.requestNavigation(() => { void navigate(rootPath); }); }}
             >
-              {mode === 'show' ? 'Retour' : 'Annuler'}
+              {mode === 'show' ? t('form.retour') : t('form.annuler')}
             </Button>
             {mode !== 'show' && (
               <Button type="submit" variant="contained" disabled={mutation.isPending}>
-                {mutation.isPending ? 'Chargement...' : mode === 'edit' ? 'Mettre à jour' : 'Ajouter'}
+                {mutation.isPending ? t('form.chargement') : mode === 'edit' ? t('form.mettreAJour') : t('form.ajouter')}
               </Button>
             )}
           </Box>
@@ -156,6 +155,6 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
         onStay={guard.cancelLeave}
         onLeave={guard.confirmLeave}
       />
-    </LocalizationProvider>
+    </>
   );
 }

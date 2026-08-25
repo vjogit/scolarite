@@ -9,8 +9,10 @@
 
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Alert, Typography } from '@mui/material';
 import type { MRT_ColumnDef } from 'material-react-table';
+import type { TFunction } from 'i18next';
 
 import type { DatasourceListe } from '../../services/crud/def';
 import { AXE_PERIODE } from './axes';
@@ -28,34 +30,38 @@ function Absence({ children }: { children: string }) {
     );
 }
 
-const colonnes: MRT_ColumnDef<NotePeriode>[] = [
-    { accessorFn: nomEleve, id: 'eleve', header: 'Élève' },
-    {
-        accessorKey: 'note',
-        header: 'GPA',
-        // Trois situations qu'une cellule vide confondrait : l'élève n'est pas
-        // passé en jury, il l'est sans GPA calculable, il en a un.
-        Cell: ({ cell, row }) => {
-            if (!row.original.delibere) return <Absence>Non délibéré</Absence>;
-            const valeur = cell.getValue<number | null>();
-            if (valeur == null) return <Absence>GPA non calculable</Absence>;
-            return <>{formatNote.format(valeur)}</>;
+function colonnes(t: TFunction<'note'>): MRT_ColumnDef<NotePeriode>[] {
+    return [
+        { accessorFn: nomEleve, id: 'eleve', header: t('commun.eleve') },
+        {
+            accessorKey: 'note',
+            header: t('notePeriode.colonneGpa'),
+            // Trois situations qu'une cellule vide confondrait : l'élève n'est pas
+            // passé en jury, il l'est sans GPA calculable, il en a un.
+            Cell: ({ cell, row }) => {
+                if (!row.original.delibere) return <Absence>{t('notePeriode.nonDelibere')}</Absence>;
+                const valeur = cell.getValue<number | null>();
+                if (valeur == null) return <Absence>{t('notePeriode.gpaNonCalculable')}</Absence>;
+                return <>{formatNote.format(valeur)}</>;
+            },
         },
-    },
-];
+    ];
+}
 
 export function AxeNotePeriode() {
     const { periodeId } = useParams();
+    const { t: tCrud } = useTranslation('crud');
+    const { t: tNote } = useTranslation('note');
 
     const datasource = useMemo((): DatasourceListe<NotePeriode> | null => periodeId ? ({
         ...createNotePeriodeRepository(periodeId),
-        ...notePeriodeEntite,
-        columns: colonnes,
+        ...notePeriodeEntite(tCrud),
+        columns: colonnes(tNote),
         isAction: false,
         isTopToolbar: true,
-    }) : null, [periodeId]);
+    }) : null, [periodeId, tCrud, tNote]);
 
-    if (!datasource) return <Alert severity="error">Le paramètre periodeId est obligatoire.</Alert>;
+    if (!datasource) return <Alert severity="error">{tNote('commun.parametreObligatoire', { parametre: 'periodeId' })}</Alert>;
 
     return <AxeCalcule datasource={datasource} axe={AXE_PERIODE} />;
 }

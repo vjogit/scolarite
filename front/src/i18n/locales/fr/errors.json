@@ -1,0 +1,67 @@
+{
+  "codes": {
+    "NO_INFORMATION": "Une erreur est survenue.",
+    "VALIDATION_ERROR": "Certains champs du formulaire sont invalides.",
+    "OPTIMISTIC_LOCKING_FAILURE": "Ces données ont été modifiées par un autre utilisateur. Veuillez recharger la page et réessayer.",
+    "MISSING_PARAM": "Un paramètre obligatoire est manquant.",
+    "INVALID_PARAM": "Un paramètre fourni est invalide.",
+    "NOT_FOUND": "La ressource demandée est introuvable.",
+    "BUSINESS_CONFLICT": "Un conflit a été détecté (créneau ou ressource déjà réservé·e).",
+    "INVALID_BODY": "Le format de la requête est invalide.",
+    "INVALID_FILE": "Le fichier fourni est illisible ou son format est incorrect.",
+    "FILE_TOO_LARGE": "Le fichier dépasse la taille maximale autorisée.",
+    "FILE_MISSING": "Aucun fichier n'a été fourni.",
+    "INVALID_FILE_EXTENSION": "L'extension du fichier n'est pas prise en charge.",
+    "INSUFFICIENT_RIGHTS": "Vous ne disposez pas des droits nécessaires pour effectuer cette action.",
+    "INTERNAL_ERROR": "Une erreur interne est survenue. Veuillez réessayer ultérieurement.",
+    "NO_RESULT": "Aucun résultat trouvé.",
+    "PAYLOAD_TOO_LARGE": "La requête est trop volumineuse.",
+    "RATE_LIMITED": "Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer."
+  },
+  "avecIncident": "{{message}} (code incident : {{incident}})",
+
+  "motifChamp": {
+    "champ_obligatoire": "Ce champ est obligatoire",
+    "valeur_deja_utilisee": "Cette valeur est déjà utilisée",
+    "valeur_negative": "La valeur doit être positive",
+    "note_max_absolu": "La note dépasse la valeur maximale autorisée",
+    "fin_avant_debut": "La date de fin doit être après la date de début",
+    "echelle_longueur": "L'échelle doit contenir 5 valeurs",
+    "echelle_decroissante": "L'échelle doit être décroissante",
+    "echelle_hors_bareme": "Les seuils de l'échelle ne peuvent pas dépasser le barème"
+  },
+  "noteHorsBaremeAvecMax": "La note doit être comprise entre 0 et {{max}}",
+  "noteDepasseBareme": "La note dépasse le barème",
+  "referenceInconnue": "{{reference}} n'existe pas",
+  "referenceGenerique": "La ressource référencée",
+  "reference": {
+    "controle_id": "Le contrôle",
+    "user_id": "L'élève",
+    "option_id": "L'option",
+    "periode_id": "La période",
+    "matiere_id": "La matière",
+    "unite_enseignement_id": "L'UE",
+    "formation_id": "La formation",
+    "promotion_id": "La promotion"
+  },
+  "creneauDejaReserveGenerique": "Ce créneau est déjà réservé",
+  "creneau": {
+    "salles": "Une ou plusieurs salles sont déjà réservées sur ce créneau",
+    "intervenants": "Un ou plusieurs intervenants sont déjà occupés sur ce créneau",
+    "groupes": "Un ou plusieurs groupes sont déjà planifiés sur ce créneau"
+  },
+
+  "ligneRefusee": {
+    "cellule_invalide": "« {{valeur}} » n'est pas une note. Laissez la cellule vide s'il n'y a pas de note.",
+    "note_hors_bareme_avec_bareme": "La note {{valeur}} est hors barème (entre 0 et {{bareme}}).",
+    "note_hors_bareme_sans_bareme": "La note {{valeur}} est hors barème.",
+    "eleve_inconnu": "L'identifiant ne correspond à aucun élève.",
+    "note_sur_eleve_non_evalue": "{{eleve}} est déclaré·e non évalué·e{{remarque}}, mais la fiche porte la note {{valeur}}.",
+    "eleveParDefaut": "Cet élève",
+    "email_manquant": "L'email est manquant.",
+    "nature_invalide": "Nature inconnue : « {{valeur}} ». Attendu : ELEVE ou AGENT.",
+    "role_inconnu": "Rôle non attribuable : « {{valeur}} ».",
+    "role_sur_eleve": "Un élève ne porte pas de rôle applicatif.",
+    "structure_inattendue": "Structure inattendue : « {{valeur}} » là où un semestre était attendu."
+  }
+}

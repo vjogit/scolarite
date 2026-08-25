@@ -10,7 +10,9 @@
  * l'absence de `roleEcriture` suffit à ce que `useDroits.peutEcrire` refuse.
  */
 
+import type { TFunction } from 'i18next';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
 import { ENDPOINT_NOTE_MATIERE, NOTE } from '../def';
 import type { Provenance } from '../provenance';
 
@@ -43,8 +45,13 @@ export function nomEleve(ligne: { firstName: string | null; lastName: string | n
     return `${ligne.lastName ?? ''} ${ligne.firstName ?? ''}`.trim();
 }
 
-export const noteMatiereEntite: DescriptionEntite = {
-    title: "Moyennes de la matière",
-    entityLabel: "la moyenne",
-    entityLabelPlural: "moyennes",
-};
+export function noteMatiereEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.noteMatiere.title', { ns: 'crud' }),
+        entityLabel: traduire('entites.noteMatiere.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.noteMatiere.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.noteMatiere.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+    };
+}

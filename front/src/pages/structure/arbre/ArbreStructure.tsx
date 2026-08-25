@@ -21,6 +21,7 @@ import {
     type KeyboardEvent, type MouseEvent, type ReactNode,
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import type { FieldValues } from 'react-hook-form';
 import { Box, Typography } from '@mui/material';
 import FolderIcon from '@mui/icons-material/Folder';
@@ -128,11 +129,12 @@ function NoeudInerte({ itemId, texte }: { itemId: string; texte: string }) {
  */
 function NoeudVide({ chemin, entite }: { chemin: string; entite: EntiteCrud<FieldValues> }) {
     const { ecritureAutorisee } = useContexteArbre();
-    const constat = messageListeVide(entite);
+    const { t } = useTranslation('crud');
+    const constat = messageListeVide(entite, t);
 
     if (!ecritureAutorisee) return <NoeudInerte itemId={`${chemin}#vide`} texte={constat} />;
 
-    const invite = libelleCreation(entite);
+    const invite = libelleCreation(entite, t);
     return (
         <TreeItem
             itemId={`${chemin}/new`}
@@ -163,9 +165,10 @@ interface PropsCollection {
  * donc lui qui permet d'ouvrir sans avoir rien chargé.
  */
 function Collection({ chemin, niveau, identifiantParent, deplie }: PropsCollection): ReactNode {
+    const { t } = useTranslation('crud');
     const entite = useMemo(
-        () => niveau.entite(identifiantParent),
-        [niveau, identifiantParent],
+        () => niveau.entite(identifiantParent, t),
+        [niveau, identifiantParent, t],
     );
 
     // La projection se fait en aval, par `select` : la fonction de requête

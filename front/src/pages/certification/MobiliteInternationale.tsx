@@ -2,6 +2,7 @@ import { createRepository, type CrudProps, type Datasource, type RenderProps, ty
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
 import { useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { TextField, FormControlLabel, Switch, MenuItem, Grid, Typography } from "@mui/material";
 import { UserSelector } from '../../services/UserSelector';
@@ -12,6 +13,7 @@ import { ENDPOINT_MOBILITE } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
+import { messageValidation } from '../../i18n/validation';
 
 const TYPE_MOBILITE_OPTIONS = [
     "Stage",
@@ -23,12 +25,12 @@ const TYPE_MOBILITE_OPTIONS = [
 const mobiliteSchema = z.object({
     id: z.number(),
     version: z.number(),
-    user_id: z.number({ message: "Veuillez sélectionner un élève" }),
-    pays: z.string().min(1, "Le pays est obligatoire"),
+    user_id: z.number({ error: messageValidation('selectionnerEleve') }),
+    pays: z.string().min(1, { error: messageValidation('paysRequis') }),
     ville: z.string().nullish(),
     type_mobilite: z.string().nullish(),
-    date_debut: z.coerce.date({ message: "La date de début est obligatoire" }),
-    date_fin: z.coerce.date({ message: "La date de fin est obligatoire" }),
+    date_debut: z.coerce.date({ error: messageValidation('dateDebutRequise') }),
+    date_fin: z.coerce.date({ error: messageValidation('dateFinRequise') }),
     est_valide: z.boolean().default(false),
     remarque: z.string().nullish(),
     promotion_id: z.number().optional(),
@@ -40,7 +42,7 @@ const mobiliteSchema = z.object({
     // jamais.
     return data.date_fin >= data.date_debut;
 }, {
-    message: "La date de fin doit être postérieure à la date de début",
+    error: messageValidation('dateFinApresDebut'),
     path: ["date_fin"],
 });
 
@@ -252,18 +254,21 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Mobilite> | null => promotionId ? ({
         ...createMobiliteRepository(promotionId),
         ...createMobiliteViewConfig(promotionId),
-        title: "Mobilité Internationale",
+        title: t('entites.mobiliteInternationale.title'),
         roleEcriture: Role.CERTIFICATION_ECRITURE,
-        entityLabel: "la mobilité",
-        entityLabelPlural: "mobilités",
+        entityLabel: t('entites.mobiliteInternationale.nom'),
+        entityLabelAvecArticle: t('entites.mobiliteInternationale.nomAvecArticle'),
+        entityLabelPlural: t('entites.mobiliteInternationale.nomPluriel'),
+        entityGender: 'f',
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions]);
+    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

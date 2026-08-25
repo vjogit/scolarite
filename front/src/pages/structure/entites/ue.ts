@@ -9,18 +9,21 @@
  */
 
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
 import { ENDPOINT_UES, MATIERE, STRUCTURE, UES } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 export const ueSchema = z.object({
     id: z.number(),
     version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
-    ects: z.number().min(0, "Les ects doivent être positifs"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
+    ects: z.number().min(0, { error: messageValidation('ectsDoiventEtrePositifs') }),
     academique: z.boolean(),
     periode_id: z.number(),
 })
@@ -38,18 +41,24 @@ export const createUeRepository = (periodeId: string) => {
 }
 
 /** Descente vers les matières de l'UE. */
-export const ACTION_MATIERES: ActionNavigation<FieldValues> = {
-    id: 'matieres',
-    libelle: 'Gérer les matières',
-    icone: ListAltIcon,
-    segment: MATIERE,
-};
+export function ACTION_MATIERES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return {
+        id: 'matieres',
+        libelle: tCrud(t)('entites.actions.gererMatieres', { ns: 'crud' }),
+        icone: ListAltIcon,
+        segment: MATIERE,
+    };
+}
 
 /** Ce que l'UE est, quel que soit l'écran qui l'affiche. */
-export const ueEntite: DescriptionEntite = {
-    title: "UE",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "l'UE",
-    entityLabelPlural: "UE",
-    entityGender: 'f',
-};
+export function ueEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.ue.title', { ns: 'crud' }),
+        roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: traduire('entites.ue.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.ue.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.ue.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+    };
+}

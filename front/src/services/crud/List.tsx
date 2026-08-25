@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import type { DatasourceListe } from './def';
 import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
+import { MRT_Localization_EN } from 'material-react-table/locales/en';
 import { alpha, Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -46,6 +48,7 @@ function highlightIdFromState(state: unknown): number | null {
 
 
 export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
+  const { t, i18n } = useTranslation('crud');
   const { rootPath } = useCrudContext();
   // Source unique de vérité : le bouton retour n'existe que si un parent existe.
   const parentPath = parentListPath(rootPath);
@@ -135,6 +138,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       datasource.actionsLigne ?? [],
       row.original,
       ecritureAutorisee,
+      t,
     );
 
     return (
@@ -144,7 +148,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
         onChoisir={(action) => { executer(action, row.original); }}
       />
     );
-  }, [datasource, ecritureAutorisee, executer]);
+  }, [datasource, ecritureAutorisee, executer, t]);
 
   const renderTopToolbarCustomActions = useCallback(({ table }: { table: MRT_TableInstance<D> }) => {
     if (!datasource.isTopToolbar) return null
@@ -157,19 +161,19 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       <Box sx={{ display: 'flex', gap: '1rem' }}>
         {datasource.isAction && ecritureAutorisee && (
           <>
-            <Tooltip title={libelleCreation(datasource)}>
+            <Tooltip title={libelleCreation(datasource, t)}>
               <span>
                 <IconButton
-                  aria-label={libelleCreation(datasource)}
+                  aria-label={libelleCreation(datasource, t)}
                   onClick={() => { void navigate(`${rootPath}/new`); }}>
                   <AddBoxIcon />
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Supprimer la sélection">
+            <Tooltip title={t('actions.supprimerSelection')}>
               <span>
                 <IconButton
-                  aria-label="Supprimer la sélection"
+                  aria-label={t('actions.supprimerSelection')}
                   color="error"
                   onClick={() => { handleOpenModal(table); }}
                   disabled={table.getSelectedRowModel().flatRows.length === 0}>
@@ -186,7 +190,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
       return datasource.renderTopToolbarCustomActions({ table, defaultActions, peutEcrire: ecritureAutorisee });
     }
     return defaultActions;
-  }, [ecritureAutorisee, navigate, datasource, handleOpenModal, rootPath]);
+  }, [ecritureAutorisee, navigate, datasource, handleOpenModal, rootPath, t]);
 
   // L'invite de création reprend mot pour mot les conditions du bouton
   // « Ajouter » de la barre — `ecritureAutorisee` couvre déjà `isReadOnly` —
@@ -194,18 +198,18 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const renderEmptyRowsFallback = useCallback(({ table }: { table: MRT_TableInstance<D> }) => (
     <EtatVideTable
       table={table}
-      message={messageListeVide(datasource)}
+      message={messageListeVide(datasource, t)}
       action={datasource.isAction && ecritureAutorisee
-        ? { libelle: libelleCreation(datasource), onClick: () => { void navigate(`${rootPath}/new`); } }
+        ? { libelle: libelleCreation(datasource, t), onClick: () => { void navigate(`${rootPath}/new`); } }
         : undefined}
     />
-  ), [datasource, ecritureAutorisee, navigate, rootPath]);
+  ), [datasource, ecritureAutorisee, navigate, rootPath, t]);
 
   const table = useMaterialReactTable({
     // Les commandes internes de la table — recherche, filtres, colonnes,
     // densité, plein écran, pagination — tirent d'ici leurs infobulles et
     // leurs noms accessibles, anglais par défaut.
-    localization: MRT_Localization_FR,
+    localization: i18n.language === 'en' ? MRT_Localization_EN : MRT_Localization_FR,
     initialState: {
       isLoading,
       density: 'compact', // 'compact' | 'comfortable' | 'spacious'
@@ -299,14 +303,14 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     return () => { clearTimeout(timer); };
   }, [highlightId]);
 
-  if (isError) return <Alert severity="error">Erreur lors du chargement</Alert>;
+  if (isError) return <Alert severity="error">{t('list.chargementEchec')}</Alert>;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
         {parentPath ? (
-          <Tooltip title="Retour">
-            <IconButton aria-label="Retour" onClick={() => { void navigate(parentPath); }}>
+          <Tooltip title={t('actions.retour')}>
+            <IconButton aria-label={t('actions.retour')} onClick={() => { void navigate(parentPath); }}>
               <ArrowBackIcon />
             </IconButton>
           </Tooltip>

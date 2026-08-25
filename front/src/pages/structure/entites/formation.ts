@@ -8,17 +8,20 @@
  */
 
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
 import { ENDPOINT_FORMATION, FORMATION, PROMOTION, STRUCTURE, ENDPOINT_FORMATION_DELETE_IMPACT } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 export const formationSchema = z.object({
     id: z.number(), // L'ID est optionnel car absent lors de la création
     version: z.number(), // L'ID est optionnel car absent lors de la création
-    name: z.string().min(1, "Le nom est requis")
+    name: z.string().min(1, { error: messageValidation('nomRequis') })
 });
 
 export type Formation = z.infer<typeof formationSchema>;
@@ -33,19 +36,26 @@ export const formationRepository = createRepository<Formation>({
 
 
 /** Descente vers les promotions de la formation. */
-export const ACTION_PROMOTIONS: ActionNavigation<FieldValues> = {
-    id: 'promotions',
-    libelle: 'Gérer les promotions',
-    icone: ListAltIcon,
-    segment: PROMOTION,
-};
+export function ACTION_PROMOTIONS(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return {
+        id: 'promotions',
+        libelle: tCrud(t)('entites.actions.gererPromotions', { ns: 'crud' }),
+        icone: ListAltIcon,
+        segment: PROMOTION,
+    };
+}
 
 /** Ce que la formation est, quel que soit l'écran qui l'affiche. */
-export const formationEntite: DescriptionEntite = {
-    title: "Formations",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "la formation",
-    entityLabelPlural: "formations",
-    deleteRequiresNameConfirmation: true,
-    suppressionEnCorbeille: true,
-};
+export function formationEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.formation.title', { ns: 'crud' }),
+        roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: traduire('entites.formation.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.formation.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.formation.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+        deleteRequiresNameConfirmation: true,
+        suppressionEnCorbeille: true,
+    };
+}

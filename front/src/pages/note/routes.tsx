@@ -17,6 +17,7 @@
 import type { FieldValues } from 'react-hook-form';
 import GradingIcon from '@mui/icons-material/Grading';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import i18n from '../../i18n/config';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_NOTE } from '../../services/context/workflows';
@@ -64,21 +65,25 @@ const NOTES_SAISIES: ReglagesNiveau = {
  * là où les autres écrans laissent « Voir ». Elle mène à l'axe correspondant au
  * niveau de la ligne, puisque c'est ce niveau qui porte l'écran de notes.
  */
-const ACTION_NOTES: ActionNavigation<FieldValues> = {
-    id: 'notes',
-    libelle: 'Gérer les notes',
-    icone: GradingIcon,
-    segment: NOTE,
-    directe: true,
-};
+function actionNotes(): ActionNavigation<FieldValues> {
+    return {
+        id: 'notes',
+        libelle: i18n.t('routes.gererLesNotes', { ns: 'note' }),
+        icone: GradingIcon,
+        segment: NOTE,
+        directe: true,
+    };
+}
 
 /** Descente vers les contrôles de la matière, propre au workflow. */
-const ACTION_CONTROLES: ActionNavigation<FieldValues> = {
-    id: 'controles',
-    libelle: 'Gérer les contrôles',
-    icone: ListAltIcon,
-    segment: CONTROLE,
-};
+function actionControles(): ActionNavigation<FieldValues> {
+    return {
+        id: 'controles',
+        libelle: i18n.t('routes.gererLesControles', { ns: 'note' }),
+        icone: ListAltIcon,
+        segment: CONTROLE,
+    };
+}
 
 export function createNoteHierarchyRoutes() {
     return creerRoutesHierarchie(WORKFLOW_NOTE, {
@@ -89,17 +94,17 @@ export function createNoteHierarchyRoutes() {
             [PERIODE]: enrober(CrudPeriode, {
                 ...TRAVERSEE,
                 isTopToolbar: true,
-                actionsLigne: [ACTION_NOTES, ACTION_UES],
+                actionsLigne: [actionNotes(), ACTION_UES()],
             }),
         },
         greffes: [
             {
                 segment: UES, parent: PERIODE,
-                composant: enrober(CrudUe, { ...TRAVERSEE, actionsLigne: [ACTION_NOTES, ACTION_MATIERES] }),
+                composant: enrober(CrudUe, { ...TRAVERSEE, actionsLigne: [actionNotes(), ACTION_MATIERES()] }),
             },
             {
                 segment: MATIERE, parent: UES,
-                composant: enrober(CrudMatiere, { ...TRAVERSEE, actionsLigne: [ACTION_NOTES, ACTION_CONTROLES] }),
+                composant: enrober(CrudMatiere, { ...TRAVERSEE, actionsLigne: [actionNotes(), actionControles()] }),
             },
             {
                 // Le contrôle est le seul niveau de structure éditable ici, et
@@ -109,7 +114,7 @@ export function createNoteHierarchyRoutes() {
                     workflow: NOTE_WORKFLOW,
                     isAction: true,
                     isTopToolbar: true,
-                    actionsLigne: [ACTION_NOTES],
+                    actionsLigne: [actionNotes()],
                 }),
             },
             {

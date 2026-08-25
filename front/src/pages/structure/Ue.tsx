@@ -1,6 +1,7 @@
 import { FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Controller } from 'react-hook-form';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
@@ -14,7 +15,7 @@ const UeFields = ({ register, errors, control, isReadOnly }: RenderProps<Ue>) =>
     <>
         <TextField
             {...register("name")}
-            label="Nom de l'ue"
+            label="Nom de l'UE"
             variant="outlined"
             fullWidth
             disabled={isReadOnly}
@@ -85,17 +86,18 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
 
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Ue> | null => periodeId ? ({
         ...createUeRepository(periodeId),
         ...createUeViewConfig(periodeId),
-        ...ueEntite,
+        ...ueEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_MATIERES],
+        actionsLigne: actionsLigne ?? [ACTION_MATIERES(t)],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

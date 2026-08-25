@@ -1,6 +1,7 @@
 import { Box, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
@@ -91,17 +92,18 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
 
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Matiere> | null => ueId ? ({
         ...createMatiereRepository(ueId),
         ...createMatiereViewConfig(ueId),
-        ...matiereEntite,
+        ...matiereEntite(t),
         isAction,
         isReadOnly,
         actionsLigne,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

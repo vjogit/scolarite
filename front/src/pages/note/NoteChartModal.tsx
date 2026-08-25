@@ -3,6 +3,8 @@ import {
     Box, Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Typography, Paper, Tabs, Tab, Grid, Card, CardContent
 } from "@mui/material";
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
     LineChart, Line, BarChart, Bar, ScatterChart, Scatter,
     XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -58,13 +60,14 @@ type PointGraphique = PointEleve | TrancheHistogramme;
 const estTranche = (point: PointGraphique): point is TrancheHistogramme => 'count' in point;
 
 /** Le nom à afficher en tête du tooltip. */
-const libelleDuPoint = (point: PointGraphique): string => {
+const libelleDuPoint = (point: PointGraphique, t: TFunction<'note'>): string => {
     if (estTranche(point)) return point.label;
     if (point.displayLabel) return point.displayLabel;
-    return point.lastName ? `${point.lastName} ${point.firstName ?? ''}` : 'Élève';
+    return point.lastName ? `${point.lastName} ${point.firstName ?? ''}` : t('noteChartModal.eleveParDefaut');
 };
 
 function CustomTooltip({ active, payload }: TooltipContentProps<ValueType, NameType>) {
+    const { t } = useTranslation('note');
     // Recharts type le contenu d'un point en `any` : lui seul le transporte,
     // nous seuls savons ce que nous y avons mis. C'est le seul endroit du
     // fichier où l'affirmer, et le reste en découle sans autre assertion.
@@ -75,12 +78,12 @@ function CustomTooltip({ active, payload }: TooltipContentProps<ValueType, NameT
     return (
         <Paper elevation={3} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                {libelleDuPoint(point)}
+                {libelleDuPoint(point, t)}
             </Typography>
             <Typography variant="body2" color="primary.main">
                 {estTranche(point)
-                    ? `Nombre d'élèves : ${point.count}`
-                    : `Note : ${point.note?.toFixed(2) ?? '—'} / 20`}
+                    ? t('noteChartModal.nombreDeleves', { count: point.count })
+                    : t('noteChartModal.noteTooltip', { note: point.note?.toFixed(2) ?? '—' })}
             </Typography>
         </Paper>
     );
@@ -103,6 +106,7 @@ export function NoteChartModal({
     bucketRanges?: number[]
 }) {
     const [tabValue, setTabValue] = useState(0);
+    const { t } = useTranslation('note');
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -182,7 +186,7 @@ export function NoteChartModal({
 
     return (
         <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-            <DialogTitle>Analyse des résultats de la classe</DialogTitle>
+            <DialogTitle>{t('noteChartModal.titre')}</DialogTitle>
 
             <DialogContent dividers sx={{ height: 600, display: 'flex', flexDirection: 'column' }}>
 
@@ -190,19 +194,19 @@ export function NoteChartModal({
                 {kpis && (
                     <Grid container spacing={2} sx={{ mb: 3 }}>
                         {/* ... (Identique à avant : Code des Cartes KPIs Moyenne, Médiane, etc.) ... */}
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined" sx={{ bgcolor: 'primary.50' }}><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">Moyenne</Typography><Typography variant="h5" color="primary.main">{kpis.avg}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">Médiane</Typography><Typography variant="h5">{kpis.median}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">Taux Réussite</Typography><Typography variant="h5" color={parseFloat(kpis.success) >= 50 ? 'success.main' : 'error.main'}>{kpis.success}%</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">Note Max</Typography><Typography variant="h5" color="success.main">{kpis.max}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">Note Min</Typography><Typography variant="h5" color="error.main">{kpis.min}</Typography></CardContent></Card></Grid>
+                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined" sx={{ bgcolor: 'primary.50' }}><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.moyenne')}</Typography><Typography variant="h5" color="primary.main">{kpis.avg}</Typography></CardContent></Card></Grid>
+                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.mediane')}</Typography><Typography variant="h5">{kpis.median}</Typography></CardContent></Card></Grid>
+                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.tauxReussite')}</Typography><Typography variant="h5" color={parseFloat(kpis.success) >= 50 ? 'success.main' : 'error.main'}>{kpis.success}%</Typography></CardContent></Card></Grid>
+                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.noteMax')}</Typography><Typography variant="h5" color="success.main">{kpis.max}</Typography></CardContent></Card></Grid>
+                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.noteMin')}</Typography><Typography variant="h5" color="error.main">{kpis.min}</Typography></CardContent></Card></Grid>
                     </Grid>
                 )}
 
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                     <Tabs value={tabValue} onChange={handleTabChange}>
-                        <Tab label="1. Courbe de Progression" />
-                        <Tab label="2. Distribution (Tranches)" />
-                        <Tab label="3. Dispersion Globale" />
+                        <Tab label={t('noteChartModal.ongletProgression')} />
+                        <Tab label={t('noteChartModal.ongletDistribution')} />
+                        <Tab label={t('noteChartModal.ongletDispersion')} />
                     </Tabs>
                 </Box>
 
@@ -224,7 +228,7 @@ export function NoteChartModal({
                                 <RechartsTooltip content={CustomTooltip} />
                                 {kpis && (
                                     <ReferenceLine y={parseFloat(kpis.avg)} stroke="#d32f2f" strokeDasharray="4 4"
-                                        label={{ position: 'top', value: `Moyenne (${kpis.avg})`, fill: '#d32f2f', fontSize: 12 }} />
+                                        label={{ position: 'top', value: t('noteChartModal.moyenneReferenceLine', { moyenne: kpis.avg }), fill: '#d32f2f', fontSize: 12 }} />
                                 )}
                                 <Line type="monotone" dataKey="note" stroke="#1976d2" strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} />
                             </LineChart>
@@ -238,7 +242,7 @@ export function NoteChartModal({
                             <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.5} vertical={false} />
                                 <XAxis dataKey="label" />
-                                <YAxis allowDecimals={false} label={{ value: "Nb. d'élèves", angle: -90, position: 'insideLeft' }} />
+                                <YAxis allowDecimals={false} label={{ value: t('noteChartModal.axeNombreEleves'), angle: -90, position: 'insideLeft' }} />
                                 <RechartsTooltip content={CustomTooltip} cursor={{ fill: 'rgba(25, 118, 210, 0.1)' }} />
                                 <Bar dataKey="count" fill="#1976d2" radius={[4, 4, 0, 0]} />
                             </BarChart>
@@ -249,7 +253,7 @@ export function NoteChartModal({
                         <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
-                                <XAxis dataKey="indexId" type="number" name="Élève" tick={false} label={{ value: "Élèves (Ordre alphabétique)", position: 'insideBottom', offset: -10 }} />
+                                <XAxis dataKey="indexId" type="number" name={t('noteChartModal.axeElevesNom')} tick={false} label={{ value: t('noteChartModal.axeElevesLabel'), position: 'insideBottom', offset: -10 }} />
                                 <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} />
                                 <ZAxis range={[60, 60]} />
                                 <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3' }} />
@@ -262,7 +266,7 @@ export function NoteChartModal({
                 </Box>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} variant="contained">Fermer</Button>
+                <Button onClick={onClose} variant="contained">{t('commun.fermer')}</Button>
             </DialogActions>
         </Dialog>
     );

@@ -11,6 +11,7 @@
 import { useMemo } from 'react';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 
 import { analyserChemin, type Chainon } from '../../../services/context/chainons';
 import { DUREE_FRAICHEUR_NOMS } from '../../../services/context/resolution';
@@ -61,7 +62,7 @@ function identifiantParent(chainons: readonly Chainon[], rang: number): string {
     return rang === 0 ? '' : chainons[rang - 1]?.identifiant ?? '';
 }
 
-export function etatArbre(pathname: string, prefixe: string): EtatArbre {
+export function etatArbre(pathname: string, prefixe: string, t?: TFunction<'crud'>): EtatArbre {
     const { chainons, segmentTerminal, mode } = analyserChemin(pathname, prefixe);
 
     const aDeplier: string[] = [];
@@ -79,7 +80,7 @@ export function etatArbre(pathname: string, prefixe: string): EtatArbre {
         if (niveau === undefined) break;
 
         const racine = `${cheminParent}/${chainon.segment}`;
-        const entite = niveau.entite(identifiantParent(chainons, rang));
+        const entite = niveau.entite(identifiantParent(chainons, rang), t);
 
         if (niveauParent !== null) {
             aDeplier.push(cheminParent);
@@ -126,8 +127,8 @@ export function etatArbre(pathname: string, prefixe: string): EtatArbre {
     };
 }
 
-export function useEtatArbre(pathname: string, prefixe: string): EtatArbre {
-    return useMemo(() => etatArbre(pathname, prefixe), [pathname, prefixe]);
+export function useEtatArbre(pathname: string, prefixe: string, t?: TFunction<'crud'>): EtatArbre {
+    return useMemo(() => etatArbre(pathname, prefixe, t), [pathname, prefixe, t]);
 }
 
 /**

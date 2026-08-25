@@ -13,6 +13,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
     Alert, Autocomplete, Box, Chip, CircularProgress, IconButton, Paper, Stack,
     TextField, Tooltip, Typography,
@@ -60,6 +61,7 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
 
     const navigate = useNavigate();
     const { pathname } = useLocation();
+    const { t } = useTranslation('note');
 
     /**
      * La couture entre l'axe de saisie et l'axe Élève : depuis la ligne d'un
@@ -73,12 +75,12 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
      */
     const actionsLigne = useMemo<readonly ActionLigne<LigneEleve>[]>(() => [{
         id: 'notes-eleve',
-        libelle: "Voir les notes de l'élève",
+        libelle: t('grilleNotes.voirNotesEleve'),
         onSelect: (ligne: LigneEleve) => {
             const chemin = cheminVersEleve(pathname, ligne.userId);
             if (chemin !== null) void navigate(chemin);
         },
-    }], [pathname, navigate]);
+    }], [pathname, navigate, t]);
 
     const [groupeId, setGroupeId] = useState<string | null>(
         () => sessionStorage.getItem(cleGroupeMemorise(controleId)),
@@ -132,14 +134,14 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
 
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                        <Typography variant="h6">{controle?.name ?? 'Notes du contrôle'}</Typography>
+                        <Typography variant="h6">{controle?.name ?? t('grilleNotes.notesDuControleParDefaut')}</Typography>
                         {controle?.coeff != null && (
-                            <Chip size="small" label={`Coeff. ${formatNombre.format(controle.coeff)}`} />
+                            <Chip size="small" label={t('grilleNotes.coeffChip', { coeff: formatNombre.format(controle.coeff) })} />
                         )}
                         {bareme != null && (
-                            <Chip size="small" label={`Barème /${formatNombre.format(bareme)}`} />
+                            <Chip size="small" label={t('grilleNotes.baremeChip', { bareme: formatNombre.format(bareme) })} />
                         )}
-                        {isRattrapage && <Chip size="small" color="warning" label="Rattrapage" />}
+                        {isRattrapage && <Chip size="small" color="warning" label={t('commun.rattrapage')} />}
                     </Box>
 
                     <Autocomplete
@@ -153,8 +155,8 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         renderInput={(params) => (
                             <TextField
                                 {...params}
-                                label="Groupe"
-                                placeholder="Choisir un groupe"
+                                label={t('grilleNotes.groupeLabel')}
+                                placeholder={t('grilleNotes.groupePlaceholder')}
                                 slotProps={{
                                     input: {
                                         ...params.InputProps,
@@ -173,22 +175,22 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
 
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'baseline' }}>
-                        <Typography variant="body2" aria-label="Progression de la saisie">
-                            Saisie : <strong>{pourvues}/{lignes.length}</strong>
+                        <Typography variant="body2" aria-label={t('grilleNotes.progressionSaisie')}>
+                            {t('grilleNotes.saisieLabel')} <strong>{pourvues}/{lignes.length}</strong>
                         </Typography>
                         {/* Sans ce second cas, une grille aux champs tous grisés
                             n'expliquait pas pourquoi : elle passait pour en panne. */}
                         <Typography variant="caption" color="text.secondary">
                             {lectureSeule
-                                ? "Consultation seule : la saisie demande le rôle d'écriture des notes."
-                                : "Entrée ou Tab enregistre la ligne et passe à l'élève suivant."}
+                                ? t('grilleNotes.consultationSeule')
+                                : t('grilleNotes.raccourciSaisie')}
                         </Typography>
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <NoteChartButton onClick={() => { setGraphiqueOuvert(true); }} />
-                        <Tooltip title="Exporter la fiche">
-                            <IconButton onClick={() => { setExportOuvert(true); }} aria-label="Exporter la fiche">
+                        <Tooltip title={t('grilleNotes.exporterLaFiche')}>
+                            <IconButton onClick={() => { setExportOuvert(true); }} aria-label={t('grilleNotes.exporterLaFiche')}>
                                 <FileDownloadIcon />
                             </IconButton>
                         </Tooltip>
@@ -199,13 +201,13 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
 
                 {!optionId && (
                     <Alert severity="error">
-                        Le contexte de l'option est introuvable : impossible de lister les groupes.
+                        {t('grilleNotes.contexteOptionIntrouvable')}
                     </Alert>
                 )}
 
                 {optionId && !groupeId && (
                     <Alert severity="info">
-                        Choisissez un groupe pour afficher son effectif et saisir les notes.
+                        {t('grilleNotes.choisirGroupe')}
                     </Alert>
                 )}
 

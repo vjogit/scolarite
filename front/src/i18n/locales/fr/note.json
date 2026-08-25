@@ -1,0 +1,198 @@
+{
+  "commun": {
+    "eleve": "Élève",
+    "moyenne": "Moyenne",
+    "remarque": "Remarque",
+    "rattrapage": "Rattrapage",
+    "rattrapageValide": "Rattrapage validé",
+    "normal": "Normal",
+    "nonEvalue": "Non évalué",
+    "nonEvaluee": "Non évaluée",
+    "validee": "Validée",
+    "coeff": "Coeff",
+    "note": "Note",
+    "oui": "Oui",
+    "non": "Non",
+    "annuler": "Annuler",
+    "fermer": "Fermer",
+    "exporterLaFiche": "Exporter la fiche",
+    "chargement": "Chargement…",
+    "parametreObligatoire": "Le paramètre {{parametre}} est obligatoire."
+  },
+
+  "barreAxes": {
+    "axe": "Axe"
+  },
+
+  "provenance": {
+    "originRattrapage": "Seuil de validation attribué après un rattrapage validé : cette valeur ne correspond à aucune copie.",
+    "nonEvaluee": "Non évaluée"
+  },
+
+  "celluleNote": {
+    "rattrapage": "Rattrapage"
+  },
+
+  "ligneNote": {
+    "valeurNumeriqueAttendue": "Valeur numérique attendue",
+    "noteInvalide": "Note invalide"
+  },
+
+  "noteField": {
+    "noteAvecBareme": "Note (/{{bareme}})"
+  },
+
+  "routes": {
+    "gererLesNotes": "Gérer les notes",
+    "gererLesControles": "Gérer les contrôles"
+  },
+
+  "noteChartButton": {
+    "afficherGraphique": "Afficher le graphique des notes"
+  },
+
+  "ficheImport": {
+    "importerDepuisExcel": "Importer les notes depuis Excel",
+    "creeesEtMisesAJour": "{{creees}} note(s) créée(s), {{misesAJour}} note(s) mise(s) à jour.",
+    "lignesSansNote": "{{nombre}} ligne(s) sans note, laissée(s) inchangée(s).",
+    "aucuneNoteImportee": "Aucune note n'a été importée. Corrigez le fichier puis relancez l'import."
+  },
+
+  "ficheExportModal": {
+    "titre": "Exporter la fiche de notes",
+    "groupeLabel": "Groupe d'élèves",
+    "groupePlaceholder": "Rechercher un groupe…",
+    "telecharger": "Télécharger"
+  },
+
+  "grilleNotes": {
+    "voirNotesEleve": "Voir les notes de l'élève",
+    "notesDuControleParDefaut": "Notes du contrôle",
+    "coeffChip": "Coeff. {{coeff}}",
+    "baremeChip": "Barème /{{bareme}}",
+    "groupeLabel": "Groupe",
+    "groupePlaceholder": "Choisir un groupe",
+    "progressionSaisie": "Progression de la saisie",
+    "saisieLabel": "Saisie :",
+    "consultationSeule": "Consultation seule : la saisie demande le rôle d'écriture des notes.",
+    "raccourciSaisie": "Entrée ou Tab enregistre la ligne et passe à l'élève suivant.",
+    "exporterLaFiche": "Exporter la fiche",
+    "contexteOptionIntrouvable": "Le contexte de l'option est introuvable : impossible de lister les groupes.",
+    "choisirGroupe": "Choisissez un groupe pour afficher son effectif et saisir les notes."
+  },
+
+  "grilleNotesTable": {
+    "ligneVide": "Renseignez une note ou cochez « non évalué »",
+    "reseauIndisponible": "Serveur injoignable. La saisie est conservée, relancez l'enregistrement.",
+    "conflitVersion": "Cette note a été modifiée ailleurs. Rechargez la ligne avant de réenregistrer.",
+    "noteSupprimee": "Note de {{nom}} {{prenom}} supprimée.",
+    "supprimerLaNote": "Supprimer la note",
+    "effectifIntrouvable": "Impossible de charger l'effectif du groupe.",
+    "aucunEleveRattache": "Ce groupe ne compte aucun élève rattaché à ce contrôle.",
+    "grilleAriaLabel": "Grille de saisie des notes",
+    "colonneValidee": "Validée",
+    "colonneEtat": "État",
+    "colonneActions": "Actions",
+    "noteEleveAriaLabel": "Note de {{eleve}}",
+    "nonEvaluePourEleveAriaLabel": "Non évalué pour {{eleve}}",
+    "valideePourEleveAriaLabel": "Validée pour {{eleve}}",
+    "remarquePourEleveAriaLabel": "Remarque pour {{eleve}}",
+    "declareNonEvalue": "déclaré non évalué",
+    "sansValeur": "sans valeur",
+    "notee": "noté {{valeur}}",
+    "supprimerLaNoteTitre": "Supprimer la note ?",
+    "confirmationSuppressionPrefixe": "La note de",
+    "confirmationSuppressionSuffixe": "({{valeur}}) sera définitivement supprimée. Cette action est irréversible.",
+    "conseilNonEvalue": "Pour signaler une absence, cochez « N.É. » plutôt que de supprimer : la ligne disparaîtra sinon des calculs comme si elle n'avait jamais existé.",
+    "enregistrementEnCoursAriaLabel": "Enregistrement en cours pour {{eleve}}",
+    "enregistreeTitre": "Enregistrée",
+    "noteEnregistreePourEleveAriaLabel": "Note enregistrée pour {{eleve}}",
+    "modifieePasEnregistreeTitre": "Modifiée, pas encore enregistrée",
+    "modificationNonEnregistreePourEleveAriaLabel": "Modification non enregistrée pour {{eleve}}",
+    "echecEnregistrement": "Échec de l'enregistrement",
+    "reessayerPourEleveAriaLabel": "Réessayer l'enregistrement pour {{eleve}}",
+    "conflitDeVersion": "Conflit de version",
+    "rechargerLigneDeEleveAriaLabel": "Recharger la ligne de {{eleve}}"
+  },
+
+  "noteChartModal": {
+    "eleveParDefaut": "Élève",
+    "nombreDeleves": "Nombre d'élèves : {{count}}",
+    "noteTooltip": "Note : {{note}} / 20",
+    "titre": "Analyse des résultats de la classe",
+    "moyenne": "Moyenne",
+    "mediane": "Médiane",
+    "tauxReussite": "Taux Réussite",
+    "noteMax": "Note Max",
+    "noteMin": "Note Min",
+    "ongletProgression": "1. Courbe de Progression",
+    "ongletDistribution": "2. Distribution (Tranches)",
+    "ongletDispersion": "3. Dispersion Globale",
+    "moyenneReferenceLine": "Moyenne ({{moyenne}})",
+    "axeNombreEleves": "Nb. d'élèves",
+    "axeElevesNom": "Élève",
+    "axeElevesLabel": "Élèves (Ordre alphabétique)"
+  },
+
+  "noteEleveAxe": {
+    "aucunElevePeriode": "Aucun élève noté sur cette période",
+    "eleveLabel": "Élève de la période",
+    "elevePlaceholder": "Choisir un élève",
+    "tousLesEleves": "Tous les élèves",
+    "choisirEleveInfo": "Choisissez un élève pour afficher son relevé. La liste propose l'effectif de la période ; « Tous les élèves » cherche au-delà.",
+    "aucuneNoteInfo": "Cet élève n'a aucune note enregistrée. Les notes se saisissent depuis l'axe Contrôle.",
+    "periodesRelevAriaLabel": "Périodes du relevé",
+    "aucunGpaInfo": "Aucun GPA : cette période n'a pas été délibérée.",
+    "nonCalcule": "non calculé",
+    "gpaPeriode": "GPA période : {{valeur}}",
+    "gpaAcademique": "GPA académique : {{valeur}}",
+    "ectsChip": "{{valeur}} ECTS",
+    "colonneMatiere": "Matière",
+    "colonneControle": "Contrôle",
+    "colonneCoeff": "Coeff",
+    "colonneType": "Type"
+  },
+
+  "controle": {
+    "nomLabel": "Nom du contrôle",
+    "coefficientLabel": "Coefficient",
+    "rattrapageLabel": "Rattrapage",
+    "remarqueLabel": "Remarque",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Nom",
+    "colonneCoeff": "Coeff",
+    "colonneRattrapage": "Rattrapage",
+    "colonneRemarque": "Remarque",
+    "exporterLaFiche": "Exporter la fiche",
+    "parametreMatiereIdObligatoire": "Le paramètre matiereId est obligatoire"
+  },
+
+  "notePeriode": {
+    "colonneGpa": "GPA",
+    "nonDelibere": "Non délibéré",
+    "gpaNonCalculable": "GPA non calculable"
+  },
+
+  "noteUe": {
+    "indetermine": "Indéterminé",
+    "colonneGrade": "Grade",
+    "colonneMatiereEliminatoire": "Matière éliminatoire"
+  },
+
+  "noteControle": {
+    "nonEvalueLabel": "Non évalué",
+    "valideeLabel": "Validée",
+    "remarqueLabel": "Remarque",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneEleve": "Élève",
+    "colonneNote": "Note",
+    "nonEvalueAbrege": "N.É.",
+    "colonneValidee": "Validée",
+    "colonneNonEvalue": "Non évalué",
+    "colonneRemarque": "Remarque",
+    "titreNotesDuControle": "Notes du contrôle",
+    "parametreControleIdObligatoire": "Le paramètre controleId est obligatoire"
+  }
+}

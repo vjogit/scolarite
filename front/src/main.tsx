@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './i18n/config';
 import App from './App.tsx'
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from './pages/user/def.tsx';

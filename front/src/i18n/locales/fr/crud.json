@@ -1,0 +1,192 @@
+{
+  "creation": "{{nom}} « {{valeur}} » créé.",
+  "creation_f": "{{nom}} « {{valeur}} » créée.",
+  "creationSansEntite": "« {{valeur}} » créé.",
+
+  "enregistrement": "{{nom}} « {{valeur}} » enregistré.",
+  "enregistrement_f": "{{nom}} « {{valeur}} » enregistrée.",
+  "enregistrementSansEntite": "« {{valeur}} » enregistré.",
+
+  "suppression": "{{nom}} « {{valeur}} » supprimé.",
+  "suppression_f": "{{nom}} « {{valeur}} » supprimée.",
+  "suppressionSansEntite": "« {{valeur}} » supprimé.",
+
+  "miseEnCorbeille": "{{nom}} « {{valeur}} » mis en corbeille.",
+  "miseEnCorbeille_f": "{{nom}} « {{valeur}} » mise en corbeille.",
+  "miseEnCorbeilleSansEntite": "« {{valeur}} » mis en corbeille.",
+
+  "suppressionPluriel": "{{nombre}} {{pluriel}} supprimés.",
+  "suppressionPluriel_f": "{{nombre}} {{pluriel}} supprimées.",
+  "miseEnCorbeillePluriel": "{{nombre}} {{pluriel}} mis en corbeille.",
+  "miseEnCorbeillePluriel_f": "{{nombre}} {{pluriel}} mises en corbeille.",
+
+  "suppressionSansGenre": "{{nombre}} éléments supprimés.",
+  "miseEnCorbeilleSansGenre": "{{nombre}} éléments mis en corbeille.",
+
+  "listeVide": "Aucun {{nom}} enregistré.",
+  "listeVide_f": "Aucune {{nom}} enregistrée.",
+  "listeVideSansEntite": "Aucun élément à afficher.",
+
+  "creationInvite": "Créer un {{nom}}",
+  "creationInvite_f": "Créer une {{nom}}",
+  "creationInviteSansEntite": "Ajouter",
+
+  "actions": {
+    "voir": "Voir",
+    "editer": "Éditer",
+    "supprimer": "Supprimer",
+    "menu": "Actions",
+    "menuLigne": "Actions — {{nom}}",
+    "supprimerSelection": "Supprimer la sélection",
+    "retour": "Retour"
+  },
+
+  "list": {
+    "chargementEchec": "Erreur lors du chargement"
+  },
+
+  "form": {
+    "titreDetails": "Détails",
+    "titreModifier": "Modifier",
+    "titreAjouter": "Ajouter",
+    "retour": "Retour",
+    "annuler": "Annuler",
+    "chargement": "Chargement…",
+    "mettreAJour": "Mettre à jour",
+    "ajouter": "Ajouter"
+  },
+
+  "unsavedDialog": {
+    "titre": "Modifications non enregistrées",
+    "corps": "Les modifications apportées à ce formulaire seront perdues si vous quittez maintenant.",
+    "rester": "Rester sur la page",
+    "quitter": "Quitter sans enregistrer"
+  },
+
+  "deleteDialog": {
+    "motConfirmation": "CONFIRMER",
+    "pluralielGenerique": "éléments",
+    "titreUn": "Supprimer {{libelle}}« {{nom}} » ?",
+    "titrePluriel": "Supprimer {{nombre}} {{pluriel}} ?",
+    "objetsSelectionnes": "Objets sélectionnés :",
+    "etAutres_one": "et {{nombre}} autre",
+    "etAutres_other": "et {{nombre}} autres",
+    "analyseEnCours": "Analyse de l'impact en cours…",
+    "impactEchec": "Impossible d'évaluer l'impact de cette suppression ({{erreur}}). Des données liées peuvent exister et seraient définitivement perdues.",
+    "aucuneDonneeLiee": "Aucune donnée liée.",
+    "cascadeUnContient": "« {{nom}} » contient ",
+    "cascadeSelectionContient": "La sélection contient ",
+    "cascadeCorbeille": "Tout partira en corbeille.",
+    "cascadeDefinitive": "Tout sera définitivement supprimé.",
+    "restaurable": "La suppression est restaurable : un administrateur peut tout rétablir depuis la corbeille, jusqu'à purge définitive.",
+    "detache": "Ne sera pas supprimé, mais perdra son lien : {{liste}}.",
+    "irreversible": "Cette action est irréversible.",
+    "confirmerSaisiePrefixe": "Pour confirmer, saisissez",
+    "confirmationLabel": "Confirmation",
+    "annuler": "Annuler",
+    "supprimer": "Supprimer",
+    "et": "et"
+  },
+
+  "entites": {
+    "formation": {
+      "title": "Formations",
+      "nom": "formation",
+      "nomAvecArticle": "la formation",
+      "nomPluriel": "formations"
+    },
+    "promotion": {
+      "title": "Promotions",
+      "nom": "promotion",
+      "nomAvecArticle": "la promotion",
+      "nomPluriel": "promotions"
+    },
+    "option": {
+      "title": "Options",
+      "nom": "option",
+      "nomAvecArticle": "l'option",
+      "nomPluriel": "options"
+    },
+    "periode": {
+      "title": "Périodes",
+      "nom": "période",
+      "nomAvecArticle": "la période",
+      "nomPluriel": "périodes"
+    },
+    "ue": {
+      "title": "UE",
+      "nom": "UE",
+      "nomAvecArticle": "l'UE",
+      "nomPluriel": "UE"
+    },
+    "matiere": {
+      "title": "Matières",
+      "nom": "matière",
+      "nomAvecArticle": "la matière",
+      "nomPluriel": "matières"
+    },
+    "groupe": {
+      "title": "Groupes",
+      "nom": "groupe",
+      "nomAvecArticle": "le groupe",
+      "nomPluriel": "groupes"
+    },
+    "noteMatiere": {
+      "title": "Moyennes de la matière",
+      "nom": "moyenne",
+      "nomAvecArticle": "la moyenne",
+      "nomPluriel": "moyennes"
+    },
+    "noteUe": {
+      "title": "Moyennes de l'UE",
+      "nom": "moyenne",
+      "nomAvecArticle": "la moyenne",
+      "nomPluriel": "moyennes"
+    },
+    "notePeriode": {
+      "title": "GPA délibéré",
+      "nom": "GPA délibéré",
+      "nomAvecArticle": "le GPA délibéré",
+      "nomPluriel": "GPA délibérés"
+    },
+    "salle": {
+      "title": "Salles",
+      "nom": "salle",
+      "nomAvecArticle": "la salle",
+      "nomPluriel": "salles"
+    },
+    "user": {
+      "title": "Utilisateurs",
+      "nom": "utilisateur",
+      "nomAvecArticle": "l'utilisateur",
+      "nomPluriel": "utilisateurs"
+    },
+    "toic": {
+      "title": "TOEIC",
+      "nom": "résultat TOEIC",
+      "nomAvecArticle": "le résultat TOEIC",
+      "nomPluriel": "résultats TOEIC"
+    },
+    "mobiliteInternationale": {
+      "title": "Mobilité Internationale",
+      "nom": "mobilité",
+      "nomAvecArticle": "la mobilité",
+      "nomPluriel": "mobilités"
+    },
+    "controle": {
+      "title": "Contrôles",
+      "nom": "contrôle",
+      "nomAvecArticle": "le contrôle",
+      "nomPluriel": "contrôles"
+    },
+    "actions": {
+      "gererUe": "Gérer les UE",
+      "gererMatieres": "Gérer les matières",
+      "gererPromotions": "Gérer les promotions",
+      "gererOptions": "Gérer les options",
+      "gererGroupes": "Gérer les groupes",
+      "gererPeriodes": "Gérer les périodes",
+      "gererMembres": "Gérer les membres"
+    }
+  }
+}

@@ -18,6 +18,7 @@ import type { SvgIconProps } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 
 /** Le composant d'icône lui-même, jamais un élément JSX : aucun rendu ici. */
 export type IconeAction = ComponentType<SvgIconProps>;
@@ -78,21 +79,32 @@ export function cibleAction<D extends FieldValues>(
     return action.segment === '' ? base : `${base}/${action.segment}`;
 }
 
-/** Les deux actions que `List.tsx` ajoute à tous les écrans. */
-export const ACTION_VOIR: ActionNavigation<FieldValues> = {
-    id: 'voir',
-    libelle: 'Voir',
-    icone: VisibilityIcon,
-    segment: '',
-};
+/** Stable, contrairement au libellé : sert à repérer l'action « Voir » sans traduction. */
+export const ID_ACTION_VOIR = 'voir';
 
-export const ACTION_EDITER: ActionNavigation<FieldValues> = {
-    id: 'editer',
-    libelle: 'Éditer',
-    icone: EditIcon,
-    segment: 'edit',
-    exigeEcriture: true,
-};
+/**
+ * Les deux actions que `List.tsx` ajoute à tous les écrans. Des fonctions et
+ * non des constantes : leur libellé suit la langue active à chaque appel,
+ * plutôt que de se figer sur celle en cours au chargement du module.
+ */
+function actionVoir<D extends FieldValues>(t: TFunction<'crud'>): ActionNavigation<D> {
+    return {
+        id: ID_ACTION_VOIR,
+        libelle: t('actions.voir', { ns: 'crud' }),
+        icone: VisibilityIcon,
+        segment: '',
+    };
+}
+
+function actionEditer<D extends FieldValues>(t: TFunction<'crud'>): ActionNavigation<D> {
+    return {
+        id: 'editer',
+        libelle: t('actions.editer', { ns: 'crud' }),
+        icone: EditIcon,
+        segment: 'edit',
+        exigeEcriture: true,
+    };
+}
 
 /**
  * Les actions retenues pour une ligne, dans l'ordre stable d'un écran à
@@ -103,6 +115,7 @@ export function actionsDeLaLigne<D extends FieldValues>(
     declarees: readonly ActionLigne<D>[],
     ligne: D,
     ecritureAutorisee: boolean,
+    t: TFunction<'crud'>,
 ): ActionLigne<D>[] {
     const metier = declarees.filter(
         action => (!action.exigeEcriture || ecritureAutorisee)
@@ -110,8 +123,8 @@ export function actionsDeLaLigne<D extends FieldValues>(
     );
 
     const ordonnees: ActionLigne<D>[] = [
-        ACTION_VOIR,
-        ...(ecritureAutorisee ? [ACTION_EDITER] : []),
+        actionVoir<D>(t),
+        ...(ecritureAutorisee ? [actionEditer<D>(t)] : []),
         ...metier,
     ];
 

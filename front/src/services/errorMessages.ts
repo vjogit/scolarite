@@ -1,14 +1,16 @@
 import axios from 'axios';
+import i18n from '../i18n/config';
 
 /**
  * Lecture de l'enveloppe d'erreur RFC 9457 (application/problem+json).
  *
  * Le serveur émet des codes — `code` pour la famille, des motifs en
  * snake_case pour les champs et les lignes d'import — et ce module possède
- * tous les mots. Aucun texte destiné à l'écran ne vient du serveur, à deux
- * exceptions assumées : le `detail` (phrase sûre rédigée côté serveur, jamais
- * un message technique) et le `detail` PostgreSQL des conflits de créneau,
- * que le planning analyse pour retrouver les bornes.
+ * tous les mots (namespace i18next `errors`). Aucun texte destiné à l'écran
+ * ne vient du serveur, à deux exceptions assumées : le `detail` (phrase sûre
+ * rédigée côté serveur, jamais un message technique) et le `detail`
+ * PostgreSQL des conflits de créneau, que le planning analyse pour retrouver
+ * les bornes.
  */
 
 export type ApiErrorCode =
@@ -30,25 +32,10 @@ export type ApiErrorCode =
   | 'PAYLOAD_TOO_LARGE'
   | 'RATE_LIMITED';
 
-export const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
-  NO_INFORMATION:             'Une erreur est survenue.',
-  VALIDATION_ERROR:           'Certains champs du formulaire sont invalides.',
-  OPTIMISTIC_LOCKING_FAILURE: 'Ces données ont été modifiées par un autre utilisateur. Veuillez recharger la page et réessayer.',
-  MISSING_PARAM:              'Un paramètre obligatoire est manquant.',
-  INVALID_PARAM:              'Un paramètre fourni est invalide.',
-  NOT_FOUND:                  'La ressource demandée est introuvable.',
-  BUSINESS_CONFLICT:          'Un conflit a été détecté (créneau ou ressource déjà réservé·e).',
-  INVALID_BODY:               'Le format de la requête est invalide.',
-  INVALID_FILE:               'Le fichier fourni est illisible ou son format est incorrect.',
-  FILE_TOO_LARGE:             'Le fichier dépasse la taille maximale autorisée.',
-  FILE_MISSING:               "Aucun fichier n'a été fourni.",
-  INVALID_FILE_EXTENSION:     "L'extension du fichier n'est pas prise en charge.",
-  INSUFFICIENT_RIGHTS:        "Vous ne disposez pas des droits nécessaires pour effectuer cette action.",
-  INTERNAL_ERROR:             'Une erreur interne est survenue. Veuillez réessayer ultérieurement.',
-  NO_RESULT:                  'Aucun résultat trouvé.',
-  PAYLOAD_TOO_LARGE:          'La requête est trop volumineuse.',
-  RATE_LIMITED:               'Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer.',
-};
+/** Le message générique d'un code d'erreur, dans la langue active. */
+export function errorMessage(code: ApiErrorCode): string {
+  return i18n.t(`codes.${code}`, { ns: 'errors' });
+}
 
 const KNOWN_CODES = new Set<string>([
   'NO_INFORMATION', 'VALIDATION_ERROR', 'OPTIMISTIC_LOCKING_FAILURE',
@@ -89,34 +76,26 @@ export interface LignesRefusees {
   bareme?: number;
 }
 
-const MOTIF_CHAMP_MESSAGES: Record<string, string> = {
-  champ_obligatoire:    'Ce champ est obligatoire',
-  valeur_deja_utilisee: 'Cette valeur est déjà utilisée',
-  valeur_negative:      'La valeur doit être positive',
-  note_max_absolu:      'La note dépasse la valeur maximale autorisée',
-  fin_avant_debut:      'La date de fin doit être après la date de début',
-  echelle_longueur:     "L'échelle doit contenir 5 valeurs",
-  echelle_decroissante: "L'échelle doit être décroissante",
-  echelle_hors_bareme:  "Les seuils de l'échelle ne peuvent pas dépasser le barème",
-};
+/**
+ * `t()` non typé, pour les clés indexées par un identifiant serveur (nom de
+ * champ, motif) — pas énumérable statiquement, donc hors de l'union de clés
+ * que le typage strict des ressources i18next dérive de fr/errors.json.
+ */
+function tDyn(cle: string, options?: Record<string, unknown>): string {
+  return (i18n.t as (key: string, options?: Record<string, unknown>) => string)(cle, { ns: 'errors', ...options });
+}
 
-/** Le sujet de « … n'existe pas » / « … déjà réservé » selon le champ visé. */
-const LIBELLE_REFERENCE: Record<string, string> = {
-  controle_id:           'Le contrôle',
-  user_id:               "L'élève",
-  option_id:             "L'option",
-  periode_id:            'La période',
-  matiere_id:            'La matière',
-  unite_enseignement_id: "L'UE",
-  formation_id:          'La formation',
-  promotion_id:          'La promotion',
-};
+/** Le sujet de « … n'existe pas » selon le champ visé, si le namespace le connaît. */
+function libelleReference(champ: string): string {
+  const cle = `reference.${champ}`;
+  return i18n.exists(cle, { ns: 'errors' }) ? tDyn(cle) : i18n.t('referenceGenerique', { ns: 'errors' });
+}
 
-const LIBELLE_CRENEAU: Record<string, string> = {
-  salles:       'Une ou plusieurs salles sont déjà réservées sur ce créneau',
-  intervenants: 'Un ou plusieurs intervenants sont déjà occupés sur ce créneau',
-  groupes:      'Un ou plusieurs groupes sont déjà planifiés sur ce créneau',
-};
+/** Le sujet de « … déjà réservé » selon le champ visé, si le namespace le connaît. */
+function libelleCreneau(champ: string): string {
+  const cle = `creneau.${champ}`;
+  return i18n.exists(cle, { ns: 'errors' }) ? tDyn(cle) : i18n.t('creneauDejaReserveGenerique', { ns: 'errors' });
+}
 
 /** Formate un nombre sans décimale superflue (« 20 », pas « 20.00 »). */
 function formatBorne(valeur: number): string {
@@ -128,14 +107,16 @@ function messageChamp(champ: string, erreur: ErreurChampBrute): string {
   switch (erreur.motif) {
     case 'note_hors_bareme':
       return erreur.max != null
-        ? `La note doit être comprise entre 0 et ${formatBorne(erreur.max)}`
-        : 'La note dépasse le barème';
+        ? i18n.t('noteHorsBaremeAvecMax', { ns: 'errors', max: formatBorne(erreur.max) })
+        : i18n.t('noteDepasseBareme', { ns: 'errors' });
     case 'reference_inconnue':
-      return `${LIBELLE_REFERENCE[champ] ?? 'La ressource référencée'} n'existe pas`;
+      return i18n.t('referenceInconnue', { ns: 'errors', reference: libelleReference(champ) });
     case 'creneau_deja_reserve':
-      return LIBELLE_CRENEAU[champ] ?? 'Ce créneau est déjà réservé';
-    default:
-      return MOTIF_CHAMP_MESSAGES[erreur.motif] ?? ERROR_MESSAGES.VALIDATION_ERROR;
+      return libelleCreneau(champ);
+    default: {
+      const cle = `motifChamp.${erreur.motif}`;
+      return i18n.exists(cle, { ns: 'errors' }) ? tDyn(cle) : errorMessage('VALIDATION_ERROR');
+    }
   }
 }
 
@@ -143,31 +124,32 @@ function messageChamp(champ: string, erreur: ErreurChampBrute): string {
 export function messageLigneRefusee(l: LigneRefusee, bareme?: number): string {
   switch (l.motif) {
     case 'cellule_invalide':
-      return `« ${l.valeur ?? ''} » n'est pas une note. Laissez la cellule vide s'il n'y a pas de note.`;
+      return i18n.t('ligneRefusee.cellule_invalide', { ns: 'errors', valeur: l.valeur ?? '' });
     case 'note_hors_bareme':
       return bareme != null
-        ? `La note ${l.valeur ?? ''} est hors barème (entre 0 et ${formatBorne(bareme)}).`
-        : `La note ${l.valeur ?? ''} est hors barème.`;
+        ? i18n.t('ligneRefusee.note_hors_bareme_avec_bareme', { ns: 'errors', valeur: l.valeur ?? '', bareme: formatBorne(bareme) })
+        : i18n.t('ligneRefusee.note_hors_bareme_sans_bareme', { ns: 'errors', valeur: l.valeur ?? '' });
     case 'eleve_inconnu':
-      return "L'identifiant ne correspond à aucun élève.";
+      return i18n.t('ligneRefusee.eleve_inconnu', { ns: 'errors' });
     case 'note_sur_eleve_non_evalue': {
       // Forme inclusive courte : le genre n'est pas en base, et le deviner
       // sur un prénom serait se tromper un jour.
       const remarque = l.remarque ? ` (${l.remarque})` : '';
-      return `${l.eleve ?? 'Cet élève'} est déclaré·e non évalué·e${remarque}, mais la fiche porte la note ${l.valeur ?? ''}.`;
+      const eleve = l.eleve ?? i18n.t('ligneRefusee.eleveParDefaut', { ns: 'errors' });
+      return i18n.t('ligneRefusee.note_sur_eleve_non_evalue', { ns: 'errors', eleve, remarque, valeur: l.valeur ?? '' });
     }
     case 'email_manquant':
-      return "L'email est manquant.";
+      return i18n.t('ligneRefusee.email_manquant', { ns: 'errors' });
     case 'nature_invalide':
-      return `Nature inconnue : « ${l.valeur ?? ''} ». Attendu : ELEVE ou AGENT.`;
+      return i18n.t('ligneRefusee.nature_invalide', { ns: 'errors', valeur: l.valeur ?? '' });
     case 'role_inconnu':
-      return `Rôle non attribuable : « ${l.valeur ?? ''} ».`;
+      return i18n.t('ligneRefusee.role_inconnu', { ns: 'errors', valeur: l.valeur ?? '' });
     case 'role_sur_eleve':
-      return 'Un élève ne porte pas de rôle applicatif.';
+      return i18n.t('ligneRefusee.role_sur_eleve', { ns: 'errors' });
     case 'structure_inattendue':
-      return `Structure inattendue : « ${l.valeur ?? ''} » là où un semestre était attendu.`;
+      return i18n.t('ligneRefusee.structure_inattendue', { ns: 'errors', valeur: l.valeur ?? '' });
     default:
-      return ERROR_MESSAGES.INVALID_FILE;
+      return errorMessage('INVALID_FILE');
   }
 }
 
@@ -248,9 +230,9 @@ export function incidentFor(err: unknown): string | null {
 
 export function messageForError(err: unknown): string {
   const code = codeFor(err);
-  const message = code ? ERROR_MESSAGES[code] : 'Une erreur est survenue.';
+  const message = code ? errorMessage(code) : errorMessage('NO_INFORMATION');
   const incident = incidentFor(err);
-  return incident ? `${message} (code incident : ${incident})` : message;
+  return incident ? i18n.t('avecIncident', { ns: 'errors', message, incident }) : message;
 }
 
 // Message précis d'un conflit métier : le serveur renvoie l'extension `reason`

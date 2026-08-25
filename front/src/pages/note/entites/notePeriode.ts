@@ -14,7 +14,9 @@
  * aucun appel de plus quand cet axe a déjà été affiché.
  */
 
+import type { TFunction } from 'i18next';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
 import { ENDPOINT_NOTE_PERIODE, NOTE } from '../def';
 import { nomEleve } from './noteMatiere';
 
@@ -37,8 +39,12 @@ export const createNotePeriodeRepository = (periodeId: string) =>
         getName: (data: NotePeriode) => nomEleve(data),
     });
 
-export const notePeriodeEntite: DescriptionEntite = {
-    title: "GPA délibéré",
-    entityLabel: "le GPA délibéré",
-    entityLabelPlural: "GPA délibérés",
-};
+export function notePeriodeEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.notePeriode.title', { ns: 'crud' }),
+        entityLabel: traduire('entites.notePeriode.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.notePeriode.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.notePeriode.nomPluriel', { ns: 'crud' }),
+    };
+}

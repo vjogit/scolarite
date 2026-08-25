@@ -33,7 +33,7 @@ export function createCatalogHierarchyRoutes() {
         niveaux: {
             [FORMATION]: enrober(CrudFormation, EDITION),
             [PROMOTION]: enrober(CrudPromotion, EDITION),
-            [OPTION]: enrober(CrudOption, { ...EDITION, actionsLigne: [ACTION_GROUPES, ACTION_PERIODES] }),
+            [OPTION]: enrober(CrudOption, { ...EDITION, actionsLigne: [ACTION_GROUPES(), ACTION_PERIODES()] }),
             [PERIODE]: CustomCrudPeriode,
         },
         greffes: [

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Controller } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
 import { MenuItem, TextField } from '@mui/material';
 import { useMemo } from 'react';
@@ -8,12 +9,13 @@ import { ENDPOINT_SALLE, SALLE,  TYPE_SALLE_OPTIONS } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
+import { messageValidation } from '../../i18n/validation';
 
 const salleSchema = z.object({
     id: z.number(),
     version: z.number(),
-    name: z.string().min(1, 'Le nom est obligatoire'),
-    capacite: z.number().min(0, "La capacité doit être positive"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
+    capacite: z.number().min(0, { error: messageValidation('capaciteDoitEtrePositive') }),
     equipement: z.string().nullish(),
     type_salle: z.string().nullish(),
     batiment: z.string().nullish(),
@@ -124,18 +126,21 @@ const salleDatasourceBase = createRepository<Salle>({
 
 export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Salle>) {
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Salle> => ({
         ...salleDatasourceBase,
         ...salleViewConfig,
-        title: 'Salles',
+        title: t('entites.salle.title'),
         roleEcriture: Role.SALLES_ECRITURE,
-        entityLabel: "la salle",
-        entityLabelPlural: "salles",
+        entityLabel: t('entites.salle.nom'),
+        entityLabelAvecArticle: t('entites.salle.nomAvecArticle'),
+        entityLabelPlural: t('entites.salle.nomPluriel'),
+        entityGender: 'f',
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }), [isAction, isTopToolbar, renderTopToolbarCustomActions]);
+    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

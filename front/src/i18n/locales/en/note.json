@@ -1,0 +1,198 @@
+{
+  "commun": {
+    "eleve": "Student",
+    "moyenne": "Average",
+    "remarque": "Remark",
+    "rattrapage": "Resit",
+    "rattrapageValide": "Passed resit",
+    "normal": "Normal",
+    "nonEvalue": "Not assessed",
+    "nonEvaluee": "Not assessed",
+    "validee": "Validated",
+    "coeff": "Coeff",
+    "note": "Grade",
+    "oui": "Yes",
+    "non": "No",
+    "annuler": "Cancel",
+    "fermer": "Close",
+    "exporterLaFiche": "Export sheet",
+    "chargement": "Loading…",
+    "parametreObligatoire": "Parameter {{parametre}} is required."
+  },
+
+  "barreAxes": {
+    "axe": "View"
+  },
+
+  "provenance": {
+    "originRattrapage": "Validation threshold assigned after a passed resit: this value does not correspond to any actual paper.",
+    "nonEvaluee": "Not assessed"
+  },
+
+  "celluleNote": {
+    "rattrapage": "Resit"
+  },
+
+  "ligneNote": {
+    "valeurNumeriqueAttendue": "Numeric value expected",
+    "noteInvalide": "Invalid grade"
+  },
+
+  "noteField": {
+    "noteAvecBareme": "Grade (/{{bareme}})"
+  },
+
+  "routes": {
+    "gererLesNotes": "Manage grades",
+    "gererLesControles": "Manage assessments"
+  },
+
+  "noteChartButton": {
+    "afficherGraphique": "Show grades chart"
+  },
+
+  "ficheImport": {
+    "importerDepuisExcel": "Import grades from Excel",
+    "creeesEtMisesAJour": "{{creees}} grade(s) created, {{misesAJour}} grade(s) updated.",
+    "lignesSansNote": "{{nombre}} row(s) with no grade, left unchanged.",
+    "aucuneNoteImportee": "No grade was imported. Fix the file, then run the import again."
+  },
+
+  "ficheExportModal": {
+    "titre": "Export grade sheet",
+    "groupeLabel": "Student group",
+    "groupePlaceholder": "Search a group…",
+    "telecharger": "Download"
+  },
+
+  "grilleNotes": {
+    "voirNotesEleve": "View student's grades",
+    "notesDuControleParDefaut": "Assessment grades",
+    "coeffChip": "Coeff. {{coeff}}",
+    "baremeChip": "Scale /{{bareme}}",
+    "groupeLabel": "Group",
+    "groupePlaceholder": "Choose a group",
+    "progressionSaisie": "Entry progress",
+    "saisieLabel": "Entered:",
+    "consultationSeule": "Read only: entering grades requires the grades write role.",
+    "raccourciSaisie": "Enter or Tab saves the row and moves to the next student.",
+    "exporterLaFiche": "Export sheet",
+    "contexteOptionIntrouvable": "The option's context could not be found: unable to list groups.",
+    "choisirGroupe": "Choose a group to see its roster and enter grades."
+  },
+
+  "grilleNotesTable": {
+    "ligneVide": "Enter a grade or check \"not assessed\"",
+    "reseauIndisponible": "Server unreachable. Your entry is kept — retry saving.",
+    "conflitVersion": "This grade was changed elsewhere. Reload the row before saving again.",
+    "noteSupprimee": "Grade for {{nom}} {{prenom}} deleted.",
+    "supprimerLaNote": "Delete grade",
+    "effectifIntrouvable": "Unable to load the group's roster.",
+    "aucunEleveRattache": "This group has no student attached to this assessment.",
+    "grilleAriaLabel": "Grade entry grid",
+    "colonneValidee": "Validated",
+    "colonneEtat": "Status",
+    "colonneActions": "Actions",
+    "noteEleveAriaLabel": "Grade for {{eleve}}",
+    "nonEvaluePourEleveAriaLabel": "Not assessed for {{eleve}}",
+    "valideePourEleveAriaLabel": "Validated for {{eleve}}",
+    "remarquePourEleveAriaLabel": "Remark for {{eleve}}",
+    "declareNonEvalue": "marked not assessed",
+    "sansValeur": "no value",
+    "notee": "graded {{valeur}}",
+    "supprimerLaNoteTitre": "Delete this grade?",
+    "confirmationSuppressionPrefixe": "The grade for",
+    "confirmationSuppressionSuffixe": "({{valeur}}) will be permanently deleted. This action cannot be undone.",
+    "conseilNonEvalue": "To report an absence, check \"N.A.\" instead of deleting: otherwise the row disappears from calculations as if it had never existed.",
+    "enregistrementEnCoursAriaLabel": "Saving in progress for {{eleve}}",
+    "enregistreeTitre": "Saved",
+    "noteEnregistreePourEleveAriaLabel": "Grade saved for {{eleve}}",
+    "modifieePasEnregistreeTitre": "Changed, not yet saved",
+    "modificationNonEnregistreePourEleveAriaLabel": "Unsaved change for {{eleve}}",
+    "echecEnregistrement": "Failed to save",
+    "reessayerPourEleveAriaLabel": "Retry saving for {{eleve}}",
+    "conflitDeVersion": "Version conflict",
+    "rechargerLigneDeEleveAriaLabel": "Reload {{eleve}}'s row"
+  },
+
+  "noteChartModal": {
+    "eleveParDefaut": "Student",
+    "nombreDeleves": "Number of students: {{count}}",
+    "noteTooltip": "Grade: {{note}} / 20",
+    "titre": "Class results analysis",
+    "moyenne": "Average",
+    "mediane": "Median",
+    "tauxReussite": "Pass Rate",
+    "noteMax": "Max Grade",
+    "noteMin": "Min Grade",
+    "ongletProgression": "1. Progression Curve",
+    "ongletDistribution": "2. Distribution (Brackets)",
+    "ongletDispersion": "3. Overall Spread",
+    "moyenneReferenceLine": "Average ({{moyenne}})",
+    "axeNombreEleves": "No. of students",
+    "axeElevesNom": "Student",
+    "axeElevesLabel": "Students (alphabetical order)"
+  },
+
+  "noteEleveAxe": {
+    "aucunElevePeriode": "No student graded in this period",
+    "eleveLabel": "Student of the period",
+    "elevePlaceholder": "Choose a student",
+    "tousLesEleves": "All students",
+    "choisirEleveInfo": "Choose a student to see their transcript. The list offers the period's roster; \"All students\" searches beyond it.",
+    "aucuneNoteInfo": "This student has no grade recorded. Grades are entered from the Assessment view.",
+    "periodesRelevAriaLabel": "Transcript periods",
+    "aucunGpaInfo": "No GPA: this period has not been deliberated.",
+    "nonCalcule": "not calculated",
+    "gpaPeriode": "Period GPA: {{valeur}}",
+    "gpaAcademique": "Academic GPA: {{valeur}}",
+    "ectsChip": "{{valeur}} ECTS",
+    "colonneMatiere": "Subject",
+    "colonneControle": "Assessment",
+    "colonneCoeff": "Coeff",
+    "colonneType": "Type"
+  },
+
+  "controle": {
+    "nomLabel": "Assessment name",
+    "coefficientLabel": "Coefficient",
+    "rattrapageLabel": "Resit",
+    "remarqueLabel": "Remark",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneNom": "Name",
+    "colonneCoeff": "Coeff",
+    "colonneRattrapage": "Resit",
+    "colonneRemarque": "Remark",
+    "exporterLaFiche": "Export sheet",
+    "parametreMatiereIdObligatoire": "Parameter matiereId is required"
+  },
+
+  "notePeriode": {
+    "colonneGpa": "GPA",
+    "nonDelibere": "Not deliberated",
+    "gpaNonCalculable": "GPA not calculable"
+  },
+
+  "noteUe": {
+    "indetermine": "Undetermined",
+    "colonneGrade": "Grade",
+    "colonneMatiereEliminatoire": "Eliminatory subject"
+  },
+
+  "noteControle": {
+    "nonEvalueLabel": "Not assessed",
+    "valideeLabel": "Validated",
+    "remarqueLabel": "Remark",
+    "colonneId": "ID",
+    "colonneVersion": "Version",
+    "colonneEleve": "Student",
+    "colonneNote": "Grade",
+    "nonEvalueAbrege": "N.A.",
+    "colonneValidee": "Validated",
+    "colonneNonEvalue": "Not assessed",
+    "colonneRemarque": "Remark",
+    "titreNotesDuControle": "Assessment grades",
+    "parametreControleIdObligatoire": "Parameter controleId is required"
+  }
+}

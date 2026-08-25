@@ -8,28 +8,31 @@
  */
 
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
 import { ENDPOINT_PROMOTION, OPTION, PROMOTION, STRUCTURE, ENDPOINT_PROMOTION_DELETE_IMPACT } from '../def';
 import { IsValidEchelle } from '../service';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 const echelleRegexReelsLettresFixes = /^(a=[0-9]+(\.[0-9]+)?)(,b=[0-9]+(\.[0-9]+)?)(,c=[0-9]+(\.[0-9]+)?)(,d=[0-9]+(\.[0-9]+)?)(,e=[0-9]+(\.[0-9]+)?)(,f=[0-9]+(\.[0-9]+)?)$/;
-const erreurEchelle_gpa = "Le format n'est pas correct (ex: a=4,b=3.5,c=3,d=2.5,e=2,f=0)" 
+const messageEchelleGpaInvalide = messageValidation('echelleFormatGpa');
 const echelleRegexReelsLettresFixesUe = /^(a=[0-9]+(\.[0-9]+)?)(,b=[0-9]+(\.[0-9]+)?)(,c=[0-9]+(\.[0-9]+)?)(,d=[0-9]+(\.[0-9]+)?)(,e=[0-9]+(\.[0-9]+)?)$/;
-const erreurEchelleUe = "Le format n'est pas correct (ex: a=16.0,b=14.0,c=12.0,d=10.0,e=8.0)"
+const messageEchelleUeInvalide = messageValidation('echelleFormatUe');
 
 export const promotionSchema = z.object({
     id: z.number(), // L'ID est optionnel car absent lors de la création
     version: z.number(), // L'ID est optionnel car absent lors de la création
-    name: z.string().min(1, "Le nom est requis"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
     debut: z.coerce.date(),
     fin: z.coerce.date(),
     echelle_gpa: z.union([
         z.string().superRefine((echelle, ctx) => {
-            const error = IsValidEchelle(echelle, echelleRegexReelsLettresFixes, erreurEchelle_gpa);
+            const error = IsValidEchelle(echelle, echelleRegexReelsLettresFixes, messageEchelleGpaInvalide);
             if (error) {
                 ctx.addIssue({
                     code: "custom",
@@ -41,7 +44,7 @@ export const promotionSchema = z.object({
     ]),
     echelle: z.union([
         z.string().superRefine((echelle, ctx) => {
-            const error = IsValidEchelle(echelle, echelleRegexReelsLettresFixesUe, erreurEchelleUe);
+            const error = IsValidEchelle(echelle, echelleRegexReelsLettresFixesUe, messageEchelleUeInvalide);
             if (error) {
                 ctx.addIssue({
                     code: "custom",
@@ -51,13 +54,13 @@ export const promotionSchema = z.object({
         }).transform((val) => val.split(',').map(part => parseFloat(part.split('=')[1] ?? ''))),
         z.array(z.number())
     ]),
-    bareme: z.number({ message: "Le barème est requis" })
-        .positive("Le barème doit être strictement positif"),
+    bareme: z.number({ error: messageValidation('baremeRequis') })
+        .positive({ error: messageValidation('baremeStrictementPositif') }),
     matiere_eliminatoire: z.boolean().nullable().optional(),
-    value_matiere_eliminatoire: z.number().min(0, "La note doit être positive").nullable().optional(),
+    value_matiere_eliminatoire: z.number().min(0, { error: messageValidation('noteDoitEtrePositive') }).nullable().optional(),
     formation_id: z.number(),
 }).refine((data) => data.fin > data.debut, {
-    message: "La date de fin doit être postérieure à la date de début",
+    error: messageValidation('dateFinApresDebut'),
     path: ["fin"], // L'erreur sera attachée au champ 'fin'
 }).refine((data) => {
     if (data.matiere_eliminatoire) {
@@ -65,7 +68,7 @@ export const promotionSchema = z.object({
     }
     return true;
 }, {
-    message: "La note éliminatoire est requise si l'option est activée.",
+    error: messageValidation('noteEliminatoireRequise'),
     path: ["value_matiere_eliminatoire"],
 }).refine((data) => {
     // Miroir de la contrainte SQL chk_promotion_echelle_bareme. echelle est déjà
@@ -74,7 +77,7 @@ export const promotionSchema = z.object({
     const [premierSeuil] = seuils;
     return premierSeuil === undefined || premierSeuil <= data.bareme;
 }, {
-    message: "Les seuils de l'échelle ne peuvent pas dépasser le barème",
+    error: messageValidation('seuilsEchelleDepassentBareme'),
     path: ["echelle"],
 });
 
@@ -92,19 +95,26 @@ export const createPromotionRepository = (formationId: string) => {
 }
 
 /** Descente vers les options de la promotion. */
-export const ACTION_OPTIONS: ActionNavigation<FieldValues> = {
-    id: 'options',
-    libelle: 'Gérer les options',
-    icone: ListAltIcon,
-    segment: OPTION,
-};
+export function ACTION_OPTIONS(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return {
+        id: 'options',
+        libelle: tCrud(t)('entites.actions.gererOptions', { ns: 'crud' }),
+        icone: ListAltIcon,
+        segment: OPTION,
+    };
+}
 
 /** Ce que la promotion est, quel que soit l'écran qui l'affiche. */
-export const promotionEntite: DescriptionEntite = {
-    title: "Promotions",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "la promotion",
-    entityLabelPlural: "promotions",
-    deleteRequiresNameConfirmation: true,
-    suppressionEnCorbeille: true,
-};
+export function promotionEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.promotion.title', { ns: 'crud' }),
+        roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: traduire('entites.promotion.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.promotion.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.promotion.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+        deleteRequiresNameConfirmation: true,
+        suppressionEnCorbeille: true,
+    };
+}

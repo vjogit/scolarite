@@ -3,6 +3,8 @@ import { useParams } from 'react-router';
 import { useMemo } from "react";
 import { z } from 'zod';
 import { useWatch } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { TextField, FormControlLabel, Switch, Typography, Box, Skeleton } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
 import { Controller } from 'react-hook-form';
@@ -19,6 +21,7 @@ import type { Controle } from './Controle';
 import { bornesNote, createNoteField, libelleNote } from './noteField';
 import { GrilleNotes } from './GrilleNotes';
 import { Role } from '../user/def';
+import { messageValidation } from '../../i18n/validation';
 
 const createNoteControleSchema = (bareme?: number) => z.object({
     id: z.number(),
@@ -29,7 +32,7 @@ const createNoteControleSchema = (bareme?: number) => z.object({
     not_evaluated: z.boolean().default(false),
     controle_id: z.number(),
     user_id: z.number({
-        message: "Veuillez sélectionner un élève"
+        error: messageValidation('selectionnerEleve')
     }),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
@@ -40,7 +43,7 @@ const createNoteControleSchema = (bareme?: number) => z.object({
     if (!data.not_evaluated && (data.note == null || isNaN(data.note))) return false;
     return true;
 }, {
-    message: "La note est obligatoire",
+    error: messageValidation('noteObligatoire'),
     path: ["note"],
 });
 
@@ -49,6 +52,7 @@ export type NoteControle = z.infer<ReturnType<typeof createNoteControleSchema>>;
 const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
     ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<NoteControle>) => {
         const notEvaluated = useWatch({ control, name: 'not_evaluated' });
+        const { t } = useTranslation('note');
         return (
             <>
                 <UserSelector
@@ -77,7 +81,7 @@ const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
                             )}
                         />
                     }
-                    label="Non évalué"
+                    label={t('noteControle.nonEvalueLabel')}
                     sx={{ mb: 2, display: 'block' }}
                 />
 
@@ -108,13 +112,13 @@ const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
                                 )}
                             />
                         }
-                        label="Validée"
+                        label={t('noteControle.valideeLabel')}
                         sx={{ mb: 2, display: 'block' }}
                     />
                 )}
                 <TextField
                     {...register("remarque")}
-                    label="Remarque"
+                    label={t('noteControle.remarqueLabel')}
                     variant="outlined"
                     fullWidth
                     multiline
@@ -128,36 +132,36 @@ const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
         );
     };
 
-const createNoteControleColumns = (isRattrapage: boolean): MRT_ColumnDef<NoteControle>[] => [
-    { accessorKey: 'id', header: 'ID' },
-    { accessorKey: 'version', header: 'Version' },
+const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>): MRT_ColumnDef<NoteControle>[] => [
+    { accessorKey: 'id', header: t('noteControle.colonneId') },
+    { accessorKey: 'version', header: t('noteControle.colonneVersion') },
     {
         accessorFn: (row) => `${row.lastName ?? ''} ${row.firstName ?? ''}`,
-        header: 'Élève',
+        header: t('noteControle.colonneEleve'),
     },
     {
         accessorKey: 'note',
-        header: 'Note',
+        header: t('commun.note'),
         Cell: ({ cell, row }) => {
-            if (row.original.not_evaluated) return 'N.E.';
+            if (row.original.not_evaluated) return t('noteControle.nonEvalueAbrege');
             const valeur = cell.getValue<number | null>();
             return valeur != null ? valeur.toFixed(2) : '-';
         }
     },
     ...(isRattrapage ? [{
         accessorKey: 'is_validated' as const,
-        header: 'Validée',
-        Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? 'Oui' : 'Non',
+        header: t('noteControle.colonneValidee'),
+        Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : t('commun.non'),
     }] : []),
-    { accessorKey: 'not_evaluated', header: 'Non évalué', Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? 'Oui' : '-' },
-    { accessorKey: 'remarque', header: 'Remarque' },
+    { accessorKey: 'not_evaluated', header: t('noteControle.colonneNonEvalue'), Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : '-' },
+    { accessorKey: 'remarque', header: t('noteControle.colonneRemarque') },
 ];
 
-const noteControleViewConfig = (controleId: string, isRattrapage: boolean, bareme?: number): ViewConfig<NoteControle> => {
+const noteControleViewConfig = (controleId: string, isRattrapage: boolean, t: TFunction<'note'>, bareme?: number): ViewConfig<NoteControle> => {
     return {
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
-        columns: createNoteControleColumns(isRattrapage),
+        columns: createNoteControleColumns(isRattrapage, t),
         render: createNoteControleFields(isRattrapage, bareme),
     }
 };
@@ -175,6 +179,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
     const { controleId, optionId } = useParams();
     const { chartOpen, setChartOpen, chartData, handleOpenChart } = useNoteChart<NoteControle>();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('note');
 
     // Le contrôle porte is_rattrapage et le barème de sa promotion : un seul
     // appel, celui qui existait déjà, suffit à alimenter les deux.
@@ -190,8 +195,8 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
 
     const datasource = useMemo((): Datasource<NoteControle> | null => controleId ? ({
         ...createNoteControleRepository(controleId),
-        ...noteControleViewConfig(controleId, isRattrapage, bareme),
-        title: "Notes du contrôle",
+        ...noteControleViewConfig(controleId, isRattrapage, t, bareme),
+        title: t('noteControle.titreNotesDuControle'),
         roleEcriture: Role.NOTES_ECRITURE,
         isAction,
         actionsLigne,
@@ -202,12 +207,12 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
                 <NoteChartButton onClick={() => { handleOpenChart(table); }} />
             </Box>
         )
-    }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart]);
+    }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!controleId || !datasource) return (
-        <Typography>Le paramètre controleId est obligatoire</Typography>
+        <Typography>{t('noteControle.parametreControleIdObligatoire')}</Typography>
     )
 
     // On attend le contrôle avant de monter le formulaire : sans le barème, le

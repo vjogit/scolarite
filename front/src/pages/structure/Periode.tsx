@@ -1,6 +1,7 @@
 import { TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import { Controller } from 'react-hook-form';
@@ -16,7 +17,7 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
     <>
         <TextField
             {...register("name")}
-            label="Nom de l'periode"
+            label="Nom de la période"
             variant="outlined"
             fullWidth
             disabled={isReadOnly}
@@ -112,17 +113,18 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
 
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Periode> | null => optionId ? ({
         ...createPeriodeRepository(optionId),
         ...createPeriodeViewConfig(optionId),
-        ...periodeEntite,
+        ...periodeEntite(t),
         isAction,
-        actionsLigne: actionsLigne ?? [ACTION_UES],
+        actionsLigne: actionsLigne ?? [ACTION_UES(t)],
         isTopToolbar,
         renderTopToolbarCustomActions,
         isReadOnly,
-    }) : null, [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly]);
+    }) : null, [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

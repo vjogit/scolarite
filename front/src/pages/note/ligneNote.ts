@@ -8,6 +8,7 @@
  */
 
 import type { createNoteField } from './noteField';
+import i18n from '../../i18n/config';
 
 /** Schéma de validation du barème, construit une fois par `createNoteField`. */
 export type ChampNote = ReturnType<typeof createNoteField>;
@@ -185,12 +186,12 @@ export function analyserNote(texte: string, champ: ChampNote): ResultatNote {
 
     const valeur = Number(brut);
     if (!Number.isFinite(valeur)) {
-        return { ok: false, message: 'Valeur numérique attendue' };
+        return { ok: false, message: i18n.t('ligneNote.valeurNumeriqueAttendue', { ns: 'note' }) };
     }
 
     const verdict = champ.safeParse(valeur);
     if (!verdict.success) {
-        return { ok: false, message: verdict.error.issues[0]?.message ?? 'Note invalide' };
+        return { ok: false, message: verdict.error.issues[0]?.message ?? i18n.t('ligneNote.noteInvalide', { ns: 'note' }) };
     }
     return { ok: true, valeur };
 }

@@ -8,12 +8,13 @@
 
 import { CONTROLE, ENDPOINT_CONTROLE, RESULTAT } from '../def';
 import { createRepository } from '../../../services/crud/def';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 export const controleSchema = z.object({
     id: z.number(),
     version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
     coeff: z.preprocess(
         (val) => (Number.isNaN(val as number) ? undefined : val),
         z.number().nullable().optional()

@@ -10,6 +10,8 @@
 import { useRef, useCallback, useState } from 'react';
 import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_BASE, NOTE } from './def';
 import { notifyBlocking, notifyError, notifyPartialSuccess } from '../../services/notify';
@@ -18,6 +20,7 @@ import {
     type LignesRefusees,
 } from '../../services/errorMessages';
 import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
+import i18n from '../../i18n/config';
 
 interface ImportFicheResult {
     controle_id: number;
@@ -28,7 +31,9 @@ interface ImportFicheResult {
 }
 
 /** Partagé par le bouton de la grille et l'entrée de menu des contrôles. */
-export const LIBELLE_IMPORT_FICHE = 'Importer les notes depuis Excel';
+export function libelleImportFiche(t?: TFunction<'note'>): string {
+    return (t ?? (i18n.t as unknown as TFunction<'note'>))('ficheImport.importerDepuisExcel', { ns: 'note' });
+}
 
 /**
  * Import d'une fiche de notes, sans son bouton.
@@ -41,6 +46,7 @@ export const LIBELLE_IMPORT_FICHE = 'Importer les notes depuis Excel';
 export function useFicheImport() {
     const notifications = useNotifications();
     const queryClient = useQueryClient();
+    const { t } = useTranslation('note');
     const fileInputRef = useRef<HTMLInputElement>(null);
     // Le contrôle visé est fixé au clic : un seul champ sert toutes les lignes.
     const controleRef = useRef<number | null>(null);
@@ -74,11 +80,11 @@ export function useFicheImport() {
             // symptôme d'une fiche vierge ou d'un fichier qu'on s'est trompé
             // d'envoyer, et il ne doit pas passer pour un succès.
             const { created, updated, ignorees } = res.data;
-            const traitees = `${String(created)} note(s) créée(s), ${String(updated)} note(s) mise(s) à jour.`;
+            const traitees = t('ficheImport.creeesEtMisesAJour', { creees: created, misesAJour: updated });
             notifyPartialSuccess(
                 notifications,
                 ignorees > 0
-                    ? `${traitees} ${String(ignorees)} ligne(s) sans note, laissée(s) inchangée(s).`
+                    ? `${traitees} ${t('ficheImport.lignesSansNote', { nombre: ignorees })}`
                     : traitees,
                 created + updated > 0,
             );
@@ -105,7 +111,7 @@ export function useFicheImport() {
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [notifications, queryClient]);
+    }, [notifications, queryClient, t]);
 
     const declencher = useCallback((controleId: number) => {
         controleRef.current = controleId;
@@ -123,7 +129,7 @@ export function useFicheImport() {
             />
             <LignesRefuseesDialog
                 refus={refus}
-                sousTitre="Aucune note n'a été importée. Corrigez le fichier puis relancez l'import."
+                sousTitre={t('ficheImport.aucuneNoteImportee')}
                 onClose={() => { setRefus(null); }}
             />
         </>

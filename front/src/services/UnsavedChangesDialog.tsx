@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Button,
     Dialog,
@@ -24,6 +25,7 @@ interface Props {
  * nomment donc leur conséquence.
  */
 export function UnsavedChangesDialog({ open, onStay, onLeave }: Props) {
+    const { t } = useTranslation('crud');
     const resterRef = useRef<HTMLButtonElement>(null);
 
     return (
@@ -39,23 +41,22 @@ export function UnsavedChangesDialog({ open, onStay, onLeave }: Props) {
             slotProps={{ transition: { onEntered: () => { resterRef.current?.focus(); } } }}
         >
             <DialogTitle id="unsaved-changes-dialog-title">
-                Modifications non enregistrées
+                {t('unsavedDialog.titre')}
             </DialogTitle>
 
             <DialogContent>
                 <DialogContentText>
-                    Les modifications apportées à ce formulaire seront perdues si vous quittez
-                    maintenant.
+                    {t('unsavedDialog.corps')}
                 </DialogContentText>
             </DialogContent>
 
             <DialogActions>
                 {/* Le focus initial va sur l'action qui préserve le travail. */}
                 <Button ref={resterRef} onClick={onStay}>
-                    Rester sur la page
+                    {t('unsavedDialog.rester')}
                 </Button>
                 <Button onClick={onLeave} color="error">
-                    Quitter sans enregistrer
+                    {t('unsavedDialog.quitter')}
                 </Button>
             </DialogActions>
         </Dialog>

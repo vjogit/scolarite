@@ -1,6 +1,7 @@
 import { TextField, FormControlLabel, Switch, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { Controller, useWatch } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -103,7 +104,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         // peut se perdre. Le repli est ce qui le garde contrôlé.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
-                        label="Echelle GPA"
+                        label="Échelle GPA"
                         variant="outlined"
                         fullWidth
                         disabled={isReadOnly}
@@ -131,7 +132,7 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
                         // peut se perdre. Le repli est ce qui le garde contrôlé.
                         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         value={displayValue ?? ''}
-                        label="Echelle"
+                        label="Échelle"
                         variant="outlined"
                         fullWidth
                         disabled={isReadOnly}
@@ -231,17 +232,18 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
 
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Promotion> | null => formationId ? ({
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId),
-        ...promotionEntite,
+        ...promotionEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_OPTIONS],
+        actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t)],
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions]);
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

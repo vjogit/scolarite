@@ -10,17 +10,20 @@
 
 import GroupsIcon from '@mui/icons-material/Groups';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
 import { ENDPOINT_OPTION, GROUPE, OPTION, PERIODE, STRUCTURE, ENDPOINT_OPTION_DELETE_IMPACT } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 export const optionSchema = z.object({
     id: z.number(), // L'ID est optionnel car absent lors de la création
     version: z.number(), // L'ID est optionnel car absent lors de la création
-    name: z.string().min(1, "Le nom est requis"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
     promotion_id: z.number(),
 })
 
@@ -38,27 +41,35 @@ export const createOptionRepository = (promotionId: string) => {
 }
 
 /** Descente vers les groupes de l'option. */
-export const ACTION_GROUPES: ActionNavigation<FieldValues> = {
-    id: 'groupes',
-    libelle: 'Gérer les groupes',
-    icone: GroupsIcon,
-    segment: GROUPE,
-};
+export function ACTION_GROUPES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return {
+        id: 'groupes',
+        libelle: tCrud(t)('entites.actions.gererGroupes', { ns: 'crud' }),
+        icone: GroupsIcon,
+        segment: GROUPE,
+    };
+}
 
 /** Descente vers les périodes de l'option. */
-export const ACTION_PERIODES: ActionNavigation<FieldValues> = {
-    id: 'periodes',
-    libelle: 'Gérer les périodes',
-    icone: ListAltIcon,
-    segment: PERIODE,
-};
+export function ACTION_PERIODES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
+    return {
+        id: 'periodes',
+        libelle: tCrud(t)('entites.actions.gererPeriodes', { ns: 'crud' }),
+        icone: ListAltIcon,
+        segment: PERIODE,
+    };
+}
 
 /** Ce que l'option est, quel que soit l'écran qui l'affiche. */
-export const optionEntite: DescriptionEntite = {
-    title: "Options",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "l'option",
-    entityLabelPlural: "options",
-    suppressionEnCorbeille: true,
-    entityGender: 'f',
-};
+export function optionEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.option.title', { ns: 'crud' }),
+        roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: traduire('entites.option.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.option.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.option.nomPluriel', { ns: 'crud' }),
+        suppressionEnCorbeille: true,
+        entityGender: 'f',
+    };
+}

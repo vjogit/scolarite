@@ -16,6 +16,7 @@ import { useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery, skipToken } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     Alert, Autocomplete, Box, Chip, FormControlLabel, Paper, Stack, Switch, Tab, Table,
     TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
@@ -28,7 +29,7 @@ import {
 } from './entites/noteEleve';
 import { createNotePeriodeRepository } from './entites/notePeriode';
 import { nomEleve } from './entites/noteMatiere';
-import { formatNote, LIBELLE_NON_EVALUEE, ORIGINE_RATTRAPAGE } from './provenance';
+import { formatNote, libelleNonEvaluee, origineRattrapage } from './provenance';
 
 /** Voir `CelluleNote.tsx` : une puce tient dans une colonne, sa phrase non. */
 const POUR_LECTEUR_ECRAN = {
@@ -53,6 +54,7 @@ export function AxeNoteEleve() {
     const { periodeId, eleveId } = useParams();
     const navigate = useNavigate();
     const { pathname } = useLocation();
+    const { t } = useTranslation('note');
 
     const [tousLesEleves, setTousLesEleves] = useState(false);
     // `null` tant que l'utilisateur n'a pas choisi d'onglet : le défaut vient
@@ -169,9 +171,9 @@ export function AxeNoteEleve() {
                         onChange={(_, valeur) => {
                             if (valeur) allerVers(Number(valeur.identifiant));
                         }}
-                        noOptionsText="Aucun élève noté sur cette période"
+                        noOptionsText={t('noteEleveAxe.aucunElevePeriode')}
                         renderInput={(params) => (
-                            <TextField {...params} label="Élève de la période" placeholder="Choisir un élève" />
+                            <TextField {...params} label={t('noteEleveAxe.eleveLabel')} placeholder={t('noteEleveAxe.elevePlaceholder')} />
                         )}
                     />
                 )}
@@ -183,23 +185,21 @@ export function AxeNoteEleve() {
                             onChange={(event) => { setTousLesEleves(event.target.checked); }}
                         />
                     )}
-                    label="Tous les élèves"
+                    label={t('noteEleveAxe.tousLesEleves')}
                 />
             </Stack>
 
             {eleveId === undefined && (
                 <Alert severity="info">
-                    Choisissez un élève pour afficher son relevé. La liste propose l'effectif
-                    de la période ; « Tous les élèves » cherche au-delà.
+                    {t('noteEleveAxe.choisirEleveInfo')}
                 </Alert>
             )}
 
-            {eleveId !== undefined && isLoading && <Typography>Chargement…</Typography>}
+            {eleveId !== undefined && isLoading && <Typography>{t('commun.chargement')}</Typography>}
 
             {eleveId !== undefined && !isLoading && periodes.length === 0 && (
                 <Alert severity="info">
-                    Cet élève n'a aucune note enregistrée. Les notes se saisissent depuis
-                    l'axe Contrôle.
+                    {t('noteEleveAxe.aucuneNoteInfo')}
                 </Alert>
             )}
 
@@ -210,7 +210,7 @@ export function AxeNoteEleve() {
                         onChange={(_, valeur: number) => { setOngletChoisi(valeur); }}
                         variant="scrollable"
                         scrollButtons="auto"
-                        aria-label="Périodes du relevé"
+                        aria-label={t('noteEleveAxe.periodesRelevAriaLabel')}
                     >
                         {periodes.map(periode => <Tab key={periode.id} label={periode.nom} />)}
                     </Tabs>
@@ -234,38 +234,40 @@ export function AxeNoteEleve() {
  * incomplet : le dénominateur est un `NULLIF`, et une absence se dit.
  */
 function ChipsGpa({ gpa }: { gpa: { gpa_periode: number | null; gpa_academique_periode: number | null } | undefined }) {
+    const { t } = useTranslation('note');
     if (!gpa) {
         return (
             <Typography variant="body2" color="text.secondary">
-                Aucun GPA : cette période n'a pas été délibérée.
+                {t('noteEleveAxe.aucunGpaInfo')}
             </Typography>
         );
     }
-    const texte = (valeur: number | null) => valeur == null ? 'non calculé' : formatNote.format(valeur);
+    const texte = (valeur: number | null) => valeur == null ? t('noteEleveAxe.nonCalcule') : formatNote.format(valeur);
     return (
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Chip label={`GPA période : ${texte(gpa.gpa_periode)}`} color="primary" />
-            <Chip label={`GPA académique : ${texte(gpa.gpa_academique_periode)}`} color="secondary" />
+            <Chip label={t('noteEleveAxe.gpaPeriode', { valeur: texte(gpa.gpa_periode) })} color="primary" />
+            <Chip label={t('noteEleveAxe.gpaAcademique', { valeur: texte(gpa.gpa_academique_periode) })} color="secondary" />
         </Box>
     );
 }
 
 function TableauUe({ ue, lignes }: { ue: string; lignes: NoteEleveLigne[] }) {
+    const { t } = useTranslation('note');
     return (
         <Box>
             <Typography variant="subtitle1" sx={{ mb: 0.5, fontWeight: 600 }}>
                 {ue}
-                <Chip label={`${String(lignes[0]?.unite_enseignement_ects ?? 0)} ECTS`} size="small" sx={{ ml: 1 }} />
+                <Chip label={t('noteEleveAxe.ectsChip', { valeur: String(lignes[0]?.unite_enseignement_ects ?? 0) })} size="small" sx={{ ml: 1 }} />
             </Typography>
             <TableContainer component={Paper} variant="outlined">
                 <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
                     <TableHead>
                         <TableRow>
-                            <TableCell sx={{ width: '28%' }}>Matière</TableCell>
-                            <TableCell sx={{ width: '25%' }}>Contrôle</TableCell>
-                            <TableCell align="center" sx={{ width: '9%' }}>Coeff</TableCell>
-                            <TableCell align="center" sx={{ width: '16%' }}>Note</TableCell>
-                            <TableCell align="center" sx={{ width: '22%' }}>Type</TableCell>
+                            <TableCell sx={{ width: '28%' }}>{t('noteEleveAxe.colonneMatiere')}</TableCell>
+                            <TableCell sx={{ width: '25%' }}>{t('noteEleveAxe.colonneControle')}</TableCell>
+                            <TableCell align="center" sx={{ width: '9%' }}>{t('noteEleveAxe.colonneCoeff')}</TableCell>
+                            <TableCell align="center" sx={{ width: '16%' }}>{t('commun.note')}</TableCell>
+                            <TableCell align="center" sx={{ width: '22%' }}>{t('noteEleveAxe.colonneType')}</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -290,7 +292,7 @@ function CelluleNote({ ligne }: { ligne: NoteEleveLigne }) {
     if (ligne.not_evaluated || ligne.note == null) {
         return (
             <Typography component="span" variant="body2" color="text.secondary">
-                {LIBELLE_NON_EVALUEE}
+                {libelleNonEvaluee()}
             </Typography>
         );
     }
@@ -304,12 +306,13 @@ function CelluleNote({ ligne }: { ligne: NoteEleveLigne }) {
  * correspond à aucune copie.
  */
 function CelluleType({ ligne }: { ligne: NoteEleveLigne }) {
-    if (!ligne.is_rattrapage) return <Chip label="Normal" size="small" />;
-    if (!ligne.is_validated) return <Chip label="Rattrapage" size="small" color="secondary" />;
+    const { t } = useTranslation('note');
+    if (!ligne.is_rattrapage) return <Chip label={t('commun.normal')} size="small" />;
+    if (!ligne.is_validated) return <Chip label={t('commun.rattrapage')} size="small" color="secondary" />;
     return (
         <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center' }}>
-            <Chip label="Rattrapage validé" size="small" color="success" />
-            <Box component="span" sx={POUR_LECTEUR_ECRAN}>{ORIGINE_RATTRAPAGE}</Box>
+            <Chip label={t('commun.rattrapageValide')} size="small" color="success" />
+            <Box component="span" sx={POUR_LECTEUR_ECRAN}>{origineRattrapage()}</Box>
         </Box>
     );
 }

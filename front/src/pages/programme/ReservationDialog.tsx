@@ -9,7 +9,7 @@ import {
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import dayjs, { type Dayjs } from 'dayjs';
 import { apiInstance } from '../../services/api';
-import { conflitsDetaillesFor, ERROR_MESSAGES } from '../../services/errorMessages';
+import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
 import type { ReservationDetail } from './def';
 
 // ─── Types référentiels ───────────────────────────────────────────────────────
@@ -149,11 +149,11 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         if (Object.keys(errors).length === 0) return;
 
         const msgs = Object.entries(errors).map(([field, err]) => {
-            if (!err.detail) return ERROR_MESSAGES.BUSINESS_CONFLICT;
+            if (!err.detail) return errorMessage('BUSINESS_CONFLICT');
 
             // Detail PG : "Key (col, horaire)=(id, ["start","end"]) conflicts with existing key (...) = (id, ["start","end"])."
             const match = /=\((\d+), \["([^"]+)","([^"]+)"\]\) conflicts with existing key[^=]+=\(\d+, \["([^"]+)","([^"]+)"\]\)/.exec(err.detail);
-            if (!match) return ERROR_MESSAGES.BUSINESS_CONFLICT;
+            if (!match) return errorMessage('BUSINESS_CONFLICT');
 
             const entityId      = parseInt(match[1] ?? '');
             const existingStart = dayjs(match[4]).format('HH:mm');
@@ -171,7 +171,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                 const g = selectedGroupes.find(g => g.id === entityId);
                 return `Le groupe ${g?.name ?? `#${entityId}`} est déjà planifié de ${existingStart} à ${existingEnd}`;
             }
-            return ERROR_MESSAGES.BUSINESS_CONFLICT;
+            return errorMessage('BUSINESS_CONFLICT');
         });
 
         setConflictErrors(msgs);

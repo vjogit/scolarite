@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { formatNombre } from '../../services/format';
+import { messageValidation } from '../../i18n/validation';
+import i18n from '../../i18n/config';
 
 /**
  * Définition partagée du champ « note », jusqu'ici recopiée à l'identique dans
@@ -13,12 +15,12 @@ import { formatNombre } from '../../services/format';
  */
 export const createNoteField = (bareme?: number) => {
     const message = bareme != null
-        ? `La note doit être comprise entre 0 et ${formatNombre.format(bareme)}`
-        : "La note doit être positive";
+        ? messageValidation('noteDoitEtreComprise', { bareme: formatNombre.format(bareme) })
+        : messageValidation('noteDoitEtrePositive');
 
-    const champ = z.number().min(0, message);
+    const champ = z.number().min(0, { error: message });
 
-    return (bareme != null ? champ.max(bareme, message) : champ).nullable().optional();
+    return (bareme != null ? champ.max(bareme, { error: message }) : champ).nullable().optional();
 };
 
 /**
@@ -27,7 +29,9 @@ export const createNoteField = (bareme?: number) => {
  * aux flèches de l'incrémenteur.
  */
 export const libelleNote = (bareme?: number) =>
-    bareme != null ? `Note (/${formatNombre.format(bareme)})` : 'Note';
+    bareme != null
+        ? i18n.t('noteField.noteAvecBareme', { ns: 'note', bareme: formatNombre.format(bareme) })
+        : i18n.t('commun.note', { ns: 'note' });
 
 /**
  * Attributs `min`/`max` du champ HTML. Sans valeur de garantie — ils n'empêchent

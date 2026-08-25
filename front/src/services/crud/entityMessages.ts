@@ -1,30 +1,28 @@
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
 import type { DescriptionEntite, EntiteCrud } from './def';
 import { formatNombre } from '../format';
+import i18n from '../../i18n/config';
 
 /**
  * Composition des messages de succès des opérations d'écriture CRUD.
  *
- * Le point délicat est l'accord en genre : `entityLabel` porte l'article
- * (« la formation »), ce qui permet de déduire le genre… sauf en cas
- * d'élision (« l'option »). La description d'entité expose alors `entityGender`.
- * Sans genre déterminable on n'invente pas d'accord : on retombe sur une
- * tournure sans nom d'entité, où seul le nom cité reste sujet et où le
- * masculin est la forme neutre correcte.
+ * `entityLabel` est un nom nu, sans article (« formation », « UE ») : chaque
+ * entité le déclare déjà traduit, avec son genre à côté dans `entityGender`
+ * (masculin par défaut si absent — jamais déduit d'un article, une langue
+ * cible pouvant ne pas en poser). C'était plus subtil avant que `entityLabel`
+ * ne soit traduisible : le genre se lisait dans l'article français lui-même
+ * (« la » / « le »), une lecture qu'une traduction anglaise aurait cassée
+ * sans le dire.
+ *
+ * Le genre alimente l'option `context` d'i18next (`t(clé, {context: 'f'})` →
+ * `clé_f`) sur les phrases composées, posées dans le namespace `crud`. Une
+ * langue qui n'accorde pas en genre — l'anglais du fichier `en/crud.json` —
+ * n'a simplement pas de variante `_f` : i18next retombe sur la clé de base,
+ * qui sert alors aux deux genres.
  */
 
 type Genre = 'm' | 'f';
-
-/** Articles non élidés : le seul cas où le genre se lit dans le libellé. */
-const ARTICLES: readonly { readonly prefixe: string; readonly genre: Genre }[] = [
-    { prefixe: "la ", genre: 'f' },
-    { prefixe: "le ", genre: 'm' },
-    { prefixe: "une ", genre: 'f' },
-    { prefixe: "un ", genre: 'm' },
-];
-
-/** Formes élidées : le nom se dégage, pas le genre. */
-const ELISIONS: readonly string[] = ["l'", "l’"];
 
 interface Entite {
     /** Nom nu, majuscule initiale : « Formation ». */
@@ -42,52 +40,31 @@ function capitaliser(mot: string): string {
     return mot.charAt(0).toUpperCase() + mot.slice(1);
 }
 
-/**
- * Décompose `entityLabel` en nom nu et genre. Renvoie `null` dès que l'un
- * des deux manque : mieux vaut une phrase sans nom d'entité qu'un accord faux.
- */
+/** Lit `entityLabel`/`entityGender`. `null` seulement si l'entité n'a pas de nom du tout. */
 function analyserLibelle(datasource: DescriptionEntite): Entite | null {
     const libelle = datasource.entityLabel?.trim();
     if (!libelle) return null;
-
-    const minuscule = libelle.toLowerCase();
-
-    for (const { prefixe, genre } of ARTICLES) {
-        if (minuscule.startsWith(prefixe)) {
-            return {
-                nom: capitaliser(libelle.slice(prefixe.length)),
-                nomBrut: libelle.slice(prefixe.length),
-                genre: datasource.entityGender ?? genre,
-            };
-        }
-    }
-
-    for (const elision of ELISIONS) {
-        if (minuscule.startsWith(elision)) {
-            // Le genre est indéterminable ici : il doit être déclaré.
-            if (!datasource.entityGender) return null;
-            return {
-                nom: capitaliser(libelle.slice(elision.length)),
-                nomBrut: libelle.slice(elision.length),
-                genre: datasource.entityGender,
-            };
-        }
-    }
-
-    // Libellé sans article : on l'accepte si le genre est déclaré.
-    if (!datasource.entityGender) return null;
-    return { nom: capitaliser(libelle), nomBrut: libelle, genre: datasource.entityGender };
+    return { nom: capitaliser(libelle), nomBrut: libelle, genre: datasource.entityGender ?? 'm' };
 }
 
-/** « créé » → « créée » au féminin. */
-function accorder(participe: string, genre: Genre): string {
-    return genre === 'f' ? `${participe}e` : participe;
+/** Le `context` i18next porté par un genre : la clé `_f` existe en français, pas en anglais. */
+function contexte(genre: Genre): string | undefined {
+    return genre === 'f' ? 'f' : undefined;
 }
 
-/** « supprimé » → « supprimées » au féminin pluriel. */
-function accorderPluriel(participe: string, genre: Genre): string {
-    return genre === 'f' ? `${participe}es` : `${participe}s`;
+/**
+ * `t()` par défaut de ces fonctions : l'instance i18next globale, toujours à
+ * jour au moment de l'appel. Un appelant sous React qui affiche le résultat
+ * dans un rendu mémoïsé (`useMemo`/`useCallback`) doit lui préférer le `t`
+ * de son propre `useTranslation('crud')` — sa référence change avec la
+ * langue, ce que l'instance globale ne fait pas, et c'est ce changement de
+ * référence qui invalide le memo.
+ */
+export function tCrud(t?: TFunction<'crud'>): TFunction<'crud'> {
+    return t ?? (i18n.t as unknown as TFunction<'crud'>);
 }
+
+type CleAction = 'creation' | 'enregistrement' | 'suppression';
 
 /**
  * « Formation « L3 Informatique » créée. », ou « « L3 Informatique » créé. »
@@ -96,27 +73,23 @@ function accorderPluriel(participe: string, genre: Genre): string {
 function phraseSingulier<D extends FieldValues>(
     datasource: EntiteCrud<D>,
     nom: string,
-    participe: string,
+    cle: CleAction,
+    t?: TFunction<'crud'>,
 ): string {
+    const traduire = tCrud(t);
     const entite = analyserLibelle(datasource);
-    if (!entite) return `« ${nom} » ${participe}.`;
-    return `${entite.nom} « ${nom} » ${accorder(participe, entite.genre)}.`;
+    if (!entite) return traduire(`${cle}SansEntite`, { ns: 'crud', valeur: nom });
+    return traduire(cle, { ns: 'crud', context: contexte(entite.genre), nom: entite.nom, valeur: nom });
 }
 
 /** Message de création, sur la donnée renvoyée par le serveur. */
-export function messageCreation<D extends FieldValues>(datasource: EntiteCrud<D>, data: D): string {
-    return phraseSingulier(datasource, datasource.getName(data), 'créé');
+export function messageCreation<D extends FieldValues>(datasource: EntiteCrud<D>, data: D, t?: TFunction<'crud'>): string {
+    return phraseSingulier(datasource, datasource.getName(data), 'creation', t);
 }
 
 /** Message de modification, sur la donnée renvoyée par le serveur. */
-export function messageEnregistrement<D extends FieldValues>(datasource: EntiteCrud<D>, data: D): string {
-    return phraseSingulier(datasource, datasource.getName(data), 'enregistré');
-}
-
-/** « mis »/« mise »/« mises » : participe irrégulier, hors des helpers en +e/+es. */
-function accorderMis(genre: Genre, pluriel: boolean): string {
-    if (genre === 'f') return pluriel ? 'mises' : 'mise';
-    return 'mis';
+export function messageEnregistrement<D extends FieldValues>(datasource: EntiteCrud<D>, data: D, t?: TFunction<'crud'>): string {
+    return phraseSingulier(datasource, datasource.getName(data), 'enregistrement', t);
 }
 
 /**
@@ -128,17 +101,19 @@ function accorderMis(genre: Genre, pluriel: boolean): string {
 export function messageSuppression<D extends FieldValues>(
     datasource: EntiteCrud<D>,
     noms: string[],
+    t?: TFunction<'crud'>,
 ): string {
+    const traduire = tCrud(t);
     const corbeille = datasource.suppressionEnCorbeille === true;
     const entite = analyserLibelle(datasource);
 
     const [premierNom = ''] = noms;
     if (noms.length === 1) {
         if (!corbeille) {
-            return phraseSingulier(datasource, premierNom, 'supprimé');
+            return phraseSingulier(datasource, premierNom, 'suppression', t);
         }
-        if (!entite) return `« ${premierNom} » mis en corbeille.`;
-        return `${entite.nom} « ${premierNom} » ${accorderMis(entite.genre, false)} en corbeille.`;
+        if (!entite) return traduire('miseEnCorbeilleSansEntite', { ns: 'crud', valeur: premierNom });
+        return traduire('miseEnCorbeille', { ns: 'crud', context: contexte(entite.genre), nom: entite.nom, valeur: premierNom });
     }
 
     const nombre = formatNombre.format(noms.length);
@@ -146,13 +121,15 @@ export function messageSuppression<D extends FieldValues>(
 
     if (entite && pluriel) {
         return corbeille
-            ? `${nombre} ${pluriel} ${accorderMis(entite.genre, true)} en corbeille.`
-            : `${nombre} ${pluriel} ${accorderPluriel('supprimé', entite.genre)}.`;
+            ? traduire('miseEnCorbeillePluriel', { ns: 'crud', context: contexte(entite.genre), nombre, pluriel })
+            : traduire('suppressionPluriel', { ns: 'crud', context: contexte(entite.genre), nombre, pluriel });
     }
 
     // Sans genre sûr, le mot neutre déjà employé par la modale de suppression :
     // masculin, donc accordable sans risque.
-    return corbeille ? `${nombre} éléments mis en corbeille.` : `${nombre} éléments supprimés.`;
+    return corbeille
+        ? traduire('miseEnCorbeilleSansGenre', { ns: 'crud', nombre })
+        : traduire('suppressionSansGenre', { ns: 'crud', nombre });
 }
 
 /**
@@ -163,11 +140,11 @@ export function messageSuppression<D extends FieldValues>(
  * Le message ne nomme pas le parent (« … pour cette option ») : le fil de
  * contexte, juste au-dessus de la liste, l'affiche déjà.
  */
-export function messageListeVide(datasource: DescriptionEntite): string {
+export function messageListeVide(datasource: DescriptionEntite, t?: TFunction<'crud'>): string {
+    const traduire = tCrud(t);
     const entite = analyserLibelle(datasource);
-    if (!entite) return "Aucun élément à afficher.";
-    const aucun = entite.genre === 'f' ? 'Aucune' : 'Aucun';
-    return `${aucun} ${entite.nomBrut} ${accorder('enregistré', entite.genre)}.`;
+    if (!entite) return traduire('listeVideSansEntite', { ns: 'crud' });
+    return traduire('listeVide', { ns: 'crud', context: contexte(entite.genre), nom: entite.nomBrut });
 }
 
 /**
@@ -175,8 +152,9 @@ export function messageListeVide(datasource: DescriptionEntite): string {
  * vide, et le nom accessible du bouton « Ajouter » de la barre — les deux
  * mènent au même formulaire, ils portent donc le même nom.
  */
-export function libelleCreation(datasource: DescriptionEntite): string {
+export function libelleCreation(datasource: DescriptionEntite, t?: TFunction<'crud'>): string {
+    const traduire = tCrud(t);
     const entite = analyserLibelle(datasource);
-    if (!entite) return 'Ajouter';
-    return `Créer ${entite.genre === 'f' ? 'une' : 'un'} ${entite.nomBrut}`;
+    if (!entite) return traduire('creationInviteSansEntite', { ns: 'crud' });
+    return traduire('creationInvite', { ns: 'crud', context: contexte(entite.genre), nom: entite.nomBrut });
 }

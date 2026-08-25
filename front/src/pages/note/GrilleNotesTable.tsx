@@ -28,6 +28,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 import { useNotifications } from '@toolpad/core/useNotifications';
+import { useTranslation } from 'react-i18next';
 
 import { apiInstance } from '../../services/api';
 import { notifyUndone } from '../../services/notify';
@@ -56,15 +57,6 @@ const STATUTS_CONSERVES: ReadonlySet<StatutLigne> = new Set<StatutLigne>([
     'en-attente', 'erreur', 'conflit',
 ]);
 
-const MESSAGE_LIGNE_VIDE = 'Renseignez une note ou cochez « non évalué »';
-
-/**
- * Échec sans code d'erreur applicatif : le serveur n'a pas répondu. Le libellé
- * générique de `messageForError` laisserait croire à un refus ; ici la saisie
- * est intacte et il suffit de relancer.
- */
-const MESSAGE_RESEAU = 'Serveur injoignable. La saisie est conservée, relancez l’enregistrement.';
-
 interface Props {
     controleId: string;
     groupeId: string;
@@ -87,6 +79,7 @@ interface Props {
 }
 
 export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, lectureSeule, onLignesChange, actionsLigne = [] }: Props) {
+    const { t } = useTranslation('note');
     const champNote = useMemo(() => createNoteField(bareme), [bareme]);
 
     const { data, isLoading, error } = useQuery<LigneGrilleServeur[]>({
@@ -183,7 +176,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
             const vierge = !saisie.isValidated && saisie.remarque.trim() === '';
             majLigne(userId, l => (vierge && identite.noteId == null
                 ? { ...l, statut: 'inchange', message: null }
-                : { ...l, statut: 'erreur', message: MESSAGE_LIGNE_VIDE }));
+                : { ...l, statut: 'erreur', message: t('grilleNotesTable.ligneVide') }));
             return;
         }
 
@@ -221,17 +214,17 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                 majLigne(userId, l => ({
                     ...l,
                     statut: 'conflit',
-                    message: 'Cette note a été modifiée ailleurs. Rechargez la ligne avant de réenregistrer.',
+                    message: t('grilleNotesTable.conflitVersion'),
                 }));
                 return;
             }
             // La saisie reste à l'écran : c'est le serveur qui n'a pas suivi,
             // pas l'utilisateur qui s'est trompé.
             const message = fieldErrorsFor(erreur)?.note
-                ?? (codeFor(erreur) === null ? MESSAGE_RESEAU : messageForError(erreur));
+                ?? (codeFor(erreur) === null ? t('grilleNotesTable.reseauIndisponible') : messageForError(erreur));
             majLigne(userId, l => ({ ...l, statut: 'erreur', message }));
         }
-    }, [champNote, controleId, majLigne]);
+    }, [champNote, controleId, majLigne, t]);
 
     const planifier = useCallback((userId: number, saisie: SaisieLigne) => {
         const precedente = chainesRef.current.get(userId) ?? Promise.resolve();
@@ -331,11 +324,11 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                 statut: 'inchange',
                 message: null,
             }));
-            notifyUndone(notifications, `Note de ${ligne.nom} ${ligne.prenom} supprimée.`.trim());
+            notifyUndone(notifications, t('grilleNotesTable.noteSupprimee', { nom: ligne.nom, prenom: ligne.prenom }).trim());
         } catch (erreur) {
             majLigne(ligne.userId, l => ({ ...l, statut: 'erreur', message: messageForError(erreur) }));
         }
-    }, [majLigne, notifications]);
+    }, [majLigne, notifications, t]);
 
     // Même file que les écritures : une suppression et un enregistrement en vol
     // sur la même ligne se disputeraient `identitesRef`, et la seconde écrirait
@@ -362,12 +355,12 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
         }
         return [...declarees, {
             id: 'supprimer-note',
-            libelle: 'Supprimer la note',
+            libelle: t('grilleNotesTable.supprimerLaNote'),
             icone: DeleteOutlineIcon,
             destructive: true,
             onSelect: () => { setASupprimer(ligne); },
         }];
-    }, [actionsLigne, lectureSeule]);
+    }, [actionsLigne, lectureSeule, t]);
 
     const basculerNonEvalue = useCallback((userId: number, index: number, coche: boolean) => {
         majLigne(userId, l => ({
@@ -415,29 +408,29 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
     }, [enregistrerSiModifiee, focusNote, majLigne]);
 
     if (isLoading) return <Skeleton variant="rounded" height={360} />;
-    if (error) return <Alert severity="error">Impossible de charger l'effectif du groupe.</Alert>;
+    if (error) return <Alert severity="error">{t('grilleNotesTable.effectifIntrouvable')}</Alert>;
     if (lignes.length === 0) {
-        return <Alert severity="warning">Ce groupe ne compte aucun élève rattaché à ce contrôle.</Alert>;
+        return <Alert severity="warning">{t('grilleNotesTable.aucunEleveRattache')}</Alert>;
     }
 
     return (
         <TableContainer>
-            <Table size="small" aria-label="Grille de saisie des notes">
+            <Table size="small" aria-label={t('grilleNotesTable.grilleAriaLabel')}>
                 <TableHead>
                     <TableRow>
-                        <TableCell>Élève</TableCell>
+                        <TableCell>{t('commun.eleve')}</TableCell>
                         <TableCell sx={{ width: 140 }}>{libelleNote(bareme)}</TableCell>
                         <TableCell sx={{ width: 90 }} align="center">
-                            <Tooltip title="Non évalué"><span>N.É.</span></Tooltip>
+                            <Tooltip title={t('noteControle.nonEvalueLabel')}><span>{t('noteControle.nonEvalueAbrege')}</span></Tooltip>
                         </TableCell>
-                        {isRattrapage && <TableCell sx={{ width: 90 }} align="center">Validée</TableCell>}
-                        <TableCell>Remarque</TableCell>
-                        <TableCell sx={{ width: 80 }} align="center">État</TableCell>
+                        {isRattrapage && <TableCell sx={{ width: 90 }} align="center">{t('grilleNotesTable.colonneValidee')}</TableCell>}
+                        <TableCell>{t('commun.remarque')}</TableCell>
+                        <TableCell sx={{ width: 80 }} align="center">{t('grilleNotesTable.colonneEtat')}</TableCell>
                         {/* La colonne existe dès qu'une ligne peut porter une
                             action : celles que l'écran déclare, ou la suppression
                             que la table ajoute pour qui a le droit d'écrire. */}
                         {(actionsLigne.length > 0 || !lectureSeule)
-                            && <TableCell sx={{ width: 64 }} align="center">Actions</TableCell>}
+                            && <TableCell sx={{ width: 64 }} align="center">{t('grilleNotesTable.colonneActions')}</TableCell>}
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -467,7 +460,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                                 // survivre à la frappe. Les bornes du barème
                                                 // restent annoncées aux technologies d'assistance.
                                                 inputMode: 'decimal',
-                                                'aria-label': `Note de ${eleve}`,
+                                                'aria-label': t('grilleNotesTable.noteEleveAriaLabel', { eleve }),
                                                 'aria-valuemin': bornesNote(bareme).min,
                                                 'aria-valuemax': bornesNote(bareme).max,
                                             },
@@ -480,7 +473,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                         checked={ligne.saisie.notEvaluated}
                                         disabled={lectureSeule}
                                         onChange={(e) => { basculerNonEvalue(ligne.userId, index, e.target.checked); }}
-                                        slotProps={{ input: { 'aria-label': `Non évalué pour ${eleve}` } }}
+                                        slotProps={{ input: { 'aria-label': t('grilleNotesTable.nonEvaluePourEleveAriaLabel', { eleve }) } }}
                                     />
                                 </TableCell>
                                 {isRattrapage && (
@@ -492,7 +485,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                                 modifierSaisie(ligne.userId, { isValidated: e.target.checked });
                                                 enregistrerSiModifiee(ligne.userId);
                                             }}
-                                            slotProps={{ input: { 'aria-label': `Validée pour ${eleve}` } }}
+                                            slotProps={{ input: { 'aria-label': t('grilleNotesTable.valideePourEleveAriaLabel', { eleve }) } }}
                                         />
                                     </TableCell>
                                 )}
@@ -505,7 +498,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                         size="small"
                                         variant="outlined"
                                         fullWidth
-                                        slotProps={{ htmlInput: { 'aria-label': `Remarque pour ${eleve}` } }}
+                                        slotProps={{ htmlInput: { 'aria-label': t('grilleNotesTable.remarquePourEleveAriaLabel', { eleve }) } }}
                                     />
                                 </TableCell>
                                 <TableCell align="center">
@@ -566,6 +559,7 @@ function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
     onAnnuler: () => void;
     onConfirmer: () => void;
 }) {
+    const { t } = useTranslation('note');
     // `keepMounted` absent : la modale se démonte, mais `ligne` doit survivre au
     // rendu de fermeture pour que le nom ne disparaisse pas pendant l'animation.
     const [derniere, setDerniere] = useState<LigneGrille | null>(null);
@@ -577,29 +571,26 @@ function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
 
     const eleve = `${affichee.nom} ${affichee.prenom}`.trim();
     const valeur = affichee.enregistre.notEvaluated
-        ? 'déclaré non évalué'
+        ? t('grilleNotesTable.declareNonEvalue')
         : affichee.enregistre.note.trim() === ''
-            ? 'sans valeur'
-            : `noté ${affichee.enregistre.note}`;
+            ? t('grilleNotesTable.sansValeur')
+            : t('grilleNotesTable.notee', { valeur: affichee.enregistre.note });
 
     return (
         <Dialog open={ligne !== null} onClose={onAnnuler} maxWidth="xs" fullWidth>
-            <DialogTitle>Supprimer la note ?</DialogTitle>
+            <DialogTitle>{t('grilleNotesTable.supprimerLaNoteTitre')}</DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    La note de <strong>{eleve}</strong> ({valeur}) sera définitivement
-                    supprimée. Cette action est irréversible.
+                    {t('grilleNotesTable.confirmationSuppressionPrefixe')} <strong>{eleve}</strong> {t('grilleNotesTable.confirmationSuppressionSuffixe', { valeur })}
                 </DialogContentText>
                 <DialogContentText sx={{ mt: 2 }}>
-                    Pour signaler une absence, cochez « N.É. » plutôt que de supprimer :
-                    la ligne disparaîtra sinon des calculs comme si elle n'avait jamais
-                    existé.
+                    {t('grilleNotesTable.conseilNonEvalue')}
                 </DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onAnnuler}>Annuler</Button>
+                <Button onClick={onAnnuler}>{t('commun.annuler')}</Button>
                 <Button onClick={onConfirmer} color="error" variant="contained">
-                    Supprimer
+                    {t('grilleNotesTable.supprimerLaNote')}
                 </Button>
             </DialogActions>
         </Dialog>
@@ -616,36 +607,37 @@ function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
     onRelancer: () => void;
     onRecharger: () => void;
 }) {
+    const { t } = useTranslation('note');
     switch (ligne.statut) {
         case 'en-attente':
-            return <CircularProgress size={16} aria-label={`Enregistrement en cours pour ${eleve}`} />;
+            return <CircularProgress size={16} aria-label={t('grilleNotesTable.enregistrementEnCoursAriaLabel', { eleve })} />;
         case 'enregistre':
             return (
-                <Tooltip title="Enregistrée">
-                    <CheckCircleOutlineIcon fontSize="small" color="success" aria-label={`Note enregistrée pour ${eleve}`} />
+                <Tooltip title={t('grilleNotesTable.enregistreeTitre')}>
+                    <CheckCircleOutlineIcon fontSize="small" color="success" aria-label={t('grilleNotesTable.noteEnregistreePourEleveAriaLabel', { eleve })} />
                 </Tooltip>
             );
         case 'modifie':
             return (
-                <Tooltip title="Modifiée, pas encore enregistrée">
+                <Tooltip title={t('grilleNotesTable.modifieePasEnregistreeTitre')}>
                     <Box
-                        aria-label={`Modification non enregistrée pour ${eleve}`}
+                        aria-label={t('grilleNotesTable.modificationNonEnregistreePourEleveAriaLabel', { eleve })}
                         sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', mx: 'auto' }}
                     />
                 </Tooltip>
             );
         case 'erreur':
             return (
-                <Tooltip title={ligne.message ?? 'Échec de l’enregistrement'}>
-                    <IconButton size="small" color="error" onClick={onRelancer} aria-label={`Réessayer l'enregistrement pour ${eleve}`}>
+                <Tooltip title={ligne.message ?? t('grilleNotesTable.echecEnregistrement')}>
+                    <IconButton size="small" color="error" onClick={onRelancer} aria-label={t('grilleNotesTable.reessayerPourEleveAriaLabel', { eleve })}>
                         <ReplayIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
             );
         case 'conflit':
             return (
-                <Tooltip title={ligne.message ?? 'Conflit de version'}>
-                    <IconButton size="small" color="warning" onClick={onRecharger} aria-label={`Recharger la ligne de ${eleve}`}>
+                <Tooltip title={ligne.message ?? t('grilleNotesTable.conflitDeVersion')}>
+                    <IconButton size="small" color="warning" onClick={onRecharger} aria-label={t('grilleNotesTable.rechargerLigneDeEleveAriaLabel', { eleve })}>
                         <RefreshIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>

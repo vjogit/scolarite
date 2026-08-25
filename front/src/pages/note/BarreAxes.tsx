@@ -14,12 +14,14 @@
 
 import { useLocation, useNavigate } from 'react-router';
 import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 import { AXES, axeDuChemin, axesDisponibles, cheminVersAxe } from './axes';
 
 export function BarreAxes() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation('note');
 
     if (!axesDisponibles(pathname)) return null;
 
@@ -36,7 +38,7 @@ export function BarreAxes() {
             }}
         >
             <Typography variant="body2" component="span" sx={{ color: 'text.secondary' }} id="libelle-axe-notes">
-                Axe
+                {t('barreAxes.axe')}
             </Typography>
             <ToggleButtonGroup
                 exclusive

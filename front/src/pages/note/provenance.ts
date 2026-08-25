@@ -17,6 +17,8 @@
  *   une saisie oubliée, et une cellule vide dit exactement le contraire.
  */
 
+import i18n from '../../i18n/config';
+
 /** Valeurs émises par le serveur, telles quelles. */
 export type Provenance = 'moyenne' | 'rattrapage' | 'non_evaluee';
 
@@ -24,11 +26,14 @@ export type Provenance = 'moyenne' | 'rattrapage' | 'non_evaluee';
  * Ce que le lecteur doit comprendre du seuil de rattrapage. Partagé par la
  * cellule et par l'axe Élève, qui montre la même règle sur ses contrôles.
  */
-export const ORIGINE_RATTRAPAGE =
-    'Seuil de validation attribué après un rattrapage validé : cette valeur ne correspond à aucune copie.';
+export function origineRattrapage(): string {
+    return i18n.t('provenance.originRattrapage', { ns: 'note' });
+}
 
 /** Le libellé d'une valeur absente. Jamais une cellule vide, jamais « N.E. ». */
-export const LIBELLE_NON_EVALUEE = 'Non évaluée';
+export function libelleNonEvaluee(): string {
+    return i18n.t('provenance.nonEvaluee', { ns: 'note' });
+}
 
 /**
  * Deux décimales, séparateur français : « 8,00 ».

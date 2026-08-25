@@ -7,17 +7,20 @@
  * d'écran pour atteindre une définition de données.
  */
 
+import type { TFunction } from 'i18next';
 import { ENDPOINT_MATIERE, MATIERE, STRUCTURE } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
+import { tCrud } from '../../../services/crud/entityMessages';
+import { messageValidation } from '../../../i18n/validation';
 import { z } from 'zod';
 
 export const matiereSchema = z.object({
     id: z.number(),
     version: z.number(),
-    name: z.string().min(1, "Le nom est requis"),
-    coeff: z.number().min(0, "Le coefficient doit être positif"),
-    heure: z.number().min(0, "Les heures doit être positive"),
+    name: z.string().min(1, { error: messageValidation('nomRequis') }),
+    coeff: z.number().min(0, { error: messageValidation('coefficientDoitEtrePositif') }),
+    heure: z.number().min(0, { error: messageValidation('heuresDoiventEtrePositives') }),
     unite_enseignement_id: z.number(),
     color: z.string().nullable().optional(),
 });
@@ -35,9 +38,14 @@ export const createMatiereRepository = (ueId: string) => {
 }
 
 /** Ce que la matière est, quel que soit l'écran qui l'affiche. */
-export const matiereEntite: DescriptionEntite = {
-    title: "Matières",
-    roleEcriture: Role.STRUCTURE_ECRITURE,
-    entityLabel: "la matière",
-    entityLabelPlural: "matières",
-};
+export function matiereEntite(t?: TFunction<'crud'>): DescriptionEntite {
+    const traduire = tCrud(t);
+    return {
+        title: traduire('entites.matiere.title', { ns: 'crud' }),
+        roleEcriture: Role.STRUCTURE_ECRITURE,
+        entityLabel: traduire('entites.matiere.nom', { ns: 'crud' }),
+        entityLabelAvecArticle: traduire('entites.matiere.nomAvecArticle', { ns: 'crud' }),
+        entityLabelPlural: traduire('entites.matiere.nomPluriel', { ns: 'crud' }),
+        entityGender: 'f',
+    };
+}

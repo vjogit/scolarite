@@ -108,15 +108,26 @@ export interface DescriptionEntite {
      * ce marqueur restent en suppression physique, au discours « irréversible ».
      */
     suppressionEnCorbeille?: boolean
-    /** Libellé singulier avec article, ex. "la formation", affiché dans la modale. */
+    /**
+     * Nom nu de l'entité, sans article, ex. "formation" — traduit, utilisé par
+     * `entityMessages` pour composer les messages de succès et l'invite de
+     * création.
+     */
     entityLabel?: string
+    /**
+     * Le même nom, avec son article défini, ex. "la formation" / "the training
+     * program" — pour la seule modale de suppression, dont le titre a besoin
+     * d'un article grammaticalement correct (une langue sans accord de genre,
+     * comme l'anglais, n'en a pas besoin mais peut le fournir quand même).
+     */
+    entityLabelAvecArticle?: string
     /** Libellé pluriel sans article, ex. "périodes". À défaut, `title` en minuscules. */
     entityLabelPlural?: string
     /**
      * Genre grammatical de l'entité, pour accorder les messages de succès
-     * (« créée » / « créé »). Inutile quand `entityLabel` porte un article non
-     * élidé — « la formation » et « le groupe » se déduisent seuls. À renseigner
-     * uniquement en cas d'élision, ex. "l'option" → 'f'.
+     * (« créée » / « créé »). Toujours déclaré explicitement — masculin par
+     * défaut si absent, jamais déduit d'un article puisque `entityLabel` n'en
+     * porte plus.
      */
     entityGender?: 'm' | 'f'
     /**

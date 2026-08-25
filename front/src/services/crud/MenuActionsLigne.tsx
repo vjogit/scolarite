@@ -13,6 +13,7 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import type { FieldValues } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 
 import type { ActionLigne } from './actions';
 
@@ -25,6 +26,7 @@ interface Props<D extends FieldValues> {
 }
 
 export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onChoisir }: Props<D>) {
+    const { t } = useTranslation('crud');
     const [ancre, setAncre] = useState<null | HTMLElement>(null);
     const idMenu = useId();
 
@@ -62,11 +64,11 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
 
             {entrees.length > 0 && (
                 <>
-                    <Tooltip title="Actions">
+                    <Tooltip title={t('actions.menu')}>
                         <IconButton
                             // Le nom porte l'identité de la ligne : hors contexte
                             // visuel, « Actions » seul ne dit pas de quoi.
-                            aria-label={`Actions — ${nomLigne}`}
+                            aria-label={t('actions.menuLigne', { nom: nomLigne })}
                             aria-haspopup="menu"
                             aria-expanded={ancre !== null}
                             aria-controls={ancre !== null ? idMenu : undefined}

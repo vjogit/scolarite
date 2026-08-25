@@ -7,7 +7,7 @@ INFRA_DIR=infra
 BACK_DIR=back
 RUN_DIR=infra/run
 KEYCLOAK_DIR=infra/keycloak
-LIQUIBASE_DIR=infra/liquibase
+LIQUIBASE_SCRIPT_DIR=infra/liquibase
 
 # Le fichier de secrets n'est pas versionné (.gitignore : infra/env/secrets-*.env).
 # Sans ce garde-fou, make se contenterait d'un « No such file or directory ».
@@ -126,7 +126,7 @@ keycloak: _keycloak-up
 	$(KEYCLOAK_DIR)/deploy.sh $(CONFIG_FILE_LOCAL) $(SECRETS_FILE_LOCAL)
 
 liquibase:
-	$(LIQUIBASE_DIR)/migrate.sh $(CONFIG_FILE_LOCAL) $(SECRETS_FILE_LOCAL)
+	$(LIQUIBASE_SCRIPT_DIR)/migrate.sh $(CONFIG_FILE_LOCAL) $(SECRETS_FILE_LOCAL)
 
 gen_sql:
 	@echo "--- 🆕 gen code sqlc ---"

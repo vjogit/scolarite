@@ -17,6 +17,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import {
     Box, Divider, Drawer, IconButton, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
@@ -28,7 +30,7 @@ import { BarreWorkflows } from '../../services/context/BarreWorkflows';
 import { useDroits } from '../../services/context/droits';
 import { WORKFLOW_CATALOG } from '../../services/context/workflows';
 import {
-    ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation,
+    ID_ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation,
     type ActionLigne, type ActionRappel,
 } from '../../services/crud/actions';
 import { DeleteConfirmDialog } from '../../services/crud/DeleteConfirmDialog';
@@ -51,10 +53,10 @@ const CHEMIN_RACINE = `/${CATALOG_WORKFLOW}/${FORMATION}`;
  * La suppression est déclarée comme les autres actions, et non dessinée : c'est
  * le bandeau qui détient la modale, il fournit donc le rappel.
  */
-function actionSupprimer(ouvrir: () => void): ActionRappel<FieldValues> {
+function actionSupprimer(ouvrir: () => void, t: TFunction<'crud'>): ActionRappel<FieldValues> {
     return {
         id: 'supprimer',
-        libelle: 'Supprimer',
+        libelle: t('actions.supprimer', { ns: 'crud' }),
         icone: DeleteOutlineIcon,
         exigeEcriture: true,
         destructive: true,
@@ -73,6 +75,7 @@ function ActionsNoeud({ cible, nom }: { cible: CibleArbre; nom: string }) {
     const navigate = useNavigate();
     const { peutEcrire } = useDroits();
     const [modaleOuverte, setModaleOuverte] = useState(false);
+    const { t } = useTranslation('crud');
 
     const ecritureAutorisee = peutEcrire(cible.entite);
     const suppression = useSuppressionCrud(cible.entite);
@@ -86,11 +89,11 @@ function ActionsNoeud({ cible, nom }: { cible: CibleArbre; nom: string }) {
 
     const actions = useMemo(() => {
         if (objet === undefined) return [];
-        const declarees = [...cible.niveau.actions, actionSupprimer(ouvrirModale)];
+        const declarees = [...cible.niveau.actions(t), actionSupprimer(ouvrirModale, t)];
         // « Voir » mène au nœud déjà affiché : dans le panneau, elle ne fait rien.
-        return actionsDeLaLigne(declarees, objet, ecritureAutorisee)
-            .filter(action => action.id !== ACTION_VOIR.id);
-    }, [cible, objet, ecritureAutorisee, ouvrirModale]);
+        return actionsDeLaLigne(declarees, objet, ecritureAutorisee, t)
+            .filter(action => action.id !== ID_ACTION_VOIR);
+    }, [cible, objet, ecritureAutorisee, ouvrirModale, t]);
 
     const executer = useCallback((action: ActionLigne<FieldValues>) => {
         if (objet === undefined) return;
@@ -133,10 +136,11 @@ export function StructureLayout() {
     const theme = useTheme();
     const { peutEcrire } = useDroits();
     const etroit = useMediaQuery(theme.breakpoints.down('md'));
+    const { t } = useTranslation('crud');
 
-    const etat = useEtatArbre(pathname, CATALOG_WORKFLOW);
+    const etat = useEtatArbre(pathname, CATALOG_WORKFLOW, t);
     const nom = useNomEnCache(etat.titre?.nomme ?? null);
-    const ecritureFormation = peutEcrire(formationEntite);
+    const ecritureFormation = peutEcrire(formationEntite(t));
 
     const [tiroirOuvert, setTiroirOuvert] = useState(false);
     const [deplies, setDeplies] = useState<string[]>(() => [...etat.aDeplier]);
@@ -170,10 +174,10 @@ export function StructureLayout() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
                 <Typography variant="subtitle2" sx={{ flex: 1 }}>Structure</Typography>
                 {ecritureFormation && (
-                    <Tooltip title={CREER_FORMATION.libelle}>
+                    <Tooltip title={CREER_FORMATION(t).libelle}>
                         <IconButton
                             size="small"
-                            aria-label={CREER_FORMATION.libelle}
+                            aria-label={CREER_FORMATION(t).libelle}
                             onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
                         >
                             <AddBoxIcon />

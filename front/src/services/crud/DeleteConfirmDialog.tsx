@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { skipToken, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { FieldValues } from 'react-hook-form';
 import {
     Alert,
@@ -28,18 +30,15 @@ const SEUIL_CONFIRMATION = 100;
 /** Nombre d'objets nommés avant le repli sur « et N autres ». */
 const MAX_NOMS_AFFICHES = 5;
 
-/** Mot à recopier lorsque plusieurs objets sont sélectionnés. */
-const MOT_CONFIRMATION = 'CONFIRMER';
-
 /** « 3 promotions », « 1 847 notes ». */
 function formatEntry(entry: DeleteImpactEntry): string {
     return `${formatNombre.format(entry.count)} ${entry.label}`;
 }
 
-/** Énumération française : « a, b et c ». */
-function joinFr(parts: string[]): string {
+/** Énumération : « a, b et c » (le séparateur final vient du namespace `crud`). */
+function joinEnumeration(parts: string[], t: TFunction<'crud'>): string {
     if (parts.length <= 1) return parts[0] ?? '';
-    return `${parts.slice(0, -1).join(', ')} et ${parts.at(-1) ?? ''}`;
+    return `${parts.slice(0, -1).join(', ')} ${t('deleteDialog.et', { ns: 'crud' })} ${parts.at(-1) ?? ''}`;
 }
 
 interface Props<D extends FieldValues> {
@@ -68,6 +67,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     onClose,
     onConfirm,
 }: Props<D>) {
+    const { t } = useTranslation('crud');
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
 
@@ -123,20 +123,21 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     }, [open, confirmationRequise]);
 
     // Sur sélection multiple, recopier cinq noms n'aurait aucun sens.
-    const phraseAttendue = objets.length === 1 ? (noms[0] ?? MOT_CONFIRMATION) : MOT_CONFIRMATION;
+    const motConfirmation = t('deleteDialog.motConfirmation');
+    const phraseAttendue = objets.length === 1 ? (noms[0] ?? motConfirmation) : motConfirmation;
     const confirmationOk = !confirmationRequise || saisie.trim() === phraseAttendue;
 
     const suppressionPossible = !estBloque && !impactEnCours && confirmationOk;
 
     const titre = (() => {
         if (objets.length === 1) {
-            const libelle = entite.entityLabel ? `${entite.entityLabel} ` : '';
-            return `Supprimer ${libelle}« ${noms[0] ?? ''} » ?`;
+            const libelle = entite.entityLabelAvecArticle ? `${entite.entityLabelAvecArticle} ` : '';
+            return t('deleteDialog.titreUn', { libelle, nom: noms[0] ?? '' });
         }
         // Sans libellé explicite, on conserve le mot neutre déjà utilisé par la
         // modale d'origine : certains titres de liste ne sont pas des pluriels.
-        const pluriel = entite.entityLabelPlural ?? 'éléments';
-        return `Supprimer ${formatNombre.format(objets.length)} ${pluriel} ?`;
+        const pluriel = entite.entityLabelPlural ?? t('deleteDialog.pluralielGenerique');
+        return t('deleteDialog.titrePluriel', { nombre: formatNombre.format(objets.length), pluriel });
     })();
 
     // Chaque nom voyage avec l'identifiant de son objet : c'est lui la clé de
@@ -177,7 +178,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                 <Stack spacing={2}>
                     {objets.length > 1 && (
                         <Box>
-                            <DialogContentText>Objets sélectionnés :</DialogContentText>
+                            <DialogContentText>{t('deleteDialog.objetsSelectionnes')}</DialogContentText>
                             <List dense disablePadding>
                                 {objetsAffiches.map(({ id, nom }) => (
                                     <ListItem key={id} disablePadding sx={{ pl: 1 }}>
@@ -187,8 +188,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                             </List>
                             {nomsRestants > 0 && (
                                 <Typography variant="body2" color="text.secondary" sx={{ pl: 1 }}>
-                                    et {formatNombre.format(nomsRestants)}{' '}
-                                    {nomsRestants > 1 ? 'autres' : 'autre'}
+                                    {t('deleteDialog.etAutres', { count: nomsRestants, nombre: formatNombre.format(nomsRestants) })}
                                 </Typography>
                             )}
                         </Box>
@@ -197,47 +197,43 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                     {impactEnCours && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <CircularProgress size={18} />
-                            <Typography variant="body2">Analyse de l'impact en cours…</Typography>
+                            <Typography variant="body2">{t('deleteDialog.analyseEnCours')}</Typography>
                         </Box>
                     )}
 
                     {impactEnEchec && (
                         <Alert severity="warning">
-                            Impossible d'évaluer l'impact de cette suppression
-                            {` (${messageForError(impactQuery.error)})`}. Des
-                            données liées peuvent exister et seraient définitivement perdues.
+                            {t('deleteDialog.impactEchec', { erreur: messageForError(impactQuery.error) })}
                         </Alert>
                     )}
 
                     {impact && !estBloque && (
                         <>
                             {impact.cascade.length === 0 ? (
-                                <Alert severity="info">Aucune donnée liée.</Alert>
+                                <Alert severity="info">{t('deleteDialog.aucuneDonneeLiee')}</Alert>
                             ) : (
                                 <Alert severity="warning">
                                     <Typography variant="body2" component="span">
                                         {objets.length === 1
-                                            ? <>« {noms[0]} » contient </>
-                                            : 'La sélection contient '}
-                                        <strong>{joinFr(impact.cascade.map(formatEntry))}</strong>.{' '}
+                                            ? t('deleteDialog.cascadeUnContient', { nom: noms[0] ?? '' })
+                                            : t('deleteDialog.cascadeSelectionContient')}
+                                        <strong>{joinEnumeration(impact.cascade.map(formatEntry), t)}</strong>.{' '}
                                         {entite.suppressionEnCorbeille
-                                            ? 'Tout partira en corbeille.'
-                                            : 'Tout sera définitivement supprimé.'}
+                                            ? t('deleteDialog.cascadeCorbeille')
+                                            : t('deleteDialog.cascadeDefinitive')}
                                     </Typography>
                                 </Alert>
                             )}
 
                             {entite.suppressionEnCorbeille && (
                                 <Alert severity="info">
-                                    La suppression est restaurable : un administrateur peut tout
-                                    rétablir depuis la corbeille, jusqu'à purge définitive.
+                                    {t('deleteDialog.restaurable')}
                                 </Alert>
                             )}
 
                             {impact.detached.length > 0 && (
                                 <Alert severity="info">
-                                    Ne sera pas supprimé, mais perdra son lien :{' '}
-                                    {joinFr(impact.detached.map(formatEntry))}.
+                                    {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map(formatEntry), t) })}
                                 </Alert>
                             )}
                         </>
@@ -257,14 +253,14 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
                     {!supporteImpact && (
                         <DialogContentText>
-                            Cette action est irréversible.
+                            {t('deleteDialog.irreversible')}
                         </DialogContentText>
                     )}
 
                     {!estBloque && confirmationRequise && (
                         <Box>
                             <Typography variant="body2" sx={{ mb: 1 }}>
-                                Pour confirmer, saisissez <strong>{phraseAttendue}</strong> :
+                                {t('deleteDialog.confirmerSaisiePrefixe')} <strong>{phraseAttendue}</strong> :
                             </Typography>
                             <TextField
                                 inputRef={saisieRef}
@@ -273,7 +269,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                 size="small"
                                 fullWidth
                                 autoComplete="off"
-                                label="Confirmation"
+                                label={t('deleteDialog.confirmationLabel')}
                             />
                         </Box>
                     )}
@@ -282,10 +278,10 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
             <DialogActions>
                 <Button onClick={onClose} autoFocus>
-                    Annuler
+                    {t('deleteDialog.annuler')}
                 </Button>
                 <Button onClick={onConfirm} color="error" disabled={!suppressionPossible}>
-                    Supprimer
+                    {t('deleteDialog.supprimer')}
                 </Button>
             </DialogActions>
         </Dialog>

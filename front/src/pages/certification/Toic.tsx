@@ -2,6 +2,7 @@ import { createRepository, type CrudProps, type Datasource, type RenderProps, ty
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
 import { useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { TextField, Typography } from "@mui/material";
 import { UserSelector } from '../../services/UserSelector';
@@ -12,13 +13,14 @@ import { ENDPOINT_TOEIC } from './def';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
+import { messageValidation } from '../../i18n/validation';
 
 // Schéma de validation pour le TOEIC
 const toeicSchema = z.object({
     id: z.number(),
     version: z.number(),
-    user_id: z.number({ message: "Veuillez sélectionner un élève" }),
-    score: z.number().min(0).max(990, "Le score doit être compris entre 0 et 990"),
+    user_id: z.number({ error: messageValidation('selectionnerEleve') }),
+    score: z.number().min(0).max(990, { error: messageValidation('scoreToeicPlage') }),
     date_passage: z.coerce.date(),
     remarque: z.string().nullish(),
     promotion_id: z.number().optional(),
@@ -143,18 +145,20 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
+    const { t } = useTranslation('crud');
 
     const datasource = useMemo((): Datasource<Toeic> | null => promotionId ? ({
         ...toeicDatasourceBase(promotionId),
         ...createToeicViewConfig(promotionId),
-        title: "TOEIC",
+        title: t('entites.toic.title'),
         roleEcriture: Role.CERTIFICATION_ECRITURE,
-        entityLabel: "le résultat TOEIC",
-        entityLabelPlural: "résultats TOEIC",
+        entityLabel: t('entites.toic.nom'),
+        entityLabelAvecArticle: t('entites.toic.nomAvecArticle'),
+        entityLabelPlural: t('entites.toic.nomPluriel'),
         isAction,
         isTopToolbar,
         renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions]);
+    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
