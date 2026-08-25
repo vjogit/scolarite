@@ -11,6 +11,7 @@ import { useSession } from '../SessionContext';
 import { createTheme, ThemeProvider, useColorScheme, type Theme } from '@mui/material/styles';
 import { NotificationsProvider } from '@toolpad/core/useNotifications';
 import { useKeycloak } from '../KeycloakContext';
+import { LanguageSwitcher } from '../services/LanguageSwitcher';
 
 /**
  * Les trois commandes qu'`Autocomplete` dessine lui-même — ouvrir, fermer,
@@ -47,6 +48,7 @@ const lightTheme = createTheme({
 function CustomActions() {
   return (
     <Stack direction="row" alignItems="center">
+      <LanguageSwitcher />
       <Account
         slotProps={{
           preview: { slotProps: { avatarIconButton: { sx: { border: '0' } } } },
