@@ -51,7 +51,13 @@ RUN apk add --no-cache nginx openssl
 RUN addgroup -S scolarite && adduser -S scolarite -G scolarite
 
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
-COPY infra/run/build/nginx.conf /etc/nginx/nginx.conf
+
+# nginx.conf n'est plus embarqué : c'est un template (${NGINX_TRUSTED_PROXIES})
+# rendu par start-scolarite.sh comme back/cmd/serveur/config.yaml, et monté en
+# lecture seule sur ce chemin par infra/run/compose.yaml. Le fichier
+# placeholder évite qu'un bind mount fichier-à-fichier ne crée un répertoire
+# à la place si le montage venait à manquer.
+RUN touch /etc/nginx/nginx.conf
 
 RUN mkdir -p /etc/nginx/ssl
 COPY infra/run/build/ssl/nginx.crt /etc/nginx/ssl/nginx.crt

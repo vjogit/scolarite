@@ -64,6 +64,13 @@ func ConflictError(w http.ResponseWriter, r *http.Request, detail string, code E
 	RenderError(w, r, 409, code, detail, extensions, "ConflictError")
 }
 
+// PayloadTooLargeError : le corps de la requête dépasse la limite globale
+// (MaxBytesMiddleware). Distinct de FILE_TOO_LARGE, qui reste le code des
+// imports de fichier — celui-ci couvre les corps JSON.
+func PayloadTooLargeError(w http.ResponseWriter, r *http.Request, detail string, extensions map[string]any) {
+	RenderError(w, r, http.StatusRequestEntityTooLarge, PAYLOAD_TOO_LARGE, detail, extensions, "PayloadTooLargeError")
+}
+
 // ServerError est le seul chemin vers un 500 : le client reçoit un detail
 // générique et un identifiant d'incident ; l'erreur d'origine, elle, ne quitte
 // pas le log serveur. L'identifiant figure des deux côtés — c'est lui qui rend
@@ -126,6 +133,10 @@ const (
 
 	// Famille : résultat vide
 	NO_RESULT // 14 - requête valide mais aucune donnée trouvée
+
+	// Famille : quotas réseau (lot sécurité)
+	PAYLOAD_TOO_LARGE // 15 - corps de requête au-delà de la limite globale (hors fichier, voir FILE_TOO_LARGE)
+	RATE_LIMITED      // 16 - trop de requêtes ; émis par nginx (limit_req), jamais par le backend
 )
 
 // errorCodeNames mappe chaque ErrorCode vers son identifiant stable
@@ -147,6 +158,8 @@ var errorCodeNames = map[ErrorCode]string{
 	INSUFFICIENT_RIGHTS:        "INSUFFICIENT_RIGHTS",
 	INTERNAL_ERROR:             "INTERNAL_ERROR",
 	NO_RESULT:                  "NO_RESULT",
+	PAYLOAD_TOO_LARGE:          "PAYLOAD_TOO_LARGE",
+	RATE_LIMITED:               "RATE_LIMITED",
 }
 
 // errorCodeTitles : le `title` RFC 9457, court et stable comme le veut la RFC.
@@ -167,6 +180,8 @@ var errorCodeTitles = map[ErrorCode]string{
 	INSUFFICIENT_RIGHTS:        "Droits insuffisants",
 	INTERNAL_ERROR:             "Erreur interne",
 	NO_RESULT:                  "Aucun résultat",
+	PAYLOAD_TOO_LARGE:          "Requête trop volumineuse",
+	RATE_LIMITED:               "Trop de requêtes",
 }
 
 func (c ErrorCode) String() string {

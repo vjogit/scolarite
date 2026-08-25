@@ -16,10 +16,27 @@ database:
   user: ${SCOLARITE_USER}
   password: ${SCOLARITE_PASSWORD}
   name: ${SCOLARITE_DB}
+  # Mode TLS de la connexion PostgreSQL (lot sécurité réseau). Vide vaut
+  # disable — voir infra/env/config-{local,prod}.env pour la valeur par
+  # environnement, et DatabaseConfig.SSLMode pour le défaut sûr documenté.
+  sslmode: ${SCOLARITE_DB_SSLMODE}
+  sslrootcert: ${SCOLARITE_DB_SSLROOTCERT}
 
 server:
   host: localhost
   port: 3333
+  # Timeouts http.Server et plafond global de requête (lot sécurité réseau).
+  # Valeurs identiques quel que soit l'environnement — ce ne sont pas des
+  # coordonnées de déploiement, elles restent donc en littéral ici plutôt
+  # que dans infra/env/*.env. Dimensionnement détaillé dans le rapport du
+  # lot : readTimeout couvre un import de maxBodyBytes sur une connexion
+  # lente, writeTimeout la génération des bulletins ZIP d'une grosse période
+  # (mesurée), readHeaderTimeout et idleTimeout sont des valeurs usuelles.
+  readHeaderTimeout: 5s
+  readTimeout: 60s
+  writeTimeout: 30s
+  idleTimeout: 120s
+  maxBodyBytes: 12582912 # 12 Mo ; nginx (client_max_body_size) accepte plus haut pour laisser ce plafond répondre en RFC 9457
 
 # Niveau minimum des logs : debug, info, warn ou error. Vide vaut info ; une
 # valeur inconnue arrête le démarrage. Hors conteneur, si la variable n'est

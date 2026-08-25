@@ -26,7 +26,9 @@ export type ApiErrorCode =
   | 'INVALID_FILE_EXTENSION'
   | 'INSUFFICIENT_RIGHTS'
   | 'INTERNAL_ERROR'
-  | 'NO_RESULT';
+  | 'NO_RESULT'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'RATE_LIMITED';
 
 export const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
   NO_INFORMATION:             'Une erreur est survenue.',
@@ -44,6 +46,8 @@ export const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
   INSUFFICIENT_RIGHTS:        "Vous ne disposez pas des droits nécessaires pour effectuer cette action.",
   INTERNAL_ERROR:             'Une erreur interne est survenue. Veuillez réessayer ultérieurement.',
   NO_RESULT:                  'Aucun résultat trouvé.',
+  PAYLOAD_TOO_LARGE:          'La requête est trop volumineuse.',
+  RATE_LIMITED:               'Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer.',
 };
 
 const KNOWN_CODES = new Set<string>([
@@ -51,6 +55,7 @@ const KNOWN_CODES = new Set<string>([
   'MISSING_PARAM', 'INVALID_PARAM', 'NOT_FOUND', 'BUSINESS_CONFLICT',
   'INVALID_BODY', 'INVALID_FILE', 'FILE_TOO_LARGE', 'FILE_MISSING',
   'INVALID_FILE_EXTENSION', 'INSUFFICIENT_RIGHTS', 'INTERNAL_ERROR', 'NO_RESULT',
+  'PAYLOAD_TOO_LARGE', 'RATE_LIMITED',
 ]);
 
 function isApiErrorCode(value: unknown): value is ApiErrorCode {

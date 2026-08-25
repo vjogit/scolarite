@@ -80,6 +80,16 @@ export KC_HOSTNAME="${KC_HOSTNAME_CONTENEURS:-$KC_HOSTNAME}"
 
 envsubst < "$CONFIG_TEMPLATE" > "$CONF_DIR/config.yaml"
 
+# nginx.conf, même mécanisme, même répertoire de conf que le backend. Liste de
+# substitution restreinte à la seule variable qu'on lui destine : nginx.conf
+# est plein de ses propres $variables ($host, $remote_addr, $scheme...), un
+# envsubst sans restriction les prendrait pour des variables d'environnement
+# absentes et les viderait.
+NGINX_CONF_TEMPLATE="$PROJECT_ROOT/infra/run/build/nginx.conf"
+[ -f "$NGINX_CONF_TEMPLATE" ] || { echo "ERREUR : gabarit nginx introuvable : $NGINX_CONF_TEMPLATE" >&2; exit 1; }
+: "${NGINX_TRUSTED_PROXIES:?NGINX_TRUSTED_PROXIES absent de $CONFIG_FILE}"
+envsubst '${NGINX_TRUSTED_PROXIES}' < "$NGINX_CONF_TEMPLATE" > "$CONF_DIR/nginx.conf"
+
 # Consommés par infra/run/compose.yaml.
 export CONFIG_FILE SECRETS_FILE
 export BACKEND_TARGET="$ENV_NAME"

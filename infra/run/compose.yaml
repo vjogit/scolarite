@@ -38,6 +38,11 @@ services:
         # infra/run/start-scolarite.sh selon l'espace de travail, comme
         # BACKEND_TARGET ci-dessus : local -> conteneurs, prod -> production.
         FRONT_MODE: ${FRONT_MODE:-production}
+    volumes:
+      # Rendu par start-scolarite.sh dans le même répertoire que le
+      # config.yaml du backend (${SCOLARITE_CONF_DIR}) — un seul fichier,
+      # montage direct plutôt que le répertoire entier.
+      - ${SCOLARITE_CONF_DIR}/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
     networks:

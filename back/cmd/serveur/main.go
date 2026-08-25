@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"cyb-react/pkg/certification"
 	"cyb-react/pkg/corbeille"
 	"cyb-react/pkg/planning"
@@ -9,10 +10,13 @@ import (
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure"
 	"cyb-react/pkg/user"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -57,6 +61,9 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger) // Log HTTP requests
+	// Filet global de taille de requête (M4) : au-dessus des plafonds par
+	// route des imports, qui restent inchangés (services/max_body.go).
+	r.Use(services.MaxBodyMiddleware(cfg.Server.MaxBodyBytes))
 	r.Use(services.DatabaseMiddleware(&cfg.Database))
 
 	// AuthMiddleware sans rôle : authentification seule (jeton vérifié, rôles
@@ -112,10 +119,42 @@ func main() {
 	}
 	registre.StartAnchorScheduler(&cfg.Database, cfg.Registre)
 
-	slog.Info("Serveur démarré", "host", cfg.Server.Port, "port", cfg.Server.Host)
-	error := http.ListenAndServe(
-		fmt.Sprintf(":%d", cfg.Server.Port),
-		r,
-	)
-	slog.Info("Serveur arrêté avec erreur", "error", error.Error())
+	srv := &http.Server{
+		Addr:              fmt.Sprintf(":%d", cfg.Server.Port),
+		Handler:           r,
+		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
+		ReadTimeout:       cfg.Server.ReadTimeout,
+		WriteTimeout:      cfg.Server.WriteTimeout,
+		IdleTimeout:       cfg.Server.IdleTimeout,
+	}
+
+	// Arrêt propre sur SIGTERM (les conteneurs en envoient un) : on cesse
+	// d'accepter de nouvelles connexions et on laisse les requêtes en cours se
+	// terminer, borné par le WriteTimeout déjà en vigueur pour chacune d'elles
+	// — pas de délai de grâce supplémentaire à inventer.
+	serverErr := make(chan error, 1)
+	go func() {
+		slog.Info("Serveur démarré", "host", cfg.Server.Host, "port", cfg.Server.Port)
+		serverErr <- srv.ListenAndServe()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	select {
+	case err := <-serverErr:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Serveur arrêté avec erreur", "error", err)
+			os.Exit(1)
+		}
+	case sig := <-stop:
+		slog.Info("Signal reçu, arrêt en cours", "signal", sig.String())
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Server.WriteTimeout)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			slog.Error("Arrêt propre incomplet", "error", err)
+		} else {
+			slog.Info("Serveur arrêté proprement")
+		}
+	}
 }

@@ -94,11 +94,34 @@ type DatabaseConfig struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Name     string `yaml:"name"`
+	// SSLMode : mode `sslmode` libpq (disable, require, verify-ca, verify-full).
+	// Vide vaut disable — c'est aussi le comportement d'avant ce champ. Le
+	// défaut sûr pour un environnement qui n'a pas encore de CA PostgreSQL
+	// (chantier environnements) est verify-full, pas disable : voir
+	// infra/env/config-prod.env.
+	SSLMode string `yaml:"sslmode"`
+	// SSLRootCert : chemin d'un bundle PEM de CA, requis par verify-ca et
+	// verify-full. Ignoré pour disable/require.
+	SSLRootCert string `yaml:"sslrootcert"`
 }
 
 type ServerConfig struct {
 	Host string `yaml:"host"`
 	Port int    `yaml:"port"`
+
+	// Timeouts http.Server (lot sécurité réseau). Aucun défaut Go : le
+	// config.yaml embarqué les porte tous en littéral, comme
+	// registre.timestamp.hashAlgorithm — ce ne sont pas des valeurs qui
+	// varient par environnement.
+	ReadHeaderTimeout time.Duration `yaml:"readHeaderTimeout"`
+	ReadTimeout       time.Duration `yaml:"readTimeout"`
+	WriteTimeout      time.Duration `yaml:"writeTimeout"`
+	IdleTimeout       time.Duration `yaml:"idleTimeout"`
+
+	// MaxBodyBytes : plafond global de taille de requête (MaxBodyMiddleware),
+	// au-delà des plafonds par route des imports (ParseMultipartForm). En
+	// octets : pas d'unité lisible en YAML sans dépendance supplémentaire.
+	MaxBodyBytes int64 `yaml:"maxBodyBytes"`
 }
 
 type KeycloakConfig struct {

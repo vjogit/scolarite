@@ -14,9 +14,23 @@ import (
 
 var PgCtxKey = &ContextKey{"pg entry"}
 
+// ToDBS construit le DSN libpq. sslmode vide vaut disable — le comportement
+// d'avant ce champ, conservé comme défaut du champ lui-même plutôt que codé
+// en dur ici (voir DatabaseConfig.SSLMode).
 func ToDBS(cfg *DatabaseConfig) string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name)
+	sslMode := cfg.SSLMode
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name, sslMode)
+
+	if cfg.SSLRootCert != "" {
+		dsn += fmt.Sprintf(" sslrootcert=%s", cfg.SSLRootCert)
+	}
+
+	return dsn
 }
 
 func DatabaseMiddleware(cfg *DatabaseConfig) func(http.Handler) http.Handler {
