@@ -1,4 +1,86 @@
 {
   "langueTooltip": "Change language",
-  "langueAriaLabel": "Change language"
+  "langueAriaLabel": "Change language",
+  "nav": {
+    "scolarite": "Academics",
+    "salle": "Room",
+    "utilisateur": "User",
+    "corbeille": "Trash",
+    "registre": "Ledger",
+    "connexion": "Sign in",
+    "deconnexion": "Sign out"
+  },
+  "workflows": {
+    "structure": "Structure",
+    "notes": "Grades",
+    "programme": "Schedule",
+    "jury": "Jury",
+    "certifications": "Certifications",
+    "salles": "Rooms",
+    "utilisateurs": "Users"
+  },
+  "barreWorkflows": {
+    "navigationAriaLabel": "Task navigation"
+  },
+  "autocomplete": {
+    "ouvrir": "Open",
+    "fermer": "Close",
+    "effacer": "Clear"
+  },
+  "roleGuard": {
+    "accesNonAutorise": "Access denied"
+  },
+  "userSelector": {
+    "champEleve": "Student",
+    "rechercherEleve": "Search for a student"
+  },
+  "lignesRefusees": {
+    "champs": {
+      "note": "Grade",
+      "userId": "Student",
+      "email": "Email",
+      "nature": "Type",
+      "roles": "Roles"
+    },
+    "titre": "Import rejected",
+    "tableAriaLabel": "Rejected rows",
+    "colonneLigne": "Row",
+    "colonneChamp": "Field",
+    "colonneMotif": "Reason",
+    "fermer": "Close"
+  },
+  "niveaux": {
+    "formation": "Program",
+    "promotion": "Cohort",
+    "option": "Option",
+    "periode": "Period"
+  },
+  "prolongements": {
+    "ue": "Course unit",
+    "matiere": "Subject",
+    "controle": "Assessment",
+    "groupe": "Group",
+    "eleve": "Student",
+    "notes": "Grades",
+    "membres": "Members",
+    "jury": "Jury",
+    "programme": "Schedule",
+    "toeic": "TOEIC",
+    "mobiliteInternationale": "International mobility"
+  },
+  "selecteurNiveau": {
+    "sansSelection": "Choose",
+    "ariaLabelNiveau": "{{libelle}}: {{nom}}",
+    "changerDe": "Change {{libelle}}",
+    "filtrerLes": "Filter {{libelle}}s",
+    "chargementImpossible": "Could not load",
+    "reessayer": "Retry",
+    "aucunElement": "No items",
+    "aucunResultat": "No results",
+    "actualisation": "Refreshing…",
+    "voirLaListe": "View the list"
+  },
+  "filContexte": {
+    "ariaLabel": "Breadcrumb"
+  }
 }

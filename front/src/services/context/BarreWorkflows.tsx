@@ -18,10 +18,11 @@
 import type { SyntheticEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { Box, Tab, Tabs } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 import { useSession } from '../../SessionContext';
 import { construireCheminWorkflow, ecranTerminalDuChemin } from './navigation';
-import { possedeUnRole, WORKFLOWS_HIERARCHIQUES, type DescripteurWorkflow } from './workflows';
+import { libelleWorkflow, possedeUnRole, WORKFLOWS_HIERARCHIQUES, type DescripteurWorkflow } from './workflows';
 import { useContexteHierarchie } from './contexte';
 import { FilContexte } from './FilContexte';
 
@@ -29,6 +30,7 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
     const navigate = useNavigate();
     const { session } = useSession();
     const { pourNavigation, chemins } = useContexteHierarchie();
+    const { t } = useTranslation('app');
 
     const onglets = WORKFLOWS_HIERARCHIQUES.filter(
         workflow => possedeUnRole(session?.user.roles, workflow.rolesRequis),
@@ -59,13 +61,13 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
                     onChange={basculer}
                     variant="scrollable"
                     scrollButtons="auto"
-                    aria-label="Navigation entre les tâches"
+                    aria-label={t('barreWorkflows.navigationAriaLabel')}
                     sx={{ minHeight: 40 }}
                 >
                     {onglets.map(workflow => (
                         <Tab
                             key={workflow.id}
-                            label={workflow.libelle}
+                            label={libelleWorkflow(workflow, t)}
                             sx={{ minHeight: 40, textTransform: 'none' }}
                         />
                     ))}

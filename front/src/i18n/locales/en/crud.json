@@ -184,5 +184,7 @@
   "arbre": {
     "chargementImpossible": "Could not load.",
     "ariaLabel": "Structure tree"
-  }
+  },
+  "erreurRecuperation": "Error while retrieving data.",
+  "donneesIntrouvables": "Data not found."
 }

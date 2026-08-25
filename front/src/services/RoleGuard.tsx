@@ -8,10 +8,12 @@
  */
 
 import { use, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import SessionContext from '../SessionContext';
 
 export const RoleGuard = ({ children, roles, requireAll }: { children: ReactNode, roles: readonly string[], requireAll?: boolean }) => {
   const { session } = use(SessionContext);
+  const { t } = useTranslation('app');
 
   if (!session?.user) {
     return null;
@@ -25,7 +27,7 @@ export const RoleGuard = ({ children, roles, requireAll }: { children: ReactNode
     : roles.some(r => userRoles.includes(r));
 
   if (!hasRole) {
-    return <div>Accès non autorisé</div>;
+    return <div>{t('roleGuard.accesNonAutorise')}</div>;
   }
 
   return <>{children}</>;

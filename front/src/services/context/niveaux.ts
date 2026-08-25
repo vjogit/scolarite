@@ -8,6 +8,8 @@
  * le reste tombe dès qu'on change de tâche.
  */
 
+import type { TFunction } from 'i18next';
+import i18n from '../../i18n/config';
 import {
     FORMATION, PROMOTION, OPTION, PERIODE,
     ENDPOINT_FORMATION, ENDPOINT_PROMOTION, ENDPOINT_OPTION, ENDPOINT_PERIODE,
@@ -40,9 +42,12 @@ export const ENDPOINT_PAR_NIVEAU: Readonly<Record<Niveau, string>> = {
     [PERIODE]: ENDPOINT_PERIODE,
 };
 
-export const LIBELLE_NIVEAU: Readonly<Record<Niveau, string>> = {
-    [FORMATION]: 'Formation',
-    [PROMOTION]: 'Promotion',
-    [OPTION]: 'Option',
-    [PERIODE]: 'Période',
-};
+export function libelleNiveau(niveau: Niveau, t?: TFunction<'app'>): string {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    switch (niveau) {
+        case FORMATION: return traduire('niveaux.formation');
+        case PROMOTION: return traduire('niveaux.promotion');
+        case OPTION: return traduire('niveaux.option');
+        case PERIODE: return traduire('niveaux.periode');
+    }
+}

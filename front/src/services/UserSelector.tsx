@@ -4,6 +4,7 @@ import  { Controller  } from 'react-hook-form';
 
 import { useQuery } from '@tanstack/react-query';
 import { Autocomplete, TextField, CircularProgress } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { apiInstance } from './api';
 
 export interface UserOption {
@@ -45,6 +46,7 @@ export const UserSelector = <T extends FormFields>({
     isReadOnly = false,
     onChoisir,
 }: UserSelectorProps<T>) => {
+    const { t } = useTranslation('app');
     const [inputValue, setInputValue] = useState('');
     const [debouncedInputValue, setDebouncedInputValue] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserOption | null>(() => {
@@ -77,7 +79,7 @@ export const UserSelector = <T extends FormFields>({
 
     if (isReadOnly) {
         return (
-            <TextField label="Élève" value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()} variant="outlined" fullWidth disabled sx={{ mb: 2 }} />
+            <TextField label={t('userSelector.champEleve')} value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()} variant="outlined" fullWidth disabled sx={{ mb: 2 }} />
         );
     }
 
@@ -104,7 +106,7 @@ export const UserSelector = <T extends FormFields>({
                     renderInput={(params) => (
                         <TextField
                             {...params}
-                            label="Rechercher un élève"
+                            label={t('userSelector.rechercherEleve')}
                             error={!!errors.user_id}
                             // Le générique `T` transforme le type du message en conditionnel que
                             // React n'accepte pas : c'est le seul endroit du projet où

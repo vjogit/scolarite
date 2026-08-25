@@ -19,6 +19,8 @@
  */
 
 import type { QueryKey } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
+import i18n from '../../i18n/config';
 
 import { CATALOG_WORKFLOW, MEMBRES } from '../../pages/catalog/def';
 import { CERTIFICATION_WORKFLOW, MOBILITE, TOEIC } from '../../pages/certification/def';
@@ -154,6 +156,25 @@ const SEGMENTS_PAR_WORKFLOW: Readonly<Record<string, readonly SegmentProlonge[]>
         { segment: MOBILITE, libelle: 'Mobilité internationale' },
     ],
 };
+
+/** Le libellé affiché d'un segment prolongé, dans la langue active. */
+export function libelleSegment(segment: SegmentProlonge, t?: TFunction<'app'>): string {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    switch (segment.segment) {
+        case UES: return traduire('prolongements.ue');
+        case MATIERE: return traduire('prolongements.matiere');
+        case CONTROLE: return traduire('prolongements.controle');
+        case GROUPE: return traduire('prolongements.groupe');
+        case ELEVE: return traduire('prolongements.eleve');
+        case NOTE: return traduire('prolongements.notes');
+        case MEMBRES: return traduire('prolongements.membres');
+        case JURY: return traduire('prolongements.jury');
+        case PROGRAMME: return traduire('prolongements.programme');
+        case TOEIC: return traduire('prolongements.toeic');
+        case MOBILITE: return traduire('prolongements.mobiliteInternationale');
+        default: return segment.libelle;
+    }
+}
 
 const VIDE: ReadonlyMap<string, SegmentProlonge> = new Map();
 

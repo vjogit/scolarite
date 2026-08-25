@@ -7,6 +7,7 @@ import type { CrudMode, Datasource } from "./def";
 import type { DefaultValues, FieldValues } from "react-hook-form";
 import { CrudContext } from "./CrudContext";
 import { Alert, Skeleton } from "@mui/material";
+import { useTranslation } from 'react-i18next';
 import { useDroits } from "../context/droits";
 
 
@@ -22,6 +23,7 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
     const { id } = useParams(); // Récupère l'ID depuis l'URL
     const navigate = useNavigate();
     const { peutEcrire } = useDroits();
+    const { t } = useTranslation('crud');
 
     // Accès direct par URL à `/new` ou `/:id/edit` sans le droit d'écriture :
     // le serveur refuserait de toute façon, mais l'utilisateur ne doit pas
@@ -58,15 +60,15 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
     }
 
     if (isLoading) return <Skeleton variant="rounded" height={400} />;
-    if (error) return <Alert severity="error">Erreur lors de la récupération.</Alert>;
+    if (error) return <Alert severity="error">{t('erreurRecuperation')}</Alert>;
 
     if (mode === 'show') {
-        if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
+        if (!data) return <Alert severity="warning">{t('donneesIntrouvables')}</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="show" />;
     } else {
         // Reste `edit` : les quatre modes de `CrudMode` sont couverts, il n'y a
         // pas de cinquième cas à rattraper par un « page non trouvée ».
-        if (!data) return <Alert severity="warning">Données introuvables.</Alert>;
+        if (!data) return <Alert severity="warning">{t('donneesIntrouvables')}</Alert>;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="edit" />;
     }
     })();

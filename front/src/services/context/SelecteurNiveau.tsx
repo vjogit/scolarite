@@ -27,6 +27,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import {
     Box, Button, Divider, ListItemText, Menu, MenuItem, Skeleton, TextField, Typography,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 
 import type { NiveauResolu } from './contexte';
@@ -34,7 +35,6 @@ import type { DepotFreres, Frere } from './freres';
 import { DUREE_FRAICHEUR_NOMS } from './resolution';
 
 const NOM_INDISPONIBLE = '—';
-const SANS_SELECTION = 'Choisir';
 
 /**
  * Fraîcheur alignée sur celle des résolutions de nom.
@@ -72,6 +72,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
     cheminListe?: string;
     onChoisir: (identifiant: string) => void;
 }) {
+    const { t } = useTranslation('app');
     const [ancre, setAncre] = useState<HTMLElement | null>(null);
     const [filtre, setFiltre] = useState('');
     const ouvert = ancre !== null;
@@ -116,7 +117,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
         onChoisir(frere.identifiant);
     };
 
-    const nomAffiche = valeur === undefined ? SANS_SELECTION : valeur.nom ?? NOM_INDISPONIBLE;
+    const nomAffiche = valeur === undefined ? t('selecteurNiveau.sansSelection') : valeur.nom ?? NOM_INDISPONIBLE;
     const identifiantMenu = `selecteur-${segment}`;
 
     return (
@@ -131,7 +132,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                 aria-controls={ouvert ? identifiantMenu : undefined}
                 // Le nom accessible porte le niveau : « Réseaux » seul ne dit
                 // pas qu'il s'agit d'une option.
-                aria-label={`${libelle} : ${nomAffiche}`}
+                aria-label={t('selecteurNiveau.ariaLabelNiveau', { libelle, nom: nomAffiche })}
                 endIcon={<ArrowDropDownIcon fontSize="small" />}
                 sx={{
                     textTransform: 'none', py: 0.25, px: 1, minWidth: 0, maxWidth: 200,
@@ -180,7 +181,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                 // La saisie de filtre garde le focus ; sans cela le menu le
                 // reprend et la frappe est perdue.
                 autoFocus={!filtrables}
-                slotProps={{ list: { 'aria-label': `Changer de ${libelle.toLowerCase()}`, dense: true } }}
+                slotProps={{ list: { 'aria-label': t('selecteurNiveau.changerDe', { libelle: libelle.toLowerCase() }), dense: true } }}
             >
                 {filtrables && (
                     <Box sx={{ px: 1.5, pt: 0.5, pb: 1 }}>
@@ -198,8 +199,8 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                                     evenement.stopPropagation();
                                 }
                             }}
-                            placeholder={`Filtrer les ${libelle.toLowerCase()}s`}
-                            aria-label={`Filtrer les ${libelle.toLowerCase()}s`}
+                            placeholder={t('selecteurNiveau.filtrerLes', { libelle: libelle.toLowerCase() })}
+                            aria-label={t('selecteurNiveau.filtrerLes', { libelle: libelle.toLowerCase() })}
                         />
                     </Box>
                 )}
@@ -209,8 +210,8 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                     // échoue n'a pas à interrompre le travail en cours.
                     <MenuItem onClick={() => void refetch()}>
                         <ListItemText
-                            primary="Chargement impossible"
-                            secondary="Réessayer"
+                            primary={t('selecteurNiveau.chargementImpossible')}
+                            secondary={t('selecteurNiveau.reessayer')}
                             slotProps={{ primary: { color: 'error' } }}
                         />
                     </MenuItem>
@@ -224,7 +225,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
 
                 {!isError && freres !== undefined && visibles.length === 0 && (
                     <MenuItem disabled>
-                        {filtre === '' ? 'Aucun élément' : 'Aucun résultat'}
+                        {filtre === '' ? t('selecteurNiveau.aucunElement') : t('selecteurNiveau.aucunResultat')}
                     </MenuItem>
                 )}
 
@@ -240,7 +241,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
 
                 {isFetching && freres !== undefined && (
                     <Typography variant="caption" sx={{ px: 2, color: 'text.secondary' }}>
-                        Actualisation…
+                        {t('selecteurNiveau.actualisation')}
                     </Typography>
                 )}
 
@@ -249,7 +250,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                     // L'accès à la liste que le fil d'Ariane offrait : même
                     // cible, désormais au bout du menu du niveau.
                     <MenuItem component={RouterLink} to={cheminListe} onClick={fermer}>
-                        Voir la liste
+                        {t('selecteurNiveau.voirLaListe')}
                     </MenuItem>
                 )}
             </Menu>

@@ -1,4 +1,86 @@
 {
   "langueTooltip": "Changer de langue",
-  "langueAriaLabel": "Changer de langue"
+  "langueAriaLabel": "Changer de langue",
+  "nav": {
+    "scolarite": "Scolarité",
+    "salle": "Salle",
+    "utilisateur": "Utilisateur",
+    "corbeille": "Corbeille",
+    "registre": "Registre",
+    "connexion": "Connexion",
+    "deconnexion": "Déconnexion"
+  },
+  "workflows": {
+    "structure": "Structure",
+    "notes": "Notes",
+    "programme": "Programme",
+    "jury": "Jury",
+    "certifications": "Certifications",
+    "salles": "Salles",
+    "utilisateurs": "Utilisateurs"
+  },
+  "barreWorkflows": {
+    "navigationAriaLabel": "Navigation entre les tâches"
+  },
+  "autocomplete": {
+    "ouvrir": "Ouvrir la liste",
+    "fermer": "Fermer la liste",
+    "effacer": "Effacer"
+  },
+  "roleGuard": {
+    "accesNonAutorise": "Accès non autorisé"
+  },
+  "userSelector": {
+    "champEleve": "Élève",
+    "rechercherEleve": "Rechercher un élève"
+  },
+  "lignesRefusees": {
+    "champs": {
+      "note": "Note",
+      "userId": "Élève",
+      "email": "Email",
+      "nature": "Nature",
+      "roles": "Rôles"
+    },
+    "titre": "Import refusé",
+    "tableAriaLabel": "Lignes refusées",
+    "colonneLigne": "Ligne",
+    "colonneChamp": "Champ",
+    "colonneMotif": "Motif",
+    "fermer": "Fermer"
+  },
+  "niveaux": {
+    "formation": "Formation",
+    "promotion": "Promotion",
+    "option": "Option",
+    "periode": "Période"
+  },
+  "prolongements": {
+    "ue": "UE",
+    "matiere": "Matière",
+    "controle": "Contrôle",
+    "groupe": "Groupe",
+    "eleve": "Élève",
+    "notes": "Notes",
+    "membres": "Membres",
+    "jury": "Jury",
+    "programme": "Programme",
+    "toeic": "TOEIC",
+    "mobiliteInternationale": "Mobilité internationale"
+  },
+  "selecteurNiveau": {
+    "sansSelection": "Choisir",
+    "ariaLabelNiveau": "{{libelle}} : {{nom}}",
+    "changerDe": "Changer de {{libelle}}",
+    "filtrerLes": "Filtrer les {{libelle}}s",
+    "chargementImpossible": "Chargement impossible",
+    "reessayer": "Réessayer",
+    "aucunElement": "Aucun élément",
+    "aucunResultat": "Aucun résultat",
+    "actualisation": "Actualisation…",
+    "voirLaListe": "Voir la liste"
+  },
+  "filContexte": {
+    "ariaLabel": "Fil d'Ariane"
+  }
 }

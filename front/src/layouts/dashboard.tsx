@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Stack from '@mui/material/Stack';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { Outlet, useLocation } from 'react-router';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
@@ -21,29 +23,17 @@ import { LanguageSwitcher } from '../services/LanguageSwitcher';
  * chaîne devrait rester juste. Le thème est le seul endroit qui les tient
  * tous.
  */
-const COMPOSANTS_FR = {
-  MuiAutocomplete: {
-    defaultProps: {
-      openText: 'Ouvrir la liste',
-      closeText: 'Fermer la liste',
-      clearText: 'Effacer',
+function composantsTraduits(t: TFunction<'app'>) {
+  return {
+    MuiAutocomplete: {
+      defaultProps: {
+        openText: t('autocomplete.ouvrir'),
+        closeText: t('autocomplete.fermer'),
+        clearText: t('autocomplete.effacer'),
+      },
     },
-  },
-} as const;
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-  components: COMPOSANTS_FR,
-});
-
-const lightTheme = createTheme({
-  palette: {
-    mode: 'light',
-  },
-  components: COMPOSANTS_FR,
-})
+  } as const;
+}
 
 function CustomActions() {
   return (
@@ -63,6 +53,15 @@ export default function Layout() {
   const location = useLocation()
   const { mode } = useColorScheme()
   const { keycloak, loading } = useKeycloak()
+  const { t } = useTranslation('app')
+
+  const { darkTheme, lightTheme } = useMemo(() => {
+    const composants = composantsTraduits(t);
+    return {
+      darkTheme: createTheme({ palette: { mode: 'dark' }, components: composants }),
+      lightTheme: createTheme({ palette: { mode: 'light' }, components: composants }),
+    };
+  }, [t]);
 
   // La redirection vers Keycloak est un effet de bord : la déclencher pendant
   // le rendu rendait `Layout` impur, et React se réserve le droit de rejouer un

@@ -23,12 +23,14 @@
 import { Fragment, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Stack, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { useContexteHierarchie, type NiveauResolu } from './contexte';
 import { depotFreres } from './freres';
-import { estNiveau, LIBELLE_NIVEAU, type ContexteHierarchique, type Niveau } from './niveaux';
+import { estNiveau, libelleNiveau, type ContexteHierarchique, type Niveau } from './niveaux';
 import { construireCheminWorkflow, ecranTerminalDuChemin, remplacerNiveau } from './navigation';
-import { prolongementsDuWorkflow, type ResolveurNom, type SegmentProlonge } from './prolongements';
+import { libelleSegment, prolongementsDuWorkflow, type ResolveurNom, type SegmentProlonge } from './prolongements';
 import { useNomResolu } from './resolution';
 import { SelecteurNiveau } from './SelecteurNiveau';
 import type { DescripteurWorkflow } from './workflows';
@@ -88,6 +90,7 @@ function analyserChemin(
     pathname: string,
     workflow: DescripteurWorkflow,
     prolonges: ReadonlyMap<string, SegmentProlonge>,
+    t: TFunction<'app'>,
 ): ElementFil[] {
     const segments = pathname.split('/').filter(Boolean);
     const elements: ElementFil[] = [];
@@ -122,7 +125,7 @@ function analyserChemin(
                 });
             } else {
                 // Écran terminal, liste profonde ou segment inconnu : un libellé.
-                elements.push({ genre: 'inerte', libelle: prolonge?.libelle ?? segment });
+                elements.push({ genre: 'inerte', libelle: prolonge ? libelleSegment(prolonge, t) : segment });
             }
         }
 
@@ -157,10 +160,11 @@ function ItemNiveau({ element, valeur, contexte, cheminListe, onChoisir }: {
     onChoisir: (identifiant: string) => void;
 }) {
     const depot = useMemo(() => depotFreres(element.niveau, contexte), [element.niveau, contexte]);
+    const { t } = useTranslation('app');
     return (
         <SelecteurNiveau
             segment={element.niveau}
-            libelle={LIBELLE_NIVEAU[element.niveau]}
+            libelle={libelleNiveau(element.niveau, t)}
             valeur={valeur}
             depot={depot}
             cheminListe={cheminListe}
@@ -175,6 +179,7 @@ function ItemProfond({ element, cheminListe, onChoisir }: {
     onChoisir: (identifiant: string) => void;
 }) {
     const { segment, resoudre, identifiant, identifiantParent } = element;
+    const { t } = useTranslation('app');
 
     const fabriqueDepot = segment.depot;
     const depot = useMemo(
@@ -195,7 +200,7 @@ function ItemProfond({ element, cheminListe, onChoisir }: {
     return (
         <SelecteurNiveau
             segment={segment.segment}
-            libelle={segment.libelle}
+            libelle={libelleSegment(segment, t)}
             valeur={valeur}
             depot={depot}
             cheminListe={cheminListe}
@@ -208,14 +213,15 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { parUrl, chemins } = useContexteHierarchie();
+    const { t } = useTranslation('app');
 
     const prolonges = useMemo(
         () => prolongementsDuWorkflow(workflowCourant.id),
         [workflowCourant],
     );
     const elements = useMemo(
-        () => analyserChemin(pathname, workflowCourant, prolonges),
-        [pathname, workflowCourant, prolonges],
+        () => analyserChemin(pathname, workflowCourant, prolonges, t),
+        [pathname, workflowCourant, prolonges, t],
     );
 
     // Le contexte réellement affiché, d'où les sélecteurs tirent leur parent.
@@ -259,7 +265,7 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
     return (
         <Stack
             component="nav"
-            aria-label="Fil d'Ariane"
+            aria-label={t('filContexte.ariaLabel')}
             direction="row"
             spacing={0.25}
             alignItems="center"

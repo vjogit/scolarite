@@ -7,6 +7,8 @@
  * quand on passe d'une tâche à l'autre.
  */
 
+import type { TFunction } from 'i18next';
+import i18n from '../../i18n/config';
 import { CATALOG_WORKFLOW } from '../../pages/catalog/def';
 import { CERTIFICATION_WORKFLOW, MOBILITE, TOEIC } from '../../pages/certification/def';
 import { JURY, JURY_WORKFLOW } from '../../pages/jury/def';
@@ -139,6 +141,21 @@ export const TOUS_LES_WORKFLOWS: readonly DescripteurWorkflow[] = [
     WORKFLOW_SALLE,
     WORKFLOW_USER,
 ];
+
+/** Le libellé d'onglet d'un workflow, dans la langue active. */
+export function libelleWorkflow(workflow: DescripteurWorkflow, t?: TFunction<'app'>): string {
+    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    switch (workflow.id) {
+        case CATALOG_WORKFLOW: return traduire('workflows.structure');
+        case NOTE_WORKFLOW: return traduire('workflows.notes');
+        case PROGRAMME_WORKFLOW: return traduire('workflows.programme');
+        case JURY_WORKFLOW: return traduire('workflows.jury');
+        case CERTIFICATION_WORKFLOW: return traduire('workflows.certifications');
+        case SALLE_WORKFLOW: return traduire('workflows.salles');
+        case USER_WORKFLOW: return traduire('workflows.utilisateurs');
+        default: return workflow.libelle;
+    }
+}
 
 /**
  * Le workflow dont la route couvre ce chemin, ou `null` hors de tout workflow.

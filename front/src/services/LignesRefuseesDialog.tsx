@@ -2,6 +2,8 @@ import {
     Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
     Button, Table, TableBody, TableCell, TableHead, TableRow,
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { messageLigneRefusee, type LignesRefusees } from './errorMessages';
 
 /**
@@ -18,13 +20,16 @@ import { messageLigneRefusee, type LignesRefusees } from './errorMessages';
  */
 
 /** Libellés des champs tels qu'ils apparaissent dans la colonne du tableau. */
-const LIBELLE_CHAMP: Record<string, string> = {
-    note: 'Note',
-    user_id: 'Élève',
-    email: 'Email',
-    nature: 'Nature',
-    roles: 'Rôles',
-};
+function libelleChamp(champ: string, t: TFunction<'app'>): string {
+    switch (champ) {
+        case 'note': return t('lignesRefusees.champs.note');
+        case 'user_id': return t('lignesRefusees.champs.userId');
+        case 'email': return t('lignesRefusees.champs.email');
+        case 'nature': return t('lignesRefusees.champs.nature');
+        case 'roles': return t('lignesRefusees.champs.roles');
+        default: return champ;
+    }
+}
 
 interface Props {
     /** null : la modale est fermée. */
@@ -35,24 +40,25 @@ interface Props {
 }
 
 export function LignesRefuseesDialog({ refus, sousTitre, onClose }: Props) {
+    const { t } = useTranslation('app');
     return (
         <Dialog open={refus !== null} onClose={onClose} fullWidth maxWidth="md">
-            <DialogTitle>Import refusé</DialogTitle>
+            <DialogTitle>{t('lignesRefusees.titre')}</DialogTitle>
             <DialogContent>
                 <DialogContentText sx={{ mb: 2 }}>{sousTitre}</DialogContentText>
-                <Table size="small" aria-label="Lignes refusées">
+                <Table size="small" aria-label={t('lignesRefusees.tableAriaLabel')}>
                     <TableHead>
                         <TableRow>
-                            <TableCell>Ligne</TableCell>
-                            <TableCell>Champ</TableCell>
-                            <TableCell>Motif</TableCell>
+                            <TableCell>{t('lignesRefusees.colonneLigne')}</TableCell>
+                            <TableCell>{t('lignesRefusees.colonneChamp')}</TableCell>
+                            <TableCell>{t('lignesRefusees.colonneMotif')}</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {(refus?.lignes ?? []).map((l) => (
                             <TableRow key={`${String(l.ligne)}·${l.champ ?? ''}·${l.motif}·${l.valeur ?? ''}`}>
                                 <TableCell>{l.ligne ?? '—'}</TableCell>
-                                <TableCell>{l.champ ? LIBELLE_CHAMP[l.champ] ?? l.champ : '—'}</TableCell>
+                                <TableCell>{l.champ ? libelleChamp(l.champ, t) : '—'}</TableCell>
                                 <TableCell>{messageLigneRefusee(l, refus?.bareme)}</TableCell>
                             </TableRow>
                         ))}
@@ -60,7 +66,7 @@ export function LignesRefuseesDialog({ refus, sousTitre, onClose }: Props) {
                 </Table>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>Fermer</Button>
+                <Button onClick={onClose}>{t('lignesRefusees.fermer')}</Button>
             </DialogActions>
         </Dialog>
     );

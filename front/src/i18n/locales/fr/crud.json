@@ -192,5 +192,7 @@
   "arbre": {
     "chargementImpossible": "Chargement impossible.",
     "ariaLabel": "Arborescence de la structure"
-  }
+  },
+  "erreurRecuperation": "Erreur lors de la récupération.",
+  "donneesIntrouvables": "Données introuvables."
 }

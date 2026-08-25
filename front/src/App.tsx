@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 // Enregistre la locale FR de dayjs sans l'activer globalement (dayjs reste
 // en 'en' par défaut) : c'est `adapterLocale`, ci-dessous, qui choisit,
 // instance par instance, en suivant la langue active de i18next.
@@ -55,46 +56,52 @@ type NavigationItemWithRoles = NavigationItem & {
  * qui ramène à la tâche en cours : sans elle, les salles, les utilisateurs et
  * la corbeille seraient des impasses.
  */
-const NAVIGATION: NavigationItemWithRoles[] = [
-  {
-    segment: SEGMENT_SCOLARITE,
-    title: 'Scolarité',
-    icon: <SchoolIcon />,
-    requiredRoles: [Role.CONSULTATION],
-  },
-  { kind: 'divider' },
-  {
-    // Segment composé : Salle a quitté le dossier « Planning », vidé de ses
-    // autres entrées, sans que son URL bouge.
-    segment: `planning/${SALLE_WORKFLOW}`,
-    title: 'Salle',
-    icon: <MeetingRoomIcon />,
-    requiredRoles: [Role.CONSULTATION],
-  },
-  {
-    segment: USER_WORKFLOW,
-    title: 'Utilisateur',
-    icon: <ManageAccountsIcon />,
-    requiredRoles: [Role.CONSULTATION],
-  },
-  {
-    segment: CORBEILLE_WORKFLOW,
-    title: 'Corbeille',
-    icon: <DeleteOutlineIcon />,
-    // Réservée aux porteurs de tous les rôles fonctionnels — le composite
-    // ADMIN, sans jamais tester son nom.
-    requiresAllRoles: ROLES_FONCTIONNELS,
-  },
-  {
-    segment: REGISTRE_WORKFLOW,
-    title: 'Registre',
-    icon: <VerifiedUserIcon />,
-    // Même règle que la corbeille : intégrité, ancrage et témoins sont des
-    // gestes d'administration.
-    requiresAllRoles: ROLES_FONCTIONNELS,
-  },
-];
+function construireNavigation(t: TFunction<'app'>): NavigationItemWithRoles[] {
+  return [
+    {
+      segment: SEGMENT_SCOLARITE,
+      title: t('nav.scolarite'),
+      icon: <SchoolIcon />,
+      requiredRoles: [Role.CONSULTATION],
+    },
+    { kind: 'divider' },
+    {
+      // Segment composé : Salle a quitté le dossier « Planning », vidé de ses
+      // autres entrées, sans que son URL bouge.
+      segment: `planning/${SALLE_WORKFLOW}`,
+      title: t('nav.salle'),
+      icon: <MeetingRoomIcon />,
+      requiredRoles: [Role.CONSULTATION],
+    },
+    {
+      segment: USER_WORKFLOW,
+      title: t('nav.utilisateur'),
+      icon: <ManageAccountsIcon />,
+      requiredRoles: [Role.CONSULTATION],
+    },
+    {
+      segment: CORBEILLE_WORKFLOW,
+      title: t('nav.corbeille'),
+      icon: <DeleteOutlineIcon />,
+      // Réservée aux porteurs de tous les rôles fonctionnels — le composite
+      // ADMIN, sans jamais tester son nom.
+      requiresAllRoles: ROLES_FONCTIONNELS,
+    },
+    {
+      segment: REGISTRE_WORKFLOW,
+      title: t('nav.registre'),
+      icon: <VerifiedUserIcon />,
+      // Même règle que la corbeille : intégrité, ancrage et témoins sont des
+      // gestes d'administration.
+      requiresAllRoles: ROLES_FONCTIONNELS,
+    },
+  ];
+}
 
+/**
+ * Le nom du produit ne se traduit pas : c'est une marque, pas un libellé —
+ * comme « TOEIC » ou « ECTS » ailleurs dans l'application.
+ */
 const BRANDING = {
   title: 'Gestionnaire Scolarite',
 };
@@ -122,7 +129,7 @@ function sessionDepuis(kc: Keycloak) {
 
 export default function App() {
 
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation('app');
 
   // Keycloak est un magasin externe : on s'y abonne et on le lit, plutôt que
   // d'en recopier l'état dans React. Le rendu voit `null` tant que
@@ -152,9 +159,9 @@ export default function App() {
 
   const filteredNavigation = React.useMemo(
     () => (
-      filterNavigationByRoles(NAVIGATION, session?.user.roles)
+      filterNavigationByRoles(construireNavigation(t), session?.user.roles)
     ),
-    [session],
+    [session, t],
   );
 
   // L'intercepteur d'API est le seul véritable effet de bord qui reste : il
@@ -182,8 +189,8 @@ export default function App() {
               session={session}
               authentication={AUTHENTICATION}
               localeText={{
-                accountSignInLabel: "Connexion",
-                accountSignOutLabel: "Déconnexion",
+                accountSignInLabel: t('nav.connexion'),
+                accountSignOutLabel: t('nav.deconnexion'),
               }}
             >
               {/* Le contexte résout des noms par l'API : il ne se monte qu'une
