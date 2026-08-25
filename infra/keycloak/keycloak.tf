@@ -265,6 +265,88 @@ resource "keycloak_user_roles" "bootstrap_roles" {
 }
 
 # ==========================================================
+# 6. Comptes de test Playwright (front/e2e) — un par profil de droits restreint
+#
+# La suite a besoin de trois profils : ADMIN (couvert par le compte de
+# démarrage ci-dessus), CONSULTATION seul, NOTES_ECRITURE seul. Même
+# conditionnement que le compte de démarrage — activés seulement en local
+# (var *_enabled à false par défaut), mot de passe non temporaire (comptes de
+# test, retapés à chaque remise à zéro n'apporterait rien), déclaratifs pour
+# survivre à un start-local-reset sans intervention manuelle.
+# ==========================================================
+resource "keycloak_user" "test_consultation" {
+  count = var.test_consultation_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  username = var.test_consultation_user_username
+  enabled  = true
+  first_name     = "Test"
+  last_name      = "Consultation"
+  email          = var.test_consultation_user_email
+  email_verified = true
+
+  initial_password {
+    value     = var.test_consultation_user_password
+    temporary = false
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.test_consultation_user_password != ""
+      error_message = "TEST_CONSULTATION_USER_ENABLED est vrai mais TEST_CONSULTATION_USER_PASSWORD est vide : renseigner le mot de passe dans infra/env/secrets-${var.environnement}.env, ou passer TEST_CONSULTATION_USER_ENABLED à false dans infra/env/config-${var.environnement}.env."
+    }
+  }
+}
+
+# Rôle du compte : CONSULTATION seul.
+resource "keycloak_user_roles" "test_consultation_roles" {
+  count = var.test_consultation_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  user_id  = keycloak_user.test_consultation[0].id
+
+  role_ids = [
+    keycloak_role.consultation_role.id,
+  ]
+}
+
+resource "keycloak_user" "test_notes_ecriture" {
+  count = var.test_notes_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  username = var.test_notes_ecriture_user_username
+  enabled  = true
+  first_name     = "Test"
+  last_name      = "NotesEcriture"
+  email          = var.test_notes_ecriture_user_email
+  email_verified = true
+
+  initial_password {
+    value     = var.test_notes_ecriture_user_password
+    temporary = false
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.test_notes_ecriture_user_password != ""
+      error_message = "TEST_NOTES_ECRITURE_USER_ENABLED est vrai mais TEST_NOTES_ECRITURE_USER_PASSWORD est vide : renseigner le mot de passe dans infra/env/secrets-${var.environnement}.env, ou passer TEST_NOTES_ECRITURE_USER_ENABLED à false dans infra/env/config-${var.environnement}.env."
+    }
+  }
+}
+
+# Rôle du compte : NOTES_ECRITURE seul (composite, contient déjà CONSULTATION).
+resource "keycloak_user_roles" "test_notes_ecriture_roles" {
+  count = var.test_notes_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  user_id  = keycloak_user.test_notes_ecriture[0].id
+
+  role_ids = [
+    keycloak_role.notes_ecriture_role.id,
+  ]
+}
+
+# ==========================================================
 # 7. NOUVEAU : Client Backend (Service Account) pour gestion utilisateurs
 # ==========================================================
 resource "keycloak_openid_client" "backend_client" {

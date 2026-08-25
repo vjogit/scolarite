@@ -136,3 +136,57 @@ variable "bootstrap_user_password" {
   default     = ""
   sensitive   = true
 }
+
+# ==========================================================
+# Comptes de test Playwright (front/e2e) — désactivés par défaut, activés
+# uniquement dans config-local.env. Voir keycloak.tf section 6.
+# ==========================================================
+variable "test_consultation_user_enabled" {
+  description = "Créer le compte de test CONSULTATION seul (← TEST_CONSULTATION_USER_ENABLED)"
+  type        = bool
+  default     = false
+}
+
+variable "test_consultation_user_username" {
+  description = "Identifiant du compte de test CONSULTATION (← TEST_CONSULTATION_USER_USERNAME)"
+  type        = string
+  default     = ""
+}
+
+variable "test_consultation_user_email" {
+  description = "Courriel du compte de test CONSULTATION (← TEST_CONSULTATION_USER_EMAIL)"
+  type        = string
+  default     = ""
+}
+
+variable "test_consultation_user_password" {
+  description = "Mot de passe du compte de test CONSULTATION (← TEST_CONSULTATION_USER_PASSWORD)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "test_notes_ecriture_user_enabled" {
+  description = "Créer le compte de test NOTES_ECRITURE seul (← TEST_NOTES_ECRITURE_USER_ENABLED)"
+  type        = bool
+  default     = false
+}
+
+variable "test_notes_ecriture_user_username" {
+  description = "Identifiant du compte de test NOTES_ECRITURE (← TEST_NOTES_ECRITURE_USER_USERNAME)"
+  type        = string
+  default     = ""
+}
+
+variable "test_notes_ecriture_user_email" {
+  description = "Courriel du compte de test NOTES_ECRITURE (← TEST_NOTES_ECRITURE_USER_EMAIL)"
+  type        = string
+  default     = ""
+}
+
+variable "test_notes_ecriture_user_password" {
+  description = "Mot de passe du compte de test NOTES_ECRITURE (← TEST_NOTES_ECRITURE_USER_PASSWORD)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

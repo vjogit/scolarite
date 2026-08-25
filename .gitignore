@@ -22,6 +22,11 @@ front/.vite/
 front/dist/
 front/node_modules/
 
+# ── Suite Playwright (front/e2e) — le dépôt ne reçoit que specs et config ────────
+front/test-results/
+front/playwright-report/
+front/e2e/.auth/
+
 # ── Infrastructure ────────────────────────────────────────────────────────────
 infra/data/
 

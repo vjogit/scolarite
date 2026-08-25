@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer test-ihm
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -42,6 +42,17 @@ fetch-freetsa-cert:
 ancrer:
 	@echo "--- ⚓ Passage d'ancrage RFC 3161 ---"
 	cd $(BACK_DIR) && go run ./cmd/ancrage ./cmd/serveur/config.yaml
+
+# ── Suite Playwright (front/e2e) — filet de régression de l'interface ──────────
+# Présuppose une stack déjà lancée (`make start-local-keep`) : la cible ne la
+# démarre pas, `front/e2e/setup/verifierStack.ts` échoue immédiatement sinon.
+# Le seed (front/e2e/setup/seed.sql) est idempotent — posé avant chaque
+# exécution, jamais en cumul.
+test-ihm:
+	@echo "--- 🌱 Seed du jeu de données Playwright ---"
+	front/e2e/setup/seed.sh $(CONFIG_FILE_LOCAL) $(SECRETS_FILE_LOCAL)
+	@echo "--- 🎭 Suite Playwright ---"
+	cd front && npx playwright test
 
 
 

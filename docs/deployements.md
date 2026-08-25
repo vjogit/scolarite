@@ -297,6 +297,20 @@ autres comptes. Il est paramétré par les variables `bootstrap_user_*` :
 Le mot de passe vit dans `secrets-<env>.env` et nulle part ailleurs. Une
 `precondition` refuse l'`apply` si le compte est activé sans mot de passe.
 
+### Comptes de test Playwright (front/e2e)
+
+Même conditionnement que le compte de démarrage, deux comptes en plus —
+`ADMIN` est déjà couvert par `foo` — désactivés par défaut
+(`TEST_*_USER_ENABLED=false`), activés seulement dans `config-local.env` :
+
+| | Utilisateur | Rôle |
+|---|---|---|
+| `TEST_CONSULTATION_USER_*` | `test-consultation` | `CONSULTATION` seul |
+| `TEST_NOTES_ECRITURE_USER_*` | `test-notes-ecriture` | `NOTES_ECRITURE` seul |
+
+Mot de passe dans `secrets-local.env`. Voir `infra/keycloak/keycloak.tf`
+section 6.
+
 `KC_BOOTSTRAP_USER_PASSWORD_TEMPORARY` (topologie) décide du remplacement
 forcé. En prod il vaut `true` : ce mot de passe a transité par un fichier, et
 souvent par une conversation — il ne doit pas survivre à l'amorçage. En local
@@ -359,3 +373,33 @@ Nom | Prénom | Email | Nature | Rôles
   en base. Un élève ne porte aucun rôle et n'a pas de compte Keycloak.
 - Plus de colonne mot de passe : chaque agent créé reçoit un courriel
   Keycloak pour définir le sien (visible dans Mailpit en local).
+
+---
+
+## Suite Playwright (front/e2e)
+
+Filet de régression de l'interface — sept suites P0 (navigation, droits,
+grille de saisie, corbeille, écran Notes unifié, import de fiche, i18n).
+
+Installation (une fois par machine) :
+
+```bash
+cd front && npx playwright install chromium
+```
+
+Lancement — présuppose une stack déjà debout (`make start-local-keep`), ne
+la démarre pas :
+
+```bash
+make test-ihm
+```
+
+Pose le jeu de données dédié (`front/e2e/setup/seed.sql`, idempotent, sous le
+préfixe `E2E `) puis lance la suite. `PLAYWRIGHT_BASE_URL` override l'adresse
+par défaut (`https://10.20.2.5:9021`, celle de `start-local-keep`).
+
+Un test est volontairement marqué `test.fail` dans `navigation.spec.ts` : il
+prouve un défaut réel (lien profond ou rechargement froid → rebond Keycloak
+vers un écran par défaut, `redirectUri` figé sur la racine dans
+`KeycloakContext.tsx`), pas un défaut de la suite. Voir le compte-rendu de
+vérification pour la reproduction complète.

@@ -92,6 +92,8 @@ qui reçoit le couple de fichiers en arguments.
 | `smtp_*` | `KC_SMTP_*` | config (mot de passe : secrets) |
 | `bootstrap_user_*` | `KC_BOOTSTRAP_USER_*` | config (mot de passe : secrets) |
 | `bootstrap_user_password_temporary` | `KC_BOOTSTRAP_USER_PASSWORD_TEMPORARY` | config |
+| `test_consultation_user_*` | `TEST_CONSULTATION_USER_*` | config (mot de passe : secrets) |
+| `test_notes_ecriture_user_*` | `TEST_NOTES_ECRITURE_USER_*` | config (mot de passe : secrets) |
 | `keycloak_user` | `KEYCLOAK_ADMIN` | config |
 | `keycloak_password` | `KEYCLOAK_ADMIN_PASSWORD` | secrets |
 
