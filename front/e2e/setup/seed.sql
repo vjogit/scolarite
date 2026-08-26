@@ -5,8 +5,16 @@
 -- e2e-*@scolarite.local (élèves) — la purge en tête de script ne supprime
 -- donc que ce que ce script a lui-même posé, jamais la hiérarchie
 -- manuellement vérifiée qui vit à côté (voir la mémoire
--- jeu-donnees-verif-hierarchie). Deux exécutions consécutives laissent l'état
--- final identique : c'est la preuve attendue en étape 4.
+-- jeu-donnees-verif-hierarchie). Deux exécutions consécutives DE CE SCRIPT
+-- laissent l'état final identique : c'est la preuve attendue en étape 4.
+--
+-- Ne pas lire au-delà de ce que ça dit : l'idempotence est celle du script,
+-- pas de la suite qui le consomme. Les tests, eux, MUTENT cet état (notes
+-- saisies, éléments mis à la corbeille...) et certains dépendent de ce
+-- qu'un test précédent y a laissé (voir grille-saisie.spec.ts). La suite
+-- n'est reproductible que si ce script est reposé avant chaque exécution —
+-- ce que `e2e/setup/globalSetup.ts` fait désormais sans condition, quel que
+-- soit le point d'entrée. Voir docs/migration-shadcn/01bis-stabilisation-e2e.md.
 --
 -- Une branche dédiée plutôt que la réutilisation de données existantes : un
 -- aller-retour Excel a déjà détruit un jeu de données partagé par le passé.

@@ -45,12 +45,13 @@ ancrer:
 
 # ── Suite Playwright (front/e2e) — filet de régression de l'interface ──────────
 # Présuppose une stack déjà lancée (`make start-local-keep`) : la cible ne la
-# démarre pas, `front/e2e/setup/verifierStack.ts` échoue immédiatement sinon.
-# Le seed (front/e2e/setup/seed.sql) est idempotent — posé avant chaque
-# exécution, jamais en cumul.
+# démarre pas, `front/e2e/setup/globalSetup.ts` échoue immédiatement sinon.
+# Le seed (front/e2e/setup/seed.sql) est posé par `globalSetup.ts`
+# (idempotent, sans condition) : point d'entrée unique, qu'on lance la suite
+# par cette cible ou par `npx playwright test` directement. Ne pas le
+# reposer ici — la commande resterait valide (idempotent) mais dupliquerait
+# ce que la suite fait déjà elle-même.
 test-ihm:
-	@echo "--- 🌱 Seed du jeu de données Playwright ---"
-	front/e2e/setup/seed.sh $(CONFIG_FILE_LOCAL) $(SECRETS_FILE_LOCAL)
 	@echo "--- 🎭 Suite Playwright ---"
 	cd front && npx playwright test
 
