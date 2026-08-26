@@ -1,5 +1,7 @@
+import path from 'path'
 import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'; // Importez le visualizer
 import fs from 'fs'
 
@@ -129,6 +131,7 @@ export default defineConfig(({ command, mode }) => {
   return {
   plugins: [
     react(),
+    tailwindcss(),
     visualizer({
       filename: "./dist/report.html", // Nom du fichier de rapport HTML
       open: true, // Ouvre le rapport automatiquement après le build
@@ -136,6 +139,11 @@ export default defineConfig(({ command, mode }) => {
       brotliSize: true, // Affiche les tailles brotli
     }),
   ],
+  resolve: {
+    alias: {
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
   // `vite build` n'a pas de serveur : ne pas exiger les certificats mkcert.
   ...(command === 'serve' ? { server: serveurDeDev(mode) } : {}),
   build: {
