@@ -79,12 +79,22 @@ export default function Layout() {
   // Le composant dépendait donc d'un abonnement posé par un voisin.
   const systemeSombre = useMediaQuery('(prefers-color-scheme: dark)');
 
-  let theme: Theme
-  if (mode == undefined || mode == 'system') {
-    theme = systemeSombre ? darkTheme : lightTheme
-  } else {
-    theme = mode === 'dark' ? darkTheme : lightTheme
-  }
+  const estSombre = (mode == undefined || mode == 'system') ? systemeSombre : mode === 'dark';
+  const theme: Theme = estSombre ? darkTheme : lightTheme;
+
+  // Source unique du mode sombre : MUI résout `estSombre` ci-dessus (thème
+  // + préférence système) ; Tailwind/shadcn n'ont pas leur propre logique de
+  // résolution, ils suivent la classe `.dark` posée ici sur `<html>` — celle
+  // qu'attend `@custom-variant dark (&:is(.dark *))` dans src/index.css.
+  // Ne pas dupliquer cette résolution ailleurs (voir invariant CLAUDE.md).
+  //
+  // Posé AVANT les `return` anticipés ci-dessous (loading/session) : les
+  // Hooks doivent s'exécuter à chaque rendu quel que soit le chemin de sortie
+  // — sans quoi l'écran de chargement et l'écran de connexion resteraient
+  // toujours clairs, quel que soit le mode choisi.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', estSombre);
+  }, [estSombre]);
 
   if (loading) {
     return (
