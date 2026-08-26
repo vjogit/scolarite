@@ -11,8 +11,11 @@ Application réservée au personnel administratif. Pas encore en production.
   Docker Compose + nginx (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
   `any`), MUI v7 + material-react-table + x-tree-view + x-date-pickers,
-  Toolpad (**en sortie** : non maintenu, épingle MUI v7 — ne pas étendre son
-  usage), TanStack Query, react-router 7 (`createBrowserRouter`),
+  shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
+  `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
+  API impérative, durées centralisées), Toolpad **sorti** (lot 3,
+  `docs/migration-shadcn/03-sortie-toolpad.md`),
+  TanStack Query, react-router 7 (`createBrowserRouter`),
   **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
   ajoutée l'est dans les deux langues).
 - **Tests** : Go unitaires + intégration gardés par l'environnement
@@ -93,10 +96,15 @@ Application réservée au personnel administratif. Pas encore en production.
     afficheraient un mode différent entre MUI et Tailwind sur le même écran.
     L'effet qui pose `.dark` doit rester **avant** les `return` anticipés de
     `Layout` (`loading`, `!session`) — sinon l'écran de chargement et l'écran
-    de connexion restent toujours clairs, quel que soit le mode. Cette
-    source unique est provisoire et assumée comme telle : MUI décide tant
-    qu'il porte le plus de fichiers ; l'inversion (Tailwind/shadcn devient la
-    source, MUI suit) est prévue à la sortie de Toolpad, pas avant. Voir
+    de connexion restent toujours clairs, quel que soit le mode.
+    `useColorScheme` n'existe que parce que `App.tsx` monte un
+    `ThemeProvider` racine à thème `cssVariables` + `colorSchemes`
+    (le rôle que jouait l'`AppProvider` Toolpad) : le retirer ne casse
+    aucune compilation mais fige silencieusement la résolution du mode.
+    Cette source unique est provisoire et assumée comme telle : MUI décide
+    tant qu'il porte le plus de fichiers ; l'inversion (Tailwind/shadcn
+    devient la source, MUI suit) est devenue possible avec la sortie de
+    Toolpad (lot 3) mais reste un lot à part entière, non fait. Voir
     `docs/migration-shadcn/02-tokens.md` §4.
 
 ## Conventions
@@ -224,12 +232,17 @@ Application réservée au personnel administratif. Pas encore en production.
   reprendre les tests de stabilité existants pour toute évolution.
 - Le seed e2e est **idempotent par pose, pas par cumul** : toute donnée
   ajoutée au seed doit survivre à deux exécutions consécutives.
+- Un popup Base UI peut planter **au montage du popup**, donc rester
+  invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
+  précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
+  l'écran à l'ouverture du menu de compte, avec 45 tests verts (lot 3 §5).
+  Tout nouveau menu/dialogue shadcn se vérifie ouvert, au navigateur ;
+  aucun test e2e n'ouvre le menu de compte à ce jour.
 
 ## Dette et chantiers connus
 
-- **Sortie de Toolpad** (surface : `App.tsx`, `layouts/dashboard.tsx`,
-  `notify.ts`) puis montée MUI v9 — MUI déconseille officiellement Toolpad ;
-  absorbée par une éventuelle migration d'UI si elle est décidée.
+- **Montée MUI v9** — déverrouillée par la sortie de Toolpad (lot 3, qui
+  épinglait MUI v7) ; non entamée.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
   monter — builds, lint, `govulncheck`, `npm audit --omit=dev`, tests Go
   avec services PostgreSQL/Keycloak, Dependabot, protection de branche ;
