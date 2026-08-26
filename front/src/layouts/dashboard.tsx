@@ -30,6 +30,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -134,17 +135,21 @@ function MenuCompte() {
         {initiale}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>
-          <span className="block">{nom}</span>
-          <span className="block text-xs font-normal text-muted-foreground">{session?.user.email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); }}
-        >
-          <LogoutIcon />
-          {t('nav.deconnexion')}
-        </DropdownMenuItem>
+        {/* Base UI exige que GroupLabel vive dans un Group (erreur #31 sinon,
+            constatée à l'écran — aucun test n'ouvre ce menu). */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <span className="block">{nom}</span>
+            <span className="block text-xs font-normal text-muted-foreground">{session?.user.email}</span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); }}
+          >
+            <LogoutIcon />
+            {t('nav.deconnexion')}
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
