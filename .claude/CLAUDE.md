@@ -60,6 +60,27 @@ Application réservée au personnel administratif. Pas encore en production.
     local/prod passe par `config.yaml` typé (`services/config.go`) +
     `infra/env/`. Le spécifique-développement est marqué comme tel (Mailpit,
     seed bootstrap, TSA de dev, comptes e2e).
+11. **L'ordre des couches CSS est gelé, et fragile.** `front/src/index.css`
+    ouvre sur `@layer theme, base, mui, components, utilities;` — cette
+    ligne doit rester la toute première du fichier, avant `@import
+    "tailwindcss"`. En CSS, une règle hors couche l'emporte toujours sur une
+    règle en couche : sans cet ordre, MUI (couche `mui`, activée par
+    `enableCssLayer` sur `StyledEngineProvider`, `front/src/main.tsx`)
+    écraserait silencieusement les utilitaires Tailwind et shadcn. **Cette
+    déclaration CSS ne suffit pas à elle seule** : `main.tsx` pose aussi
+    `<GlobalStyles styles="@layer theme, base, mui, components, utilities;"
+    />` comme tout premier enfant de `StyledEngineProvider`, avant tout
+    autre composant MUI. Sans lui, une course s'installe entre le
+    chargement réseau d'`index.css` et l'injection synchrone des styles
+    globaux d'Emotion (`CssBaseline`) au premier rendu ; si Emotion gagne,
+    `mui` s'enregistre en première position (perdant face à `base`) et
+    **toute l'application perd son apparence MUI** (boutons et champs sans
+    fond, sans marge — pas une régression cosmétique isolée, une casse
+    globale silencieuse, invisible aux tests e2e qui ne vérifient que rôles
+    et texte accessibles). Voir `docs/migration-shadcn/01-cohabitation.md`
+    §2 pour le diagnostic complet. Quiconque — humain ou agent — touche au
+    CSS global doit garder ces deux déclarations synchronisées et en tête
+    d'arbre.
 
 ## Conventions
 
