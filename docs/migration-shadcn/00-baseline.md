@@ -24,26 +24,23 @@ importée par notre code. Confirmé en lisant l'entrée du lockfile
 
 `npm install` a supprimé 3 paquets, sans toucher au reste de l'arbre.
 
-## 2. Cas signalés, non tranchés
+## 2. Cas signalés, tranchés par l'utilisateur
 
-Ces deux dépendances n'ont aucun script npm, makefile ni fichier de config
-qui les invoque — mais je ne les ai pas supprimées, comme demandé.
+Ces deux dépendances n'avaient aucun script npm, makefile ni fichier de
+config qui les invoque :
 
 - **`openapi-zod-client`** : CLI de génération de schémas Zod depuis une
   spec OpenAPI. Aucun `openapi.yaml`/`.json` trouvé dans le dépôt, aucun
   script `package.json` ni cible de makefile ne l'appelle. Introduite dans
   le commit initial `0dc95b8` (« adaptation »), sans commit dédié depuis.
-  **Question posée : a-t-elle servi ponctuellement en local (génération one-shot
-  jamais reproduite depuis), ou peut-elle être retirée ?**
-- **`sass-embedded`** : zéro fichier `.scss` dans le dépôt (`find front/src
-  front/e2e -iname "*.scss"` ne retourne rien), alors que
-  `front/src/typings.d.ts` déclare toujours `declare module "*.scss";`.
+- **`sass-embedded`** : zéro fichier `.scss` dans le dépôt, alors que
+  `front/src/typings.d.ts` déclarait encore `declare module "*.scss";`.
   Même origine (`0dc95b8`), même absence de trace d'usage.
-  **Question posée : le `declare module` a-t-il un usage résiduel qui
-  justifierait de garder la dépendance, ou les deux (déclaration + paquet)
-  peuvent-ils partir ensemble ?**
 
-Non tranchées ici, à trancher par l'utilisateur avant un lot ultérieur.
+**Décision de l'utilisateur : retirer les deux.** `openapi-zod-client` et
+`sass-embedded` supprimés de `devDependencies` ; `front/src/typings.d.ts`
+supprimé (son seul contenu était le `declare module "*.scss"`, orphelin dès
+lors que `sass-embedded` part et qu'aucun `.scss` n'existe).
 
 ## 3. Lockfile
 
@@ -86,7 +83,7 @@ modification n'était encore appliquée au moment de cette mesure :
 
 **Signalé sans corriger, conformément au « Hors périmètre » de ce lot.**
 
-### Après intervention (dépendances mortes retirées, `pnpm-lock.yaml` supprimé, `npm install`)
+### Après 1ʳᵉ intervention (ag-grid×2, @mui/x-data-grid retirés, `pnpm-lock.yaml` supprimé, `npm install`)
 
 | Vérification | Résultat |
 |---|---|
@@ -94,7 +91,21 @@ modification n'était encore appliquée au moment de cette mesure :
 | `npm run build` | ✅ succès, tailles de bundle strictement identiques (attendu : ces paquets n'étaient jamais importés, donc jamais bundlés) |
 | `npx playwright test` | **27 passed, 4 failed** — mêmes 4 tests, mêmes messages. Aucune régression introduite. |
 
-**Aucune suppression n'a fait échouer lint, build ou e2e.**
+`npm install` a supprimé 3 paquets.
+
+### Après 2ᵉ intervention (`openapi-zod-client`, `sass-embedded` et `typings.d.ts` retirés, `npm install`)
+
+| Vérification | Résultat |
+|---|---|
+| `npm run lint` | ✅ 0 erreur, 0 avertissement — identique |
+| `npm run build` | ✅ succès, tailles de bundle strictement identiques (ces deux paquets sont des outils de dev, jamais bundlés) |
+| `npx playwright test` | **27 passed, 4 failed** — mêmes 4 tests, mêmes messages. Aucune régression introduite. |
+
+`npm install` a supprimé 82 paquets (arbre de dépendances transitives de
+`sass-embedded` et `openapi-zod-client`).
+
+**Aucune suppression, sur les deux interventions, n'a fait échouer lint,
+build ou e2e.**
 
 ## 5. Tailles de bundle de référence
 
@@ -122,8 +133,6 @@ migration, où le remplacement de MUI devrait faire baisser `mui-libs` et
 
 - `back/`, `infra/` : hors périmètre, non modifiés.
 - Les 4 échecs e2e préexistants : non corrigés (hors périmètre de ce lot).
-- `openapi-zod-client`, `sass-embedded` et le `declare module "*.scss"` de
-  `typings.d.ts` : en attente de décision (§ 2).
-- `npm audit` signale 14 vulnérabilités (1 low, 4 moderate, 9 high) sur les
-  602 paquets restants — préexistant, non traité ici (hors périmètre, aucune
+- `npm audit` signale 12 vulnérabilités (1 low, 4 moderate, 7 high) sur les
+  520 paquets restants — préexistant, non traité ici (hors périmètre, aucune
   demande de l'utilisateur).
