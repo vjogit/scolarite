@@ -161,6 +161,23 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien.
+- **Captures de référence (`e2e/captures.spec.ts-snapshots/`) : réaccepter
+  un diff est une décision, pas une formalité.** Ces captures figent
+  l'apparence MUI + tokens dérivés (voir `docs/migration-shadcn/02-tokens.md`)
+  dans les deux modes ; elles existent précisément parce que les 31 tests de
+  rôles/textes accessibles sont restés verts pendant que l'étape 1 avait
+  fait perdre à toute l'application son apparence MUI (voir
+  `docs/migration-shadcn/02bis-filet-regression.md`, qui démontre cette
+  détection par un test négatif). Un lot qui change volontairement
+  l'apparence régénère avec `npx playwright test captures.spec.ts
+  --update-snapshots`, puis **regarde chaque image avant de committer** —
+  jamais en confiance sur la seule absence d'erreur de la commande. Un lot
+  qui ne touche pas l'apparence et voit une capture échouer a trouvé une
+  régression, pas une formalité à contourner par `--update-snapshots`
+  réflexe. Ne pas confondre avec le défaut de rendu figé de `BarreAxes`
+  (ci-dessus, `cliquerPuisAttendreUrl`) : celui-là fait échouer la
+  *navigation* vers l'écran (avant toute capture), pas la comparaison
+  d'image elle-même.
 
 ## Harnais de vérification manuelle (Playwright MCP)
 
