@@ -2,6 +2,8 @@ import appFr from '../../src/i18n/locales/fr/app.json' with { type: 'json' };
 import corbeilleFr from '../../src/i18n/locales/fr/corbeille.json' with { type: 'json' };
 import noteFr from '../../src/i18n/locales/fr/note.json' with { type: 'json' };
 import crudFr from '../../src/i18n/locales/fr/crud.json' with { type: 'json' };
+import registreFr from '../../src/i18n/locales/fr/registre.json' with { type: 'json' };
+import programmeFr from '../../src/i18n/locales/fr/programme.json' with { type: 'json' };
 
 /**
  * Substitution `{{cle}}` minimale — l'équivalent du `t()` d'i18next pour les
@@ -20,6 +22,8 @@ export const app = appFr;
 export const corbeille = corbeilleFr;
 export const note = noteFr;
 export const crud = crudFr;
+export const registre = registreFr;
+export const programme = programmeFr;
 
 /** Le libellé d'un niveau du fil de contexte, sélectionné ou non. */
 export function libelleNiveau(niveau: keyof typeof appFr.niveaux, nom: string): string {
