@@ -81,6 +81,23 @@ Application réservée au personnel administratif. Pas encore en production.
     §2 pour le diagnostic complet. Quiconque — humain ou agent — touche au
     CSS global doit garder ces deux déclarations synchronisées et en tête
     d'arbre.
+12. **Le mode sombre a une source unique : MUI.** `layouts/dashboard.tsx`
+    résout `estSombre` (thème choisi + `prefers-color-scheme` en cas de
+    `'system'`, via `useColorScheme()`/`useMediaQuery`) et pose la classe
+    `.dark` sur `<html>` en conséquence — c'est le seul endroit qui décide.
+    Tailwind/shadcn n'ont **aucune** logique de résolution à eux : ils
+    suivent la classe (`@custom-variant dark (&:is(.dark *))`,
+    `front/src/index.css`). Ne jamais dupliquer cette résolution ailleurs
+    (un second `useMediaQuery('(prefers-color-scheme: dark)')`, une lecture
+    directe de `localStorage`, etc.) : deux sources désynchronisées
+    afficheraient un mode différent entre MUI et Tailwind sur le même écran.
+    L'effet qui pose `.dark` doit rester **avant** les `return` anticipés de
+    `Layout` (`loading`, `!session`) — sinon l'écran de chargement et l'écran
+    de connexion restent toujours clairs, quel que soit le mode. Cette
+    source unique est provisoire et assumée comme telle : MUI décide tant
+    qu'il porte le plus de fichiers ; l'inversion (Tailwind/shadcn devient la
+    source, MUI suit) est prévue à la sortie de Toolpad, pas avant. Voir
+    `docs/migration-shadcn/02-tokens.md` §4.
 
 ## Conventions
 
