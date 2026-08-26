@@ -8,7 +8,6 @@
  */
 
 import { useRef, useCallback, useState } from 'react';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -44,7 +43,6 @@ export function libelleImportFiche(t?: TFunction<'note'>): string {
  * `declencher(controleId)` depuis l'action de ligne.
  */
 export function useFicheImport() {
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('note');
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +80,6 @@ export function useFicheImport() {
             const { created, updated, ignorees } = res.data;
             const traitees = t('ficheImport.creeesEtMisesAJour', { creees: created, misesAJour: updated });
             notifyPartialSuccess(
-                notifications,
                 ignorees > 0
                     ? `${traitees} ${t('ficheImport.lignesSansNote', { nombre: ignorees })}`
                     : traitees,
@@ -103,15 +100,15 @@ export function useFicheImport() {
                 // le libellé générique.
                 const conflit = blockingMessageFor(error);
                 if (conflit !== null) {
-                    notifyBlocking(notifications, conflit);
+                    notifyBlocking(conflit);
                 } else {
-                    notifyError(notifications, fileMessageFor(error) ?? messageForError(error));
+                    notifyError(fileMessageFor(error) ?? messageForError(error));
                 }
             }
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [notifications, queryClient, t]);
+    }, [queryClient, t]);
 
     const declencher = useCallback((controleId: number) => {
         controleRef.current = controleId;

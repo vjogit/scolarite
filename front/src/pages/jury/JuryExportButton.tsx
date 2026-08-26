@@ -2,7 +2,6 @@ import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback } from 'react';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { ENDPOINT_JURY } from './def';
@@ -17,7 +16,6 @@ interface JuryExportButtonProps {
 }
 
 export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
-    const notifications = useNotifications();
     const { t } = useTranslation('jury');
     // Deux exports voisinent dans la barre : le nom doit dire lequel.
     const libelle = t('exportJury.libelle');
@@ -30,12 +28,12 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
 
             telecharger(response, `jury_${periodeId}.xlsx`);
 
-            notifySuccess(notifications, t('exportJury.succes'));
+            notifySuccess(t('exportJury.succes'));
         } catch (err) {
             console.error(err);
-            notifyError(notifications, t('exportJury.erreur'));
+            notifyError(t('exportJury.erreur'));
         }
-    }, [periodeId, notifications, t]);
+    }, [periodeId, t]);
 
     return (
         <Tooltip title={libelle}>

@@ -4,7 +4,6 @@ import {
     Button, Autocomplete, TextField, CircularProgress, Box,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
@@ -22,7 +21,6 @@ interface Props {
 }
 
 export function FicheExportModal({ open, controleId, optionId, onClose }: Props) {
-    const notifications = useNotifications();
     const { t } = useTranslation('note');
     const [selectedGroupe, setSelectedGroupe] = useState<Groupe | null>(null);
     const [downloading, setDownloading] = useState(false);
@@ -53,7 +51,7 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
             // Sans ce `catch`, l'échec ne se voyait nulle part : la modale
             // restait ouverte, le bouton cessait de tourner, et rien ne
             // distinguait un export refusé d'un export terminé.
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         } finally {
             setDownloading(false);
         }

@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -196,7 +195,6 @@ function RestoreDialog({
 }
 
 export function CorbeillePage() {
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('corbeille');
 
@@ -218,11 +216,11 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setARestaurer(null);
             void invalidateTout();
-            notifySuccess(notifications, t('restaurationSucces', { titre: titreOperation(op, t) }));
+            notifySuccess(t('restaurationSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setARestaurer(null);
-            notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
+            notifyError(blockingMessageFor(error) ?? messageForError(error));
         },
     });
 
@@ -231,11 +229,11 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setAPurger(null);
             void invalidateTout();
-            notifySuccess(notifications, t('purgeSucces', { titre: titreOperation(op, t) }));
+            notifySuccess(t('purgeSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setAPurger(null);
-            notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
+            notifyError(blockingMessageFor(error) ?? messageForError(error));
         },
     });
 

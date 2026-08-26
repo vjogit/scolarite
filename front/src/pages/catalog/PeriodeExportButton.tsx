@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import DownloadIcon from '@mui/icons-material/Download';
 import { apiInstance } from '../../services/api';
@@ -10,7 +9,6 @@ import { notifyError } from '../../services/notify';
 
 export function PeriodeExportButton() {
     const { optionId } = useParams();
-    const notifications = useNotifications();
     const { t } = useTranslation('catalog');
     const libelle = t('exportProgramme.libelle');
 
@@ -25,9 +23,9 @@ export function PeriodeExportButton() {
             telecharger(response, 'programme.xlsx');
         } catch (error) {
             console.error(error);
-            notifyError(notifications, t('exportProgramme.erreur'));
+            notifyError(t('exportProgramme.erreur'));
         }
-    }, [optionId, notifications, t]);
+    }, [optionId, t]);
 
     return (
         <Tooltip title={libelle}>

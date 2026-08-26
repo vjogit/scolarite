@@ -5,14 +5,12 @@ import { apiInstance } from "../../services/api";
 import { ENDPOINT_USER, USER } from "./def";
 import { IconButton, Tooltip } from "@mui/material";
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { lignesFor, messageForError, type LignesRefusees } from '../../services/errorMessages';
 import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
 export function UserImportButton() {
 
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('user');
     // Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger.
@@ -30,7 +28,7 @@ export function UserImportButton() {
         try {
             await apiInstance.post(`${ENDPOINT_USER}/import`, formData);
             void queryClient.invalidateQueries({ queryKey: [USER] });
-            notifySuccess(notifications, t('import.succes'));
+            notifySuccess(t('import.succes'));
         } catch (error) {
             // Un refus qui désigne ses lignes — email manquant, nature ou rôle
             // inconnus — s'affiche en tableau, à corriger fichier ouvert à côté.
@@ -38,14 +36,14 @@ export function UserImportButton() {
             if (lignes !== null) {
                 setRefus(lignes);
             } else {
-                notifyError(notifications, messageForError(error));
+                notifyError(messageForError(error));
             }
         } finally {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         }
-    }, [notifications, queryClient, t])
+    }, [queryClient, t])
 
     return (
         <>

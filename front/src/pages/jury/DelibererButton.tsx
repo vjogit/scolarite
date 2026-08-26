@@ -7,7 +7,6 @@ import {
 import GavelIcon from '@mui/icons-material/Gavel';
 import UndoIcon from '@mui/icons-material/Undo';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_DELIBERER } from './def';
@@ -30,7 +29,6 @@ interface Props {
 export function DelibererButton({ periodeId, userId, userName, isDelibere, compteCumulActuel, uesNonEvaluees = [] }: Props) {
     const [open, setOpen] = useState(false);
     const [compteCumul, setCompteCumul] = useState(compteCumulActuel ?? true);
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('jury');
 
@@ -40,12 +38,12 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`, { compte_cumul: compteCumul }),
         onSuccess: () => {
-            notifySuccess(notifications, t('delibererBouton.succes', { nom: userName }));
+            notifySuccess(t('delibererBouton.succes', { nom: userName }));
             void queryClient.invalidateQueries({ queryKey: deliberationKey });
             setOpen(false);
         },
         onError: () => {
-            notifyError(notifications, t('delibererBouton.erreur'));
+            notifyError(t('delibererBouton.erreur'));
         },
     });
 
@@ -53,11 +51,11 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
         mutationFn: () =>
             apiInstance.delete(`${ENDPOINT_DELIBERER(periodeId)}/${userId}`),
         onSuccess: () => {
-            notifyUndone(notifications, t('delibererBouton.annulationSucces', { nom: userName }));
+            notifyUndone(t('delibererBouton.annulationSucces', { nom: userName }));
             void queryClient.invalidateQueries({ queryKey: deliberationKey });
         },
         onError: () => {
-            notifyError(notifications, t('delibererBouton.annulationErreur'));
+            notifyError(t('delibererBouton.annulationErreur'));
         },
     });
 

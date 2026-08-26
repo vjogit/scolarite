@@ -15,7 +15,6 @@ import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { UserSelector } from '../../services/UserSelector';
 import { GroupeImportButton } from './GroupeImportButton';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError } from '../../services/notify';
 import { messageForError } from '../../services/errorMessages';
 import { useDroits } from '../../services/context/droits';
@@ -57,7 +56,6 @@ export function GroupeUserPage() {
     const { groupeId } = useParams<{ groupeId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const notifications = useNotifications();
     const { t, i18n: i18nInstance } = useTranslation('structure');
 
     // Lister les membres est une lecture ; ajouter, retirer et importer
@@ -85,7 +83,7 @@ export function GroupeUserPage() {
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
             reset(ADD_USER_DEFAULT);
         },
-        onError: (error) => { notifyError(notifications, messageForError(error)); },
+        onError: (error) => { notifyError(messageForError(error)); },
     });
 
     const removeMutation = useMutation({
@@ -94,7 +92,7 @@ export function GroupeUserPage() {
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         },
-        onError: (error) => { notifyError(notifications, messageForError(error)); },
+        onError: (error) => { notifyError(messageForError(error)); },
     });
 
     const onSubmit = (data: AddUserForm) => {

@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -117,7 +116,6 @@ function CarteIntegrite() {
  */
 function CarteAncrage() {
     const { t } = useTranslation('registre');
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const [resultats, setResultats] = useState<ResultatAncrage[] | null>(null);
 
@@ -134,15 +132,15 @@ function CarteAncrage() {
             const creees = results.filter((r) => r.created).length;
             const echecs = results.filter((r) => r.error).length;
             if (echecs > 0) {
-                notifyError(notifications, t('ancrage.echecNotif'));
+                notifyError(t('ancrage.echecNotif'));
             } else if (creees > 0) {
-                notifySuccess(notifications, t('ancrage.succesNotif'));
+                notifySuccess(t('ancrage.succesNotif'));
             } else {
-                notifySuccess(notifications, t('ancrage.dejaAncreNotif'));
+                notifySuccess(t('ancrage.dejaAncreNotif'));
             }
         },
         onError: (error) => {
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         },
     });
 
@@ -208,7 +206,6 @@ function CarteAncrage() {
  */
 function CarteTemoin() {
     const { t } = useTranslation('registre');
-    const notifications = useNotifications();
     const [token, setToken] = useState('');
     const [cert, setCert] = useState('');
     const [nomFichier, setNomFichier] = useState<string | null>(null);
@@ -220,7 +217,7 @@ function CarteTemoin() {
         onSuccess: setVerdict,
         onError: (error) => {
             setVerdict(null);
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         },
     });
 

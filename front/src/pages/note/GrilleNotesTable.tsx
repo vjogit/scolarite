@@ -27,7 +27,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 
 import { apiInstance } from '../../services/api';
@@ -93,7 +92,6 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
     /** Ligne dont la suppression est proposée ; `null` hors confirmation. */
     const [aSupprimer, setASupprimer] = useState<LigneGrille | null>(null);
 
-    const notifications = useNotifications();
 
     // Miroir de l'état, lu par les enregistrements qui se résolvent après coup.
     // Toutes les écritures passent par `appliquerLignes` : l'état de rendu et le
@@ -324,11 +322,11 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                 statut: 'inchange',
                 message: null,
             }));
-            notifyUndone(notifications, t('grilleNotesTable.noteSupprimee', { nom: ligne.nom, prenom: ligne.prenom }).trim());
+            notifyUndone(t('grilleNotesTable.noteSupprimee', { nom: ligne.nom, prenom: ligne.prenom }).trim());
         } catch (erreur) {
             majLigne(ligne.userId, l => ({ ...l, statut: 'erreur', message: messageForError(erreur) }));
         }
-    }, [majLigne, notifications, t]);
+    }, [majLigne, t]);
 
     // Même file que les écritures : une suppression et un enregistrement en vol
     // sur la même ligne se disputeraient `identitesRef`, et la seconde écrirait

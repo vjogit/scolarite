@@ -13,7 +13,6 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import type { FieldValues } from 'react-hook-form';
 
 import { blockingMessageFor, messageForError } from '../errorMessages';
@@ -29,7 +28,6 @@ export interface VariablesSuppression {
 
 export function useSuppressionCrud<D extends FieldValues>(entite: EntiteCrud<D>) {
     const queryClient = useQueryClient();
-    const notifications = useNotifications();
 
     return useMutation({
         mutationFn: ({ ids }: VariablesSuppression) => entite.delete(ids),
@@ -41,12 +39,12 @@ export function useSuppressionCrud<D extends FieldValues>(entite: EntiteCrud<D>)
             // maître-détail le panneau en tient un, et l'appel repartait pour
             // un 400. La liste rafraîchie suffit : le nœud disparaît de l'arbre.
             void queryClient.invalidateQueries({ queryKey: entite.queryKey, exact: true });
-            notifySuccess(notifications, messageSuppression(entite, noms));
+            notifySuccess(messageSuppression(entite, noms));
         },
         onError: (error) => {
             // Le serveur peut refuser la suppression (409 BUSINESS_CONFLICT) même
             // si la modale l'a autorisée : le message doit remonter.
-            notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
+            notifyError(blockingMessageFor(error) ?? messageForError(error));
         },
     });
 }

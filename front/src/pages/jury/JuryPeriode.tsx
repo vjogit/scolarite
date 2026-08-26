@@ -26,7 +26,6 @@ import { JuryExportButton } from './JuryExportButton';
 import { JuryBulletinsExportButton } from './JuryBulletinsExportButton';
 import { DelibererButton } from './DelibererButton';
 import { DelibererBulkDialog, type BulkStudent } from './DelibererBulkDialog';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -254,7 +253,6 @@ const fetchSynthese = async (periodeId: string | undefined, t: TFunction<'jury'>
 
 export const JuryPeriode = () => {
     const { periodeId } = useParams();
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t, i18n: i18nInstance } = useTranslation('jury');
 
@@ -479,16 +477,16 @@ export const JuryPeriode = () => {
         setBulkLoading(true);
         try {
             await apiInstance.post(`${ENDPOINT_DELIBERER(periodeId)}/bulk`, { users: entries });
-            notifySuccess(notifications, messageDeliberationGroupee(entries.length, t));
+            notifySuccess(messageDeliberationGroupee(entries.length, t));
             void queryClient.invalidateQueries({ queryKey: ['jury-deliberations', periodeId] });
             setRowSelection({});
             setBulkDialogOpen(false);
         } catch {
-            notifyError(notifications, t('erreurDeliberationGroupee'));
+            notifyError(t('erreurDeliberationGroupee'));
         } finally {
             setBulkLoading(false);
         }
-    }, [periodeId, notifications, queryClient, t]);
+    }, [periodeId, queryClient, t]);
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
     const renderTopToolbarCustomActions = useCallback(() => {

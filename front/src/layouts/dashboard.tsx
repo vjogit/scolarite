@@ -11,7 +11,6 @@ import { Account } from '@toolpad/core/Account';
 
 import { useSession } from '../SessionContext';
 import { createTheme, ThemeProvider, useColorScheme, type Theme } from '@mui/material/styles';
-import { NotificationsProvider } from '@toolpad/core/useNotifications';
 import { Toaster } from 'sonner';
 import { useKeycloak } from '../KeycloakContext';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
@@ -114,38 +113,29 @@ export default function Layout() {
   }
 
   return (
-    <NotificationsProvider
-      slotProps={{
-        snackbar: {
-          anchorOrigin: { vertical: 'top', horizontal: 'center' },
-        },
-      }}
-    >
-      <ThemeProvider theme={theme}>
-        {/* Notifications applicatives (services/notify.ts). Haut/centre : la
-            même ancre que l'ancien snackbar Toolpad — le positionnement fait
-            partie de l'apparence. Le thème suit `estSombre`, la résolution
-            unique faite ci-dessus (invariant CLAUDE.md #12) : pas de
-            re-résolution `system` ici. */}
-        <Toaster
-          position="top-center"
-          closeButton
-          richColors
-          theme={estSombre ? 'dark' : 'light'}
-        />
-        <DashboardLayout
-          slots={{
-            toolbarActions: CustomActions
-          }}
-          sx={{
-            background: theme.palette.background.default,
-            backgroundColor: theme.palette.background.default
-          }}
-        >
-          <Outlet />
-        </DashboardLayout>
-      </ThemeProvider>
-
-    </NotificationsProvider>
+    <ThemeProvider theme={theme}>
+      {/* Notifications applicatives (services/notify.ts). Haut/centre : la
+          même ancre que l'ancien snackbar Toolpad — le positionnement fait
+          partie de l'apparence. Le thème suit `estSombre`, la résolution
+          unique faite ci-dessus (invariant CLAUDE.md #12) : pas de
+          re-résolution `system` ici. */}
+      <Toaster
+        position="top-center"
+        closeButton
+        richColors
+        theme={estSombre ? 'dark' : 'light'}
+      />
+      <DashboardLayout
+        slots={{
+          toolbarActions: CustomActions
+        }}
+        sx={{
+          background: theme.palette.background.default,
+          backgroundColor: theme.palette.background.default
+        }}
+      >
+        <Outlet />
+      </DashboardLayout>
+    </ThemeProvider>
   )
 }

@@ -9,7 +9,6 @@ import { fieldErrorsFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
 import { messageCreation, messageEnregistrement } from './entityMessages';
 
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { Box, Button } from '@mui/material';
 import { useCrudContext } from './useCrudContext';
 import { useUnsavedChangesGuard } from '../useUnsavedChangesGuard';
@@ -30,7 +29,6 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
   const { rootPath } = useCrudContext();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const notifications = useNotifications();
   const isReadOnly = mode === 'show';
   const formulaireRef = useRef<HTMLFormElement>(null);
   // Champs refusés par le dernier appel serveur. Un tableau neuf à chaque
@@ -56,7 +54,6 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
       // On annonce l'état réel renvoyé par le serveur, pas les valeurs saisies :
       // le libellé a pu être normalisé côté API.
       notifySuccess(
-        notifications,
         mode === 'edit' ? messageEnregistrement(datasource, saved) : messageCreation(datasource, saved),
       );
       // react-hook-form ne repasse pas le formulaire à « non modifié » après
@@ -77,7 +74,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
         setChampsRefuses(Object.keys(fields));
         return;
       }
-      notifyError(notifications, messageForError(error));
+      notifyError(messageForError(error));
     }
   });
 

@@ -2,7 +2,6 @@
 import { useRef, useCallback, useState } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -18,7 +17,6 @@ import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
 export function PeriodeImportButton() {
     const { optionId } = useParams();
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('catalog');
     const libelle = t('importProgramme.libelle');
@@ -36,7 +34,7 @@ export function PeriodeImportButton() {
             await apiInstance.post(`/api/v0/structure/option/${optionId}/import`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
-            notifySuccess(notifications, t('importProgramme.succes'));
+            notifySuccess(t('importProgramme.succes'));
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, PERIODE, optionId] });
         } catch (error) {
             // Un fichier à la structure inattendue est désigné en tableau ;
@@ -45,14 +43,14 @@ export function PeriodeImportButton() {
             if (lignes !== null) {
                 setRefus(lignes);
             } else {
-                notifyError(notifications, fileMessageFor(error) ?? messageForError(error));
+                notifyError(fileMessageFor(error) ?? messageForError(error));
             }
         } finally {
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         }
-    }, [optionId, notifications, queryClient, t]);
+    }, [optionId, queryClient, t]);
 
     return (
         <>
