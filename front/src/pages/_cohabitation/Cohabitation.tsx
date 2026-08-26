@@ -2,6 +2,7 @@ import MuiButton from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import { useColorScheme } from '@mui/material/styles';
 import { Button as ShadButton } from '@/components/ui/button';
 
 /**
@@ -13,6 +14,8 @@ import { Button as ShadButton } from '@/components/ui/button';
  * imposée par `Layout` s'applique.
  */
 export default function Cohabitation() {
+  const { mode, setMode } = useColorScheme();
+
   return (
     <Stack spacing={4} sx={{ p: 4 }}>
       <Typography variant="h4">Cohabitation Tailwind / MUI</Typography>
@@ -70,6 +73,59 @@ export default function Cohabitation() {
             <li>Second élément</li>
           </ul>
         </Paper>
+      </section>
+
+      <section>
+        <Typography variant="h6" gutterBottom>
+          5. Basculement clair/sombre (source unique : MUI)
+        </Typography>
+        <MuiButton
+          variant="outlined"
+          onClick={() => { setMode(mode === 'dark' ? 'light' : 'dark'); }}
+        >
+          Basculer le mode (actuel : {mode ?? 'system'})
+        </MuiButton>
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          Ce bouton change `useColorScheme().mode` — la même source que
+          `layouts/dashboard.tsx` lit pour choisir le thème MUI. La classe
+          `.dark` posée sur `&lt;html&gt;` par ce même composant doit faire
+          bouger MUI et les blocs Tailwind du point 6 ensemble, sans décalage.
+        </Typography>
+      </section>
+
+      <section>
+        <Typography variant="h6" gutterBottom>
+          6. Tokens shadcn dérivés de la palette MUI — les deux systèmes
+          doivent se ressembler, dans les deux modes
+        </Typography>
+        <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+          <div className="rounded-md bg-primary px-4 py-2 text-primary-foreground">primary</div>
+          <div className="rounded-md bg-secondary px-4 py-2 text-secondary-foreground">secondary</div>
+          <div className="rounded-md bg-muted px-4 py-2 text-muted-foreground">muted</div>
+          <div className="rounded-md bg-accent px-4 py-2 text-accent-foreground">accent</div>
+          <div className="rounded-md bg-destructive/10 px-4 py-2 text-destructive">destructive</div>
+          <div className="rounded-md border border-border bg-card px-4 py-2 text-card-foreground">card</div>
+        </Stack>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ mt: 2 }}>
+          <ShadButton>shadcn — défaut</ShadButton>
+          <MuiButton variant="contained">MUI — primary</MuiButton>
+          <ShadButton variant="secondary">shadcn — secondary</ShadButton>
+          <MuiButton variant="contained" color="secondary">MUI — secondary</MuiButton>
+          <ShadButton variant="destructive">shadcn — destructive</ShadButton>
+          <MuiButton variant="contained" color="error">MUI — error</MuiButton>
+        </Stack>
+      </section>
+
+      <section>
+        <Typography variant="h6" gutterBottom>
+          7. Contraste texte / fond
+        </Typography>
+        <Typography variant="body2">
+          Chaque pastille du point 6 associe un fond et un texte pensés
+          ensemble (primary/primary-foreground, etc.) : bascule le mode
+          (point 5) et vérifie à l'œil qu'aucune ne devient illisible, en
+          clair comme en sombre.
+        </Typography>
       </section>
     </Stack>
   );
