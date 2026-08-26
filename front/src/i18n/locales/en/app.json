@@ -10,6 +10,13 @@
     "connexion": "Sign in",
     "deconnexion": "Sign out"
   },
+  "shell": {
+    "basculerMenu": "Show or hide the side menu",
+    "menuLateralTitre": "Side menu",
+    "menuLateralDescription": "Main application navigation",
+    "fermer": "Close",
+    "compte": "User account"
+  },
   "workflows": {
     "structure": "Structure",
     "notes": "Grades",

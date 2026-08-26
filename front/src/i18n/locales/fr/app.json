@@ -10,6 +10,13 @@
     "connexion": "Connexion",
     "deconnexion": "Déconnexion"
   },
+  "shell": {
+    "basculerMenu": "Afficher ou masquer le menu latéral",
+    "menuLateralTitre": "Menu latéral",
+    "menuLateralDescription": "Navigation principale de l'application",
+    "fermer": "Fermer",
+    "compte": "Compte de l'utilisateur"
+  },
   "workflows": {
     "structure": "Structure",
     "notes": "Notes",

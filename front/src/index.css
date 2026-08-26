@@ -109,14 +109,24 @@
     --chart-4: oklch(0.5134 0.1603 255.673);
     --chart-5: oklch(0.4533 0.1988 312.956);
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /*
+     * Menu latéral (consommé depuis la sortie de Toolpad, lot 3) : par
+     * référence aux tokens dérivés de MUI ci-dessus, pour garder la
+     * traçabilité §1 de 02-tokens.md sans dupliquer de valeur. Le fond
+     * reprend `background.paper` (= --background, le fond du sidebar
+     * Toolpad) ; le survol/actif reprend `action.hover` composé (= --muted) ;
+     * le texte d'une entrée reste le texte principal (--foreground), pas le
+     * secondaire. Les références se résolvent à l'usage : `.dark` n'a pas à
+     * les redéclarer, les tokens sous-jacents y basculent déjà.
+     */
+    --sidebar: var(--background);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--muted);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
 }
 /*
  ---break---
@@ -145,14 +155,8 @@
     --chart-3: oklch(0.7437 0.1161 321.550);
     --chart-4: oklch(0.7002 0.1488 246.660);
     --chart-5: oklch(0.5763 0.1939 321.590);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* --sidebar* : rien à redéclarer ici — définis par référence dans :root,
+       ils suivent les tokens de ce bloc (voir le commentaire de :root). */
 }
 /*
  ---break---

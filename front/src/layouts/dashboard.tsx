@@ -1,19 +1,46 @@
 import { useEffect, useMemo } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import Stack from '@mui/material/Stack';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-import { Outlet, useLocation } from 'react-router';
-import { DashboardLayout } from '@toolpad/core/DashboardLayout';
-import { Account } from '@toolpad/core/Account';
+import { Link, Outlet, useLocation } from 'react-router';
+import { Toaster } from 'sonner';
 
 import { useSession } from '../SessionContext';
 import { createTheme, ThemeProvider, useColorScheme, type Theme } from '@mui/material/styles';
-import { Toaster } from 'sonner';
 import { useKeycloak } from '../KeycloakContext';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
+import { construireNavigation, filterNavigationByRoles } from './navigation';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+} from '../components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+
+/**
+ * Le nom du produit ne se traduit pas : c'est une marque, pas un libellé —
+ * comme « TOEIC » ou « ECTS » ailleurs dans l'application.
+ */
+const TITRE_PRODUIT = 'Gestionnaire Scolarite';
 
 /**
  * Les trois commandes qu'`Autocomplete` dessine lui-même — ouvrir, fermer,
@@ -35,16 +62,91 @@ function composantsTraduits(t: TFunction<'app'>) {
   } as const;
 }
 
-function CustomActions() {
+/**
+ * Le menu latéral — les destinations globales, filtrées par rôles (le menu
+ * masque, le serveur impose : `RoleGuard`/`RequireRole` restent la barrière).
+ * La structure des entrées et la frontière avec la barre centrale sont
+ * documentées dans `layouts/navigation.tsx`.
+ */
+function MenuLateral() {
+  const { session } = useSession();
+  const location = useLocation();
+  const { t } = useTranslation('app');
+
+  const entrees = filterNavigationByRoles(construireNavigation(t), session?.user.roles);
+
   return (
-    <Stack direction="row" alignItems="center">
-      <LanguageSwitcher />
-      <Account
-        slotProps={{
-          preview: { slotProps: { avatarIconButton: { sx: { border: '0' } } } },
-        }}
-      />
-    </Stack>
+    <Sidebar collapsible="icon">
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {entrees.map((entree, index) => {
+                if (entree.kind === 'divider') {
+                  // Un séparateur n'a pas d'identité propre : sa position est
+                  // sa seule clé stable — même exception que les deux
+                  // no-array-index-key documentées ailleurs.
+                  // eslint-disable-next-line react-x/no-array-index-key
+                  return <SidebarSeparator key={`divider-${index}`} className="my-1" />;
+                }
+                const chemin = `/${entree.segment ?? ''}`;
+                return (
+                  <SidebarMenuItem key={entree.segment}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === chemin || location.pathname.startsWith(`${chemin}/`)}
+                      tooltip={entree.title}
+                      render={<Link to={chemin} />}
+                    >
+                      {entree.icon}
+                      <span>{entree.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
+
+/**
+ * Le menu de compte — remplaçant du `Account` de Toolpad : l'initiale de
+ * l'utilisateur en déclencheur, nom et courriel en tête de menu, et la
+ * déconnexion Keycloak comme seule action.
+ */
+function MenuCompte() {
+  const { session } = useSession();
+  const { keycloak } = useKeycloak();
+  const { t } = useTranslation('app');
+
+  const nom = session?.user.name ?? '';
+  const initiale = (nom.charAt(0) || '?').toUpperCase();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={t('shell.compte')}
+        className="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground"
+      >
+        {initiale}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>
+          <span className="block">{nom}</span>
+          <span className="block text-xs font-normal text-muted-foreground">{session?.user.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); }}
+        >
+          <LogoutIcon />
+          {t('nav.deconnexion')}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -125,17 +227,26 @@ export default function Layout() {
         richColors
         theme={estSombre ? 'dark' : 'light'}
       />
-      <DashboardLayout
-        slots={{
-          toolbarActions: CustomActions
-        }}
-        sx={{
-          background: theme.palette.background.default,
-          backgroundColor: theme.palette.background.default
-        }}
-      >
-        <Outlet />
-      </DashboardLayout>
+      {/* `h-svh` + `overflow-hidden` reproduisent le cadre de Toolpad : la
+          page ne défile jamais elle-même, seule la zone de contenu sous
+          l'en-tête défile — les en-têtes collants des tables et le calendrier
+          en dépendent. */}
+      <SidebarProvider className="h-svh">
+        <MenuLateral />
+        <SidebarInset className="overflow-hidden">
+          <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+            <SidebarTrigger aria-label={t('shell.basculerMenu')} />
+            <span className="text-base font-medium">{TITRE_PRODUIT}</span>
+            <div className="ml-auto flex items-center gap-2">
+              <LanguageSwitcher />
+              <MenuCompte />
+            </div>
+          </header>
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </ThemeProvider>
   )
 }
