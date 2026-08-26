@@ -110,12 +110,23 @@ Application réservée au personnel administratif. Pas encore en production.
 
 ## Suite e2e (front/e2e) — le filet de régression
 
-- **`make -f makefile.local test-ihm`** : pose le seed idempotent
-  (`front/e2e/setup/seed.sql` — hiérarchie canonique : période complète,
-  rattrapage validé, note non évaluée, groupe avec élèves, option
-  sacrificielle pour la corbeille), puis lance la suite. La stack doit déjà
-  tourner (`start-local-keep`) : `verifierStack.ts` échoue immédiatement
-  sinon.
+- **La suite ne se reproduit qu'à partir d'un état semé — à chaque
+  exécution, quel que soit le point d'entrée.** Le seed (`front/e2e/setup/seed.sql`
+  — hiérarchie canonique : période complète, rattrapage validé, note non
+  évaluée, groupe avec élèves, option sacrificielle pour la corbeille) est
+  idempotent *en tant que script*, mais la suite elle-même MUTE cet état
+  (notes saisies, éléments mis à la corbeille...) et plusieurs specs
+  dépendent explicitement de ce qu'un test précédent y a laissé (voir le
+  commentaire de `grille-saisie.spec.ts`). `front/e2e/setup/globalSetup.ts`
+  (le `globalSetup` de `playwright.config.ts`) pose donc ce seed sans
+  condition, avant toute vérification de rôle — que la suite soit lancée par
+  `make -f makefile.local test-ihm` ou par `npx playwright test` directement
+  depuis `front/`. **Ne jamais réintroduire un seed conditionnel ou propre à
+  un seul point d'entrée** : c'est exactement le piège qui rendait la suite
+  irreproductible avant `docs/migration-shadcn/01bis-stabilisation-e2e.md`
+  (résultats différents selon l'invocation, y compris sur du code
+  strictement identique). La stack doit déjà tourner
+  (`start-local-keep`) : `globalSetup.ts` échoue immédiatement sinon.
 - Trois comptes provisionnés par le seed Terraform local (mêmes variables
   `KC_*` que le bootstrap) : ADMIN / CONSULTATION / NOTES_ECRITURE ;
   `storageState` par rôle capturé en setup (`fixtures/roles.ts`), **langue
@@ -123,12 +134,16 @@ Application réservée au personnel administratif. Pas encore en production.
   rendrait la suite dépendante du navigateur sinon.
 - Règles d'écriture des specs : ciblage par rôle et nom accessible, **les
   libellés s'importent des JSON `locales/`** (jamais recopiés) ; aucun
-  `waitForTimeout` ; absence affirmée explicitement ; tests indépendants de
-  l'ordre ; `workers: 1` (base partagée) ; `BASE_URL` par variable
+  `waitForTimeout` ; absence affirmée explicitement ; specs indépendantes
+  les unes des autres (une dépendance d'état *à l'intérieur* d'un même
+  fichier, comme dans `grille-saisie.spec.ts`, reste admise et documentée en
+  commentaire) ; `workers: 1` (base partagée) ; `BASE_URL` par variable
   d'environnement ; artefacts gitignorés.
 - **Critère permanent : deux exécutions consécutives vertes.** Toute
   modification d'interface se conclut par `make test-ihm` ; un scénario
-  nouveau validé au navigateur a vocation à rejoindre la suite.
+  nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
+  suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
+  une suite qui ne re-sème pas ne prouve rien.
 
 ## Harnais de vérification manuelle (Playwright MCP)
 
