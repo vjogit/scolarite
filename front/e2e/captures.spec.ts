@@ -2,7 +2,7 @@ import { test, expect } from './fixtures/roles';
 import {
     E2E, allerALaGrilleDeSaisie, allerAuPlanning, allerAuTOEIC, allerJusquaPeriode, attendreChargementInitial,
 } from './aide/hierarchieE2E';
-import { app } from './aide/i18n';
+import { app, note } from './aide/i18n';
 
 /**
  * Captures de référence — le filet visuel qu'aucun rôle ni texte accessible
@@ -85,6 +85,24 @@ for (const colorScheme of MODES) {
             await expect(pageAdmin.getByRole('heading', { name: /^\d{1,2}.*2026$/ })).toBeVisible();
 
             await expect(pageAdmin).toHaveScreenshot(`planning-${colorScheme}.png`, {
+                animations: 'disabled',
+            });
+        });
+
+        test('graphique des notes (modale, onglet courbe)', async ({ pageAdmin }) => {
+            // Même contrôle de RATTRAPAGE que la capture de la grille : ses
+            // notes semées ne sont écrites par aucun test, les KPIs et les
+            // courbes sont donc reproductibles. L'animation de tracé recharts
+            // est coupée dans le composant (`isAnimationActive={false}`) —
+            // `animations: 'disabled'` ne gèle que le CSS, pas le JS.
+            await allerALaGrilleDeSaisie(pageAdmin, undefined, E2E.controleRattrapage);
+            await pageAdmin.getByRole('button', { name: note.noteChartButton.afficherGraphique }).click();
+            await expect(pageAdmin.getByRole('dialog')).toBeVisible();
+            // Le pointeur reste sur le graphique après le clic d'ouverture et
+            // recharts y accroche son tooltip : on l'éloigne avant la capture.
+            await pageAdmin.mouse.move(0, 0);
+
+            await expect(pageAdmin).toHaveScreenshot(`note-graphique-${colorScheme}.png`, {
                 animations: 'disabled',
             });
         });
