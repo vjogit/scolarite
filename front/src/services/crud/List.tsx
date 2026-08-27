@@ -6,9 +6,13 @@ import type { FieldValues } from 'react-hook-form';
 import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_TableInstance } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
 import { MRT_Localization_EN } from 'material-react-table/locales/en';
-import { alpha, Alert, Box, darken, IconButton, Tooltip, Typography } from '@mui/material';
+import { alpha, darken } from '@mui/material';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { Alert, AlertTitle } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
 import { useCrudContext } from './useCrudContext';
@@ -32,9 +36,6 @@ interface Props<D extends FieldValues> {
    */
   datasource: DatasourceListe<D>
 }
-
-/** Encombrement d'une `IconButton` MUI de densité par défaut, en pixels. */
-const BOUTON_RETOUR_PX = 40;
 
 /** Durée de la mise en évidence de la ligne revenant d'un enregistrement. */
 const HIGHLIGHT_MS = 2000;
@@ -153,37 +154,46 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   const renderTopToolbarCustomActions = useCallback(({ table }: { table: MRT_TableInstance<D> }) => {
     if (!datasource.isTopToolbar) return null
 
-    // `aria-label` explicite sur le bouton, et non sur le `Tooltip` : celui-ci
-    // pose son nom sur son enfant direct, ici le `<span>` qui permet
-    // l'infobulle sur un bouton désactivé. Sans cet attribut, les deux
-    // commandes présentes sur toutes les listes n'ont aucun nom accessible.
+    // `aria-label` explicite sur le bouton, et non sur le `Tooltip` : le
+    // déclencheur de l'infobulle est un `<span>` — le relais qui la fait
+    // survivre sur un bouton désactivé, insensible au survol. Sans cet
+    // attribut, les deux commandes présentes sur toutes les listes n'ont
+    // aucun nom accessible.
     const defaultActions = (
-      <Box sx={{ display: 'flex', gap: '1rem' }}>
+      <div className="flex gap-4">
         {datasource.isAction && ecritureAutorisee && (
           <>
-            <Tooltip title={libelleCreation(datasource, t)}>
-              <span>
-                <IconButton
+            <Tooltip>
+              <TooltipTrigger render={<span className="inline-flex" />}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
                   aria-label={libelleCreation(datasource, t)}
                   onClick={() => { void navigate(`${rootPath}/new`); }}>
                   <AddBoxIcon />
-                </IconButton>
-              </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{libelleCreation(datasource, t)}</TooltipContent>
             </Tooltip>
-            <Tooltip title={t('actions.supprimerSelection')}>
-              <span>
-                <IconButton
+            <Tooltip>
+              <TooltipTrigger render={<span className="inline-flex" />}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-destructive hover:text-destructive"
                   aria-label={t('actions.supprimerSelection')}
-                  color="error"
                   onClick={() => { handleOpenModal(table); }}
                   disabled={table.getSelectedRowModel().flatRows.length === 0}>
                   <DeleteIcon />
-                </IconButton>
-              </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('actions.supprimerSelection')}</TooltipContent>
             </Tooltip>
           </>
         )}
-      </Box>
+      </div>
     );
 
     if (datasource.renderTopToolbarCustomActions) {
@@ -303,29 +313,47 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
     return () => { clearTimeout(timer); };
   }, [highlightId]);
 
-  if (isError) return <Alert severity="error">{t('list.chargementEchec')}</Alert>;
+  if (isError) {
+    return (
+      <Alert variant="destructive">
+        <ErrorOutlineIcon />
+        <AlertTitle>{t('list.chargementEchec')}</AlertTitle>
+      </Alert>
+    );
+  }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
+    <div className="flex h-full flex-col overflow-hidden">
+      <div className="mb-4 flex shrink-0 items-center gap-2">
         {parentPath ? (
-          <Tooltip title={t('actions.retour')}>
-            <IconButton aria-label={t('actions.retour')} onClick={() => { void navigate(parentPath); }}>
+          <Tooltip>
+            <TooltipTrigger
+              render={(
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('actions.retour')}
+                  onClick={() => { void navigate(parentPath); }}
+                />
+              )}
+            >
               <ArrowBackIcon />
-            </IconButton>
+            </TooltipTrigger>
+            <TooltipContent>{t('actions.retour')}</TooltipContent>
           </Tooltip>
         ) : (
           // Sans parent, la place du bouton reste réservée : le titre garde la
-          // même abscisse d'un écran à l'autre. `BOUTON_RETOUR_PX` est la taille
-          // d'une `IconButton` de densité par défaut (icône 24 + 2 × 8 de marge).
-          <Box aria-hidden sx={{ width: BOUTON_RETOUR_PX, flexShrink: 0 }} />
+          // même abscisse d'un écran à l'autre. `w-8` est la taille d'un
+          // bouton d'icône shadcn (`size-8`).
+          <div aria-hidden className="w-8 shrink-0" />
         )}
-        <Typography variant="h6" sx={{ flex: 1 }}>{datasource.title}</Typography>
+        <h2 className="flex-1 text-xl font-medium">{datasource.title}</h2>
 
-      </Box>
-      <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden">
         <MaterialReactTable table={table} />
-      </Box>
+      </div>
       {/* Modale de confirmation : nomme les objets et détaille la cascade */}
       <DeleteConfirmDialog
         open={open}
@@ -334,7 +362,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
         onClose={handleClose}
         onConfirm={() => { handleConfirmDelete(table); }}
       />
-    </Box>
+    </div>
   )
 
 }
