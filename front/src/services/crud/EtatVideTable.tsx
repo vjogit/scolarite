@@ -12,7 +12,7 @@
  * son invite à sa place.
  */
 
-import { Box, Button, Typography } from '@mui/material';
+import { Button } from '../../components/ui/button';
 import type { MRT_RowData, MRT_TableInstance } from 'material-react-table';
 
 /** Ce que propose l'écran quand la collection est réellement vide. */
@@ -54,25 +54,15 @@ export function EtatVideTable<D extends MRT_RowData>({ table, message, action }:
         : { message, action };
 
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1.5,
-                py: 5,
-                px: 2,
-                textAlign: 'center',
-            }}
-        >
-            <Typography variant="body2" color="text.secondary">
+        <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
                 {contenu.message}
-            </Typography>
+            </p>
             {contenu.action && (
-                <Button variant="outlined" size="small" onClick={contenu.action.onClick}>
+                <Button variant="outline" size="sm" onClick={contenu.action.onClick}>
                     {contenu.action.libelle}
                 </Button>
             )}
-        </Box>
+        </div>
     );
 }
