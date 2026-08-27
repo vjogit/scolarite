@@ -98,7 +98,10 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
                         </TooltipTrigger>
                         <TooltipContent>{t('actions.menu')}</TooltipContent>
                     </Tooltip>
-                    <DropdownMenuContent align="end">
+                    {/* `w-max` : la largeur suit la plus longue entrée, comme le
+                        menu MUI — sans lui, `w-(--anchor-width)` cale le menu
+                        sur le bouton ⋮ et replie les libellés sur deux lignes. */}
+                    <DropdownMenuContent align="end" className="w-max">
                         {entrees.map((action, index) => {
                             const Icone = action.icone;
                             return (
