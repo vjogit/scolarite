@@ -9,7 +9,7 @@ import { fieldErrorsFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
 import { messageCreation, messageEnregistrement } from './entityMessages';
 
-import { Box, Button } from '@mui/material';
+import { Button } from '../../components/ui/button';
 import { useCrudContext } from './useCrudContext';
 import { useUnsavedChangesGuard } from '../useUnsavedChangesGuard';
 import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
@@ -112,7 +112,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
 
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <div className="mt-8 flex justify-center">
         {/*
           noValidate : les bornes natives (min/max sur les champs numériques)
           bloqueraient la soumission avant que zod ne s'exécute, et le
@@ -121,7 +121,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
           Elles restent posées pour borner les flèches de l'incrémenteur ;
           l'arbitrage de la validité, lui, revient à zod.
         */}
-        <form ref={formulaireRef} noValidate onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '500px', width: '100%' }}>
+        <form ref={formulaireRef} noValidate onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="flex w-full max-w-[500px] flex-col gap-2.5">
           <h2>
             {mode === 'show' ? t('form.titreDetails') : mode === 'edit' ? t('form.titreModifier') : t('form.titreAjouter')}
           </h2>
@@ -130,22 +130,27 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
           {datasource.render({ register, control, errors, isReadOnly, getValues, setValue })}
 
 
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+          <div className="mt-4 flex justify-end gap-4">
+            {/*
+              `type="button"` explicite : un bouton natif dans un formulaire
+              soumet par défaut — MUI posait cet attribut à notre place.
+            */}
             <Button
-              variant="outlined"
+              type="button"
+              variant="outline"
               onClick={() => { guard.requestNavigation(() => { void navigate(rootPath); }); }}
             >
               {mode === 'show' ? t('form.retour') : t('form.annuler')}
             </Button>
             {mode !== 'show' && (
-              <Button type="submit" variant="contained" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending}>
                 {mutation.isPending ? t('form.chargement') : mode === 'edit' ? t('form.mettreAJour') : t('form.ajouter')}
               </Button>
             )}
-          </Box>
+          </div>
 
         </form>
-      </Box>
+      </div>
 
       <UnsavedChangesDialog
         open={guard.isBlocked}
