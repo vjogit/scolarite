@@ -232,6 +232,10 @@ Application réservée au personnel administratif. Pas encore en production.
   reprendre les tests de stabilité existants pour toute évolution.
 - Le seed e2e est **idempotent par pose, pas par cumul** : toute donnée
   ajoutée au seed doit survivre à deux exécutions consécutives.
+- Un bouton shadcn/natif dans un `<form>` est `type="submit"` par défaut —
+  MUI posait `type="button"` à notre place. Tout bouton non-soumission d'un
+  formulaire doit le déclarer explicitement (précédent : « Annuler » de
+  `services/crud/Form.tsx`, lot 4), sinon il valide le formulaire.
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
