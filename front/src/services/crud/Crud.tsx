@@ -6,7 +6,10 @@ import { Form } from "./Form";
 import type { CrudMode, Datasource } from "./def";
 import type { DefaultValues, FieldValues } from "react-hook-form";
 import { CrudContext } from "./CrudContext";
-import { Alert, Skeleton } from "@mui/material";
+import { Alert, AlertTitle } from "../../components/ui/alert";
+import { Skeleton } from "../../components/ui/skeleton";
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useTranslation } from 'react-i18next';
 import { useDroits } from "../context/droits";
 
@@ -59,16 +62,32 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
         return <Form datasource={datasource} initialData={datasource.emptyValue} mode="create" />;
     }
 
-    if (isLoading) return <Skeleton variant="rounded" height={400} />;
-    if (error) return <Alert severity="error">{t('erreurRecuperation')}</Alert>;
+    // L'icône de sévérité que MUI dessinait d'office accompagne chaque alerte
+    // — mêmes glyphes (icônes MUI conservées jusqu'au lot dédié).
+    if (isLoading) return <Skeleton className="h-[400px] rounded-lg" />;
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <ErrorOutlineIcon />
+                <AlertTitle>{t('erreurRecuperation')}</AlertTitle>
+            </Alert>
+        );
+    }
+
+    const introuvable = (
+        <Alert variant="warning">
+            <WarningAmberIcon />
+            <AlertTitle>{t('donneesIntrouvables')}</AlertTitle>
+        </Alert>
+    );
 
     if (mode === 'show') {
-        if (!data) return <Alert severity="warning">{t('donneesIntrouvables')}</Alert>;
+        if (!data) return introuvable;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="show" />;
     } else {
         // Reste `edit` : les quatre modes de `CrudMode` sont couverts, il n'y a
         // pas de cinquième cas à rattraper par un « page non trouvée ».
-        if (!data) return <Alert severity="warning">{t('donneesIntrouvables')}</Alert>;
+        if (!data) return introuvable;
         return <Form datasource={datasource} initialData={data as DefaultValues<D>} mode="edit" />;
     }
     })();
