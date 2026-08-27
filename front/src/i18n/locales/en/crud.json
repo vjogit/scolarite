@@ -19,6 +19,8 @@
 
   "listeVide": "No {{nom}} recorded.",
   "listeVideSansEntite": "Nothing to display.",
+  "listeVideFiltree": "No results for this search.",
+  "effacerFiltres": "Clear filters",
 
   "creationInvite": "Create {{nom}}",
   "creationInviteSansEntite": "Add",

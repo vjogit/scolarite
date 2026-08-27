@@ -26,6 +26,8 @@
   "listeVide": "Aucun {{nom}} enregistré.",
   "listeVide_f": "Aucune {{nom}} enregistrée.",
   "listeVideSansEntite": "Aucun élément à afficher.",
+  "listeVideFiltree": "Aucun résultat pour cette recherche.",
+  "effacerFiltres": "Effacer les filtres",
 
   "creationInvite": "Créer un {{nom}}",
   "creationInvite_f": "Créer une {{nom}}",

@@ -12,6 +12,7 @@
  * son invite à sa place.
  */
 
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
 import type { MRT_RowData, MRT_TableInstance } from 'material-react-table';
 
@@ -33,6 +34,7 @@ interface Props<D extends MRT_RowData> {
 }
 
 export function EtatVideTable<D extends MRT_RowData>({ table, message, action }: Props<D>) {
+    const { t } = useTranslation('crud');
     // `globalFilter` est typé `any` par la table : on ne le lit que pour sa
     // vacuité, jamais pour sa valeur.
     const etat = table.getState();
@@ -48,8 +50,8 @@ export function EtatVideTable<D extends MRT_RowData>({ table, message, action }:
 
     const contenu: { message: string; action?: ActionEtatVide } = filtree
         ? {
-            message: 'Aucun résultat pour cette recherche.',
-            action: { libelle: 'Effacer les filtres', onClick: effacerFiltres },
+            message: t('listeVideFiltree'),
+            action: { libelle: t('effacerFiltres'), onClick: effacerFiltres },
         }
         : { message, action };
 
