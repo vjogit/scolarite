@@ -61,7 +61,7 @@ function contexte(genre: Genre): string | undefined {
  * référence qui invalide le memo.
  */
 export function tCrud(t?: TFunction<'crud'>): TFunction<'crud'> {
-    return t ?? (i18n.t as unknown as TFunction<'crud'>);
+    return t ?? i18n.getFixedT(null, 'crud');
 }
 
 type CleAction = 'creation' | 'enregistrement' | 'suppression';

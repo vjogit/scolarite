@@ -52,10 +52,12 @@ function actionToeic(): ActionNavigation<FieldValues> {
 }
 
 function actionMobilite(t?: TFunction<'certification'>): ActionNavigation<FieldValues> {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'certification'>);
+    const traduire = t ?? i18n.getFixedT(null, 'certification');
     return {
         id: 'mobilite',
-        libelle: traduire('actionMobiliteLibelle'),
+        // Fermeture et non chaîne : cette action est créée une seule fois, au
+        // chargement du module — une chaîne figerait la langue de démarrage.
+        libelle: () => traduire('actionMobiliteLibelle'),
         icone: PublicIcon,
         segment: MOBILITE,
     };

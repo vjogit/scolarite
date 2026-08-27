@@ -31,7 +31,7 @@ interface ImportFicheResult {
 
 /** Partagé par le bouton de la grille et l'entrée de menu des contrôles. */
 export function libelleImportFiche(t?: TFunction<'note'>): string {
-    return (t ?? (i18n.t as unknown as TFunction<'note'>))('ficheImport.importerDepuisExcel', { ns: 'note' });
+    return (t ?? i18n.getFixedT(null, 'note'))('ficheImport.importerDepuisExcel');
 }
 
 /**

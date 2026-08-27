@@ -43,7 +43,7 @@ export const ENDPOINT_PAR_NIVEAU: Readonly<Record<Niveau, string>> = {
 };
 
 export function libelleNiveau(niveau: Niveau, t?: TFunction<'app'>): string {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    const traduire = t ?? i18n.getFixedT(null, 'app');
     switch (niveau) {
         case FORMATION: return traduire('niveaux.formation');
         case PROMOTION: return traduire('niveaux.promotion');

@@ -32,10 +32,12 @@ const TRAVERSEE: ReglagesNiveau = {
  * jury, on ne descend pas dans les UE.
  */
 function actionJury(t?: TFunction<'jury'>): ActionNavigation<FieldValues> {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'jury'>);
+    const traduire = t ?? i18n.getFixedT(null, 'jury');
     return {
         id: 'jury',
-        libelle: traduire('actionJuryLibelle'),
+        // Fermeture et non chaîne : cette action est créée une seule fois, au
+        // chargement du module — une chaîne figerait la langue de démarrage.
+        libelle: () => traduire('actionJuryLibelle'),
         icone: BalanceIcon,
         segment: JURY,
     };

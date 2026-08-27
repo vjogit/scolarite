@@ -159,7 +159,7 @@ const SEGMENTS_PAR_WORKFLOW: Readonly<Record<string, readonly SegmentProlonge[]>
 
 /** Le libellé affiché d'un segment prolongé, dans la langue active. */
 export function libelleSegment(segment: SegmentProlonge, t?: TFunction<'app'>): string {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    const traduire = t ?? i18n.getFixedT(null, 'app');
     switch (segment.segment) {
         case UES: return traduire('prolongements.ue');
         case MATIERE: return traduire('prolongements.matiere');

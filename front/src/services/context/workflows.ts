@@ -144,7 +144,7 @@ export const TOUS_LES_WORKFLOWS: readonly DescripteurWorkflow[] = [
 
 /** Le libellé d'onglet d'un workflow, dans la langue active. */
 export function libelleWorkflow(workflow: DescripteurWorkflow, t?: TFunction<'app'>): string {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'app'>);
+    const traduire = t ?? i18n.getFixedT(null, 'app');
     switch (workflow.id) {
         case CATALOG_WORKFLOW: return traduire('workflows.structure');
         case NOTE_WORKFLOW: return traduire('workflows.notes');

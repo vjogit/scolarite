@@ -112,6 +112,15 @@ Application réservée au personnel administratif. Pas encore en production.
 - **Français accentué partout**, via i18next — jamais de chaîne d'interface
   en dur. Genre/élision : `entityMessages.ts`. Version anglaise entretenue
   en miroir.
+- **Jamais `i18n.t as unknown as TFunction<ns>`.** `defaultNS` est `errors` :
+  ce cast fait passer une fonction liée à `errors` pour liée au namespace
+  annoncé, la clé sort brute à l'écran et le compilateur ne voit rien (dix
+  occurrences purgées au lot 4bis). Le repli correct d'un `t` optionnel est
+  `i18n.getFixedT(null, ns)` — namespace réellement lié, langue active suivie.
+  Corollaire : tout libellé évalué au chargement d'un module (les
+  `actionsLigne` des `routes.tsx`, figées dans le routeur) se déclare en
+  fermeture `libelle: () => traduire(...)`, jamais en chaîne — une chaîne y
+  fige la langue de démarrage et ignore la bascule fr/en.
 - **Commits en français**, une ligne qui raconte l'intention, pas la
   mécanique.
 - **Définitions d'entités** dans `pages/*/entites/*.ts` ; actions de ligne

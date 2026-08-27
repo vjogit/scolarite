@@ -30,7 +30,7 @@ import { BarreWorkflows } from '../../services/context/BarreWorkflows';
 import { useDroits } from '../../services/context/droits';
 import { WORKFLOW_CATALOG } from '../../services/context/workflows';
 import {
-    ID_ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation,
+    ID_ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation, libelleAction,
     type ActionLigne, type ActionRappel,
 } from '../../services/crud/actions';
 import { DeleteConfirmDialog } from '../../services/crud/DeleteConfirmDialog';
@@ -175,10 +175,10 @@ export function StructureLayout() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
                 <Typography variant="subtitle2" sx={{ flex: 1 }}>{tCatalog('structureLayout.titre')}</Typography>
                 {ecritureFormation && (
-                    <Tooltip title={CREER_FORMATION(t).libelle}>
+                    <Tooltip title={libelleAction(CREER_FORMATION(t))}>
                         <IconButton
                             size="small"
-                            aria-label={CREER_FORMATION(t).libelle}
+                            aria-label={libelleAction(CREER_FORMATION(t))}
                             onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
                         >
                             <AddBoxIcon />

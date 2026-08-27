@@ -21,7 +21,7 @@ import {
     DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
-import type { ActionLigne } from './actions';
+import { libelleAction, type ActionLigne } from './actions';
 
 interface Props<D extends FieldValues> {
     /** Déjà filtrées par les droits et ordonnées : ce composant n'arbitre rien. */
@@ -62,14 +62,14 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                aria-label={directe.libelle}
+                                aria-label={libelleAction(directe)}
                                 onClick={() => { choisir(directe); }}
                             />
                         )}
                     >
                         <IconeDirecte />
                     </TooltipTrigger>
-                    <TooltipContent>{directe.libelle}</TooltipContent>
+                    <TooltipContent>{libelleAction(directe)}</TooltipContent>
                 </Tooltip>
             )}
 
@@ -114,7 +114,7 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
                                         onClick={() => { choisir(action); }}
                                     >
                                         {Icone && <Icone />}
-                                        {action.libelle}
+                                        {libelleAction(action)}
                                     </DropdownMenuItem>
                                 </Fragment>
                             );
