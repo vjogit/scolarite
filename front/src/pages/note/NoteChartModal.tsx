@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Box, Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Typography, Paper, Tabs, Tab, Grid, Card, CardContent
@@ -91,6 +91,54 @@ function CustomTooltip({ active, payload }: TooltipContentProps<ValueType, NameT
 
 const DEFAULT_BUCKET_RANGES = Array.from({ length: 21 }, (_, i) => i);
 
+/**
+ * Les couleurs du graphique, lues depuis les tokens CSS posés au lot 2
+ * (`--chart-1..3`, alignés sur primary/error/secondary de MUI dans les deux
+ * modes) et les tokens neutres (`--border`, `--muted-foreground`). recharts
+ * prend des couleurs en props JavaScript, pas des classes : on résout donc
+ * les variables au runtime, à la racine du document.
+ */
+interface CouleursGraphique {
+    /** Courbe et barres — `--chart-1` (primary.main). */
+    serie: string;
+    /** Lignes de référence et leur libellé — `--chart-2` (error.main). */
+    reference: string;
+    /** Nuage de points — `--chart-3` (secondary.main). */
+    nuage: string;
+    /** Grille — `--border` (porte déjà son alpha, propre à chaque mode). */
+    grille: string;
+    /** Lignes, graduations et textes des axes — `--muted-foreground`. */
+    axe: string;
+}
+
+function lireCouleurs(): CouleursGraphique {
+    const style = getComputedStyle(document.documentElement);
+    const lire = (nom: string) => style.getPropertyValue(nom).trim();
+    return {
+        serie: lire('--chart-1'),
+        reference: lire('--chart-2'),
+        nuage: lire('--chart-3'),
+        grille: lire('--border'),
+        axe: lire('--muted-foreground'),
+    };
+}
+
+/**
+ * Relit les tokens quand la classe `.dark` de `<html>` change. On observe la
+ * classe que `layouts/dashboard.tsx` pose — la source unique du mode
+ * (invariant CLAUDE.md #12) : aucune résolution ici, on la suit, exactement
+ * comme les variantes `dark:` de Tailwind.
+ */
+function useCouleursGraphique(): CouleursGraphique {
+    const [couleurs, setCouleurs] = useState(lireCouleurs);
+    useEffect(() => {
+        const observateur = new MutationObserver(() => { setCouleurs(lireCouleurs()); });
+        observateur.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        return () => { observateur.disconnect(); };
+    }, []);
+    return couleurs;
+}
+
 // --- COMPOSANT PRINCIPAL ---
 export function NoteChartModal({
     open,
@@ -107,6 +155,7 @@ export function NoteChartModal({
 }) {
     const [tabValue, setTabValue] = useState(0);
     const { t } = useTranslation('note');
+    const couleurs = useCouleursGraphique();
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -214,7 +263,8 @@ export function NoteChartModal({
                     <CustomTabPanel value={tabValue} index={0}>
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
+                                {/* `--border` porte déjà son alpha : pas d'`opacity` par-dessus. */}
+                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
                                 {/* 3. CORRECTION DE L'AXE X */}
                                 <XAxis
                                     dataKey="uniqueAxisKey" // On utilise la clé cachée unique
@@ -222,15 +272,19 @@ export function NoteChartModal({
                                     angle={-45}
                                     textAnchor="end"
                                     height={70}
-                                    tick={{ fontSize: 12 }}
+                                    stroke={couleurs.axe}
+                                    tick={{ fontSize: 12, fill: couleurs.axe }}
                                 />
-                                <YAxis domain={[0, 20]} tickCount={11} />
+                                <YAxis domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
                                 <RechartsTooltip content={CustomTooltip} />
                                 {kpis && (
-                                    <ReferenceLine y={parseFloat(kpis.avg)} stroke="#d32f2f" strokeDasharray="4 4"
-                                        label={{ position: 'top', value: t('noteChartModal.moyenneReferenceLine', { moyenne: kpis.avg }), fill: '#d32f2f', fontSize: 12 }} />
+                                    <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4"
+                                        label={{ position: 'top', value: t('noteChartModal.moyenneReferenceLine', { moyenne: kpis.avg }), fill: couleurs.reference, fontSize: 12 }} />
                                 )}
-                                <Line type="monotone" dataKey="note" stroke="#1976d2" strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} />
+                                {/* Animation JS de recharts coupée : la capture de référence e2e
+                                    la prendrait en plein tracé (`animations: 'disabled'` de
+                                    Playwright ne gèle que le CSS). */}
+                                <Line type="monotone" dataKey="note" stroke={couleurs.serie} strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} isAnimationActive={false} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CustomTabPanel>
@@ -240,11 +294,12 @@ export function NoteChartModal({
                     <CustomTabPanel value={tabValue} index={1}>
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.5} vertical={false} />
-                                <XAxis dataKey="label" />
-                                <YAxis allowDecimals={false} label={{ value: t('noteChartModal.axeNombreEleves'), angle: -90, position: 'insideLeft' }} />
-                                <RechartsTooltip content={CustomTooltip} cursor={{ fill: 'rgba(25, 118, 210, 0.1)' }} />
-                                <Bar dataKey="count" fill="#1976d2" radius={[4, 4, 0, 0]} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} vertical={false} />
+                                <XAxis dataKey="label" stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
+                                <YAxis allowDecimals={false} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} label={{ value: t('noteChartModal.axeNombreEleves'), angle: -90, position: 'insideLeft', fill: couleurs.axe }} />
+                                {/* Le curseur est la série à 10 % — `fillOpacity` remplace le rgba() figé. */}
+                                <RechartsTooltip content={CustomTooltip} cursor={{ fill: couleurs.serie, fillOpacity: 0.1 }} />
+                                <Bar dataKey="count" fill={couleurs.serie} radius={[4, 4, 0, 0]} isAnimationActive={false} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CustomTabPanel>
@@ -252,13 +307,13 @@ export function NoteChartModal({
                     <CustomTabPanel value={tabValue} index={2}>
                         <ResponsiveContainer width="100%" height="100%">
                             <ScatterChart margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
-                                <XAxis dataKey="indexId" type="number" name={t('noteChartModal.axeElevesNom')} tick={false} label={{ value: t('noteChartModal.axeElevesLabel'), position: 'insideBottom', offset: -10 }} />
-                                <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} />
+                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
+                                <XAxis dataKey="indexId" type="number" name={t('noteChartModal.axeElevesNom')} tick={false} stroke={couleurs.axe} label={{ value: t('noteChartModal.axeElevesLabel'), position: 'insideBottom', offset: -10, fill: couleurs.axe }} />
+                                <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
                                 <ZAxis range={[60, 60]} />
-                                <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3' }} />
-                                {kpis && <ReferenceLine y={parseFloat(kpis.avg)} stroke="#d32f2f" strokeDasharray="4 4" />}
-                                <Scatter name="Notes" data={scatterData} fill="#9c27b0" />
+                                <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3', stroke: couleurs.axe }} />
+                                {kpis && <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4" />}
+                                <Scatter name="Notes" data={scatterData} fill={couleurs.nuage} isAnimationActive={false} />
                             </ScatterChart>
                         </ResponsiveContainer>
                     </CustomTabPanel>
