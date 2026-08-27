@@ -1,25 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { FieldValues } from 'react-hook-form';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
 import {
-    Alert,
-    Box,
-    Button,
-    CircularProgress,
     Dialog,
-    DialogActions,
     DialogContent,
-    DialogContentText,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
-    List,
-    ListItem,
-    ListItemText,
-    Stack,
-    TextField,
-    Typography,
-} from '@mui/material';
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Spinner } from '../../components/ui/spinner';
 import type { DeleteImpact, DeleteImpactEntry, EntiteCrud } from './def';
 import { messageForError } from '../errorMessages';
 import { formatNombre } from '../format';
@@ -70,6 +69,10 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     const { t } = useTranslation('crud');
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
+    // Cible du focus d'ouverture quand aucune saisie n'est exigée — la parité
+    // avec l'`autoFocus` que portait le bouton « Annuler » MUI.
+    const annulerRef = useRef<HTMLButtonElement>(null);
+    const idSaisie = useId();
 
     const ids = useMemo(
         () => objets.map((objet) => entite.getId(objet)),
@@ -115,9 +118,9 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
     // La saisie exigée peut naître plus tard que la modale : c'est le cas
     // quand c'est l'ampleur de la cascade, ou l'échec de son analyse, qui la
-    // déclenche. Le piège à focus de MUI a alors rendu la main depuis
+    // déclenche. Le piège à focus de la modale a alors rendu la main depuis
     // longtemps, un `focus()` direct suffit. Le cas symétrique — saisie
-    // présente dès l'ouverture — est traité par `onEntered` sur la modale.
+    // présente dès l'ouverture — est traité par `initialFocus` sur la modale.
     useEffect(() => {
         if (open && confirmationRequise) saisieRef.current?.focus();
     }, [open, confirmationRequise]);
@@ -149,71 +152,74 @@ export function DeleteConfirmDialog<D extends FieldValues>({
     return (
         <Dialog
             open={open}
-            onClose={onClose}
-            maxWidth="sm"
-            fullWidth
-            aria-labelledby="delete-dialog-title"
-            // Quand la saisie est exigée dès l'ouverture — une entité de haut
-            // niveau, dont le marqueur est connu avant toute réponse serveur —
-            // le piège à focus de MUI reprend la main et applique l'`autoFocus`
-            // du bouton « Annuler ». Même contournement que dans
-            // `UnsavedChangesDialog` : on place le focus la transition finie.
-            // Sans saisie exigée, on ne touche à rien et « Annuler » le garde.
-            slotProps={{
-                transition: {
-                    onEntered: () => {
-                        if (confirmationRequise) saisieRef.current?.focus();
-                    },
-                    // La saisie ne doit jamais survivre à la fermeture. La vider
-                    // à la fin de la transition plutôt que dans un effet évite
-                    // un rendu de plus, et le champ ne se vide pas sous les yeux
-                    // de l'utilisateur pendant que la modale s'efface.
-                    onExited: () => { setSaisie(''); },
-                },
-            }}
+            onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}
+            // La saisie ne doit jamais survivre à la fermeture. La vider à la
+            // fin de la transition plutôt qu'à la fermeture évite que le champ
+            // se vide sous les yeux de l'utilisateur pendant que la modale
+            // s'efface — l'équivalent de l'`onExited` MUI.
+            onOpenChangeComplete={(ouvert) => { if (!ouvert) setSaisie(''); }}
         >
-            <DialogTitle id="delete-dialog-title">{titre}</DialogTitle>
+            {/* Pas de croix de fermeture : la modale MUI n'en avait pas, les
+                deux issues restent « Annuler » et « Supprimer ».
+                `initialFocus` : la saisie quand elle est exigée dès l'ouverture
+                (entité de haut niveau, marqueur connu avant toute réponse
+                serveur), sinon « Annuler » — la parité avec l'`autoFocus` MUI,
+                sans le contournement du piège à focus devenu inutile. */}
+            <DialogContent
+                className="sm:max-w-xl"
+                showCloseButton={false}
+                initialFocus={confirmationRequise ? saisieRef : annulerRef}
+            >
+                <DialogHeader>
+                    <DialogTitle>{titre}</DialogTitle>
+                </DialogHeader>
 
-            <DialogContent>
-                <Stack spacing={2}>
+                <div className="flex flex-col gap-4">
                     {objets.length > 1 && (
-                        <Box>
-                            <DialogContentText>{t('deleteDialog.objetsSelectionnes')}</DialogContentText>
-                            <List dense disablePadding>
+                        <div>
+                            <p className="text-sm text-muted-foreground">{t('deleteDialog.objetsSelectionnes')}</p>
+                            <ul className="pl-2">
                                 {objetsAffiches.map(({ id, nom }) => (
-                                    <ListItem key={id} disablePadding sx={{ pl: 1 }}>
-                                        <ListItemText primary={`• ${nom}`} />
-                                    </ListItem>
+                                    <li key={id} className="text-sm">{`• ${nom}`}</li>
                                 ))}
-                            </List>
+                            </ul>
                             {nomsRestants > 0 && (
-                                <Typography variant="body2" color="text.secondary" sx={{ pl: 1 }}>
+                                <p className="pl-2 text-sm text-muted-foreground">
                                     {t('deleteDialog.etAutres', { count: nomsRestants, nombre: formatNombre.format(nomsRestants) })}
-                                </Typography>
+                                </p>
                             )}
-                        </Box>
+                        </div>
                     )}
 
                     {impactEnCours && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CircularProgress size={18} />
-                            <Typography variant="body2">{t('deleteDialog.analyseEnCours')}</Typography>
-                        </Box>
+                        <div className="flex items-center gap-2">
+                            {/* Le texte voisin porte l'information : le spinner
+                                n'a rien à annoncer de plus au lecteur d'écran. */}
+                            <Spinner aria-hidden />
+                            <span className="text-sm">{t('deleteDialog.analyseEnCours')}</span>
+                        </div>
                     )}
 
                     {impactEnEchec && (
-                        <Alert severity="warning">
-                            {t('deleteDialog.impactEchec', { erreur: messageForError(impactQuery.error) })}
+                        <Alert variant="warning">
+                            <WarningAmberIcon />
+                            <AlertDescription>
+                                {t('deleteDialog.impactEchec', { erreur: messageForError(impactQuery.error) })}
+                            </AlertDescription>
                         </Alert>
                     )}
 
                     {impact && !estBloque && (
                         <>
                             {impact.cascade.length === 0 ? (
-                                <Alert severity="info">{t('deleteDialog.aucuneDonneeLiee')}</Alert>
+                                <Alert variant="info">
+                                    <InfoOutlinedIcon />
+                                    <AlertDescription>{t('deleteDialog.aucuneDonneeLiee')}</AlertDescription>
+                                </Alert>
                             ) : (
-                                <Alert severity="warning">
-                                    <Typography variant="body2" component="span">
+                                <Alert variant="warning">
+                                    <WarningAmberIcon />
+                                    <AlertDescription>
                                         {objets.length === 1
                                             ? t('deleteDialog.cascadeUnContient', { nom: noms[0] ?? '' })
                                             : t('deleteDialog.cascadeSelectionContient')}
@@ -221,69 +227,73 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                         {entite.suppressionEnCorbeille
                                             ? t('deleteDialog.cascadeCorbeille')
                                             : t('deleteDialog.cascadeDefinitive')}
-                                    </Typography>
+                                    </AlertDescription>
                                 </Alert>
                             )}
 
                             {entite.suppressionEnCorbeille && (
-                                <Alert severity="info">
-                                    {t('deleteDialog.restaurable')}
+                                <Alert variant="info">
+                                    <InfoOutlinedIcon />
+                                    <AlertDescription>{t('deleteDialog.restaurable')}</AlertDescription>
                                 </Alert>
                             )}
 
                             {impact.detached.length > 0 && (
-                                <Alert severity="info">
-                                    {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map(formatEntry), t) })}
+                                <Alert variant="info">
+                                    <InfoOutlinedIcon />
+                                    <AlertDescription>
+                                        {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map(formatEntry), t) })}
+                                    </AlertDescription>
                                 </Alert>
                             )}
                         </>
                     )}
 
                     {estBloque && (
-                        <Alert severity="error">
-                            <Stack spacing={0.5}>
+                        <Alert variant="destructive">
+                            <ErrorOutlineIcon />
+                            <AlertDescription className="flex flex-col gap-1">
                                 {blocages.map((blocage) => (
-                                    <Typography key={blocage.reason} variant="body2">
-                                        {blocage.message}
-                                    </Typography>
+                                    <span key={blocage.reason}>{blocage.message}</span>
                                 ))}
-                            </Stack>
+                            </AlertDescription>
                         </Alert>
                     )}
 
                     {!supporteImpact && (
-                        <DialogContentText>
+                        <p className="text-sm text-muted-foreground">
                             {t('deleteDialog.irreversible')}
-                        </DialogContentText>
+                        </p>
                     )}
 
                     {!estBloque && confirmationRequise && (
-                        <Box>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
+                        <div>
+                            <p className="mb-2 text-sm">
                                 {t('deleteDialog.confirmerSaisiePrefixe')} <strong>{phraseAttendue}</strong> :
-                            </Typography>
-                            <TextField
-                                inputRef={saisieRef}
-                                value={saisie}
-                                onChange={(event) => { setSaisie(event.target.value); }}
-                                size="small"
-                                fullWidth
-                                autoComplete="off"
-                                label={t('deleteDialog.confirmationLabel')}
-                            />
-                        </Box>
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor={idSaisie}>{t('deleteDialog.confirmationLabel')}</Label>
+                                <Input
+                                    id={idSaisie}
+                                    ref={saisieRef}
+                                    value={saisie}
+                                    onChange={(event) => { setSaisie(event.target.value); }}
+                                    autoComplete="off"
+                                />
+                            </div>
+                        </div>
                     )}
-                </Stack>
-            </DialogContent>
+                </div>
 
-            <DialogActions>
-                <Button onClick={onClose} autoFocus>
-                    {t('deleteDialog.annuler')}
-                </Button>
-                <Button onClick={onConfirm} color="error" disabled={!suppressionPossible}>
-                    {t('deleteDialog.supprimer')}
-                </Button>
-            </DialogActions>
+                <DialogFooter>
+                    <Button type="button" variant="outline" ref={annulerRef} onClick={onClose}>
+                        {t('deleteDialog.annuler')}
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={onConfirm} disabled={!suppressionPossible}>
+                        {t('deleteDialog.supprimer')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
         </Dialog>
     );
 }
