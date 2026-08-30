@@ -9,6 +9,7 @@ import { app, crud, interpoler, libelleNiveau, note } from './i18n';
 export const E2E = {
     formation: 'E2E Formation',
     promotion: 'E2E Promotion',
+    promotionVide: 'E2E Promo Vide',
     option: 'E2E Option',
     optionSacrificielle: 'E2E Option Sacrificielle',
     optionDeliberee: 'E2E Option Deliberee',
@@ -220,6 +221,34 @@ export async function allerALaGrilleDeSaisie(
     await page.getByRole('combobox', { name: 'Groupe' }).click();
     await page.getByRole('option', { name: groupe, exact: true }).click();
     await page.getByRole('table', { name: 'Grille de saisie des notes' }).waitFor();
+}
+
+/** Sélectionne la formation E2E depuis l'arborescence Structure (le nœud racine de la branche). */
+export async function allerSurFormationViaStructure(page: Page): Promise<void> {
+    await page.goto('/');
+    await attendreChargementInitial(page);
+    await page.getByRole('tab', { name: app.workflows.structure }).click();
+    await page.waitForLoadState('networkidle');
+    const treeFormation = page.getByRole('treeitem', { name: `Formation ${E2E.formation}` });
+    await cliquerPuisAttendreUrl(
+        page, () => treeFormation.click(), /\/formation\/\d+$/,
+        page.getByRole('heading', { name: `Formation — ${E2E.formation}` }),
+    );
+}
+
+/** Sélectionne une promotion depuis l'arborescence Structure (formation → promotion). */
+export async function allerSurPromotionViaStructure(page: Page, promotion: string): Promise<void> {
+    await page.goto('/');
+    await attendreChargementInitial(page);
+    await page.getByRole('tab', { name: app.workflows.structure }).click();
+    await page.waitForLoadState('networkidle');
+    const treeFormation = page.getByRole('treeitem', { name: `Formation ${E2E.formation}` });
+    await cliquerPuisAttendreUrl(page, () => treeFormation.click(), /\/formation\/\d+$/);
+    const treePromotion = page.getByRole('treeitem', { name: `Promotion ${promotion}`, exact: true });
+    await cliquerPuisAttendreUrl(
+        page, () => treePromotion.click(), /\/promotion\/\d+$/,
+        page.getByRole('heading', { name: `Promotion — ${promotion}` }),
+    );
 }
 
 /** Sélectionne une option depuis l'arborescence Structure (formation → promotion → option). */

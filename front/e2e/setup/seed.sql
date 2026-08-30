@@ -98,6 +98,21 @@ with f as (
 )
 select 1;
 
+-- ── Promotion vide (dialogue de suppression avec saisie — lot 4ter) ────────
+-- Sans descendance : sa suppression n'est pas bloquée par la période
+-- délibérée, contrairement à « E2E Formation » et « E2E Promotion » qui la
+-- contiennent — c'est donc la seule entité du seed à afficher la saisie de
+-- confirmation (`deleteRequiresNameConfirmation`) plutôt que l'état bloqué.
+-- Aucun test ne la supprime : le dialogue est ouvert puis refermé. Portée par
+-- « E2E Formation » : la purge en tête de script l'emporte par CASCADE,
+-- l'idempotence par pose est inchangée.
+insert into promotion (name, debut, fin, echelle_gpa, echelle, matiere_eliminatoire, value_matiere_eliminatoire, formation_id, bareme)
+select 'E2E Promo Vide', '2025-09-01', '2026-08-31',
+       array[4, 3.5, 3, 2.5, 2, 0]::real[], array[16, 14, 12, 10, 8]::real[],
+       true, 6, f.id, 20
+from formation f
+where f.name = 'E2E Formation';
+
 -- ── Option sacrificielle (suite corbeille) ─────────────────────────────────
 -- Un contrôle et un effectif non vide : la modale de suppression chiffre une
 -- cascade non nulle, et la restauration a un effectif à retrouver.
