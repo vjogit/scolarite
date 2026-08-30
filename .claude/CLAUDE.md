@@ -154,8 +154,11 @@ Application réservée au personnel administratif. Pas encore en production.
   commentaire de `grille-saisie.spec.ts`). `front/e2e/setup/globalSetup.ts`
   (le `globalSetup` de `playwright.config.ts`) pose donc ce seed sans
   condition, avant toute vérification de rôle — que la suite soit lancée par
-  `make -f makefile.local test-ihm` ou par `npx playwright test` directement
-  depuis `front/`. **Ne jamais réintroduire un seed conditionnel ou propre à
+  `make test-ihm` (makefile racine ; `make -f makefile.local test-ihm` échoue,
+  les variables viennent du makefile racine) ou par `npx playwright test`
+  directement depuis `front/`. **Jamais deux suites en parallèle** : le
+  re-seed de l'une casse l'autre en plein run (constaté au lot 4ter).
+  **Ne jamais réintroduire un seed conditionnel ou propre à
   un seul point d'entrée** : c'est exactement le piège qui rendait la suite
   irreproductible avant `docs/migration-shadcn/01bis-stabilisation-e2e.md`
   (résultats différents selon l'invocation, y compris sur du code
@@ -178,7 +181,17 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien.
-- **Captures de référence (`e2e/captures.spec.ts-snapshots/`) : réaccepter
+- **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
+  4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
+  souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
+  déclencheur après le clic d'ouverture (état de survol + infobulle dans le
+  cadre) — et **affirmer l'absence d'infobulle** ; attendre la **résolution
+  de l'analyse d'impact** avant de photographier une modale de suppression
+  (le spinner n'est pas reproductible) ; et savoir que **l'état bloqué masque
+  la saisie de confirmation** — formation/promotion E2E sont bloquées par la
+  période délibérée, seule « E2E Promo Vide » (seed) montre la saisie.
+- **Captures de référence (`e2e/captures.spec.ts-snapshots/`,
+  `e2e/captures-ouvertes.spec.ts-snapshots/`) : réaccepter
   un diff est une décision, pas une formalité.** Ces captures figent
   l'apparence MUI + tokens dérivés (voir `docs/migration-shadcn/02-tokens.md`)
   dans les deux modes ; elles existent précisément parce que les 31 tests de
@@ -240,11 +253,18 @@ Application réservée au personnel administratif. Pas encore en production.
 - Le hash canonique du registre dépend d'une troncature à la microseconde :
   reprendre les tests de stabilité existants pour toute évolution.
 - Le seed e2e est **idempotent par pose, pas par cumul** : toute donnée
-  ajoutée au seed doit survivre à deux exécutions consécutives.
-- Un bouton shadcn/natif dans un `<form>` est `type="submit"` par défaut —
-  MUI posait `type="button"` à notre place. Tout bouton non-soumission d'un
-  formulaire doit le déclarer explicitement (précédent : « Annuler » de
-  `services/crud/Form.tsx`, lot 4), sinon il valide le formulaire.
+  ajoutée au seed doit survivre à deux exécutions consécutives. Et son nom ne
+  doit faire d'aucun nom existant un **préfixe** : les localisateurs
+  Playwright matchent par sous-chaîne — « E2E Promotion Vide » rendait
+  ambigus tous les sélecteurs « …E2E Promotion » (mode strict), d'où
+  « E2E Promo Vide » (lot 4ter).
+- Un bouton **natif** dans un `<form>` est `type="submit"` par défaut — MUI
+  posait `type="button"` à notre place, et le `Button` shadcn le pose aussi
+  (Base UI `useButton`, vérifié au lot 4ter : retirer l'attribut explicite de
+  `Form.tsx` ne casse rien). Le vrai risque des migrations est donc le retour
+  à un `<button>` nu ; tout bouton non-soumission le déclare explicitement
+  (précédent : « Annuler » de `services/crud/Form.tsx`, lot 4), et
+  `formulaire.spec.ts` monte la garde (« Annuler ne crée rien »).
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
