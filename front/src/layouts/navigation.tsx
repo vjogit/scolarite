@@ -1,10 +1,6 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
-import SchoolIcon from '@mui/icons-material/School';
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import { DoorOpen, GraduationCap, ShieldCheck, Trash2, UserCog } from 'lucide-react';
 
 import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from '../pages/user/def';
 import { SALLE_WORKFLOW } from '../pages/salle/def';
@@ -52,7 +48,7 @@ export function construireNavigation(t: TFunction<'app'>): NavigationItemWithRol
     {
       segment: SEGMENT_SCOLARITE,
       title: t('nav.scolarite'),
-      icon: <SchoolIcon />,
+      icon: <GraduationCap />,
       requiredRoles: [Role.CONSULTATION],
     },
     { kind: 'divider' },
@@ -61,19 +57,19 @@ export function construireNavigation(t: TFunction<'app'>): NavigationItemWithRol
       // autres entrées, sans que son URL bouge.
       segment: `planning/${SALLE_WORKFLOW}`,
       title: t('nav.salle'),
-      icon: <MeetingRoomIcon />,
+      icon: <DoorOpen />,
       requiredRoles: [Role.CONSULTATION],
     },
     {
       segment: USER_WORKFLOW,
       title: t('nav.utilisateur'),
-      icon: <ManageAccountsIcon />,
+      icon: <UserCog />,
       requiredRoles: [Role.CONSULTATION],
     },
     {
       segment: CORBEILLE_WORKFLOW,
       title: t('nav.corbeille'),
-      icon: <DeleteOutlineIcon />,
+      icon: <Trash2 />,
       // Réservée aux porteurs de tous les rôles fonctionnels — le composite
       // ADMIN, sans jamais tester son nom.
       requiresAllRoles: ROLES_FONCTIONNELS,
@@ -81,7 +77,7 @@ export function construireNavigation(t: TFunction<'app'>): NavigationItemWithRol
     {
       segment: REGISTRE_WORKFLOW,
       title: t('nav.registre'),
-      icon: <VerifiedUserIcon />,
+      icon: <ShieldCheck />,
       // Même règle que la corbeille : intégrité, ancrage et témoins sont des
       // gestes d'administration.
       requiresAllRoles: ROLES_FONCTIONNELS,

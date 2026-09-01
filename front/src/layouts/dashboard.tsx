@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -146,7 +146,7 @@ function MenuCompte() {
           <DropdownMenuItem
             onClick={() => { void keycloak?.logout({ redirectUri: window.location.origin + '/' }); }}
           >
-            <LogoutIcon />
+            <LogOut />
             {t('nav.deconnexion')}
           </DropdownMenuItem>
         </DropdownMenuGroup>

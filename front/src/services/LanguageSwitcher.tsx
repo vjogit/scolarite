@@ -1,4 +1,4 @@
-import TranslateIcon from '@mui/icons-material/Translate';
+import { Languages } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '../components/ui/button';
@@ -46,7 +46,7 @@ export function LanguageSwitcher() {
                         />
                     )}
                 >
-                    <TranslateIcon fontSize="small" />
+                    <Languages />
                 </TooltipTrigger>
                 <TooltipContent>{t('langueTooltip')}</TooltipContent>
             </Tooltip>

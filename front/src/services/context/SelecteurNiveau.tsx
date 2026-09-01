@@ -25,7 +25,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 import { skipToken, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { ChevronDown } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import {
@@ -175,7 +175,7 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                             </span>
                         )}
                 </span>
-                <ArrowDropDownIcon fontSize="small" />
+                <ChevronDown />
             </DropdownMenuTrigger>
 
             {/* `w-max` : la largeur suit la plus longue entrée, pas le
