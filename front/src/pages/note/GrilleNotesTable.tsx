@@ -22,9 +22,9 @@ import {
     TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip,
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ReplayIcon from '@mui/icons-material/Replay';
+import { Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -354,7 +354,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
         return [...declarees, {
             id: 'supprimer-note',
             libelle: t('grilleNotesTable.supprimerLaNote'),
-            icone: DeleteOutlineIcon,
+            icone: Trash2,
             destructive: true,
             onSelect: () => { setASupprimer(ligne); },
         }];

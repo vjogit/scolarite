@@ -7,18 +7,15 @@ import { MaterialReactTable, useMaterialReactTable, type MRT_Row, type MRT_Table
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
 import { MRT_Localization_EN } from 'material-react-table/locales/en';
 import { alpha, darken } from '@mui/material';
-import AddBoxIcon from '@mui/icons-material/AddBox';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { Alert, AlertTitle } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { ArrowLeft, CircleAlert, SquarePlus, Trash2 } from 'lucide-react';
 import { usePersistentTableState } from './usePersistentTableState';
 import { parentListPath } from './useRootPath';
 import { useCrudContext } from './useCrudContext';
 import { useDroits } from '../context/droits';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { libelleCreation, messageListeVide } from './entityMessages';
 import { useSuppressionCrud } from './suppression';
 import { EtatVideTable } from './EtatVideTable';
@@ -171,7 +168,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
                   size="icon"
                   aria-label={libelleCreation(datasource, t)}
                   onClick={() => { void navigate(`${rootPath}/new`); }}>
-                  <AddBoxIcon />
+                  <SquarePlus />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{libelleCreation(datasource, t)}</TooltipContent>
@@ -186,7 +183,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
                   aria-label={t('actions.supprimerSelection')}
                   onClick={() => { handleOpenModal(table); }}
                   disabled={table.getSelectedRowModel().flatRows.length === 0}>
-                  <DeleteIcon />
+                  <Trash2 />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>{t('actions.supprimerSelection')}</TooltipContent>
@@ -316,7 +313,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
   if (isError) {
     return (
       <Alert variant="destructive">
-        <ErrorOutlineIcon />
+        <CircleAlert />
         <AlertTitle>{t('list.chargementEchec')}</AlertTitle>
       </Alert>
     );
@@ -338,7 +335,7 @@ export function CrudList<D extends FieldValues>({ datasource }: Props<D>) {
                 />
               )}
             >
-              <ArrowBackIcon />
+              <ArrowLeft />
             </TooltipTrigger>
             <TooltipContent>{t('actions.retour')}</TooltipContent>
           </Tooltip>

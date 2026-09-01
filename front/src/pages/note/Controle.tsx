@@ -8,8 +8,7 @@ import { useParams } from 'react-router';
 import type { MRT_ColumnDef } from 'material-react-table';
 import { Controller } from 'react-hook-form';
 import { useRootPath } from '../../services/crud/useRootPath';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { FileDown, Upload } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { FicheExportModal } from './FicheExportModal';
 import { useFicheImport, libelleImportFiche } from './useFicheImport';
@@ -136,14 +135,14 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
         {
             id: 'import-fiche',
             libelle: libelleImportFiche(tNote),
-            icone: FileUploadIcon,
+            icone: Upload,
             exigeEcriture: true,
             onSelect: (controle) => { declencherImport(controle.id); },
         },
         {
             id: 'export-fiche',
             libelle: tNote('controle.exporterLaFiche'),
-            icone: FileDownloadIcon,
+            icone: FileDown,
             onSelect: (controle) => { handleExportOpen(controle.id); },
         },
     ], [declencherImport, handleExportOpen, tNote]);

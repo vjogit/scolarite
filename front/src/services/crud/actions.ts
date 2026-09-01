@@ -14,14 +14,12 @@
  */
 
 import type { ComponentType } from 'react';
-import type { SvgIconProps } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Eye, Pencil, type LucideProps } from 'lucide-react';
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 
 /** Le composant d'icône lui-même, jamais un élément JSX : aucun rendu ici. */
-export type IconeAction = ComponentType<SvgIconProps>;
+export type IconeAction = ComponentType<LucideProps>;
 
 interface ActionLigneCommune<D extends FieldValues> {
     /** Clé stable : `key` React et repère de test. Unique dans un écran. */
@@ -104,7 +102,7 @@ function actionVoir<D extends FieldValues>(t: TFunction<'crud'>): ActionNavigati
     return {
         id: ID_ACTION_VOIR,
         libelle: t('actions.voir', { ns: 'crud' }),
-        icone: VisibilityIcon,
+        icone: Eye,
         segment: '',
     };
 }
@@ -113,7 +111,7 @@ function actionEditer<D extends FieldValues>(t: TFunction<'crud'>): ActionNaviga
     return {
         id: 'editer',
         libelle: t('actions.editer', { ns: 'crud' }),
-        icone: EditIcon,
+        icone: Pencil,
         segment: 'edit',
         exigeEcriture: true,
     };

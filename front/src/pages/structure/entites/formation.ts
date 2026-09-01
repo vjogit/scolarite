@@ -7,7 +7,7 @@
  * dépendre d'un module d'écran pour atteindre une définition de données.
  */
 
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import { List } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
@@ -40,7 +40,7 @@ export function ACTION_PROMOTIONS(t?: TFunction<'crud'>): ActionNavigation<Field
     return {
         id: 'promotions',
         libelle: tCrud(t)('entites.actions.gererPromotions', { ns: 'crud' }),
-        icone: ListAltIcon,
+        icone: List,
         segment: PROMOTION,
     };
 }

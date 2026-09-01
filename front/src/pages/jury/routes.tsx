@@ -5,7 +5,7 @@
 
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
-import BalanceIcon from '@mui/icons-material/Balance';
+import { Scale } from 'lucide-react';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_JURY } from '../../services/context/workflows';
@@ -38,7 +38,7 @@ function actionJury(t?: TFunction<'jury'>): ActionNavigation<FieldValues> {
         // Fermeture et non chaîne : cette action est créée une seule fois, au
         // chargement du module — une chaîne figerait la langue de démarrage.
         libelle: () => traduire('actionJuryLibelle'),
-        icone: BalanceIcon,
+        icone: Scale,
         segment: JURY,
     };
 }

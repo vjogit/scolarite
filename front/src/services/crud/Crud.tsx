@@ -8,8 +8,7 @@ import type { DefaultValues, FieldValues } from "react-hook-form";
 import { CrudContext } from "./CrudContext";
 import { Alert, AlertTitle } from "../../components/ui/alert";
 import { Skeleton } from "../../components/ui/skeleton";
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { CircleAlert, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDroits } from "../context/droits";
 
@@ -62,13 +61,12 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
         return <Form datasource={datasource} initialData={datasource.emptyValue} mode="create" />;
     }
 
-    // L'icône de sévérité que MUI dessinait d'office accompagne chaque alerte
-    // — mêmes glyphes (icônes MUI conservées jusqu'au lot dédié).
+    // L'icône de sévérité que MUI dessinait d'office accompagne chaque alerte.
     if (isLoading) return <Skeleton className="h-[400px] rounded-lg" />;
     if (error) {
         return (
             <Alert variant="destructive">
-                <ErrorOutlineIcon />
+                <CircleAlert />
                 <AlertTitle>{t('erreurRecuperation')}</AlertTitle>
             </Alert>
         );
@@ -76,7 +74,7 @@ export function Crud<D extends FieldValues>({ datasource, mode, workflow, rootPa
 
     const introuvable = (
         <Alert variant="warning">
-            <WarningAmberIcon />
+            <TriangleAlert />
             <AlertTitle>{t('donneesIntrouvables')}</AlertTitle>
         </Alert>
     );

@@ -22,9 +22,7 @@ import { useTranslation } from 'react-i18next';
 import {
     Box, Divider, Drawer, IconButton, Tooltip, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
-import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import AddBoxIcon from '@mui/icons-material/AddBox';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import { ListTree, SquarePlus, Trash2 } from 'lucide-react';
 
 import { BarreWorkflows } from '../../services/context/BarreWorkflows';
 import { useDroits } from '../../services/context/droits';
@@ -57,7 +55,7 @@ function actionSupprimer(ouvrir: () => void, t: TFunction<'crud'>): ActionRappel
     return {
         id: 'supprimer',
         libelle: t('actions.supprimer', { ns: 'crud' }),
-        icone: DeleteOutlineIcon,
+        icone: Trash2,
         exigeEcriture: true,
         destructive: true,
         onSelect: ouvrir,
@@ -181,7 +179,7 @@ export function StructureLayout() {
                             aria-label={libelleAction(CREER_FORMATION(t))}
                             onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
                         >
-                            <AddBoxIcon />
+                            <SquarePlus />
                         </IconButton>
                     </Tooltip>
                 )}
@@ -238,7 +236,7 @@ export function StructureLayout() {
                                     aria-label={tCatalog('structureLayout.ouvrirArborescence')}
                                     onClick={() => { setTiroirOuvert(true); }}
                                 >
-                                    <AccountTreeIcon />
+                                    <ListTree />
                                 </IconButton>
                             </Tooltip>
                         )}

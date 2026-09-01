@@ -7,7 +7,7 @@
  * dépendre d'un module d'écran pour atteindre une définition de données.
  */
 
-import PeopleIcon from '@mui/icons-material/People';
+import { Users } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
@@ -43,7 +43,7 @@ export function ACTION_MEMBRES(t?: TFunction<'crud'>): ActionNavigation<FieldVal
     return {
         id: 'membres',
         libelle: tCrud(t)('entites.actions.gererMembres', { ns: 'crud' }),
-        icone: PeopleIcon,
+        icone: Users,
         segment: 'user',
     };
 }

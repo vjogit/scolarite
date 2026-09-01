@@ -16,14 +16,7 @@
 
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
-import SchoolIcon from '@mui/icons-material/School';
-import ClassIcon from '@mui/icons-material/Class';
-import AltRouteIcon from '@mui/icons-material/AltRoute';
-import DateRangeIcon from '@mui/icons-material/DateRange';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import SubjectIcon from '@mui/icons-material/Subject';
-import GroupsIcon from '@mui/icons-material/Groups';
-import AddBoxIcon from '@mui/icons-material/AddBox';
+import { BookMarked, BookOpen, CalendarRange, GraduationCap, Split, SquarePlus, Text, Users } from 'lucide-react';
 
 import type { ActionLigne, ActionNavigation, IconeAction } from '../../../services/crud/actions';
 import type { DescriptionEntite, EntiteCrud, Repository } from '../../../services/crud/def';
@@ -76,7 +69,7 @@ function actionCreer(segment: string, enfant: DescriptionEntite, t?: TFunction<'
     return {
         id: `creer-${segment}`,
         libelle: libelleCreation(enfant, t),
-        icone: AddBoxIcon,
+        icone: SquarePlus,
         segment: `${segment}/new`,
         exigeEcriture: true,
     };
@@ -140,7 +133,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: FORMATION,
         libelle: 'Formation',
         libellePluriel: 'Formations',
-        icone: SchoolIcon,
+        icone: GraduationCap,
         enfants: [{ segment: PROMOTION }],
         entite: entiteFormation,
         actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t)],
@@ -149,7 +142,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: PROMOTION,
         libelle: 'Promotion',
         libellePluriel: 'Promotions',
-        icone: ClassIcon,
+        icone: BookMarked,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
         actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t)],
@@ -158,7 +151,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: OPTION,
         libelle: 'Option',
         libellePluriel: 'Options',
-        icone: AltRouteIcon,
+        icone: Split,
         enfants: [{ segment: PERIODE }, { segment: GROUPE, categorie: 'Groupes' }],
         entite: entiteOption,
         actions: (t) => [
@@ -170,7 +163,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: PERIODE,
         libelle: 'Période',
         libellePluriel: 'Périodes',
-        icone: DateRangeIcon,
+        icone: CalendarRange,
         enfants: [{ segment: UES }],
         entite: entitePeriode,
         actions: (t) => [ACTION_UES(t), actionCreer(UES, ueEntite(t), t)],
@@ -179,7 +172,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: UES,
         libelle: 'UE',
         libellePluriel: 'UE',
-        icone: MenuBookIcon,
+        icone: BookOpen,
         enfants: [{ segment: MATIERE }],
         entite: entiteUe,
         actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t)],
@@ -188,7 +181,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: MATIERE,
         libelle: 'Matière',
         libellePluriel: 'Matières',
-        icone: SubjectIcon,
+        icone: Text,
         enfants: [],
         entite: entiteMatiere,
         actions: () => [],
@@ -199,7 +192,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         segment: GROUPE,
         libelle: 'Groupe',
         libellePluriel: 'Groupes',
-        icone: GroupsIcon,
+        icone: Users,
         enfants: [],
         entite: entiteGroupe,
         actions: (t) => [ACTION_MEMBRES(t)],

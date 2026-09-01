@@ -24,7 +24,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { FieldValues } from 'react-hook-form';
 import { Box, Typography } from '@mui/material';
-import FolderIcon from '@mui/icons-material/Folder';
+import { Folder } from 'lucide-react';
 import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
 import { TreeItem } from '@mui/x-tree-view/TreeItem';
 
@@ -103,7 +103,7 @@ interface Noeud {
 function Etiquette({ icone: Icone, texte }: { icone: IconeAction; texte: string }) {
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25, minWidth: 0 }}>
-            <Icone fontSize="small" sx={{ color: 'text.secondary', flexShrink: 0 }} />
+            <Icone size={20} className="shrink-0 text-muted-foreground" />
             <Typography variant="body2" noWrap title={texte}>{texte}</Typography>
         </Box>
     );
@@ -221,7 +221,7 @@ function NoeudCategorie({ chemin, enfant, identifiantParent }: {
             slotProps={CHEVRON_SEUL}
             onKeyDown={surEntree}
             aria-label={enfant.categorie ?? niveau.libellePluriel}
-            label={<Etiquette icone={FolderIcon} texte={enfant.categorie ?? niveau.libellePluriel} />}
+            label={<Etiquette icone={Folder} texte={enfant.categorie ?? niveau.libellePluriel} />}
         >
             <Collection
                 chemin={chemin}

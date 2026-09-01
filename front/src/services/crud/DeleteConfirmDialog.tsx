@@ -3,9 +3,7 @@ import { skipToken, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { FieldValues } from 'react-hook-form';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { CircleAlert, Info, TriangleAlert } from 'lucide-react';
 
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Button } from '../../components/ui/button';
@@ -202,7 +200,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
                     {impactEnEchec && (
                         <Alert variant="warning">
-                            <WarningAmberIcon />
+                            <TriangleAlert />
                             <AlertDescription>
                                 {t('deleteDialog.impactEchec', { erreur: messageForError(impactQuery.error) })}
                             </AlertDescription>
@@ -213,12 +211,12 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                         <>
                             {impact.cascade.length === 0 ? (
                                 <Alert variant="info">
-                                    <InfoOutlinedIcon />
+                                    <Info />
                                     <AlertDescription>{t('deleteDialog.aucuneDonneeLiee')}</AlertDescription>
                                 </Alert>
                             ) : (
                                 <Alert variant="warning">
-                                    <WarningAmberIcon />
+                                    <TriangleAlert />
                                     <AlertDescription>
                                         {objets.length === 1
                                             ? t('deleteDialog.cascadeUnContient', { nom: noms[0] ?? '' })
@@ -233,14 +231,14 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
                             {entite.suppressionEnCorbeille && (
                                 <Alert variant="info">
-                                    <InfoOutlinedIcon />
+                                    <Info />
                                     <AlertDescription>{t('deleteDialog.restaurable')}</AlertDescription>
                                 </Alert>
                             )}
 
                             {impact.detached.length > 0 && (
                                 <Alert variant="info">
-                                    <InfoOutlinedIcon />
+                                    <Info />
                                     <AlertDescription>
                                         {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map(formatEntry), t) })}
                                     </AlertDescription>
@@ -251,7 +249,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
 
                     {estBloque && (
                         <Alert variant="destructive">
-                            <ErrorOutlineIcon />
+                            <CircleAlert />
                             <AlertDescription className="flex flex-col gap-1">
                                 {blocages.map((blocage) => (
                                     <span key={blocage.reason}>{blocage.message}</span>

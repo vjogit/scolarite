@@ -8,7 +8,7 @@
  */
 
 import { Fragment, useCallback } from 'react';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { EllipsisVertical } from 'lucide-react';
 import type { FieldValues } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -94,7 +94,7 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
                                 />
                             )}
                         >
-                            <MoreVertIcon />
+                            <EllipsisVertical />
                         </TooltipTrigger>
                         <TooltipContent>{t('actions.menu')}</TooltipContent>
                     </Tooltip>

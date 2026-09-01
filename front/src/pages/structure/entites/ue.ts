@@ -8,7 +8,7 @@
  * données.
  */
 
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import { List } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
@@ -45,7 +45,7 @@ export function ACTION_MATIERES(t?: TFunction<'crud'>): ActionNavigation<FieldVa
     return {
         id: 'matieres',
         libelle: tCrud(t)('entites.actions.gererMatieres', { ns: 'crud' }),
-        icone: ListAltIcon,
+        icone: List,
         segment: MATIERE,
     };
 }
