@@ -21,10 +21,7 @@ import {
     DialogContentText, DialogTitle, IconButton, Skeleton, Table, TableBody,
     TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import ReplayIcon from '@mui/icons-material/Replay';
-import { Trash2 } from 'lucide-react';
+import { CircleCheck, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -612,7 +609,7 @@ function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
         case 'enregistre':
             return (
                 <Tooltip title={t('grilleNotesTable.enregistreeTitre')}>
-                    <CheckCircleOutlineIcon fontSize="small" color="success" aria-label={t('grilleNotesTable.noteEnregistreePourEleveAriaLabel', { eleve })} />
+                    <CircleCheck size={20} className="text-success" aria-label={t('grilleNotesTable.noteEnregistreePourEleveAriaLabel', { eleve })} />
                 </Tooltip>
             );
         case 'modifie':
@@ -628,7 +625,7 @@ function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
             return (
                 <Tooltip title={ligne.message ?? t('grilleNotesTable.echecEnregistrement')}>
                     <IconButton size="small" color="error" onClick={onRelancer} aria-label={t('grilleNotesTable.reessayerPourEleveAriaLabel', { eleve })}>
-                        <ReplayIcon fontSize="small" />
+                        <RotateCcw size={20} />
                     </IconButton>
                 </Tooltip>
             );
@@ -636,7 +633,7 @@ function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
             return (
                 <Tooltip title={ligne.message ?? t('grilleNotesTable.conflitDeVersion')}>
                     <IconButton size="small" color="warning" onClick={onRecharger} aria-label={t('grilleNotesTable.rechargerLigneDeEleveAriaLabel', { eleve })}>
-                        <RefreshIcon fontSize="small" />
+                        <RefreshCw size={20} />
                     </IconButton>
                 </Tooltip>
             );

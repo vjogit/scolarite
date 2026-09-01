@@ -1,5 +1,5 @@
 import { Tooltip, IconButton } from '@mui/material';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { libelleImportFiche, useFicheImport } from './useFicheImport';
 
@@ -19,7 +19,7 @@ export function FicheImportButton({ controleId }: Props) {
                 <IconButton
                     aria-label={libelle}
                     onClick={() => { declencher(controleId); }}>
-                    <FileUploadIcon />
+                    <Upload />
                 </IconButton>
             </Tooltip>
             {champ}

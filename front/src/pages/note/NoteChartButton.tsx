@@ -1,5 +1,5 @@
 import { Box, IconButton, Tooltip } from '@mui/material';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import { ChartColumn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // Bouton standardisé pour la toolbar
@@ -11,7 +11,7 @@ export function NoteChartButton({ onClick }: { onClick: () => void }) {
         <Box sx={{ display: 'flex', gap: '1rem' }}>
             <Tooltip title={libelle}>
                 <IconButton aria-label={libelle} onClick={onClick}>
-                    <BarChartIcon />
+                    <ChartColumn />
                 </IconButton>
             </Tooltip>
         </Box>

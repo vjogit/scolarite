@@ -18,7 +18,7 @@ import {
     Alert, Autocomplete, Box, Chip, CircularProgress, IconButton, Paper, Stack,
     TextField, Tooltip, Typography,
 } from '@mui/material';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { FileDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 import { apiInstance } from '../../services/api';
@@ -191,7 +191,7 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                         <NoteChartButton onClick={() => { setGraphiqueOuvert(true); }} />
                         <Tooltip title={t('grilleNotes.exporterLaFiche')}>
                             <IconButton onClick={() => { setExportOuvert(true); }} aria-label={t('grilleNotes.exporterLaFiche')}>
-                                <FileDownloadIcon />
+                                <FileDown />
                             </IconButton>
                         </Tooltip>
                         {/* L'import écrit des notes ; l'export reste une lecture. */}
