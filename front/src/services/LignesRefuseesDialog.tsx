@@ -1,9 +1,15 @@
-import {
-    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
-    Button, Table, TableBody, TableCell, TableHead, TableRow,
-} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+
+import { Button } from '../components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
 import { messageLigneRefusee, type LignesRefusees } from './errorMessages';
 
 /**
@@ -42,32 +48,38 @@ interface Props {
 export function LignesRefuseesDialog({ refus, sousTitre, onClose }: Props) {
     const { t } = useTranslation('app');
     return (
-        <Dialog open={refus !== null} onClose={onClose} fullWidth maxWidth="md">
-            <DialogTitle>{t('lignesRefusees.titre')}</DialogTitle>
-            <DialogContent>
-                <DialogContentText sx={{ mb: 2 }}>{sousTitre}</DialogContentText>
-                <Table size="small" aria-label={t('lignesRefusees.tableAriaLabel')}>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>{t('lignesRefusees.colonneLigne')}</TableCell>
-                            <TableCell>{t('lignesRefusees.colonneChamp')}</TableCell>
-                            <TableCell>{t('lignesRefusees.colonneMotif')}</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {(refus?.lignes ?? []).map((l) => (
-                            <TableRow key={`${String(l.ligne)}·${l.champ ?? ''}·${l.motif}·${l.valeur ?? ''}`}>
-                                <TableCell>{l.ligne ?? '—'}</TableCell>
-                                <TableCell>{l.champ ? libelleChamp(l.champ, t) : '—'}</TableCell>
-                                <TableCell>{messageLigneRefusee(l, refus?.bareme)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+        <Dialog open={refus !== null} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
+            {/* Pas de croix de fermeture (parité MUI) : « Fermer » est la
+                seule issue nommée. `sm:max-w-4xl` ≈ le `maxWidth="md"` MUI. */}
+            <DialogContent className="sm:max-w-4xl" showCloseButton={false}>
+                <DialogHeader>
+                    <DialogTitle>{t('lignesRefusees.titre')}</DialogTitle>
+                    <DialogDescription>{sousTitre}</DialogDescription>
+                </DialogHeader>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm" aria-label={t('lignesRefusees.tableAriaLabel')}>
+                        <thead>
+                            <tr className="border-b text-left">
+                                <th scope="col" className="px-2 py-1.5 font-medium">{t('lignesRefusees.colonneLigne')}</th>
+                                <th scope="col" className="px-2 py-1.5 font-medium">{t('lignesRefusees.colonneChamp')}</th>
+                                <th scope="col" className="px-2 py-1.5 font-medium">{t('lignesRefusees.colonneMotif')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(refus?.lignes ?? []).map((l) => (
+                                <tr key={`${String(l.ligne)}·${l.champ ?? ''}·${l.motif}·${l.valeur ?? ''}`} className="border-b last:border-b-0">
+                                    <td className="px-2 py-1.5">{l.ligne ?? '—'}</td>
+                                    <td className="px-2 py-1.5">{l.champ ? libelleChamp(l.champ, t) : '—'}</td>
+                                    <td className="px-2 py-1.5">{messageLigneRefusee(l, refus?.bareme)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose}>{t('lignesRefusees.fermer')}</Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>{t('lignesRefusees.fermer')}</Button>
-            </DialogActions>
         </Dialog>
     );
 }
