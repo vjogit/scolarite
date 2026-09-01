@@ -40,7 +40,8 @@
   },
   "userSelector": {
     "champEleve": "Élève",
-    "rechercherEleve": "Rechercher un élève"
+    "rechercherEleve": "Rechercher un élève",
+    "aucuneOption": "Aucune option"
   },
   "lignesRefusees": {
     "champs": {

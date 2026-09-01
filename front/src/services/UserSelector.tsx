@@ -1,16 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useId, useState, useEffect } from 'react';
 import type { Control, FieldErrors, FieldValues, Path, PathValue, UseFormGetValues, UseFormSetValue } from 'react-hook-form';
 import  { Controller  } from 'react-hook-form';
 
 import { useQuery } from '@tanstack/react-query';
-import { Autocomplete, TextField, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from '../components/ui/combobox';
+import { InputGroupAddon } from '../components/ui/input-group';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Spinner } from '../components/ui/spinner';
 import { apiInstance } from './api';
 
 export interface UserOption {
     id: number;
     firstName: string;
     lastName: string;
+}
+
+/** « Nom Prénom », l'affichage de l'option comme du champ. */
+function libelleOption(option: UserOption): string {
+    return `${option.lastName} ${option.firstName}`;
 }
 
 // `FieldValues` porte déjà la signature d'index qu'exige react-hook-form :
@@ -47,6 +64,7 @@ export const UserSelector = <T extends FormFields>({
     onChoisir,
 }: UserSelectorProps<T>) => {
     const { t } = useTranslation('app');
+    const idChamp = useId();
     const [inputValue, setInputValue] = useState('');
     const [debouncedInputValue, setDebouncedInputValue] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserOption | null>(() => {
@@ -77,9 +95,19 @@ export const UserSelector = <T extends FormFields>({
         enabled: !isReadOnly,
     });
 
+    const messageErreur = errors.user_id?.message;
+
     if (isReadOnly) {
         return (
-            <TextField label={t('userSelector.champEleve')} value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()} variant="outlined" fullWidth disabled sx={{ mb: 2 }} />
+            <div className="mb-4 flex flex-col gap-1.5">
+                <Label htmlFor={idChamp}>{t('userSelector.champEleve')}</Label>
+                <Input
+                    id={idChamp}
+                    value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()}
+                    disabled
+                    readOnly
+                />
+            </div>
         );
     }
 
@@ -88,40 +116,58 @@ export const UserSelector = <T extends FormFields>({
             name={'user_id' as Path<T>}
             control={control}
             render={({ field }) => (
-                <Autocomplete
-                    options={users ?? []}
-                    loading={isLoading}
-                    filterOptions={(x) => x} // Server-side filtering
-                    getOptionLabel={(option) => `${option.lastName} ${option.firstName}`}
+                <Combobox
+                    items={users ?? []}
+                    // Le filtrage est serveur : la liste reçue s'affiche telle quelle.
+                    filter={null}
+                    itemToStringLabel={libelleOption}
+                    isItemEqualToValue={(a, b) => a.id === b.id}
                     value={selectedUser}
                     inputValue={inputValue}
-                    onInputChange={(_, newInputValue) => { setInputValue(newInputValue); }}
-                    onChange={(_, newValue) => {
+                    onInputValueChange={(valeur) => { setInputValue(valeur); }}
+                    onValueChange={(newValue) => {
                         field.onChange(newValue?.id ?? null);
                         setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
                         setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
                         setSelectedUser(newValue);
                         onChoisir?.(newValue);
                     }}
-                    renderInput={(params) => (
-                        <TextField
-                            {...params}
-                            label={t('userSelector.rechercherEleve')}
-                            error={!!errors.user_id}
-                            // Le générique `T` transforme le type du message en conditionnel que
-                            // React n'accepte pas : c'est le seul endroit du projet où
-                            // l'assertion est vraiment nécessaire.
-                            helperText={errors.user_id?.message as string}
-                            slotProps={{
-                                input: {
-                                    ...params.InputProps,
-                                    endAdornment: (<>{isLoading ? <CircularProgress color="inherit" size={20} /> : null}{params.InputProps.endAdornment}</>),
-                                },
-                            }}
-                        />
-                    )}
-                    sx={{ mb: 2 }}
-                />
+                >
+                    <div className="mb-4 flex flex-col gap-1.5">
+                        {/* Le nom accessible vient du label, comme celui que le
+                            TextField MUI posait. */}
+                        <Label htmlFor={idChamp}>{t('userSelector.rechercherEleve')}</Label>
+                        <ComboboxInput
+                            id={idChamp}
+                            aria-invalid={messageErreur ? true : undefined}
+                            showClear
+                        >
+                            {isLoading && (
+                                <InputGroupAddon align="inline-end">
+                                    {/* Le résultat qui arrive porte l'information :
+                                        le spinner n'annonce rien de plus. */}
+                                    <Spinner aria-hidden />
+                                </InputGroupAddon>
+                            )}
+                        </ComboboxInput>
+                        {messageErreur !== undefined && (
+                            // Le générique `T` transforme le type du message en
+                            // conditionnel que React n'accepte pas : c'est le seul
+                            // endroit du projet où l'assertion est vraiment nécessaire.
+                            <p className="text-sm text-destructive">{messageErreur as string}</p>
+                        )}
+                    </div>
+                    <ComboboxContent>
+                        <ComboboxEmpty>{t('userSelector.aucuneOption')}</ComboboxEmpty>
+                        <ComboboxList>
+                            {(option: UserOption) => (
+                                <ComboboxItem key={option.id} value={option}>
+                                    {libelleOption(option)}
+                                </ComboboxItem>
+                            )}
+                        </ComboboxList>
+                    </ComboboxContent>
+                </Combobox>
             )}
         />
     );

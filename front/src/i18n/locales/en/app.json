@@ -40,7 +40,8 @@
   },
   "userSelector": {
     "champEleve": "Student",
-    "rechercherEleve": "Search for a student"
+    "rechercherEleve": "Search for a student",
+    "aucuneOption": "No options"
   },
   "lignesRefusees": {
     "champs": {
