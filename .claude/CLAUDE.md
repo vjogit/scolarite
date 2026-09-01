@@ -279,6 +279,19 @@ Application réservée au personnel administratif. Pas encore en production.
   l'écran à l'ouverture du menu de compte, avec 45 tests verts (lot 3 §5).
   Tout nouveau menu/dialogue shadcn se vérifie ouvert, au navigateur ;
   aucun test e2e n'ouvre le menu de compte à ce jour.
+- **Icônes : lucide-react partout dans `src/`, et la taille dépend du
+  porteur** (lot 6, `docs/migration-shadcn/06-icones.md` §2). Dans un
+  composant shadcn (`Button`, `DropdownMenuItem`, `Alert`, sidebar), l'icône
+  se pose **nue** : le CSS `[&_svg:not([class*='size-'])]:size-4` du
+  composant gouverne (16 px). Dans un composant MUI, lucide ne suit pas le
+  `font-size` (tailles en attributs) : `IconButton` → nue (défaut 24 px =
+  MUI medium, même en `size="small"`) ; `startIcon` de `Button` →
+  `size={20}` (`size={18}` si bouton small) ; l'ancien `fontSize="small"` →
+  `size={20}`. Ne pas « corriger » une icône nue dans un bouton shadcn en
+  lui posant une taille : elle créerait un écart avec toutes les autres.
+  `@mui/icons-material` reste dans `package.json` — dépendance de
+  material-react-table (ses commandes internes) ; il partira avec MRT,
+  aucun import ne doit y revenir dans `src/`.
 
 ## Dette et chantiers connus
 
