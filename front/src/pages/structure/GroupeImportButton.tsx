@@ -2,7 +2,7 @@ import { useRef, useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { FileUp } from 'lucide-react';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
@@ -59,7 +59,7 @@ export function GroupeImportButton({ groupeId }: Props) {
         <>
             <Tooltip title={libelle}>
                 <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
-                    <UploadFileIcon />
+                    <FileUp />
                 </IconButton>
             </Tooltip>
             <input

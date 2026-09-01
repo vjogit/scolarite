@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import DownloadIcon from '@mui/icons-material/Download';
+import { Download } from 'lucide-react';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { notifyError } from '../../services/notify';
@@ -30,7 +30,7 @@ export function PeriodeExportButton() {
     return (
         <Tooltip title={libelle}>
             <IconButton aria-label={libelle} onClick={() => { void handleExport(); }}>
-                <DownloadIcon />
+                <Download />
             </IconButton>
         </Tooltip>
     );

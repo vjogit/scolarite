@@ -2,9 +2,7 @@ import { useParams, useNavigate } from 'react-router';
 import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { Box, Typography, IconButton, Tooltip, Button, darken } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { ArrowLeft, Trash2, UserPlus } from 'lucide-react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_Row } from 'material-react-table';
 import { MRT_Localization_FR } from 'material-react-table/locales/fr';
 import { MRT_Localization_EN } from 'material-react-table/locales/en';
@@ -126,7 +124,7 @@ export function GroupeUserPage() {
                     disabled={removeMutation.isPending}
                     onClick={() => { removeMutation.mutate(row.original.id); }}
                 >
-                    <DeleteIcon fontSize="small" />
+                    <Trash2 size={20} />
                 </IconButton>
             </Tooltip>
         ),
@@ -159,7 +157,7 @@ export function GroupeUserPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
                 <Tooltip title={t('commun.retour')}>
                     <IconButton aria-label={t('commun.retour')} onClick={() => { void navigate(-1); }}>
-                        <ArrowBackIcon />
+                        <ArrowLeft />
                     </IconButton>
                 </Tooltip>
                 <Typography variant="h6" sx={{ flex: 1 }}>{t('membres.titre')}</Typography>
@@ -180,7 +178,7 @@ export function GroupeUserPage() {
                         <Button
                             type="submit"
                             variant="contained"
-                            startIcon={<PersonAddIcon />}
+                            startIcon={<UserPlus size={20} />}
                             disabled={addMutation.isPending}
                             sx={{ mt: 0.5 }}
                         >

@@ -4,7 +4,7 @@ import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { FileUp } from 'lucide-react';
 import { apiInstance } from '../../services/api';
 import { PERIODE, STRUCTURE } from "../structure/def";
 import { notifyError, notifySuccess } from '../../services/notify';
@@ -56,7 +56,7 @@ export function PeriodeImportButton() {
         <>
             <Tooltip title={libelle}>
                 <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
-                    <UploadFileIcon />
+                    <FileUp />
                 </IconButton>
             </Tooltip>
             <input
