@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { apiInstance } from "../../services/api";
 import { ENDPOINT_USER, USER } from "./def";
 import { IconButton, Tooltip } from "@mui/material";
-import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { FileUp } from 'lucide-react';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { lignesFor, messageForError, type LignesRefusees } from '../../services/errorMessages';
 import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
@@ -49,7 +49,7 @@ export function UserImportButton() {
         <>
             <Tooltip title={libelle}>
                 <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
-                    <UploadFileIcon />
+                    <FileUp />
                 </IconButton>
             </Tooltip>
             <input

@@ -14,9 +14,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import AnchorIcon from '@mui/icons-material/Anchor';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Anchor, FileUp, RefreshCw } from 'lucide-react';
 
 import {
     ancrerMaintenant,
@@ -98,7 +96,7 @@ function CarteIntegrite() {
             </CardContent>
             <CardActions>
                 <Button
-                    startIcon={<RefreshIcon />}
+                    startIcon={<RefreshCw size={20} />}
                     onClick={() => { void query.refetch(); }}
                     disabled={query.isFetching}
                 >
@@ -188,7 +186,7 @@ function CarteAncrage() {
             </CardContent>
             <CardActions>
                 <Button
-                    startIcon={<AnchorIcon />}
+                    startIcon={<Anchor size={20} />}
                     onClick={() => { ancrage.mutate(); }}
                     disabled={ancrage.isPending}
                 >
@@ -244,7 +242,7 @@ function CarteTemoin() {
                 <Stack spacing={2}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Button
-                            startIcon={<UploadFileIcon />}
+                            startIcon={<FileUp size={20} />}
                             variant="outlined"
                             onClick={() => { fichierRef.current?.click(); }}
                         >

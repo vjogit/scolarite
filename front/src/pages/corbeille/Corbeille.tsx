@@ -19,8 +19,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import RestoreIcon from '@mui/icons-material/Restore';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import { ArchiveRestore, Trash } from 'lucide-react';
 
 import { fetchCorbeille, purgerOperation, restaurerOperation, type OperationCorbeille } from './service';
 import { CORBEILLE } from './def';
@@ -300,7 +299,7 @@ export function CorbeillePage() {
                         </CardContent>
                         <CardActions>
                             <Button
-                                startIcon={<RestoreIcon />}
+                                startIcon={<ArchiveRestore size={20} />}
                                 onClick={() => { setARestaurer(op); }}
                                 disabled={restauration.isPending || purge.isPending}
                             >
@@ -308,7 +307,7 @@ export function CorbeillePage() {
                             </Button>
                             <Button
                                 color="error"
-                                startIcon={<DeleteForeverIcon />}
+                                startIcon={<Trash size={20} />}
                                 onClick={() => { setAPurger(op); }}
                                 disabled={op.blocking.length > 0 || restauration.isPending || purge.isPending}
                             >

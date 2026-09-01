@@ -10,8 +10,7 @@ import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
-import MenuOpenIcon from '@mui/icons-material/MenuOpen';
-import PaletteIcon from '@mui/icons-material/Palette';
+import { Palette, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { apiInstance } from '../../services/api';
 import { useDroits } from '../../services/context/droits';
@@ -249,7 +248,7 @@ export function Planning() {
                         onClick={() => { setColorMode(m => m === 'type' ? 'matiere' : 'type'); }}
                         color={colorMode === 'matiere' ? 'primary' : 'default'}
                     >
-                        <PaletteIcon />
+                        <Palette />
                     </IconButton>
                 </Tooltip>
                 <Tooltip title={libelleHeures} placement="left">
@@ -259,7 +258,7 @@ export function Planning() {
                         size="small"
                         onClick={() => { setPanelOpen(p => !p); }}
                     >
-                        <MenuOpenIcon sx={{ transform: panelOpen ? 'none' : 'scaleX(-1)' }} />
+                        {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
                     </IconButton>
                 </Tooltip>
             </Box>
