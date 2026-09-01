@@ -265,6 +265,14 @@ Application réservée au personnel administratif. Pas encore en production.
   à un `<button>` nu ; tout bouton non-soumission le déclare explicitement
   (précédent : « Annuler » de `services/crud/Form.tsx`, lot 4), et
   `formulaire.spec.ts` monte la garde (« Annuler ne crée rien »).
+- Les onglets shadcn (variante `line`) débordent de leur liste : le
+  soulignement de l'onglet actif est posé quelques pixels **sous** la
+  `TabsList` (`after:bottom-[-5px]`). Tout conteneur `overflow-x-auto`
+  autour (l'héritier du `variant="scrollable"` MUI) fait alors naître un
+  ascenseur vertical permanent — invisible des tests, rôles et textes
+  restent accessibles. Précédent : `BarreWorkflows` (lot 5), réglé par un
+  dégagement `py-1` sur la racine `Tabs` ; tout futur usage de ces onglets
+  dans un conteneur défilant doit prévoir le même dégagement.
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
