@@ -59,8 +59,12 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
                     value={courantVisible ? workflowCourant.id : null}
                     onValueChange={basculer}
                     // Le débordement défile ici, pas sur la page — l'héritier
-                    // du `variant="scrollable"` MUI.
-                    className="min-w-0 max-w-full overflow-x-auto"
+                    // du `variant="scrollable"` MUI. Le `py-1` n'est pas
+                    // décoratif : le soulignement de l'onglet actif dépasse de
+                    // quelques pixels sous la liste, et sans ce dégagement le
+                    // conteneur `overflow-x-auto` fait naître un ascenseur
+                    // vertical permanent (constaté à l'écran).
+                    className="min-w-0 max-w-full overflow-x-auto py-1"
                 >
                     <TabsList variant="line" aria-label={t('barreWorkflows.navigationAriaLabel')}>
                         {onglets.map(workflow => (
