@@ -1,7 +1,15 @@
-import { useState, type MouseEvent } from 'react';
-import { IconButton, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material';
 import TranslateIcon from '@mui/icons-material/Translate';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '../components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../components/ui/tooltip';
+import { cn } from '../lib/utils';
 
 /**
  * Le nom d'une langue s'écrit dans elle-même, quelle que soit la langue
@@ -15,29 +23,48 @@ const LANGUES = [
 
 export function LanguageSwitcher() {
     const { t, i18n } = useTranslation('app');
-    const [ancre, setAncre] = useState<HTMLElement | null>(null);
 
-    const ouvrir = (evenement: MouseEvent<HTMLElement>) => { setAncre(evenement.currentTarget); };
-    const fermer = () => { setAncre(null); };
+    // Le menu Base UI se ferme seul au choix d'une entrée : plus d'ancre à tenir.
     const choisir = (code: string) => {
         void i18n.changeLanguage(code);
-        fermer();
     };
 
     return (
-        <>
-            <Tooltip title={t('langueTooltip')}>
-                <IconButton aria-label={t('langueAriaLabel')} onClick={ouvrir} size="small">
+        <DropdownMenu>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <DropdownMenuTrigger
+                            render={(
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t('langueAriaLabel')}
+                                />
+                            )}
+                        />
+                    )}
+                >
                     <TranslateIcon fontSize="small" />
-                </IconButton>
+                </TooltipTrigger>
+                <TooltipContent>{t('langueTooltip')}</TooltipContent>
             </Tooltip>
-            <Menu anchorEl={ancre} open={ancre !== null} onClose={fermer}>
+            {/* `w-max` : la largeur suit la plus longue entrée, pas le bouton
+                icône (piège du lot 4). */}
+            <DropdownMenuContent align="end" className="w-max">
                 {LANGUES.map(({ code, libelle }) => (
-                    <MenuItem key={code} selected={i18n.language.startsWith(code)} onClick={() => { choisir(code); }}>
-                        <ListItemText>{libelle}</ListItemText>
-                    </MenuItem>
+                    <DropdownMenuItem
+                        key={code}
+                        // La langue active se distingue, comme le `selected`
+                        // du MenuItem MUI — le rôle reste `menuitem`.
+                        className={cn(i18n.language.startsWith(code) && 'bg-accent font-medium')}
+                        onClick={() => { choisir(code); }}
+                    >
+                        {libelle}
+                    </DropdownMenuItem>
                 ))}
-            </Menu>
-        </>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
