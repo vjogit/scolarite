@@ -4,7 +4,7 @@ import {
     Button, TextField, Stack, CircularProgress,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import ArticleIcon from '@mui/icons-material/Article';
+import { FileText } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ export function JuryBulletinsExportModal({ open, loading, onClose, onConfirm }: 
                     variant="contained"
                     onClick={handleConfirm}
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : <ArticleIcon />}
+                    startIcon={loading ? <CircularProgress size={16} /> : <FileText size={20} />}
                 >
                     {t('exportBulletins.exporter')}
                 </Button>

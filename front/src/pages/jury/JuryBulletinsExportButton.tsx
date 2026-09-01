@@ -3,7 +3,7 @@ import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ArticleIcon from '@mui/icons-material/Article';
+import { FileText } from 'lucide-react';
 import { ENDPOINT_JURY } from './def';
 import { type BulletinParams, JuryBulletinsExportModal } from './JuryBulletinsExportModal';
 import { notifyError, notifySuccess } from '../../services/notify';
@@ -46,7 +46,7 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
         <>
             <Tooltip title={libelle}>
                 <IconButton aria-label={libelle} onClick={() => { setOpen(true); }} size="small" color="secondary">
-                    <ArticleIcon fontSize="small" />
+                    <FileText size={20} />
                 </IconButton>
             </Tooltip>
 

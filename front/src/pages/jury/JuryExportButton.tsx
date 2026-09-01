@@ -3,7 +3,7 @@ import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { FileDown } from 'lucide-react';
 import { ENDPOINT_JURY } from './def';
 import { notifyError, notifySuccess } from '../../services/notify';
 
@@ -38,7 +38,7 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
     return (
         <Tooltip title={libelle}>
             <IconButton aria-label={libelle} onClick={() => { void handleExport(); }} size="small" color="primary">
-                <FileDownloadIcon fontSize="small" />
+                <FileDown size={20} />
             </IconButton>
         </Tooltip>
     );

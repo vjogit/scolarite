@@ -3,7 +3,7 @@ import {
     Button, FormControlLabel, Switch, Typography,
     List, ListItem, ListItemText, CircularProgress, Divider, Box,
 } from '@mui/material';
-import GavelIcon from '@mui/icons-material/Gavel';
+import { Gavel } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -70,7 +70,7 @@ export function DelibererBulkDialog({ open, students, loading, onClose, onConfir
                     variant="contained"
                     onClick={handleConfirm}
                     disabled={loading || students.length === 0}
-                    startIcon={loading ? <CircularProgress size={16} /> : <GavelIcon />}
+                    startIcon={loading ? <CircularProgress size={16} /> : <Gavel size={20} />}
                 >
                     {t('commun.confirmer')}
                 </Button>

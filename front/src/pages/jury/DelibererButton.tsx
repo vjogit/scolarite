@@ -4,8 +4,7 @@ import {
     DialogActions, Button, FormControlLabel, Switch, Typography,
     CircularProgress,
 } from '@mui/material';
-import GavelIcon from '@mui/icons-material/Gavel';
-import UndoIcon from '@mui/icons-material/Undo';
+import { Gavel, Undo2 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
@@ -78,7 +77,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         onClick={() => { annuler.mutate(); }}
                         disabled={annuler.isPending}
                     >
-                        {annuler.isPending ? <CircularProgress size={16} /> : <UndoIcon fontSize="small" />}
+                        {annuler.isPending ? <CircularProgress size={16} /> : <Undo2 size={20} />}
                     </IconButton>
                 </span>
             </Tooltip>
@@ -108,7 +107,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         disabled
                         aria-label={t('delibererBouton.impossibleAriaLabel', { nom: userName })}
                     >
-                        <GavelIcon fontSize="small" />
+                        <Gavel size={20} />
                     </IconButton>
                 </span>
             </Tooltip>
@@ -124,7 +123,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                     color="primary"
                     onClick={handleOpen}
                 >
-                    <GavelIcon fontSize="small" />
+                    <Gavel size={20} />
                 </IconButton>
             </Tooltip>
 
@@ -157,7 +156,7 @@ export function DelibererButton({ periodeId, userId, userName, isDelibere, compt
                         variant="contained"
                         onClick={() => { deliberer.mutate(); }}
                         disabled={deliberer.isPending}
-                        startIcon={deliberer.isPending ? <CircularProgress size={16} /> : <GavelIcon />}
+                        startIcon={deliberer.isPending ? <CircularProgress size={16} /> : <Gavel size={20} />}
                     >
                         {t('commun.confirmer')}
                     </Button>

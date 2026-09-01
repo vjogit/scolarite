@@ -28,7 +28,7 @@ import { DelibererButton } from './DelibererButton';
 import { DelibererBulkDialog, type BulkStudent } from './DelibererBulkDialog';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
-import GavelIcon from '@mui/icons-material/Gavel';
+import { Gavel } from 'lucide-react';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
 
@@ -516,7 +516,7 @@ export const JuryPeriode = () => {
                     <Button
                         size="small"
                         variant="contained"
-                        startIcon={<GavelIcon />}
+                        startIcon={<Gavel size={18} />}
                         onClick={() => { setBulkDialogOpen(true); }}
                     >
                         {t('delibererSelection', { count: selectedStudents.length })}
