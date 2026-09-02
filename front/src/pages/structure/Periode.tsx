@@ -8,7 +8,7 @@ import { useParams } from 'react-router';
 import { Controller } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { periodeSchema, type Periode, createPeriodeRepository, ACTION_UES, periodeEntite } from './entites/periode';
 
@@ -88,7 +88,9 @@ const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Pe
     );
 };
 
-function periodeColumns(t: TFunction<'structure'>): MRT_ColumnDef<Periode>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function periodeColonnes(t: TFunction<'structure'>): ColumnDef<Periode>[] {
     return [
         { accessorKey: 'id', header: t('commun.id') },
         { accessorKey: 'version', header: t('commun.version') },
@@ -96,12 +98,12 @@ function periodeColumns(t: TFunction<'structure'>): MRT_ColumnDef<Periode>[] {
         {
             accessorKey: 'debut',
             header: t('commun.debut'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
         {
             accessorKey: 'fin',
             header: t('commun.fin'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
     ];
 }
@@ -110,12 +112,12 @@ function createPeriodeViewConfig(optionId: string, t: TFunction<'structure'>): V
     return {
         schema: periodeSchema,
         emptyValue: { id: -1, version: -1, option_id: parseInt(optionId) },
-        columns: periodeColumns(t),
+        colonnes: periodeColonnes(t),
         render: PeriodeFields,
     }
 }
 
-export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly }: CrudProps<Periode>) {
+export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLigne, actionsBarreOutils, isReadOnly }: CrudProps<Periode>) {
 
     const { optionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -129,9 +131,9 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
         isAction,
         actionsLigne: actionsLigne ?? [ACTION_UES(t)],
         isTopToolbar,
-        renderTopToolbarCustomActions,
+        actionsBarreOutils,
         isReadOnly,
-    }) : null, [optionId, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, isReadOnly, t, tStructure]);
+    }) : null, [optionId, isAction, isTopToolbar, actionsLigne, actionsBarreOutils, isReadOnly, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
