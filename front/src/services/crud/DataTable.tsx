@@ -148,12 +148,14 @@ export interface DataTableProps<D> {
     peutSelectionnerLigne?: (ligne: D) => boolean;
 }
 
-/** Libellé texte d'une colonne : l'en-tête s'il est une chaîne, sinon le
- *  `meta.libelle` déclaré, sinon l'identifiant. */
+/** Libellé texte d'une colonne : le `meta.libelle` déclaré d'abord — il sert
+ *  précisément à désambiguïser un en-tête répété (les N colonnes « Grade »
+ *  du jury portent chacune le nom de leur UE) — sinon l'en-tête s'il est une
+ *  chaîne, sinon l'identifiant. */
 function libelleColonne<D>(colonne: Column<D>): string {
     const entete = colonne.columnDef.header;
-    if (typeof entete === 'string') return entete;
-    return colonne.columnDef.meta?.libelle ?? colonne.id;
+    return colonne.columnDef.meta?.libelle
+        ?? (typeof entete === 'string' ? entete : colonne.id);
 }
 
 /** `width` seulement si la colonne déclare une taille : le défaut TanStack
@@ -510,7 +512,12 @@ export function DataTable<D>({
                                                     onTouchStart={entete.getResizeHandler()}
                                                     onDoubleClick={() => { entete.column.resetSize(); }}
                                                     className={cn(
-                                                        'absolute inset-y-1 right-0 w-1 cursor-col-resize touch-none rounded bg-border opacity-0 select-none hover:opacity-100',
+                                                        // `right-0.5`, pas `right-0` : deux colonnes gelées
+                                                        // voisines partagent le même z-index et le bouton de
+                                                        // tri de la suivante (`-ml-2.5`) déborde de 2 px sur
+                                                        // la frontière — une poignée collée au bord lui
+                                                        // serait inaccessible.
+                                                        'absolute inset-y-1 right-0.5 w-1.5 cursor-col-resize touch-none rounded bg-border opacity-0 select-none hover:opacity-100',
                                                         entete.column.getIsResizing() && 'bg-primary opacity-100',
                                                     )}
                                                 />
