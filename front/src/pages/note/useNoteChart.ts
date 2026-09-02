@@ -6,7 +6,6 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { MRT_TableInstance } from 'material-react-table';
 import type { NoteData } from './NoteChartModal';
 
 export function useNoteChart<T extends NoteData>() {
@@ -17,10 +16,13 @@ export function useNoteChart<T extends NoteData>() {
     // ce rappel dans le mémo qui construit leur datasource. Recréé à chaque
     // rendu, il obligerait à l'omettre des dépendances — donc à mentir — ou à
     // recalculer le datasource sans cesse.
-    const handleOpenChart = useCallback((table: MRT_TableInstance<T>) => {
-        // On récupère les données filtrées/triées actuelles du tableau
-        const rows = table.getPrePaginationRowModel().rows.map(r => r.original);
-        setChartData(rows);
+    //
+    // `lignesVisibles` vient du contrat toolbar (lot 7 §4,
+    // `ActionsBarreOutilsProps`) : les lignes filtrées et triées, avant
+    // pagination — le graphique trace la vue courante, toutes pages
+    // confondues, jamais la seule page affichée.
+    const handleOpenChart = useCallback((lignesVisibles: () => T[]) => {
+        setChartData(lignesVisibles());
         setChartOpen(true);
     }, []);
 

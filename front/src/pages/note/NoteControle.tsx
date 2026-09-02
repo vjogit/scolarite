@@ -204,7 +204,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
         renderTopToolbarCustomActions: ({ table, defaultActions }) => (
             <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 {defaultActions}
-                <NoteChartButton onClick={() => { handleOpenChart(table); }} />
+                <NoteChartButton onClick={() => { handleOpenChart(() => table.getPrePaginationRowModel().rows.map((r) => r.original)); }} />
             </Box>
         )
     }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
