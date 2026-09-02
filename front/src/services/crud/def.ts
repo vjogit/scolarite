@@ -1,7 +1,6 @@
 import type { QueryKey } from '@tanstack/react-query';
 import type { Control, DefaultValues, FieldErrors, FieldValues, UseFormGetValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import type { JSX, ReactNode } from 'react';
-import type { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { ZodType } from 'zod';
 import { isAxiosError } from 'axios';
@@ -34,12 +33,7 @@ export interface CrudProps<D extends FieldValues> {
      *  par la liste : les déclarer ici serait les redoubler. */
     actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
-    /** Contrat MRT, servi par `ListMrt` seulement — remplacé par
-     *  `actionsBarreOutils` au fil de la migration des pages. (Pas de tag
-     *  `@deprecated` : il mettrait en erreur de lint les pages non migrées,
-     *  qu'un lot de socle n'a pas le droit de toucher.) */
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
-    /** Barre d'outils personnalisée du nouveau socle (`DataTable`). */
+    /** Barre d'outils personnalisée de la liste (`DataTable`). */
     actionsBarreOutils?: (props: ActionsBarreOutilsProps<D>) => ReactNode
 }
 
@@ -107,15 +101,9 @@ export interface ViewConfig<D extends FieldValues> {
      */
     schema: ZodType<D, FieldValues>
     emptyValue: DefaultValues<D>;
-    /** Colonnes MRT — remplacées par `colonnes` (TanStack) au fil de la
-     *  migration des pages. Un écran fournit l'un OU l'autre. */
-    columns?: MRT_ColumnDef<D>[];
-    /** Colonnes du nouveau socle (`DataTable`), au format TanStack Table nu.
-     *  Migration mécanique depuis MRT : `Cell:` → `cell:`, `Header:` →
-     *  `header:` ; `accessorKey`/`accessorFn`/`size` inchangés ; alignement et
-     *  style de cellule par `meta` (voir l'augmentation de `ColumnMeta` dans
-     *  `DataTable.tsx`). Sa présence aiguille `List.tsx` vers le nouveau
-     *  moteur. */
+    /** Colonnes de la liste (`DataTable`), au format TanStack Table nu.
+     *  Alignement et style de cellule par `meta` (voir l'augmentation de
+     *  `ColumnMeta` dans `DataTable.tsx`). */
     colonnes?: ColumnDef<D>[];
     render: (props: RenderProps<D>) => JSX.Element;
 }
@@ -187,10 +175,7 @@ export type EntiteCrud<D extends FieldValues> = Repository<D> & DescriptionEntit
  * d'écriture. Il ne peut donc plus en décrire un par mégarde.
  */
 export interface DatasourceListe<D extends FieldValues> extends Repository<D>, DescriptionEntite {
-    /** Colonnes MRT — voir `colonnes`. Un écran fournit l'un OU l'autre. */
-    columns?: MRT_ColumnDef<D>[]
-    /** Colonnes du nouveau socle — sa présence aiguille vers `DataTable`.
-     *  Voir la documentation du champ dans `ViewConfig`. */
+    /** Colonnes de la liste — voir la documentation du champ dans `ViewConfig`. */
     colonnes?: ColumnDef<D>[]
     isAction: boolean
     isReadOnly?: boolean
@@ -201,10 +186,8 @@ export interface DatasourceListe<D extends FieldValues> extends Repository<D>, D
      */
     actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
-    /** Contrat MRT — voir `actionsBarreOutils`. */
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
-    /** Barre d'outils personnalisée du nouveau socle — contrat sans instance
-     *  de table, voir `ActionsBarreOutilsProps`. */
+    /** Barre d'outils personnalisée — contrat sans instance de table, voir
+     *  `ActionsBarreOutilsProps`. */
     actionsBarreOutils?: (props: ActionsBarreOutilsProps<D>) => ReactNode
 }
 

@@ -134,7 +134,7 @@ const salleDatasourceBase = createRepository<Salle>({
     getId: (data: Salle) => data.id,
 });
 
-export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Salle>) {
+export function CrudSalle({ mode, workflow, isAction, isTopToolbar }: CrudProps<Salle>) {
     const rootPath = useRootPath(mode);
     const { t: tCrud } = useTranslation('crud');
     const { t: tSalle } = useTranslation('salle');
@@ -150,8 +150,7 @@ export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToo
         entityGender: 'f',
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tSalle]);
+    }), [isAction, isTopToolbar, tCrud, tSalle]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

@@ -13,7 +13,7 @@ import { LignesRefuseesDialog } from '../../services/LignesRefuseesDialog';
 
 // ─── Composant dédié pour le bouton Import ───────────────────────────────────
 // Encapsule les hooks (useRef, useCallback, useParams…) dans un vrai composant
-// React afin de pouvoir être rendu depuis renderTopToolbarCustomActions.
+// React afin de pouvoir être rendu depuis actionsBarreOutils.
 
 export function PeriodeImportButton() {
     const { optionId } = useParams();

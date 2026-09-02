@@ -45,8 +45,8 @@ export type ReglagesNiveau = Omit<PropsNiveau, 'mode'>;
 /**
  * Fige les props d'un composant CRUD. Les actions de ligne étant désormais
  * déclarées et non plus dessinées, elles passent par ici comme le reste ; seuls
- * les niveaux portant un `renderTopToolbarCustomActions` réel — du JSX à hooks
- * — restent des composants nommés.
+ * les niveaux portant un `actionsBarreOutils` réel — du JSX à hooks —
+ * restent des composants nommés.
  */
 export function enrober(
     Composant: ComponentType<PropsNiveau>,
