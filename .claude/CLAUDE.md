@@ -243,6 +243,18 @@ Application réservée au personnel administratif. Pas encore en production.
 
 - `isDirty` de react-hook-form se parasite avec les `DatePicker`/dayjs —
   normaliser les valeurs par défaut (précédent traité dans `Form.tsx`).
+- **`Checkbox.Root` de Base UI rend un `<span>`, inline par défaut** : sans
+  le `inline-flex` posé dans `components/ui/checkbox.tsx`, `size-4` est
+  ignoré et la case s'écrase à la largeur de sa bordure — rôle et clic
+  restent fonctionnels, donc invisible des tests ; seule une capture le
+  montre (constaté au lot 7). Et le socle `DataTable` est exclu du React
+  Compiler (`'use no memo'` + eslint-disable ciblé, exigence documentée de
+  TanStack Table) : ne retirer ni la directive, ni le commentaire. Une
+  surface shadcn qui peut cohabiter avec la charpente MUI pose ses **deux**
+  tokens (`bg-background` **et** `text-foreground`) : le texte du body
+  appartient à CssBaseline (couche `mui`, qui bat `base`) et ne suit pas la
+  classe `.dark` quand le mode choisi diffère de l'OS (voir
+  `docs/migration-shadcn/07-datatable.md` §8).
 - Le nom accessible d'un `IconButton` peut venir du `Tooltip`, mais
   l'`aria-label` explicite est la convention.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
