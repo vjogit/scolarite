@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Controller } from 'react-hook-form';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { FileDown, Upload } from 'lucide-react';
@@ -75,7 +75,7 @@ const ControleFields = ({ register, control, errors, isReadOnly }: RenderProps<C
     );
 };
 
-function controleColumns(t: TFunction<'note'>): MRT_ColumnDef<Controle>[] {
+function controleColonnes(t: TFunction<'note'>): ColumnDef<Controle>[] {
     return [
         {
             accessorKey: 'id',
@@ -96,7 +96,7 @@ function controleColumns(t: TFunction<'note'>): MRT_ColumnDef<Controle>[] {
         {
             accessorKey: 'is_rattrapage',
             header: t('controle.colonneRattrapage'),
-            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
+            cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
         },
         {
             accessorKey: 'remarque',
@@ -109,11 +109,11 @@ const createControleViewConfig = (matiereId: string, t: TFunction<'note'>): View
     return {
         schema: controleSchema,
         emptyValue: { id: -1, version: -1, matiere_id: parseInt(matiereId), is_rattrapage: false },
-        columns: controleColumns(t),
+        colonnes: controleColonnes(t),
         render: ControleFields,
     }
 };
-export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Controle>) {
+export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Controle>) {
 
     const { matiereId, optionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -157,9 +157,9 @@ export function CrudControle({ mode, workflow, isAction, isTopToolbar, actionsLi
         entityLabelPlural: tCrud('entites.controle.nomPluriel'),
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
+        actionsBarreOutils,
         actionsLigne: [...(actionsLigne ?? []), ...actionsFiche],
-    }) : null, [matiereId, isAction, isTopToolbar, renderTopToolbarCustomActions, actionsLigne, actionsFiche, tCrud, tNote]);
+    }) : null, [matiereId, isAction, isTopToolbar, actionsBarreOutils, actionsLigne, actionsFiche, tCrud, tNote]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
