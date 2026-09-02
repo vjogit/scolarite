@@ -254,7 +254,19 @@ Application réservée au personnel administratif. Pas encore en production.
   tokens (`bg-background` **et** `text-foreground`) : le texte du body
   appartient à CssBaseline (couche `mui`, qui bat `base`) et ne suit pas la
   classe `.dark` quand le mode choisi diffère de l'OS (voir
-  `docs/migration-shadcn/07-datatable.md` §8).
+  `docs/migration-shadcn/07-datatable.md` §8). Depuis le lot 10, le socle
+  porte quatre capacités **opt-in** (`gelColonnes`, `sansPagination`,
+  `redimensionnement`, `peutSelectionnerLigne` — seul `JuryPeriode` les
+  déclare) : un écran qui ne les déclare pas rend à l'identique, et toute
+  évolution du rendu doit préserver cette neutralité. Leurs pièges propres :
+  `redimensionnement` exige `size` sur chaque colonne de données (gabarit
+  fixe par `colgroup`) ; une cellule gelée pose un **fond opaque** (le
+  contenu défile dessous), donc tout état translucide posé sur la ligne
+  (survol, sélection — déjà recomposés ; mise en évidence de retour, non)
+  y est invisible ; et la poignée de redimensionnement est rentrée de 2 px
+  (`right-0.5`) parce que le bouton de tri du `th` gelé voisin (`-ml-2.5`,
+  même z-index) recouvre la frontière — la recoller au bord la rendrait
+  inaccessible, sans qu'aucun test le voie (constaté au lot 10).
 - Le nom accessible d'un `IconButton` peut venir du `Tooltip`, mais
   l'`aria-label` explicite est la convention.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
@@ -307,6 +319,12 @@ Application réservée au personnel administratif. Pas encore en production.
 
 ## Dette et chantiers connus
 
+- **Dépose de material-react-table** — déverrouillée par le lot 10
+  (`JuryPeriode` était son dernier consommateur applicatif) : `ListMrt.tsx`,
+  le commutateur de `List.tsx`, l'ancien `usePersistentTableState` et les
+  champs `columns`/`renderTopToolbarCustomActions` de `def.ts` sont du code
+  mort vivant ; `@mui/icons-material` et `darken` partent avec. Lot distinct,
+  une fois l'écran jury éprouvé en conditions réelles.
 - **Montée MUI v9** — déverrouillée par la sortie de Toolpad (lot 3, qui
   épinglait MUI v7) ; non entamée.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
