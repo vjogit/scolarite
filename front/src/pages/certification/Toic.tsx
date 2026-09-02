@@ -11,7 +11,7 @@ import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_TOEIC } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
@@ -95,7 +95,10 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
     );
 };
 
-function toeicColumns(t: TFunction<'certification'>): MRT_ColumnDef<Toeic>[] {
+// Colonnes au format TanStack nu (lot 9) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`. Le formulaire garde son `DatePicker`
+// MUI : les pickers sont le lot 11, l'écran est mixte et assumé tel.
+function toeicColonnes(t: TFunction<'certification'>): ColumnDef<Toeic>[] {
     return [
         {
             accessorKey: 'id',
@@ -121,7 +124,7 @@ function toeicColumns(t: TFunction<'certification'>): MRT_ColumnDef<Toeic>[] {
         {
             accessorKey: 'date_passage',
             header: t('toic.colonneDatePassage'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
     ];
 }
@@ -130,7 +133,7 @@ const createToeicViewConfig = (promotionId: string, t: TFunction<'certification'
     return {
         schema: toeicSchema,
         emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId) },
-        columns: toeicColumns(t),
+        colonnes: toeicColonnes(t),
         render: ToeicFields,
     }
 };
@@ -145,7 +148,7 @@ const toeicDatasourceBase = (promotionId: string) => {
     })
 }
 
-export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Toeic>) {
+export function CrudToeic({ mode, workflow, isAction, isTopToolbar, actionsBarreOutils }: CrudProps<Toeic>) {
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -162,8 +165,8 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
         entityLabelPlural: tCrud('entites.toic.nomPluriel'),
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tCertification]);
+        actionsBarreOutils,
+    }) : null, [promotionId, isAction, isTopToolbar, actionsBarreOutils, tCrud, tCertification]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

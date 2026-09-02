@@ -11,7 +11,7 @@ import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_MOBILITE } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
@@ -206,7 +206,10 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
     );
 };
 
-function mobiliteColumns(t: TFunction<'certification'>): MRT_ColumnDef<Mobilite>[] {
+// Colonnes au format TanStack nu (lot 9) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`. Le formulaire garde ses deux `DatePicker`
+// MUI : les pickers sont le lot 11, l'écran est mixte et assumé tel.
+function mobiliteColonnes(t: TFunction<'certification'>): ColumnDef<Mobilite>[] {
     return [
         { accessorKey: 'id', header: t('mobilite.colonneId') },
         { accessorKey: 'version', header: t('mobilite.colonneVersion') },
@@ -218,17 +221,17 @@ function mobiliteColumns(t: TFunction<'certification'>): MRT_ColumnDef<Mobilite>
         {
             accessorKey: 'date_debut',
             header: t('mobilite.colonneDateDebut'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
         {
             accessorKey: 'date_fin',
             header: t('mobilite.colonneDateFin'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
         {
             accessorKey: 'est_valide',
             header: t('mobilite.colonneValidee'),
-            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
+            cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
         },
     ];
 }
@@ -242,7 +245,7 @@ const createMobiliteViewConfig = (promotionId: string, t: TFunction<'certificati
             promotion_id: parseInt(promotionId),
             est_valide: false,
         },
-        columns: mobiliteColumns(t),
+        colonnes: mobiliteColonnes(t),
         render: MobiliteFields,
     }
 };
@@ -257,7 +260,7 @@ const createMobiliteRepository = (promotionId: string) => {
     })
 }
 
-export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Mobilite>) {
+export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopToolbar, actionsBarreOutils }: CrudProps<Mobilite>) {
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -275,8 +278,8 @@ export function CrudMobiliteInternationale({ mode, workflow, isAction, isTopTool
         entityGender: 'f',
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tCertification]);
+        actionsBarreOutils,
+    }) : null, [promotionId, isAction, isTopToolbar, actionsBarreOutils, tCrud, tCertification]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
