@@ -5,22 +5,16 @@
  * sont pas empêche le remplacement à chaud.
  */
 
-import type { ReactNode } from 'react';
 import { Box } from '@mui/material';
+import type { ActionsBarreOutilsProps } from '../../services/crud/def';
 import type { CrudComponentProps } from '../../services/crud/routes';
 import { USER_WORKFLOW } from './def';
-import { CrudUser } from './User';
+import { CrudUser, type User } from './User';
 import { UserImportButton } from './UserImport';
 
 export function CustomCrudUser({ mode }: CrudComponentProps) {
 
-    const renderTopToolbar = ({
-        defaultActions,
-        peutEcrire,
-    }: {
-        defaultActions: ReactNode;
-        peutEcrire: boolean;
-    }) => (
+    const barreOutils = ({ defaultActions, peutEcrire }: ActionsBarreOutilsProps<User>) => (
         <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {defaultActions}
             {/* Import : composant React autonome avec ses propres hooks */}
@@ -32,6 +26,6 @@ export function CustomCrudUser({ mode }: CrudComponentProps) {
         mode={mode}
         isAction={true}
         isTopToolbar={true}
-        renderTopToolbarCustomActions={renderTopToolbar}
+        actionsBarreOutils={barreOutils}
     />;
 }

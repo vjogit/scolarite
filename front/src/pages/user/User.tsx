@@ -7,7 +7,7 @@ import { Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, For
 import { useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
 import { availableRoles, ENDPOINT_USER, Role, USER } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { messageValidation } from '../../i18n/validation';
 
@@ -111,7 +111,9 @@ const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>
     );
 };
 
-function userColumns(t: TFunction<'user'>): MRT_ColumnDef<User>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function userColonnes(t: TFunction<'user'>): ColumnDef<User>[] {
     return [
         { accessorKey: 'id', header: t('colonnes.id') },
         { accessorKey: 'keycloak_id', header: t('colonnes.keycloakId') },
@@ -122,7 +124,7 @@ function userColumns(t: TFunction<'user'>): MRT_ColumnDef<User>[] {
         {
             accessorKey: 'roles',
             header: t('colonnes.roles'),
-            Cell: ({ cell }) => {
+            cell: ({ cell }) => {
                 const roles = cell.getValue<string[]>();
                 return Array.isArray(roles) ? roles.map(r => availableRoles(t).find(ar => ar.id === r)?.label ?? r).join(', ') : '';
             }
@@ -134,7 +136,7 @@ function userViewConfig(t: TFunction<'user'>): ViewConfig<User> {
     return {
         schema: userSchema,
         emptyValue: { id: -1, version: 0, keycloak_id: "-", roles: [] },
-        columns: userColumns(t),
+        colonnes: userColonnes(t),
         render: UserFields,
     };
 }
@@ -147,7 +149,7 @@ const userDatasourceBase = createRepository<User>({
 })
 
 
-export function CrudUser({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<User>) {
+export function CrudUser({ mode, workflow, isAction, isTopToolbar, actionsBarreOutils }: CrudProps<User>) {
 
     const rootPath = useRootPath(mode);
     const { t: tCrud } = useTranslation('crud');
@@ -163,8 +165,8 @@ export function CrudUser({ mode, workflow, isAction, isTopToolbar, renderTopTool
         entityLabelPlural: tCrud('entites.user.nomPluriel'),
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tUser]);
+        actionsBarreOutils,
+    }), [isAction, isTopToolbar, actionsBarreOutils, tCrud, tUser]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />
