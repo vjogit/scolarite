@@ -39,11 +39,8 @@ export function AxeCalcule<D extends NoteData & FieldValues>({ datasource, axe }
 
     const complet = useMemo((): DatasourceListe<D> => ({
         ...datasource,
-        // Fermeture provisoire sur l'instance MRT, le temps que les trois axes
-        // passent au socle `DataTable` : `useNoteChart` consomme déjà le
-        // contrat `lignesVisibles` du lot 7.
-        renderTopToolbarCustomActions: ({ table }) => (
-            <NoteChartButton onClick={() => { handleOpenChart(() => table.getPrePaginationRowModel().rows.map((r) => r.original)); }} />
+        actionsBarreOutils: ({ lignesVisibles }) => (
+            <NoteChartButton onClick={() => { handleOpenChart(lignesVisibles); }} />
         ),
     }), [datasource, handleOpenChart]);
 

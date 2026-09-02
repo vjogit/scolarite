@@ -10,7 +10,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Alert } from '@mui/material';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 
 import type { TFunction } from 'i18next';
 import type { DatasourceListe } from '../../services/crud/def';
@@ -31,13 +31,13 @@ function eliminatoire(ligne: NoteUe, t: TFunction<'note'>): string {
     return ligne.a_matiere_eliminatoire ? t('commun.oui') : t('commun.non');
 }
 
-function colonnes(t: TFunction<'note'>): MRT_ColumnDef<NoteUe>[] {
+function colonnes(t: TFunction<'note'>): ColumnDef<NoteUe>[] {
     return [
         { accessorFn: nomEleve, id: 'eleve', header: t('commun.eleve') },
         {
             accessorKey: 'note',
             header: t('commun.moyenne'),
-            Cell: ({ cell, row }) => (
+            cell: ({ cell, row }) => (
                 <CelluleNoteCalculee
                     valeur={cell.getValue<number | null>()}
                     provenance={row.original.provenance}
@@ -57,7 +57,7 @@ export function AxeNoteUniteEnseignement() {
     const datasource = useMemo((): DatasourceListe<NoteUe> | null => ueId ? ({
         ...createNoteUeRepository(ueId),
         ...noteUeEntite(tCrud),
-        columns: colonnes(tNote),
+        colonnes: colonnes(tNote),
         isAction: false,
         isTopToolbar: true,
     }) : null, [ueId, tCrud, tNote]);

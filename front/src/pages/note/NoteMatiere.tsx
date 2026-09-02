@@ -10,7 +10,7 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Alert } from '@mui/material';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 
 import type { TFunction } from 'i18next';
 import type { DatasourceListe } from '../../services/crud/def';
@@ -21,13 +21,13 @@ import {
     createNoteMatiereRepository, nomEleve, noteMatiereEntite, type NoteMatiere,
 } from './entites/noteMatiere';
 
-function colonnes(t: TFunction<'note'>): MRT_ColumnDef<NoteMatiere>[] {
+function colonnes(t: TFunction<'note'>): ColumnDef<NoteMatiere>[] {
     return [
         { accessorFn: nomEleve, id: 'eleve', header: t('commun.eleve') },
         {
             accessorKey: 'note',
             header: t('commun.moyenne'),
-            Cell: ({ cell, row }) => (
+            cell: ({ cell, row }) => (
                 <CelluleNoteCalculee
                     valeur={cell.getValue<number | null>()}
                     provenance={row.original.provenance}
@@ -45,7 +45,7 @@ export function AxeNoteMatiere() {
     const datasource = useMemo((): DatasourceListe<NoteMatiere> | null => matiereId ? ({
         ...createNoteMatiereRepository(matiereId),
         ...noteMatiereEntite(tCrud),
-        columns: colonnes(tNote),
+        colonnes: colonnes(tNote),
         // Aucune action de ligne : « Voir » et « Éditer » que la liste ajoute
         // mèneraient aux routes de formulaire que cet axe n'a plus.
         isAction: false,
