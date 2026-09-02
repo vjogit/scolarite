@@ -1,13 +1,14 @@
+import { useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Box, Typography, IconButton, Tooltip, Button, darken } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, Button } from '@mui/material';
 import { ArrowLeft, Trash2, UserPlus } from 'lucide-react';
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_Row } from 'material-react-table';
-import { MRT_Localization_FR } from 'material-react-table/locales/fr';
-import { MRT_Localization_EN } from 'material-react-table/locales/en';
+import type { ColumnDef, Table as TableTanstack } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { DataTable } from '../../services/crud/DataTable';
+import { useEtatTablePersistant } from '../../services/crud/usePersistentTableState';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
@@ -42,7 +43,9 @@ function nomLisible(user: User): string {
     return `#${String(user.id)}`;
 }
 
-function userColumns(t: TFunction<'structure'>): MRT_ColumnDef<User>[] {
+// Colonnes au format TanStack nu (lot 8) : cet écran monte `DataTable` en
+// direct — il ne passe pas par `List`, il n'a ni cycle CRUD ni datasource.
+function userColonnes(t: TFunction<'structure'>): ColumnDef<User>[] {
     return [
         { accessorKey: 'lastName', header: t('commun.nom') },
         { accessorKey: 'firstName', header: t('commun.prenom') },
@@ -54,7 +57,7 @@ export function GroupeUserPage() {
     const { groupeId } = useParams<{ groupeId: string }>();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { t, i18n: i18nInstance } = useTranslation('structure');
+    const { t } = useTranslation('structure');
 
     // Lister les membres est une lecture ; ajouter, retirer et importer
     // écrivent la structure.
@@ -73,6 +76,9 @@ export function GroupeUserPage() {
             }
             : skipToken,
     });
+
+    // Même clé que la requête : l'état de table est persisté par groupe.
+    const etat = useEtatTablePersistant([STRUCTURE, 'groupe-users', groupeId]);
 
     const addMutation = useMutation({
         mutationFn: (userId: number) =>
@@ -97,60 +103,31 @@ export function GroupeUserPage() {
         if (data.user_id) addMutation.mutate(data.user_id);
     };
 
-    const table = useMaterialReactTable<User>({
-        columns: userColumns(t),
-        data: members,
-        localization: i18nInstance.language.startsWith('en') ? MRT_Localization_EN : MRT_Localization_FR,
-        // Aucune création ici : on rattache un élève existant par le
-        // sélecteur au-dessus de la table, il n'y a pas de route « /new ».
-        renderEmptyRowsFallback: ({ table }) => (
-            <EtatVideTable table={table} message={t('membres.aucunMembre')} />
-        ),
-        state: { isLoading },
-        initialState: { density: 'compact' },
-        enableRowActions: peutEcrire,
-        positionActionsColumn: 'last',
-        enableRowVirtualization: true,
-        rowVirtualizerOptions: { overscan: 5 },
-        enablePagination: false,
-        renderRowActions: ({ row }: { row: MRT_Row<User> }) => (
-            <Tooltip title={t('membres.retirer')}>
-                <IconButton
-                    // Hors contexte visuel, « Retirer du groupe » est le même
-                    // nom sur toutes les lignes : il faut dire laquelle.
-                    aria-label={t('membres.retirerAriaLabel', { nom: nomLisible(row.original) })}
-                    size="small"
-                    color="error"
-                    disabled={removeMutation.isPending}
-                    onClick={() => { removeMutation.mutate(row.original.id); }}
-                >
-                    <Trash2 size={20} />
-                </IconButton>
-            </Tooltip>
-        ),
-        enableTopToolbar: false,
-        enableBottomToolbar: false,
-        mrtTheme: (theme) => ({
-            baseBackgroundColor: theme.palette.mode === 'dark' ?
-                darken(theme.palette.background.default, 0.05) : theme.palette.background.default,
-        }),
-        enableStickyHeader: true,
-        enableStickyFooter: true,
-        muiTablePaperProps: {
-            sx: {
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                overflow: 'hidden',
-            },
-        },
-        muiTableContainerProps: {
-            sx: {
-                flex: 1,
-                overflow: 'auto',
-            },
-        },
-    });
+    const colonnes = useMemo(() => userColonnes(t), [t]);
+    const getRowId = useCallback((user: User) => String(user.id), []);
+
+    const { mutate: retirer, isPending: retraitEnCours } = removeMutation;
+    const actionsLigne = useCallback((user: User) => (
+        <Tooltip title={t('membres.retirer')}>
+            <IconButton
+                // Hors contexte visuel, « Retirer du groupe » est le même
+                // nom sur toutes les lignes : il faut dire laquelle.
+                aria-label={t('membres.retirerAriaLabel', { nom: nomLisible(user) })}
+                size="small"
+                color="error"
+                disabled={retraitEnCours}
+                onClick={() => { retirer(user.id); }}
+            >
+                <Trash2 size={20} />
+            </IconButton>
+        </Tooltip>
+    ), [retirer, retraitEnCours, t]);
+
+    // Aucune création ici : on rattache un élève existant par le
+    // sélecteur au-dessus de la table, il n'y a pas de route « /new ».
+    const etatVide = useCallback((table: TableTanstack<User>) => (
+        <EtatVideTable table={table} message={t('membres.aucunMembre')} />
+    ), [t]);
 
     return (
         <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -189,7 +166,15 @@ export function GroupeUserPage() {
             )}
 
             <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                <MaterialReactTable table={table} />
+                <DataTable<User>
+                    colonnes={colonnes}
+                    donnees={members}
+                    enChargement={isLoading}
+                    etat={etat}
+                    getRowId={getRowId}
+                    actionsLigne={peutEcrire ? actionsLigne : undefined}
+                    etatVide={etatVide}
+                />
             </Box>
         </Box>
     );
