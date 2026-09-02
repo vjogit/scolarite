@@ -8,7 +8,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { ECHELLE_KEYS } from './service';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { promotionSchema, type Promotion, createPromotionRepository, ACTION_OPTIONS, promotionEntite } from './entites/promotion';
@@ -194,7 +194,10 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
     </>
 };
 
-function promotionColumns(t: TFunction<'structure'>): MRT_ColumnDef<Promotion>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`. Le formulaire garde ses `DatePicker`
+// MUI : les pickers sont le lot 11, l'écran est mixte et assumé tel.
+function promotionColonnes(t: TFunction<'structure'>): ColumnDef<Promotion>[] {
     return [
         {
             accessorKey: 'id',
@@ -211,13 +214,13 @@ function promotionColumns(t: TFunction<'structure'>): MRT_ColumnDef<Promotion>[]
         {
             accessorKey: 'debut',
             header: t('commun.debut'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
 
         {
             accessorKey: 'fin',
             header: t('commun.fin'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
 
     ];
@@ -227,12 +230,12 @@ function createPromotionViewConfig(formationId: string, t: TFunction<'structure'
     return {
         schema: promotionSchema,
         emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), bareme: 20 },
-        columns: promotionColumns(t),
+        colonnes: promotionColonnes(t),
         render: PromotionFields,
     }
 }
 
-export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Promotion>) {
+export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Promotion>) {
 
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
@@ -247,8 +250,8 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t)],
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
+        actionsBarreOutils,
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
