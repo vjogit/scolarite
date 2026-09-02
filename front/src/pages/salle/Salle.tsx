@@ -7,7 +7,7 @@ import { MenuItem, TextField } from '@mui/material';
 import { useMemo } from 'react';
 import { Crud } from '../../services/crud/Crud';
 import { ENDPOINT_SALLE, SALLE, typeSalleOptions } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
@@ -98,7 +98,9 @@ const SalleFields = ({ register, control, errors, isReadOnly }: RenderProps<Sall
     );
 };
 
-function salleColumns(t: TFunction<'salle'>): MRT_ColumnDef<Salle>[] {
+// Premier écran passé au nouveau socle (lot 7) : colonnes au format TanStack
+// nu — `cell` remplace `Cell`, le reste est inchangé.
+function salleColonnes(t: TFunction<'salle'>): ColumnDef<Salle>[] {
     return [
         { accessorKey: 'id', header: t('colonnes.id') },
         { accessorKey: 'version', header: t('colonnes.version') },
@@ -107,7 +109,7 @@ function salleColumns(t: TFunction<'salle'>): MRT_ColumnDef<Salle>[] {
         {
             accessorKey: 'type_salle',
             header: t('colonnes.type'),
-            Cell: ({ cell }) => {
+            cell: ({ cell }) => {
                 const val = cell.getValue<string | null>();
                 return typeSalleOptions(t).find((o) => o.id === val)?.label ?? val ?? '—';
             },
@@ -121,7 +123,7 @@ function salleViewConfig(t: TFunction<'salle'>): ViewConfig<Salle> {
     return {
         schema: salleSchema,
         emptyValue: { id: -1, version: 0, name: '', capacite: 1, equipement: null, type_salle: null, batiment: null },
-        columns: salleColumns(t),
+        colonnes: salleColonnes(t),
         render: SalleFields,
     };
 }
