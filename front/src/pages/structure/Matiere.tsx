@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { matiereSchema, type Matiere, createMatiereRepository, matiereEntite } from './entites/matiere';
 
@@ -60,7 +60,9 @@ const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) =
     );
 };
 
-function matiereColumns(t: TFunction<'structure'>): MRT_ColumnDef<Matiere>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function matiereColonnes(t: TFunction<'structure'>): ColumnDef<Matiere>[] {
     return [
         {
             accessorKey: 'id',
@@ -89,12 +91,12 @@ function createMatiereViewConfig(ueId: string, t: TFunction<'structure'>): ViewC
     return {
         schema: matiereSchema,
         emptyValue: { id: -1, version: -1, unite_enseignement_id: parseInt(ueId) },
-        columns: matiereColumns(t),
+        colonnes: matiereColonnes(t),
         render: MatiereFields,
     }
 }
 
-export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Matiere>) {
+export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Matiere>) {
 
     const { ueId } = useParams();
     const rootPath = useRootPath(mode);
@@ -109,8 +111,8 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
         isReadOnly,
         actionsLigne,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
+        actionsBarreOutils,
+    }) : null, [ueId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

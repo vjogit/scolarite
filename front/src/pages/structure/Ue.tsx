@@ -6,7 +6,7 @@ import type { TFunction } from 'i18next';
 import { Controller } from 'react-hook-form';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { ueSchema, type Ue, createUeRepository, ACTION_MATIERES, ueEntite } from './entites/ue';
 
@@ -53,7 +53,9 @@ const UeFields = ({ register, errors, control, isReadOnly }: RenderProps<Ue>) =>
     );
 };
 
-function ueColumns(t: TFunction<'structure'>): MRT_ColumnDef<Ue>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function ueColonnes(t: TFunction<'structure'>): ColumnDef<Ue>[] {
     return [
         {
             accessorKey: 'id',
@@ -74,7 +76,7 @@ function ueColumns(t: TFunction<'structure'>): MRT_ColumnDef<Ue>[] {
         {
             accessorKey: 'academique',
             header: t('ue.champAcademique'),
-            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
+            cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
         },
     ];
 }
@@ -83,12 +85,12 @@ function createUeViewConfig(periodeId: string, t: TFunction<'structure'>): ViewC
     return {
         schema: ueSchema,
         emptyValue: { id: -1, version: -1, academique: true, periode_id: parseInt(periodeId) },
-        columns: ueColumns(t),
+        colonnes: ueColonnes(t),
         render: UeFields,
     }
 }
 
-export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Ue>) {
+export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Ue>) {
 
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
@@ -103,8 +105,8 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_MATIERES(t)],
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
+        actionsBarreOutils,
+    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
