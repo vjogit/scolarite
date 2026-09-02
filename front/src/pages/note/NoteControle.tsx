@@ -8,7 +8,7 @@ import type { TFunction } from 'i18next';
 import { TextField, FormControlLabel, Switch, Typography, Box, Skeleton } from "@mui/material";
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
 import { Controller } from 'react-hook-form';
-import type { MRT_Cell, MRT_ColumnDef } from 'material-react-table';
+import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { NoteChartModal } from './NoteChartModal';
 import { ENDPOINT_CONTROLE, ENDPOINT_NOTE_CONTROLE, NOTE } from './def';
 import { UserSelector } from '../../services/UserSelector';
@@ -132,7 +132,7 @@ const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
         );
     };
 
-const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>): MRT_ColumnDef<NoteControle>[] => [
+const createNoteControleColonnes = (isRattrapage: boolean, t: TFunction<'note'>): ColumnDef<NoteControle>[] => [
     { accessorKey: 'id', header: t('noteControle.colonneId') },
     { accessorKey: 'version', header: t('noteControle.colonneVersion') },
     {
@@ -142,7 +142,7 @@ const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>):
     {
         accessorKey: 'note',
         header: t('commun.note'),
-        Cell: ({ cell, row }) => {
+        cell: ({ cell, row }) => {
             if (row.original.not_evaluated) return t('noteControle.nonEvalueAbrege');
             const valeur = cell.getValue<number | null>();
             return valeur != null ? valeur.toFixed(2) : '-';
@@ -151,9 +151,9 @@ const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>):
     ...(isRattrapage ? [{
         accessorKey: 'is_validated' as const,
         header: t('noteControle.colonneValidee'),
-        Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : t('commun.non'),
+        cell: ({ cell }: CellContext<NoteControle, unknown>) => cell.getValue() ? t('commun.oui') : t('commun.non'),
     }] : []),
-    { accessorKey: 'not_evaluated', header: t('noteControle.colonneNonEvalue'), Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : '-' },
+    { accessorKey: 'not_evaluated', header: t('noteControle.colonneNonEvalue'), cell: ({ cell }: CellContext<NoteControle, unknown>) => cell.getValue() ? t('commun.oui') : '-' },
     { accessorKey: 'remarque', header: t('noteControle.colonneRemarque') },
 ];
 
@@ -161,7 +161,7 @@ const noteControleViewConfig = (controleId: string, isRattrapage: boolean, t: TF
     return {
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
-        columns: createNoteControleColumns(isRattrapage, t),
+        colonnes: createNoteControleColonnes(isRattrapage, t),
         render: createNoteControleFields(isRattrapage, bareme),
     }
 };
@@ -201,10 +201,10 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
         isAction,
         actionsLigne,
         isTopToolbar,
-        renderTopToolbarCustomActions: ({ table, defaultActions }) => (
+        actionsBarreOutils: ({ defaultActions, lignesVisibles }) => (
             <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 {defaultActions}
-                <NoteChartButton onClick={() => { handleOpenChart(() => table.getPrePaginationRowModel().rows.map((r) => r.original)); }} />
+                <NoteChartButton onClick={() => { handleOpenChart(lignesVisibles); }} />
             </Box>
         )
     }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
