@@ -4,8 +4,7 @@
  * MRT tournait déjà sur TanStack Table — le moteur ne change pas, seules la
  * couche de rendu et l'API disparaissent. Ce composant est générique et a
  * vocation à servir toutes les tables de l'application, celles de la couche
- * crud (via `ListTanstack`) comme, plus tard, `GroupeUserPage` et
- * `JuryPeriode`.
+ * crud (via `List.tsx`) comme `GroupeUserPage` et `JuryPeriode`.
  *
  * Périmètre volontairement calé sur ce que MRT montrait réellement ici :
  * recherche globale, filtres par colonne, menu des colonnes, tri au clic sur
