@@ -10,7 +10,9 @@ Application réservée au personnel administratif. Pas encore en production.
   (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/`),
   Docker Compose + nginx (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
-  `any`), MUI v7 + material-react-table + x-tree-view + x-date-pickers,
+  `any`), MUI v7 + x-tree-view + x-date-pickers (tables sur le socle
+  `DataTable` — TanStack Table rendu en shadcn ; material-react-table
+  **déposé**, lot 11),
   shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
   `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
   API impérative, durées centralisées), Toolpad **sorti** (lot 3,
@@ -271,9 +273,9 @@ Application réservée au personnel administratif. Pas encore en production.
   l'`aria-label` explicite est la convention.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
   nouvelle représentation d'URL s'y greffe, on n'écrit pas de parallèle.
-- L'état de table est persisté par parent (`usePersistentTableState`) ; ne
-  pas y introduire de logique supposant « toutes les lignes chargées »
-  (pagination serveur possible plus tard).
+- L'état de table est persisté par parent (`useEtatTablePersistant`,
+  `usePersistentTableState.ts`) ; ne pas y introduire de logique supposant
+  « toutes les lignes chargées » (pagination serveur possible plus tard).
 - Le hash canonique du registre dépend d'une troncature à la microseconde :
   reprendre les tests de stabilité existants pour toute évolution.
 - Le seed e2e est **idempotent par pose, pas par cumul** : toute donnée
@@ -313,18 +315,16 @@ Application réservée au personnel administratif. Pas encore en production.
   `size={20}` (`size={18}` si bouton small) ; l'ancien `fontSize="small"` →
   `size={20}`. Ne pas « corriger » une icône nue dans un bouton shadcn en
   lui posant une taille : elle créerait un écart avec toutes les autres.
-  `@mui/icons-material` reste dans `package.json` — dépendance de
-  material-react-table (ses commandes internes) ; il partira avec MRT,
-  aucun import ne doit y revenir dans `src/`.
+  `@mui/icons-material` est parti avec la dépose de material-react-table
+  (lot 11) ; aucun import ne doit revenir dans `src/`.
 
 ## Dette et chantiers connus
 
-- **Dépose de material-react-table** — déverrouillée par le lot 10
-  (`JuryPeriode` était son dernier consommateur applicatif) : `ListMrt.tsx`,
-  le commutateur de `List.tsx`, l'ancien `usePersistentTableState` et les
-  champs `columns`/`renderTopToolbarCustomActions` de `def.ts` sont du code
-  mort vivant ; `@mui/icons-material` et `darken` partent avec. Lot distinct,
-  une fois l'écran jury éprouvé en conditions réelles.
+- **Page témoin `_cohabitation`** (`pages/_cohabitation/`, route dans
+  `main.tsx`) — dette du lot 1, devenue la **plus ancienne encore ouverte**
+  depuis la dépose de MRT (lot 11). Ne sert plus depuis le lot 4 ; se retire
+  à la dépose finale de MUI, où elle servira une dernière fois à vérifier
+  qu'aucun style MUI ne subsiste.
 - **Montée MUI v9** — déverrouillée par la sortie de Toolpad (lot 3, qui
   épinglait MUI v7) ; non entamée.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
