@@ -1,5 +1,4 @@
-import { Box, Button, Chip, darken, Tooltip, Typography } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
+import { Box, Button, Chip, Tooltip, Typography } from '@mui/material';
 import { useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -11,16 +10,15 @@ import { handleAxiosError } from '../../services/crud/def';
 import { messageForError } from '../../services/errorMessages';
 import { useCallback, useMemo, memo, useState } from 'react';
 import { Alert } from '@mui/material';
-import {
-    MaterialReactTable,
-    useMaterialReactTable,
-    type MRT_ColumnDef,
-    type MRT_RowSelectionState,
-    type MRT_Row,
-} from 'material-react-table';
-import { MRT_Localization_FR } from 'material-react-table/locales/fr';
-import { MRT_Localization_EN } from 'material-react-table/locales/en';
+import type {
+    ColumnDef,
+    RowSelectionState,
+    Table as TableTanstack,
+} from '@tanstack/react-table';
+import { DataTable } from '../../services/crud/DataTable';
+import { useEtatTablePersistant } from '../../services/crud/usePersistentTableState';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
+import { Button as BoutonTable } from '../../components/ui/button';
 import { ENDPOINT_DELIBERER, ENDPOINT_JURY } from './def';
 import { JuryExportButton } from './JuryExportButton';
 import { JuryBulletinsExportButton } from './JuryBulletinsExportButton';
@@ -28,7 +26,7 @@ import { DelibererButton } from './DelibererButton';
 import { DelibererBulkDialog, type BulkStudent } from './DelibererBulkDialog';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
-import { Gavel } from 'lucide-react';
+import { Gavel, Maximize2, Minimize2 } from 'lucide-react';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
 
@@ -56,7 +54,7 @@ function GradeBadge({ grade }: { grade: string | null | undefined }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cell renderers mémoïsés — définis hors du composant pour éviter
-// de nouvelles références à chaque render et casser la mémoïsation MRT
+// de nouvelles références à chaque render et casser la mémoïsation
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Cellule GPA */
@@ -91,14 +89,14 @@ const IntegerCell = memo(({ value }: { value: number | null | undefined }) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Rendus de colonnes — `Cell` et `Header` sont appelés par MRT comme de
+// Rendus de colonnes — `cell` et `header` sont appelés par la table comme de
 // simples fonctions, pas montés comme des composants ; les écrire ici plutôt
 // que dans le corps du composant ne change donc rien au rendu. Mais six
 // colonnes de synthèse répétaient le même entête à l'infobulle près, et douze
 // arrtêtes enveloppaient un composant déjà mémoïsé dans une flèche neuve.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type CelluleJury = NonNullable<MRT_ColumnDef<StudentEntry>['Cell']>;
+type CelluleJury = NonNullable<ColumnDef<StudentEntry>['cell']>;
 type DeliberationParEleve = ReadonlyMap<number, { delibere: boolean; compteCumul: boolean }>;
 
 /** L'entête des colonnes de synthèse : une infobulle sur un libellé court. */
@@ -137,10 +135,10 @@ const enteteUe = (ue: { nom: string; ects: number }) => () => {
     return (
         <Tooltip title={ue.nom} disableHoverListener={ue.nom.length <= 40}>
             <Box sx={{ textAlign: 'center', lineHeight: 1.3 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'inherit' }}>
                     {displayName}
                 </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                <Typography variant="caption" sx={{ opacity: 0.8, color: 'inherit' }}>
                     {ue.ects} ECTS
                 </Typography>
             </Box>
@@ -203,39 +201,25 @@ const celluleStatut = (
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constantes stables hors du composant
-// Tout ce qui est défini ici a une référence stable entre les renders,
-// ce qui évite les boucles infinies dans MRT (mrtTheme, muiTableHeadCellProps)
+// Le motif d'origine (les boucles infinies de MRT) est parti avec lui, mais
+// la stabilité référentielle reste utile : ces valeurs entrent dans des mémos
+// et des hooks, une référence neuve à chaque render les invaliderait.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EMPTY_STUDENTS: StudentEntry[] = [];
+
+/** Les quatre colonnes gelées à gauche — la case de sélection du socle
+ *  comprise : au défilement horizontal sur N colonnes d'UE, on doit toujours
+ *  savoir de quel élève on lit la note. */
+const COLONNES_GELEES = ['selection', 'statut', 'lastName', 'firstName'];
+
+/** Tri initial par nom — un tri mémorisé en session l'emporte. */
+const DEFAUTS_ETAT = { sorting: [{ id: 'lastName', desc: false }] };
 
 /** « 1 élève délibéré. » / « 12 élèves délibérés. » */
 function messageDeliberationGroupee(nombre: number, t: TFunction<'jury'>): string {
     return t('deliberationGroupee', { count: nombre, formatted: formatNombre.format(nombre) });
 }
-
-const TABLE_THEME = (theme: Theme) => ({
-    baseBackgroundColor:
-        theme.palette.mode === 'dark'
-            ? darken(theme.palette.background.default, 0.05)
-            : theme.palette.background.default,
-});
-
-const HEAD_CELL_PROPS = {
-    sx: {
-        fontSize: '0.78rem',
-        py: 1,
-        whiteSpace: 'pre-line',
-    },
-} as const;
-
-const CONTAINER_PROPS = { sx: { maxHeight: '75vh' } } as const;
-
-//const ROW_VIRTUALIZER_OPTIONS = { estimateSize: () => 28 } as const;
-const ROW_VIRTUALIZER_OPTIONS = {
-    estimateSize: () => 36,   // mesure réelle en compact MUI
-    overscan: 10,              // pré-rend 10 lignes au-delà de la fenêtre
-} as const;
 
 const fetchSynthese = async (periodeId: string | undefined, t: TFunction<'jury'>): Promise<JuryData> => {
     if (!periodeId) throw new Error(t('erreurPeriodeIdObligatoire'));
@@ -254,22 +238,29 @@ const fetchSynthese = async (periodeId: string | undefined, t: TFunction<'jury'>
 export const JuryPeriode = () => {
     const { periodeId } = useParams();
     const queryClient = useQueryClient();
-    const { t, i18n: i18nInstance } = useTranslation('jury');
+    const { t } = useTranslation('jury');
 
     // Consulter la synthèse et exporter sont des lectures ; délibérer, annuler
     // et la sélection qui y mène exigent le rôle d'écriture du jury.
     const { possedeRole } = useDroits();
     const peutDeliberer = possedeRole(Role.JURY_ECRITURE);
 
-    const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
     const [bulkLoading, setBulkLoading] = useState(false);
+    // Plein écran local à cet écran (le socle l'a abandonné au lot 7 ; ici il
+    // a un sens réel — synthèse large à colonnes dynamiques). Non persisté,
+    // comme avant : une page rechargée en plein écran serait déroutante.
+    const [pleinEcran, setPleinEcran] = useState(false);
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['syntheseJury', periodeId],
         queryFn: () => fetchSynthese(periodeId, t),
         staleTime: 5 * 60 * 1000,
     });
+
+    // Même clé que la requête : l'état de table est persisté par période.
+    const etat = useEtatTablePersistant(['syntheseJury', periodeId], DEFAUTS_ETAT);
 
     // Délibérations déjà enregistrées : map userID → JuryResult[]
     const { data: deliberations = [] } = useQuery<JuryResult[]>({
@@ -314,11 +305,11 @@ export const JuryPeriode = () => {
     const nbIncomplets = dossiersIncomplets.size;
 
     // ── Colonnes ──────────────────────────────────────────────────────────────
-    const columns = useMemo<MRT_ColumnDef<StudentEntry>[]>(() => {
+    const colonnes = useMemo<ColumnDef<StudentEntry>[]>(() => {
         if (!data?.hierarchy) return [];
 
-        // A. Colonnes identité (épinglées à gauche)
-        const baseCols: MRT_ColumnDef<StudentEntry>[] = [
+        // A. Colonnes identité (gelées à gauche via COLONNES_GELEES)
+        const baseCols: ColumnDef<StudentEntry>[] = [
             {
                 id: 'statut',
                 header: t('colonnes.statut'),
@@ -326,126 +317,119 @@ export const JuryPeriode = () => {
                 enableSorting: false,
                 enableColumnFilter: false,
                 accessorFn: (row) => deliberationByUser.get(row.userID)?.delibere ?? false,
-                Cell: periodeId ? celluleStatut(periodeId, deliberationByUser, dossiersIncomplets, peutDeliberer, t) : () => null,
-                muiTableHeadCellProps: { sx: { fontWeight: 700 } },
+                cell: periodeId ? celluleStatut(periodeId, deliberationByUser, dossiersIncomplets, peutDeliberer, t) : () => null,
             },
             {
                 id: 'lastName',
                 header: t('colonnes.nom'),
                 size: 140,
                 accessorFn: (row) => row.juryStat.lastName,
-                muiTableHeadCellProps: { sx: { fontWeight: 700 } },
             },
             {
                 id: 'firstName',
                 header: t('colonnes.prenom'),
                 size: 130,
                 accessorFn: (row) => row.juryStat.firstName,
-                muiTableHeadCellProps: { sx: { fontWeight: 700 } },
             },
         ];
 
-        // B. Colonnes UE dynamiques — groupe par UE avec moy. + grade
-        const ueCols: MRT_ColumnDef<StudentEntry>[] = data.hierarchy.ues.map((ue) => ({
+        // B. Colonnes UE dynamiques — groupe par UE (nom + ECTS) sur la
+        // rangée du haut, le grade en colonne feuille. Les bordures qui
+        // séparent les blocs passent par `meta` (classes, plus de `sx`).
+        const ueCols: ColumnDef<StudentEntry>[] = data.hierarchy.ues.map((ue) => ({
             id: `ue_group_${ue.id}`,
-            header: ue.nom,
-            muiTableHeadCellProps: {
-                sx: {
-                    backgroundColor: 'primary.main',
-                    color: 'primary.contrastText',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    textAlign: 'center',
-                    borderRight: '2px solid',
-                    borderRightColor: 'divider',
-                    '& .MuiTableSortLabel-root': { color: 'inherit' },
-                },
+            header: enteteUe(ue),
+            meta: {
+                libelle: ue.nom,
+                headerClassName: 'border-r-2 bg-primary text-center text-primary-foreground',
             },
-            Header: enteteUe(ue),
             columns: [
                 {
                     id: `ue_${ue.id}_grade`,
                     header: t('colonnes.grade'),
                     size: 140,
                     accessorFn: (row) => data.statsUe[row.userID]?.[ue.id]?.grade_lettre,
-                    Cell: celluleGrade,
-                    muiTableHeadCellProps: {
-                        sx: {
-                            fontSize: '0.72rem',
-                            borderRight: '2px solid',
-                            borderRightColor: 'divider',
-                        },
-                    },
-                    muiTableBodyCellProps: {
-                        sx: {
-                            textAlign: 'center',
-                            borderRight: '2px solid',
-                            borderRightColor: 'divider',
-                        },
+                    cell: celluleGrade,
+                    meta: {
+                        libelle: ue.nom,
+                        headerClassName: 'border-r-2 text-center',
+                        className: 'border-r-2 text-center',
                     },
                 },
             ],
         }));
 
         // C. Colonnes synthèse (GPA, ECTS)
-        const endCols: MRT_ColumnDef<StudentEntry>[] = [
+        const endCols: ColumnDef<StudentEntry>[] = [
             {
                 id: 'gpa_academique_periode',
-                header: t('colonnes.gpaAca'),
-                Header: enteteInfobulle(t('colonnes.gpaAcaInfobulle'), t('colonnes.gpaAca')),
+                header: enteteInfobulle(t('colonnes.gpaAcaInfobulle'), t('colonnes.gpaAca')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_academique_periode,
-                Cell: celluleGpa,
-                muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
-                muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
+                cell: celluleGpa,
+                meta: {
+                    libelle: t('colonnes.gpaAca'),
+                    headerClassName: 'border-l-2',
+                    className: 'border-l-2 text-center',
+                },
             },
             {
                 id: 'gpa',
-                header: t('colonnes.gpa'),
-                Header: enteteInfobulle(t('colonnes.gpaInfobulle'), t('colonnes.gpa')),
+                header: enteteInfobulle(t('colonnes.gpaInfobulle'), t('colonnes.gpa')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.gpa_periode,
-                Cell: celluleGpa,
-                muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
-                muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
+                cell: celluleGpa,
+                meta: {
+                    libelle: t('colonnes.gpa'),
+                    headerClassName: 'border-l-2',
+                    className: 'border-l-2 text-center',
+                },
             },
-             {
+            {
                 id: 'toeic',
-                header: t('colonnes.toeic'),
-                Header: enteteInfobulle(t('colonnes.toeicInfobulle'), t('colonnes.toeic')),
+                header: enteteInfobulle(t('colonnes.toeicInfobulle'), t('colonnes.toeic')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.toeic,
-                Cell: celluleEntier,
-                muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
-                muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
+                cell: celluleEntier,
+                meta: {
+                    libelle: t('colonnes.toeic'),
+                    headerClassName: 'border-l-2',
+                    className: 'border-l-2 text-center',
+                },
             },
-             {
+            {
                 id: 'mobilite_valide',
-                header: t('colonnes.mobilite'),
-                Header: enteteInfobulle(t('colonnes.mobiliteInfobulle'), t('colonnes.mobilite')),
+                header: enteteInfobulle(t('colonnes.mobiliteInfobulle'), t('colonnes.mobilite')),
                 size: 100,
                 accessorFn: (row) => row.juryStat.mobilite_valide,
-                Cell: celluleBooleen(t),
-                muiTableHeadCellProps: { sx: { fontWeight: 700, borderLeft: '2px solid', borderLeftColor: 'divider' } },
-                muiTableBodyCellProps: { sx: { textAlign: 'center', borderLeft: '2px solid', borderLeftColor: 'divider' } },
+                cell: celluleBooleen(t),
+                meta: {
+                    libelle: t('colonnes.mobilite'),
+                    headerClassName: 'border-l-2',
+                    className: 'border-l-2 text-center',
+                },
             },
             {
                 id: 'ects_acquis',
-                header: t('colonnes.ectsValides'),
-                Header: enteteInfobulle(t('colonnes.ectsValidesInfobulle'), t('colonnes.ectsValides'), true),
+                header: enteteInfobulle(t('colonnes.ectsValidesInfobulle'), t('colonnes.ectsValides'), true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_valides,
-                Cell: celluleEctsValides,
-                muiTableBodyCellProps: { sx: { textAlign: 'center' } },
+                cell: celluleEctsValides,
+                meta: {
+                    libelle: t('colonnes.ectsValidesInfobulle'),
+                    className: 'text-center',
+                },
             },
             {
                 id: 'ects_non_valides',
-                header: t('colonnes.ectsEchecs'),
-                Header: enteteInfobulle(t('colonnes.ectsEchecsInfobulle'), t('colonnes.ectsEchecs'), true),
+                header: enteteInfobulle(t('colonnes.ectsEchecsInfobulle'), t('colonnes.ectsEchecs'), true),
                 size: 140,
                 accessorFn: (row) => row.juryStat.total_ects_periode - row.juryStat.total_ects_valides,
-                Cell: celluleEctsEchec,
-                muiTableBodyCellProps: { sx: { textAlign: 'center' } },
+                cell: celluleEctsEchec,
+                meta: {
+                    libelle: t('colonnes.ectsEchecsInfobulle'),
+                    className: 'text-center',
+                },
             },
         ];
 
@@ -455,14 +439,24 @@ export const JuryPeriode = () => {
     // ── Données mémoïsées — évite un nouveau [] à chaque render ─────────────
     const students = useMemo(() => data?.students ?? EMPTY_STUDENTS, [data?.students]);
 
+    const getRowId = useCallback((eleve: StudentEntry) => String(eleve.userID), []);
+
+    // Un dossier incomplet n'est pas délibérable : sa case reste inerte
+    // plutôt que d'être silencieusement retirée de la sélection (le socle
+    // la rend désactivée). La sélection ne sert qu'à la délibération
+    // groupée : sans le droit d'écriture du jury, elle disparaît.
+    const peutSelectionnerLigne = useCallback(
+        (eleve: StudentEntry) => !dossiersIncomplets.has(eleve.userID),
+        [dossiersIncomplets],
+    );
+
     // ── Élèves sélectionnés non encore délibérés ──────────────────────────────
     const selectedStudents = useMemo<BulkStudent[]>(() => {
-        return Object.keys(rowSelection)
-            // Une ligne sélectionnée puis disparue des données laisse un trou :
-            // le prédicat de type le dit au compilateur, là où un `s &&` ne
-            // faisait que l'écarter à l'exécution.
-            .map(idx => students[Number(idx)])
-            .filter((s): s is StudentEntry => s !== undefined)
+        // La sélection est indexée par userID (`getRowId`) : itérer les élèves
+        // présents écarte naturellement une ligne sélectionnée puis disparue
+        // des données — le « trou » de l'ancienne indexation par position.
+        return students
+            .filter(s => rowSelection[String(s.userID)])
             .filter(s => !deliberationByUser.get(s.userID)?.delibere)
             .filter(s => !dossiersIncomplets.has(s.userID))
             .map(s => ({
@@ -488,8 +482,8 @@ export const JuryPeriode = () => {
         }
     }, [periodeId, queryClient, t]);
 
-    // ── Toolbar ───────────────────────────────────────────────────────────────
-    const renderTopToolbarCustomActions = useCallback(() => {
+    // ── Barre d'outils : le bandeau MUI (compteurs, exports) + le plein écran ─
+    const barreOutils = useCallback(() => {
         if (!periodeId) return null;
         return (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -524,77 +518,26 @@ export const JuryPeriode = () => {
                 )}
                 <JuryExportButton periodeId={periodeId} />
                 <JuryBulletinsExportButton periodeId={periodeId} />
+                <Tooltip title={pleinEcran ? t('quitterPleinEcran') : t('pleinEcran')}>
+                    <BoutonTable
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={pleinEcran ? t('quitterPleinEcran') : t('pleinEcran')}
+                        onClick={() => { setPleinEcran(actif => !actif); }}
+                    >
+                        {pleinEcran ? <Minimize2 /> : <Maximize2 />}
+                    </BoutonTable>
+                </Tooltip>
             </Box>
         );
-    }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents, t]);
+    }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents, pleinEcran, t]);
 
-    // ── Props de lignes mémoïsées ─────────────────────────────────────────────
-    const rowProps = useCallback(({ row }: { row: MRT_Row<StudentEntry> }) => ({
-        sx: {
-            backgroundColor: row.index % 2 === 0 ? 'background.default' : 'action.hover',
-            '&:hover td': { backgroundColor: 'primary.50 !important', transition: 'background-color 0.15s' },
-            cursor: 'default',
-        },
-    }), []);
-
-    const cellProps = useCallback(({ row }: { row: MRT_Row<StudentEntry> }) => ({
-        sx: {
-            fontSize: '0.8rem',
-            py: 0.5,
-            ...(row.index % 2 !== 0 && { backgroundColor: 'action.hover' }),
-        },
-    }), []);
-
-    // ── Table ─────────────────────────────────────────────────────────────────
-    const table = useMaterialReactTable({
-        columns,
-        data: students,
-        localization: i18nInstance.language.startsWith('en') ? MRT_Localization_EN : MRT_Localization_FR,
-        // Écran de synthèse : l'effectif vient de la structure, on n'y crée
-        // pas d'élève. Le message constate, sans inviter.
-        renderEmptyRowsFallback: ({ table }) => (
-            <EtatVideTable table={table} message={t('aucunEleve')} />
-        ),
-        state: { isLoading, rowSelection },
-        onRowSelectionChange: setRowSelection,
-
-        // Un dossier incomplet n'est pas délibérable : sa case reste inerte
-        // plutôt que d'être silencieusement retirée de la sélection. La
-        // sélection ne sert qu'à la délibération groupée : sans le droit
-        // d'écriture du jury, elle disparaît.
-        enableRowSelection: peutDeliberer
-            ? (row: MRT_Row<StudentEntry>) => !dossiersIncomplets.has(row.original.userID)
-            : false,
-        enableColumnPinning: true,
-        initialState: {
-            density: 'compact',
-            columnPinning: { left: ['mrt-row-select', 'statut', 'lastName', 'firstName'] },
-            sorting: [{ id: 'lastName', desc: false }],
-        },
-
-        // ── Virtualisation ────────────────────────────────────────────────────
-        enableRowVirtualization: true,
-        rowVirtualizerOptions: ROW_VIRTUALIZER_OPTIONS,
-
-        // Options UX
-        enableColumnResizing: true,
-        enableStickyHeader: true,
-        enablePagination: false,
-        enableDensityToggle: false,
-        enableFullScreenToggle: true,
-        enableGlobalFilter: true,
-
-        // Constantes stables définies hors du composant — évite les boucles infinies
-        muiTableContainerProps: CONTAINER_PROPS,
-        muiTableHeadCellProps: HEAD_CELL_PROPS,
-        mrtTheme: TABLE_THEME,
-
-        // Props mémoïsées
-        muiTableBodyRowProps: rowProps,
-        muiTableBodyCellProps: cellProps,
-
-        renderTopToolbarCustomActions,
-    });
+    // Écran de synthèse : l'effectif vient de la structure, on n'y crée
+    // pas d'élève. Le message constate, sans inviter.
+    const etatVide = useCallback((table: TableTanstack<StudentEntry>) => (
+        <EtatVideTable table={table} message={t('aucunEleve')} />
+    ), [t]);
 
     // ── Rendu ─────────────────────────────────────────────────────────────────
     if (isError) {
@@ -607,7 +550,25 @@ export const JuryPeriode = () => {
 
     return (
         <Box sx={{ m: '20px' }}>
-            <MaterialReactTable table={table} />
+            <div className={pleinEcran
+                ? 'fixed inset-0 z-50 flex flex-col bg-background p-4'
+                : 'flex max-h-[75vh] flex-col'}
+            >
+                <DataTable<StudentEntry>
+                    colonnes={colonnes}
+                    donnees={students}
+                    enChargement={isLoading}
+                    etat={etat}
+                    getRowId={getRowId}
+                    selection={peutDeliberer ? { rowSelection, onRowSelectionChange: setRowSelection } : undefined}
+                    peutSelectionnerLigne={peutSelectionnerLigne}
+                    gelColonnes={COLONNES_GELEES}
+                    sansPagination
+                    redimensionnement
+                    barreOutils={barreOutils}
+                    etatVide={etatVide}
+                />
+            </div>
             <DelibererBulkDialog
                 open={bulkDialogOpen}
                 students={selectedStudents}

@@ -37,6 +37,8 @@
     "nonEvalueePrefixe": "Non évaluée : "
   },
   "aucunEleve": "Aucun élève dans cette période.",
+  "pleinEcran": "Plein écran",
+  "quitterPleinEcran": "Quitter le plein écran",
   "compteurDeliberes": "{{delibere}} / {{total}} délibéré(s)",
   "dossiersIncomplets_one": "{{count}} dossier incomplet",
   "dossiersIncomplets_other": "{{count}} dossiers incomplets",
