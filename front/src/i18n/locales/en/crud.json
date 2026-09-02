@@ -39,6 +39,27 @@
     "chargementEchec": "Error while loading"
   },
 
+  "table": {
+    "rechercher": "Search",
+    "afficherMasquerRecherche": "Show/Hide search",
+    "effacerRecherche": "Clear search",
+    "afficherMasquerFiltres": "Show/Hide filters",
+    "filtrerPar": "Filter by {{colonne}}",
+    "effacerFiltre": "Clear filter",
+    "afficherMasquerColonnes": "Show/Hide columns",
+    "toutAfficher": "Show all",
+    "colonneActions": "Actions",
+    "lignesParPage": "Rows per page",
+    "plage": "{{de}}\u2013{{a}} of {{total}}",
+    "premierePage": "Go to first page",
+    "pagePrecedente": "Go to previous page",
+    "pageSuivante": "Go to next page",
+    "dernierePage": "Go to last page",
+    "toutSelectionner": "Select all",
+    "selectionnerLigne": "Select row",
+    "lignesSelectionnees": "{{nombre}} of {{total}} row(s) selected"
+  },
+
   "form": {
     "titreDetails": "Details",
     "titreModifier": "Edit",

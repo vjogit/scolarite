@@ -47,6 +47,27 @@
     "chargementEchec": "Erreur lors du chargement"
   },
 
+  "table": {
+    "rechercher": "Rechercher",
+    "afficherMasquerRecherche": "Afficher/Masquer la recherche",
+    "effacerRecherche": "Effacer la recherche",
+    "afficherMasquerFiltres": "Afficher/Masquer les filtres",
+    "filtrerPar": "Filtrer par {{colonne}}",
+    "effacerFiltre": "Effacer le filtre",
+    "afficherMasquerColonnes": "Afficher/Masquer les colonnes",
+    "toutAfficher": "Tout afficher",
+    "colonneActions": "Actions",
+    "lignesParPage": "Lignes par page",
+    "plage": "{{de}}–{{a}} sur {{total}}",
+    "premierePage": "Aller à la première page",
+    "pagePrecedente": "Aller à la page précédente",
+    "pageSuivante": "Aller à la page suivante",
+    "dernierePage": "Aller à la dernière page",
+    "toutSelectionner": "Tout sélectionner",
+    "selectionnerLigne": "Sélectionner la ligne",
+    "lignesSelectionnees": "{{nombre}} sur {{total}} ligne(s) sélectionnée(s)"
+  },
+
   "form": {
     "titreDetails": "Détails",
     "titreModifier": "Modifier",
