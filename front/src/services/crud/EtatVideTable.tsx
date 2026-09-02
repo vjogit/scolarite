@@ -14,7 +14,6 @@
 
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/button';
-import type { MRT_RowData, MRT_TableInstance } from 'material-react-table';
 
 /** Ce que propose l'écran quand la collection est réellement vide. */
 export interface ActionEtatVide {
@@ -22,8 +21,21 @@ export interface ActionEtatVide {
     readonly onClick: () => void;
 }
 
-interface Props<D extends MRT_RowData> {
-    readonly table: MRT_TableInstance<D>;
+/**
+ * Le strict nécessaire d'une instance de table : lire l'état de filtre, le
+ * vider. Type structurel plutôt qu'import d'un moteur — l'instance MRT
+ * (`GroupeUserPage`, `JuryPeriode`) et l'instance TanStack du nouveau socle
+ * le satisfont toutes deux, ce composant survit donc à la migration sans
+ * que ses consommateurs bougent.
+ */
+export interface TableEtatFiltre {
+    getState(): { columnFilters: readonly unknown[]; globalFilter?: unknown };
+    setColumnFilters(valeur: never[]): void;
+    setGlobalFilter(valeur: string): void;
+}
+
+interface Props {
+    readonly table: TableEtatFiltre;
     /** Constat de collection vide, déjà accordé par `entityMessages`. */
     readonly message: string;
     /**
@@ -33,7 +45,7 @@ interface Props<D extends MRT_RowData> {
     readonly action?: ActionEtatVide;
 }
 
-export function EtatVideTable<D extends MRT_RowData>({ table, message, action }: Props<D>) {
+export function EtatVideTable({ table, message, action }: Props) {
     const { t } = useTranslation('crud');
     // `globalFilter` est typé `any` par la table : on ne le lit que pour sa
     // vacuité, jamais pour sa valeur.
