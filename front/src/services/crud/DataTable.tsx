@@ -13,6 +13,15 @@
  * existe ailleurs), pagination, sélection, en-tête collant, squelette de
  * chargement. Densité et plein écran : abandonnés (décision du lot 7), le
  * rendu unique est calé sur l'ancien défaut « compact ».
+ *
+ * Le lot 10 (JuryPeriode) y ajoute quatre capacités, toutes **opt-in** — un
+ * écran qui ne les déclare pas rend exactement comme avant : `gelColonnes`
+ * (colonnes collées à gauche au défilement horizontal), `sansPagination`
+ * (toutes les lignes rendues, pas de pied de pagination), `redimensionnement`
+ * (poignées sur les en-têtes — chaque colonne doit alors déclarer `size`),
+ * et `peutSelectionnerLigne` (sélection refusée ligne par ligne : la case
+ * reste visible mais inerte, jamais retirée en silence). Les en-têtes
+ * groupés (`columns` imbriqués TanStack) sont rendus sur deux rangées.
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -26,6 +35,7 @@ import {
     useReactTable,
     type Column,
     type ColumnDef,
+    type Header as HeaderTanstack,
     type OnChangeFn,
     type Row,
     type RowData,
@@ -119,6 +129,23 @@ export interface DataTableProps<D> {
     /** Classes supplémentaires d'une ligne (mise en évidence au retour
      *  d'enregistrement). */
     classeLigne?: (ligne: D) => string | undefined;
+    /** Ids des colonnes gelées à gauche, dans l'ordre (la colonne
+     *  `selection` du socle comprise le cas échéant). Elles restent
+     *  visibles au défilement horizontal ; un id absent est ignoré. */
+    gelColonnes?: string[];
+    /** Coupe la pagination : toutes les lignes filtrées/triées sont rendues
+     *  dans le conteneur défilant, le pied ne garde que le compteur de
+     *  sélection. Pour les tables dont l'effectif tient sur un écran. */
+    sansPagination?: boolean;
+    /** Poignées de redimensionnement sur les en-têtes. Chaque colonne de
+     *  données doit alors déclarer `size` : la table passe en gabarit fixe
+     *  et une colonne sans largeur n'en recevrait aucune. */
+    redimensionnement?: boolean;
+    /** Sélection refusée ligne par ligne (avec `selection`) : la case d'une
+     *  ligne refusée reste visible mais inerte — jamais retirée en silence,
+     *  l'utilisateur doit voir qu'elle existe et comprendre qu'elle est
+     *  fermée (règle d'ergonomie posée par JuryPeriode). */
+    peutSelectionnerLigne?: (ligne: D) => boolean;
 }
 
 /** Libellé texte d'une colonne : l'en-tête s'il est une chaîne, sinon le
@@ -130,9 +157,36 @@ function libelleColonne<D>(colonne: Column<D>): string {
 }
 
 /** `width` seulement si la colonne déclare une taille : le défaut TanStack
- *  (150) ne doit pas figer les colonnes qui n'ont rien demandé. */
-function largeurColonne<D>(colonne: Column<D>): React.CSSProperties | undefined {
-    return colonne.columnDef.size !== undefined ? { width: colonne.getSize() } : undefined;
+ *  (150) ne doit pas figer les colonnes qui n'ont rien demandé. Avec le
+ *  redimensionnement, toutes les largeurs sont posées : elles vivent dans
+ *  l'état de la table et suivent la poignée. Sur un en-tête groupé,
+ *  `getSize` somme les feuilles. */
+function largeurEntete<D>(entete: HeaderTanstack<D, unknown>, redimensionnement: boolean): React.CSSProperties | undefined {
+    if (!redimensionnement && entete.column.columnDef.size === undefined) return undefined;
+    return { width: entete.getSize() };
+}
+
+/** Position d'une colonne gelée : sticky, à l'offset cumulé des gelées qui
+ *  la précèdent (calculé par TanStack). Le `z-index` et le fond opaque
+ *  viennent des classes (`classesGel`). */
+function stylesGel<D>(colonne: Column<D>): React.CSSProperties | undefined {
+    if (colonne.getIsPinned() !== 'left') return undefined;
+    return { position: 'sticky', left: colonne.getStart('left') };
+}
+
+/** Classes d'une cellule gelée. Le fond doit être opaque et porté par la
+ *  cellule (le contenu défile dessous) : le survol et la sélection, posés en
+ *  translucide sur la ligne, sont donc recomposés ici en couleurs pleines
+ *  équivalentes, via le `group` de la ligne. La dernière gelée porte l'ombre
+ *  de séparation. */
+function classesGel<D>(colonne: Column<D>): string | undefined {
+    if (colonne.getIsPinned() !== 'left') return undefined;
+    return cn(
+        'z-[1] bg-background',
+        'group-hover:bg-[color-mix(in_oklab,var(--muted)_50%,var(--background))]',
+        'group-data-[state=selected]:bg-muted',
+        colonne.getIsLastColumn('left') && 'shadow-[2px_0_4px_-2px_var(--border)]',
+    );
 }
 
 /** Valeur du filtre d'une colonne — toujours une chaîne ici, les filtres
@@ -153,6 +207,10 @@ export function DataTable<D>({
     barreOutils,
     etatVide,
     classeLigne,
+    gelColonnes,
+    sansPagination = false,
+    redimensionnement = false,
+    peutSelectionnerLigne,
 }: DataTableProps<D>) {
     // Hors React Compiler : `useReactTable` rend des fonctions que le
     // compilateur ne peut pas mémoïser sûrement — c'est la voie documentée
@@ -181,6 +239,9 @@ export function DataTable<D>({
                 cell: ({ row }: { row: Row<D> }) => (
                     <Checkbox
                         checked={row.getIsSelected()}
+                        // Ligne refusée par `peutSelectionnerLigne` : case
+                        // inerte, pas absente (voir le prop).
+                        disabled={!row.getCanSelect()}
                         onCheckedChange={(coche) => { row.toggleSelected(coche); }}
                         aria-label={t('table.selectionnerLigne')}
                     />
@@ -219,11 +280,19 @@ export function DataTable<D>({
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
+        ...(sansPagination ? {} : { getPaginationRowModel: getPaginationRowModel() }),
         // MRT cherchait en « fuzzy » ; le socle fait un contient-la-chaîne,
         // plus strict et plus prévisible (différence assumée au lot 7).
         globalFilterFn: 'includesString',
-        enableRowSelection: selection !== undefined,
+        // Le prédicat par ligne est respecté par TanStack jusque dans
+        // « tout sélectionner » : seules les lignes acceptées basculent.
+        enableRowSelection: selection === undefined
+            ? false
+            : peutSelectionnerLigne
+                ? (ligne) => peutSelectionnerLigne(ligne.original)
+                : true,
+        enableColumnResizing: redimensionnement,
+        columnResizeMode: 'onChange',
         state: {
             columnFilters: etat.columnFilters,
             globalFilter: etat.globalFilter,
@@ -231,6 +300,9 @@ export function DataTable<D>({
             pagination: etat.pagination,
             columnVisibility: etat.columnVisibility,
             rowSelection: selection?.rowSelection ?? {},
+            // Le gel est déclaré par l'écran, pas manipulable ni persisté :
+            // état contrôlé sans `onColumnPinningChange`.
+            columnPinning: { left: gelColonnes ?? [] },
         },
         onColumnFiltersChange: etat.setColumnFilters,
         onGlobalFilterChange: etat.setGlobalFilter,
@@ -259,6 +331,10 @@ export function DataTable<D>({
 
     const lignes = table.getRowModel().rows;
     const nbColonnesVisibles = table.getVisibleLeafColumns().length;
+    // La dernière rangée d'en-têtes : les colonnes feuilles — la seule à
+    // porter les filtres (les rangées au-dessus sont des groupes).
+    const groupesEntetes = table.getHeaderGroups();
+    const entetesFeuilles = groupesEntetes[groupesEntetes.length - 1]?.headers ?? [];
     const { pageIndex, pageSize } = table.getState().pagination;
     const total = table.getFilteredRowModel().rows.length;
     const de = total === 0 ? 0 : pageIndex * pageSize + 1;
@@ -380,17 +456,36 @@ export function DataTable<D>({
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
-                <Table>
+                <Table
+                    // Gabarit fixe avec le redimensionnement : les largeurs
+                    // viennent du `colgroup` (l'état de la table), la largeur
+                    // minimale de leur somme — l'excédent du conteneur se
+                    // répartit au prorata, le déficit fait défiler.
+                    className={cn(redimensionnement && 'table-fixed')}
+                    style={redimensionnement ? { minWidth: table.getTotalSize() } : undefined}
+                >
+                    {redimensionnement && (
+                        <colgroup>
+                            {table.getVisibleLeafColumns().map((colonne) => (
+                                <col key={colonne.id} style={{ width: colonne.getSize() }} />
+                            ))}
+                        </colgroup>
+                    )}
                     <TableHeader className="sticky top-0 z-10 bg-background">
-                        {table.getHeaderGroups().map((groupe) => (
+                        {groupesEntetes.map((groupe) => (
                             <TableRow key={groupe.id} className="hover:bg-transparent">
                                 {groupe.headers.map((entete) => {
                                     const sens = entete.column.getIsSorted();
                                     return (
                                         <TableHead
                                             key={entete.id}
-                                            style={largeurColonne(entete.column)}
-                                            className={entete.column.columnDef.meta?.headerClassName}
+                                            colSpan={entete.colSpan}
+                                            style={{ ...largeurEntete(entete, redimensionnement), ...stylesGel(entete.column) }}
+                                            className={cn(
+                                                redimensionnement && 'relative',
+                                                classesGel(entete.column),
+                                                entete.column.columnDef.meta?.headerClassName,
+                                            )}
                                             aria-sort={sens === 'asc' ? 'ascending' : sens === 'desc' ? 'descending' : undefined}
                                         >
                                             {entete.isPlaceholder ? null : entete.column.getCanSort() ? (
@@ -409,6 +504,17 @@ export function DataTable<D>({
                                             ) : (
                                                 flexRender(entete.column.columnDef.header, entete.getContext())
                                             )}
+                                            {redimensionnement && !entete.isPlaceholder && entete.column.getCanResize() && (
+                                                <div
+                                                    onMouseDown={entete.getResizeHandler()}
+                                                    onTouchStart={entete.getResizeHandler()}
+                                                    onDoubleClick={() => { entete.column.resetSize(); }}
+                                                    className={cn(
+                                                        'absolute inset-y-1 right-0 w-1 cursor-col-resize touch-none rounded bg-border opacity-0 select-none hover:opacity-100',
+                                                        entete.column.getIsResizing() && 'bg-primary opacity-100',
+                                                    )}
+                                                />
+                                            )}
                                         </TableHead>
                                     );
                                 })}
@@ -416,8 +522,12 @@ export function DataTable<D>({
                         ))}
                         {etat.showColumnFilters && (
                             <TableRow className="hover:bg-transparent">
-                                {table.getHeaderGroups().flatMap((groupe) => groupe.headers).map((entete) => (
-                                    <TableHead key={`filtre-${entete.id}`} className="pb-2">
+                                {entetesFeuilles.map((entete) => (
+                                    <TableHead
+                                        key={`filtre-${entete.id}`}
+                                        style={stylesGel(entete.column)}
+                                        className={cn('pb-2', classesGel(entete.column))}
+                                    >
                                         {entete.column.getCanFilter() && (
                                             <div className="relative">
                                                 <Input
@@ -468,12 +578,16 @@ export function DataTable<D>({
                                 <TableRow
                                     key={ligne.id}
                                     data-state={ligne.getIsSelected() ? 'selected' : undefined}
-                                    className={classeLigne?.(ligne.original)}
+                                    // `group` : les cellules gelées recomposent
+                                    // le survol/sélection de la ligne (opaques,
+                                    // le translucide du <tr> passe dessous).
+                                    className={cn('group', classeLigne?.(ligne.original))}
                                 >
                                     {ligne.getVisibleCells().map((cellule) => (
                                         <TableCell
                                             key={cellule.id}
-                                            className={cellule.column.columnDef.meta?.className}
+                                            style={stylesGel(cellule.column)}
+                                            className={cn(classesGel(cellule.column), cellule.column.columnDef.meta?.className)}
                                         >
                                             {flexRender(cellule.column.columnDef.cell, cellule.getContext())}
                                         </TableCell>
@@ -485,11 +599,15 @@ export function DataTable<D>({
                 </Table>
             </div>
 
-            {/* Pied : compteur de sélection à gauche, pagination à droite. */}
+            {/* Pied : compteur de sélection à gauche, pagination à droite.
+                Sans pagination, il ne reste que le compteur — et rien du
+                tout quand la table n'a pas de sélection. */}
+            {(!sansPagination || selection !== undefined) && (
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t p-2 text-sm text-muted-foreground">
                 <div>
                     {nbSelection > 0 && t('table.lignesSelectionnees', { nombre: nbSelection, total })}
                 </div>
+                {!sansPagination && (
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
                         <span className="whitespace-nowrap">{t('table.lignesParPage')}</span>
@@ -559,7 +677,9 @@ export function DataTable<D>({
                         </Button>
                     </div>
                 </div>
+                )}
             </div>
+            )}
         </div>
     );
 }

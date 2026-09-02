@@ -152,25 +152,30 @@ const VERSION_ETAT_TABLE = 'v1';
 
 export type EtatTablePersistant = ReturnType<typeof useEtatTablePersistant>;
 
-export function useEtatTablePersistant(queryKey: QueryKey) {
+/**
+ * @param defauts État de départ d'un écran quand la session n'a rien mémorisé
+ * (un tri initial, par exemple) — jamais prioritaire sur ce que l'utilisateur
+ * a fait : une valeur mémorisée l'emporte toujours. Lu au montage seulement.
+ */
+export function useEtatTablePersistant(queryKey: QueryKey, defauts?: Partial<EtatTableMemorise>) {
   const cle = `table:${VERSION_ETAT_TABLE}:${JSON.stringify(queryKey)}`;
 
   // Relu une seule fois, au montage : la clé ne change pas tant que la liste
   // vit (`Crud` remonte celle-ci quand on passe à un autre parent).
   const [initial] = useState(() => relire<Partial<EtatTableMemorise>>(cle, {}));
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initial.columnFilters ?? []);
-  const [globalFilter, setGlobalFilter] = useState<string>(initial.globalFilter ?? '');
-  const [sorting, setSorting] = useState<SortingState>(initial.sorting ?? []);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(initial.columnFilters ?? defauts?.columnFilters ?? []);
+  const [globalFilter, setGlobalFilter] = useState<string>(initial.globalFilter ?? defauts?.globalFilter ?? '');
+  const [sorting, setSorting] = useState<SortingState>(initial.sorting ?? defauts?.sorting ?? []);
   const [pagination, setPagination] = useState<PaginationState>(
-    initial.pagination ?? { pageIndex: 0, pageSize: 10 },
+    initial.pagination ?? defauts?.pagination ?? { pageIndex: 0, pageSize: 10 },
   );
-  const [showGlobalFilter, setShowGlobalFilter] = useState<boolean>(initial.showGlobalFilter ?? false);
-  const [showColumnFilters, setShowColumnFilters] = useState<boolean>(initial.showColumnFilters ?? false);
+  const [showGlobalFilter, setShowGlobalFilter] = useState<boolean>(initial.showGlobalFilter ?? defauts?.showGlobalFilter ?? false);
+  const [showColumnFilters, setShowColumnFilters] = useState<boolean>(initial.showColumnFilters ?? defauts?.showColumnFilters ?? false);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
     // Le défaut ne vaut que pour les colonnes dont l'utilisateur n'a rien
     // dit : un « id » réaffiché dans cette session le reste.
-    { ...COLONNES_TECHNIQUES, ...(initial.columnVisibility ?? {}) },
+    { ...COLONNES_TECHNIQUES, ...(defauts?.columnVisibility ?? {}), ...(initial.columnVisibility ?? {}) },
   );
 
   useEffect(() => {
