@@ -4,8 +4,8 @@ import { useParams } from 'react-router';
 import { useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { TextField, Typography } from "@mui/material";
 import { UserSelector } from '../../services/UserSelector';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
 import { Controller } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
 import type { TFunction } from 'i18next';
@@ -29,7 +29,7 @@ const toeicSchema = z.object({
 export type Toeic = z.infer<typeof toeicSchema>;
 
 // Formulaire d'édition
-const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<Toeic>) => {
+const ToeicFields = ({ control, errors, isReadOnly, getValues, setValue }: RenderProps<Toeic>) => {
     const { t } = useTranslation('certification');
     return (
         <>
@@ -40,16 +40,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 setValue={setValue}
                 isReadOnly={isReadOnly}
             />
-            <TextField
-                {...register("score", { valueAsNumber: true })}
-                label={t('toic.champScore')}
-                type="number"
-                disabled={isReadOnly}
-                fullWidth
-                error={!!errors.score}
-                helperText={errors.score?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampNombre name="score" control={control} label={t('toic.champScore')} disabled={isReadOnly} min={0} max={990} />
             <Controller
                 name="date_passage"
                 control={control}
@@ -69,18 +60,7 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 )}
             />
 
-            <TextField
-                {...register("remarque")}
-                label={t('toic.champRemarque')}
-                variant="outlined"
-                fullWidth
-                multiline
-                rows={4}
-                disabled={isReadOnly}
-                error={!!errors.remarque}
-                helperText={errors.remarque?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="remarque" control={control} label={t('toic.champRemarque')} disabled={isReadOnly} multiline rows={4} />
         </>
     );
 };
@@ -160,7 +140,7 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, actionsBarre
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tCertification('parametrePromotionIdObligatoire')}</Typography>
+        <p>{tCertification('parametrePromotionIdObligatoire')}</p>
     )
 
     return (
