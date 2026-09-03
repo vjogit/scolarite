@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
-import { Tooltip, IconButton } from '@mui/material';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Download } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { notifyError } from '../../services/notify';
@@ -28,10 +29,21 @@ export function PeriodeExportButton() {
     }, [optionId, t]);
 
     return (
-        <Tooltip title={libelle}>
-            <IconButton aria-label={libelle} onClick={() => { void handleExport(); }}>
+        <Tooltip>
+            <TooltipTrigger
+                render={(
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={libelle}
+                        onClick={() => { void handleExport(); }}
+                    />
+                )}
+            >
                 <Download />
-            </IconButton>
+            </TooltipTrigger>
+            <TooltipContent>{libelle}</TooltipContent>
         </Tooltip>
     );
 }

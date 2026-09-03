@@ -19,10 +19,13 @@ import { useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import {
-    Box, Divider, Drawer, IconButton, Tooltip, Typography, useMediaQuery, useTheme,
-} from '@mui/material';
 import { ListTree, SquarePlus, Trash2 } from 'lucide-react';
+
+import { Button } from '../../components/ui/button';
+import { Separator } from '../../components/ui/separator';
+import { Sheet, SheetContent, SheetTitle } from '../../components/ui/sheet';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { useIsMobile } from '../../hooks/use-mobile';
 
 import { BarreWorkflows } from '../../services/context/BarreWorkflows';
 import { useDroits } from '../../services/context/droits';
@@ -40,9 +43,6 @@ import { CREER_FORMATION } from '../structure/arbre/niveaux';
 import { formationEntite } from '../structure/entites/formation';
 import { FORMATION } from '../structure/def';
 import { CATALOG_WORKFLOW } from './def';
-
-/** Largeur de l'arbre sur grand écran. */
-const LARGEUR_ARBRE = 320;
 
 /** La collection racine : les formations n'ont pas de parent. */
 const CHEMIN_RACINE = `/${CATALOG_WORKFLOW}/${FORMATION}`;
@@ -131,9 +131,11 @@ function ActionsNoeud({ cible, nom }: { cible: CibleArbre; nom: string }) {
 export function StructureLayout() {
     const { pathname } = useLocation();
     const navigate = useNavigate();
-    const theme = useTheme();
     const { peutEcrire } = useDroits();
-    const etroit = useMediaQuery(theme.breakpoints.down('md'));
+    // Le seuil « écran étroit » est celui du shell shadcn (768 px, `md` de
+    // Tailwind), et non plus le `md` de MUI (900 px) : un seul point de
+    // rupture pour toute l'application.
+    const etroit = useIsMobile();
     const { t } = useTranslation('crud');
     const { t: tCatalog } = useTranslation('catalog');
 
@@ -169,23 +171,33 @@ export function StructureLayout() {
     }, [navigate]);
 
     const arbre = (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 1 }}>
-                <Typography variant="subtitle2" sx={{ flex: 1 }}>{tCatalog('structureLayout.titre')}</Typography>
+        <div className="flex h-full min-w-0 flex-col">
+            <div className="flex items-center gap-2 px-3 py-2">
+                {/* `h6` : le rang que MUI donnait à `subtitle2` — le titre du
+                    panneau, plus bas, garde le même rang, et c'est lui que la
+                    suite e2e cible en `heading`. */}
+                <h6 className="m-0 flex-1 text-sm font-medium leading-6">{tCatalog('structureLayout.titre')}</h6>
                 {ecritureFormation && (
-                    <Tooltip title={libelleAction(CREER_FORMATION(t))}>
-                        <IconButton
-                            size="small"
-                            aria-label={libelleAction(CREER_FORMATION(t))}
-                            onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={(
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={libelleAction(CREER_FORMATION(t))}
+                                    onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
+                                />
+                            )}
                         >
                             <SquarePlus />
-                        </IconButton>
+                        </TooltipTrigger>
+                        <TooltipContent>{libelleAction(CREER_FORMATION(t))}</TooltipContent>
                     </Tooltip>
                 )}
-            </Box>
-            <Divider />
-            <Box sx={{ flex: 1, overflow: 'auto', px: 0.5 }}>
+            </div>
+            <Separator />
+            <div className="flex-1 overflow-auto px-1">
                 <ArbreStructure
                     cheminRacine={CHEMIN_RACINE}
                     selection={etat.selection}
@@ -194,71 +206,73 @@ export function StructureLayout() {
                     onDeplier={setDeplies}
                     onSelectionner={selectionner}
                 />
-            </Box>
-        </Box>
+            </div>
+        </div>
     );
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+        // Les deux tokens, fond et texte : la surface cohabite avec la charpente
+        // MUI (docs/migration-shadcn/07-datatable.md §8).
+        <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
             <BarreWorkflows workflowCourant={WORKFLOW_CATALOG} />
 
-            <Box sx={{ flex: 1, display: 'flex', minHeight: 0 }}>
+            <div className="flex min-h-0 flex-1">
                 {etroit ? (
-                    <Drawer
-                        open={tiroirOuvert}
-                        onClose={() => { setTiroirOuvert(false); }}
-                        slotProps={{ paper: { sx: { width: LARGEUR_ARBRE } } }}
-                    >
-                        {arbre}
-                    </Drawer>
+                    // Le tiroir de l'écran étroit : sans croix (parité avec le
+                    // `Drawer` MUI — la sélection d'un nœud, Échap et le clic
+                    // hors panneau le ferment) ; le titre ne s'adresse qu'aux
+                    // lecteurs d'écran.
+                    <Sheet open={tiroirOuvert} onOpenChange={(ouvert) => { setTiroirOuvert(ouvert); }}>
+                        <SheetContent side="left" showCloseButton={false} className="w-80 gap-0 p-0 sm:max-w-80">
+                            <SheetTitle className="sr-only">{tCatalog('structureLayout.arborescence')}</SheetTitle>
+                            {arbre}
+                        </SheetContent>
+                    </Sheet>
                 ) : (
-                    <Box
-                        sx={{
-                            width: LARGEUR_ARBRE, flexShrink: 0,
-                            borderRight: 1, borderColor: 'divider',
-                        }}
-                    >
+                    <div className="w-80 shrink-0 border-r">
                         {arbre}
-                    </Box>
+                    </div>
                 )}
 
-                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-                    <Box
-                        sx={{
-                            display: 'flex', alignItems: 'center', gap: 1,
-                            px: 2, py: 0.5, borderBottom: 1, borderColor: 'divider',
-                        }}
-                    >
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="flex items-center gap-2 border-b px-4 py-1">
                         {etroit && (
-                            <Tooltip title={tCatalog('structureLayout.arborescence')}>
-                                <IconButton
-                                    size="small"
-                                    aria-label={tCatalog('structureLayout.ouvrirArborescence')}
-                                    onClick={() => { setTiroirOuvert(true); }}
+                            <Tooltip>
+                                <TooltipTrigger
+                                    render={(
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            aria-label={tCatalog('structureLayout.ouvrirArborescence')}
+                                            onClick={() => { setTiroirOuvert(true); }}
+                                        />
+                                    )}
                                 >
                                     <ListTree />
-                                </IconButton>
+                                </TooltipTrigger>
+                                <TooltipContent>{tCatalog('structureLayout.arborescence')}</TooltipContent>
                             </Tooltip>
                         )}
                         {/* Un titre, non une navigation : l'arbre porte déjà
                             celle-ci, et c'est lui qui a remplacé le fil. Il dit
                             de qui le panneau parle, quand le panneau ne dit que
                             de quoi. */}
-                        <Typography variant="subtitle1" sx={{ flex: 1, minWidth: 0 }} noWrap>
+                        <h6 className="m-0 min-w-0 flex-1 truncate text-base font-normal leading-7">
                             {etat.titre === null || nom === null
                                 ? etat.titre?.libelle ?? ''
                                 : `${etat.titre.libelle} — ${nom}`}
-                        </Typography>
+                        </h6>
                         {etat.cible !== null && (
                             <ActionsNoeud cible={etat.cible} nom={nom ?? etat.cible.niveau.libelle} />
                         )}
-                    </Box>
+                    </div>
 
-                    <Box sx={{ flex: 1, overflow: 'auto', p: 2, minHeight: 0 }}>
+                    <div className="min-h-0 flex-1 overflow-auto p-4">
                         <Outlet />
-                    </Box>
-                </Box>
-            </Box>
-        </Box>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }

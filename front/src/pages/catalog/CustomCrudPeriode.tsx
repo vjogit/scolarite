@@ -5,7 +5,6 @@
  * sont pas empêche le remplacement à chaud.
  */
 
-import { Box } from '@mui/material';
 import type { ActionsBarreOutilsProps } from '../../services/crud/def';
 import type { CrudComponentProps } from '../../services/crud/routes';
 import { CATALOG_WORKFLOW } from './def';
@@ -16,13 +15,13 @@ import { PeriodeExportButton } from './PeriodeExportButton';
 export function CustomCrudPeriode({ mode }: CrudComponentProps) {
 
     const barreOutils = ({ defaultActions, peutEcrire }: ActionsBarreOutilsProps<Periode>) => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="flex items-center gap-4">
             {defaultActions}
             {/* Import : une écriture de structure ; l'export reste une lecture,
                 offerte à tous. */}
             {peutEcrire && <PeriodeImportButton />}
             <PeriodeExportButton />
-        </Box>
+        </div>
     )
     return <CrudPeriode workflow={CATALOG_WORKFLOW}
         mode={mode}
