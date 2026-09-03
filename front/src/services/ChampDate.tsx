@@ -52,9 +52,21 @@ function locales(langue: string) {
     };
 }
 
-function formater(value: Date | null | undefined, localeDayjs: string): string {
-    if (value == null || Number.isNaN(value.getTime())) return '';
-    return dayjs(value).locale(localeDayjs).format('L');
+/**
+ * La valeur reçue n'est pas toujours un `Date` : en édition, react-hook-form
+ * est `reset` avec la réponse de l'API telle quelle — les dates y sont des
+ * chaînes ISO, la coercion `z.coerce.date` du schéma ne joue qu'à la
+ * soumission. L'ancien `dayjs(field.value)` les avalait sans le dire ;
+ * constaté au navigateur (lot 12, plantage `getTime` sur l'écran d'édition).
+ */
+function normaliser(value: Date | string | null | undefined): Date | null {
+    if (value == null) return null;
+    return value instanceof Date ? value : new Date(value);
+}
+
+function formater(date: Date | null, localeDayjs: string): string {
+    if (date == null || Number.isNaN(date.getTime())) return '';
+    return dayjs(date).locale(localeDayjs).format('L');
 }
 
 /**
@@ -67,7 +79,8 @@ function analyser(texte: string, localeDayjs: string): dayjs.Dayjs {
 
 export interface PropsChampDate {
     label: string;
-    value: Date | null | undefined;
+    /** `string` : voir `normaliser` — la donnée d'édition arrive en ISO. */
+    value: Date | string | null | undefined;
     onChange: (date: Date | null) => void;
     disabled?: boolean;
     error?: boolean;
@@ -88,8 +101,10 @@ export function ChampDate({
     const { t, i18n } = useTranslation('app');
     const { dayjs: localeDayjs, calendrier } = locales(i18n.resolvedLanguage ?? i18n.language);
 
+    const date = normaliser(value);
+
     const [ouvert, setOuvert] = useState(false);
-    const [texte, setTexte] = useState(() => formater(value, localeDayjs));
+    const [texte, setTexte] = useState(() => formater(date, localeDayjs));
     const [enSaisie, setEnSaisie] = useState(false);
     const racine = useRef<HTMLDivElement>(null);
 
@@ -100,16 +115,16 @@ export function ChampDate({
     // l'instant plutôt que l'objet : chaque rendu du parent peut fabriquer un
     // nouveau `Date` de même valeur. `Object.is` : NaN (date invalide) doit
     // être égal à lui-même.
-    const instant = value == null ? null : value.getTime();
+    const instant = date == null ? null : date.getTime();
     const [precedent, setPrecedent] = useState({ instant, locale: localeDayjs });
     if (!Object.is(precedent.instant, instant) || precedent.locale !== localeDayjs) {
         setPrecedent({ instant, locale: localeDayjs });
-        if (!enSaisie) setTexte(formater(value, localeDayjs));
+        if (!enSaisie) setTexte(formater(date, localeDayjs));
     }
 
     // La valeur sous forme exploitable par le calendrier : `undefined` couvre
     // l'absent (création) comme l'invalide (saisie en cours de refus).
-    const dateValide = value != null && !Number.isNaN(value.getTime()) ? value : undefined;
+    const dateValide = date != null && !Number.isNaN(date.getTime()) ? date : undefined;
 
     const surSaisie = (saisie: string) => {
         setTexte(saisie);
