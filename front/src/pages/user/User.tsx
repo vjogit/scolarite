@@ -1,11 +1,13 @@
 import { z } from 'zod';
-import { Controller } from 'react-hook-form';
+import { useController, type Control } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
-import { Checkbox, FormControl, FormControlLabel, FormGroup, FormHelperText, FormLabel, TextField } from "@mui/material";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
+import { ChampTexte } from '../../services/ChampTexte';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from '../../components/ui/field';
 import { availableRoles, ENDPOINT_USER, Role, USER } from './def';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
@@ -28,85 +30,53 @@ const userSchema = z.object({
 
 export type User = z.infer<typeof userSchema>;
 
-const UserFields = ({ register, control, errors, isReadOnly }: RenderProps<User>) => {
+/**
+ * Les rôles en cases à cocher — un groupe (`fieldset`/`legend`), pas un champ
+ * partagé : seul cet écran en monte un. Le câblage suit celui de
+ * `ChampTexte` (`useController`, erreur du champ affichée sous le groupe).
+ */
+function ChampRoles({ control, disabled }: { control: Control<User>; disabled: boolean }) {
+    const { t } = useTranslation('user');
+    const { field: { value, onChange }, fieldState } = useController({ name: 'roles', control });
+    const id = useId();
+    const roles = Array.isArray(value) ? value : [];
+    const erreur = fieldState.error?.message;
+    const estInvalide = erreur !== undefined;
+
+    return (
+        <FieldSet disabled={disabled} data-invalid={estInvalide} className="mb-4 gap-2">
+            <FieldLegend variant="label">{t('champs.roles')}</FieldLegend>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {availableRoles(t).map((role) => (
+                    <Field key={role.id} orientation="horizontal" className="w-auto">
+                        <Checkbox
+                            id={`${id}-${role.id}`}
+                            checked={roles.includes(role.id)}
+                            onCheckedChange={(coche) => {
+                                onChange(coche ? [...roles, role.id] : roles.filter((r) => r !== role.id));
+                            }}
+                            disabled={disabled}
+                        />
+                        <FieldLabel htmlFor={`${id}-${role.id}`}>{role.label}</FieldLabel>
+                    </Field>
+                ))}
+            </div>
+            {estInvalide && <FieldError>{erreur}</FieldError>}
+        </FieldSet>
+    );
+}
+
+const UserFields = ({ control, isReadOnly }: RenderProps<User>) => {
     const { t } = useTranslation('user');
     return (
         <>
-            <TextField
-                {...register("firstName")}
-                label={t('champs.prenom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.firstName}
-                helperText={errors.firstName?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("lastName")}
-                label={t('champs.nom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.lastName}
-                helperText={errors.lastName?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("email")}
-                label={t('champs.email')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.email}
-                helperText={errors.email?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="firstName" control={control} label={t('champs.prenom')} disabled={isReadOnly} />
+            <ChampTexte name="lastName" control={control} label={t('champs.nom')} disabled={isReadOnly} />
+            <ChampTexte name="email" control={control} label={t('champs.email')} disabled={isReadOnly} />
             {!isReadOnly && (
-                <TextField
-                    {...register("password")}
-                    label={t('champs.motDePasse')}
-                    type="password"
-                    variant="outlined"
-                    fullWidth
-                    error={!!errors.password}
-                    helperText={errors.password?.message}
-                    sx={{ mb: 2 }}
-                />
+                <ChampTexte name="password" control={control} label={t('champs.motDePasse')} type="password" />
             )}
-            <Controller
-                name="roles"
-                control={control}
-                render={({ field }) => {
-                    const currentRoles = Array.isArray(field.value) ? field.value : [];
-                    return (
-                        <FormControl component="fieldset" error={!!errors.roles} disabled={isReadOnly} sx={{ mb: 2, width: '100%' }}>
-                            <FormLabel component="legend">{t('champs.roles')}</FormLabel>
-                            <FormGroup row>
-                                {availableRoles(t).map((role) => (
-                                    <FormControlLabel
-                                        key={role.id}
-                                        control={
-                                            <Checkbox
-                                                checked={currentRoles.includes(role.id)}
-                                                onChange={(e) => {
-                                                    const checked = e.target.checked;
-                                                    const newRoles = checked
-                                                        ? [...currentRoles, role.id]
-                                                        : currentRoles.filter((r: string) => r !== role.id);
-                                                    field.onChange(newRoles);
-                                                }}
-                                            />
-                                        }
-                                        label={role.label}
-                                    />
-                                ))}
-                            </FormGroup>
-                            {errors.roles && <FormHelperText>{errors.roles.message}</FormHelperText>}
-                        </FormControl>
-                    );
-                }}
-            />
+            <ChampRoles control={control} disabled={isReadOnly} />
         </>
     );
 };
