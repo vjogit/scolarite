@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, TextField, Select, MenuItem, FormControl,
     InputLabel, FormControlLabel, Checkbox, Autocomplete,
-    Box, Stack, Alert,
+    Stack, Alert,
 } from '@mui/material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import dayjs, { type Dayjs } from 'dayjs';
+import { ChampDateHeure } from '../../services/ChampDate';
+import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
 import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
@@ -41,8 +41,10 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     const { t } = useTranslation('programme');
 
     // ── État du formulaire ──────────────────────────────────────────────────
-    const [startDate,           setStartDate]           = useState<Dayjs | null>(null);
-    const [endDate,             setEndDate]             = useState<Dayjs | null>(null);
+    // `Date` natif depuis le lot 12 : c'est le contrat de `ChampDateHeure`,
+    // et rien ici n'exigeait dayjs — sérialisation par `toISOString`.
+    const [startDate,           setStartDate]           = useState<Date | null>(null);
+    const [endDate,             setEndDate]             = useState<Date | null>(null);
     const [typeCours,           setTypeCours]           = useState('');
     const [matiereId,           setMatiereId]           = useState<number | ''>('');
     // `null` tant que l'utilisateur n'a rien choisi : la sélection se déduit
@@ -61,6 +63,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     const [isDistanciel,        setIsDistanciel]        = useState(false);
     const [description,         setDescription]         = useState('');
     const [conflictErrors,      setConflictErrors]      = useState<string[]>([]);
+    const conteneurRef = useRef<HTMLDivElement>(null);
 
     /**
      * Remise à zéro du formulaire, jouée à l'ouverture de la modale.
@@ -75,8 +78,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         setSallesChoisies(null);
         setGroupesChoisis(null);
         if (reservation) {
-            setStartDate(dayjs(reservation.horaire.Lower));
-            setEndDate(dayjs(reservation.horaire.Upper));
+            setStartDate(new Date(reservation.horaire.Lower));
+            setEndDate(new Date(reservation.horaire.Upper));
             setTypeCours(reservation.type_cours ?? '');
             setMatiereId(reservation.matiere_id ?? '');
             setIsDistanciel(reservation.is_distanciel);
@@ -85,8 +88,8 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                 id: i.id, firstName: i.firstName, lastName: i.lastName,
             })));
         } else {
-            setStartDate(start ? dayjs(start) : null);
-            setEndDate(end ? dayjs(end) : null);
+            setStartDate(start);
+            setEndDate(end);
             setTypeCours('');
             setMatiereId('');
             setSelectedIntervenants([]);
@@ -210,8 +213,12 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         },
     });
 
+    // Une saisie de date en cours de refus est un `Date` invalide, pas un
+    // `null` (contrat de `ChampDate`) : la soumission attend deux instants réels.
+    const dateComplete = (d: Date | null): d is Date => d !== null && !Number.isNaN(d.getTime());
+
     const handleSubmit = () => {
-        if (!startDate || !endDate) return;
+        if (!dateComplete(startDate) || !dateComplete(endDate)) return;
         mutation.mutate({
             ...(reservation ? { id: reservation.id, version: reservation.version } : {}),
             horaire: {
@@ -246,7 +253,10 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             </DialogTitle>
 
             <DialogContent>
-                <Stack spacing={2} sx={{ mt: 1 }}>
+                {/* `ref` : le calendrier des champs date-heure se rend DANS ce
+                    sous-arbre — le piège à focus de la modale MUI fermerait un
+                    popup portalé vers `<body>` sitôt ouvert. */}
+                <Stack spacing={2} sx={{ mt: 1 }} ref={conteneurRef}>
 
                     {conflictErrors.map((msg, i) => (
                         // Liste de messages affichée d'un bloc, jamais réordonnée
@@ -255,22 +265,20 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                         <Alert key={i} severity="error">{msg}</Alert>
                     ))}
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <DateTimePicker
-                            label={t('reservationDialog.champDebut')}
-                            value={startDate}
-                            onChange={setStartDate}
-                            ampm={false}
-                            sx={{ flex: 1 }}
-                        />
-                        <DateTimePicker
-                            label={t('reservationDialog.champFin')}
-                            value={endDate}
-                            onChange={setEndDate}
-                            ampm={false}
-                            sx={{ flex: 1 }}
-                        />
-                    </Box>
+                    {/* L'un sous l'autre : chaque champ date-heure occupe
+                        déjà la largeur de deux champs. */}
+                    <ChampDateHeure
+                        label={t('reservationDialog.champDebut')}
+                        value={startDate}
+                        onChange={setStartDate}
+                        conteneurPopup={conteneurRef}
+                    />
+                    <ChampDateHeure
+                        label={t('reservationDialog.champFin')}
+                        value={endDate}
+                        onChange={setEndDate}
+                        conteneurPopup={conteneurRef}
+                    />
 
                     <FormControl fullWidth>
                         <InputLabel>{t('reservationDialog.champTypeCours')}</InputLabel>
@@ -371,7 +379,7 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
                 <Button
                     onClick={handleSubmit}
                     variant="contained"
-                    disabled={mutation.isPending || !startDate || !endDate}
+                    disabled={mutation.isPending || !dateComplete(startDate) || !dateComplete(endDate)}
                 >
                     {reservation ? t('reservationDialog.enregistrer') : t('reservationDialog.creer')}
                 </Button>

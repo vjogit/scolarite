@@ -7,8 +7,7 @@ import { z } from 'zod';
 import { TextField, FormControlLabel, Switch, MenuItem, Grid, Typography } from "@mui/material";
 import { UserSelector } from '../../services/UserSelector';
 import { Controller } from 'react-hook-form';
-import { DatePicker } from '@mui/x-date-pickers';
-import dayjs from 'dayjs';
+import { ChampDate } from '../../services/ChampDate';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_MOBILITE } from './def';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -118,25 +117,19 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     name="date_debut"
                     control={control}
                     render={({ field }) => (
-                        <DatePicker
+                        // En création, react-hook-form donne `undefined` (le
+                        // champ est absent d'`emptyValue`) : le garde qui
+                        // empêche la date du jour de se pré-remplir vit dans
+                        // `ChampDate`.
+                        <ChampDate
                             label={t('mobilite.champDateDebut')}
-                            // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
-                            // pas : en création, react-hook-form donne `undefined`. Et
-                            // `dayjs(undefined)` rend l'heure courante, pas une date
-                            // invalide — sans ce garde, le formulaire s'ouvre avec la date
-                            // du jour pré-remplie. Vérifié au navigateur.
-                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                            value={field.value ? dayjs(field.value) : null}
-                            onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
+                            value={field.value}
+                            onChange={field.onChange}
                             disabled={isReadOnly}
-                            slotProps={{
-                                textField: {
-                                    error: !!errors.date_debut,
-                                    helperText: errors.date_debut?.message,
-                                    fullWidth: true,
-                                    sx: { mb: 2 },
-                                }
-                            }}
+                            error={!!errors.date_debut}
+                            helperText={errors.date_debut?.message}
+                            fullWidth
+                            sx={{ mb: 2 }}
                         />
                     )}
                 />
@@ -145,25 +138,15 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
                     name="date_fin"
                     control={control}
                     render={({ field }) => (
-                        <DatePicker
+                        <ChampDate
                             label={t('mobilite.champDateFin')}
-                            // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
-                            // pas : en création, react-hook-form donne `undefined`. Et
-                            // `dayjs(undefined)` rend l'heure courante, pas une date
-                            // invalide — sans ce garde, le formulaire s'ouvre avec la date
-                            // du jour pré-remplie. Vérifié au navigateur.
-                            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                            value={field.value ? dayjs(field.value) : null}
-                            onChange={(newValue) => { field.onChange(newValue ? newValue.toDate() : null); }}
+                            value={field.value}
+                            onChange={field.onChange}
                             disabled={isReadOnly}
-                            slotProps={{
-                                textField: {
-                                    error: !!errors.date_fin,
-                                    helperText: errors.date_fin?.message,
-                                    fullWidth: true,
-                                    sx: { mb: 2 },
-                                }
-                            }}
+                            error={!!errors.date_fin}
+                            helperText={errors.date_fin?.message}
+                            fullWidth
+                            sx={{ mb: 2 }}
                         />
                     )}
                 />
@@ -207,8 +190,7 @@ const MobiliteFields = ({ register, control, errors, isReadOnly, getValues, setV
 };
 
 // Colonnes au format TanStack nu (lot 9) : leur forme aiguille `List.tsx`
-// vers le nouveau socle `DataTable`. Le formulaire garde ses deux `DatePicker`
-// MUI : les pickers sont le lot 11, l'écran est mixte et assumé tel.
+// vers le nouveau socle `DataTable`.
 function mobiliteColonnes(t: TFunction<'certification'>): ColumnDef<Mobilite>[] {
     return [
         { accessorKey: 'id', header: t('mobilite.colonneId') },
