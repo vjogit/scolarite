@@ -14,6 +14,8 @@ Application réservée au personnel administratif. Pas encore en production.
   shadcn ; material-react-table **déposé**, lot 11 ; x-date-pickers et
   x-tree-view **déposés**, lot 12 — dates via `services/ChampDate.tsx` +
   react-day-picker, arbre de la structure écrit à la main),
+  champs de formulaire partagés — `services/ChampTexte.tsx`,
+  `services/ChampChoix.tsx`, lot 13 — sur `components/ui/field.tsx`),
   shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
   `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
   API impérative, durées centralisées), Toolpad **sorti** (lot 3,
@@ -259,6 +261,30 @@ Application réservée au personnel administratif. Pas encore en production.
   une **modale MUI**, passer `conteneurPopup` (ref d'un nœud de la modale) :
   son piège à focus ferme sitôt ouvert tout popup portalé vers `<body>`
   (précédent : `ReservationDialog`).
+- **Tout champ de formulaire passe par les champs partagés** (lot 13) :
+  `ChampTexte`/`ChampNombre` (`services/ChampTexte.tsx`),
+  `ChampSelection`/`ChampInterrupteur` (`services/ChampChoix.tsx`), et
+  `ChampDate` pour les dates. Un écran ne leur passe que `name`, `control`,
+  `label` et `disabled={isReadOnly}` : le câblage react-hook-form
+  (`useController`), l'erreur (`aria-invalid` + message sous le champ) et
+  l'état désactivé vivent dans le composant — jamais de `register(...)`
+  nu, de `TextField`, ni d'`error`/`helperText` recopiés dans un écran.
+  **Un nombre passe par `ChampNombre`**, qui remet au schéma un `number`
+  (ou `null` si vidé) : c'est ce qui a réglé la création de salle, qui
+  échouait en validation (« nombre attendu, string reçu ») depuis le lot 7
+  — un `register('capacite')` sans `valueAsNumber`. Ne jamais ajouter de
+  `valueAsNumber`/`setValueAs` dans un écran : c'est le composant qui
+  convertit. Un champ vidé vaut `null`, que les schémas `.nullable()`
+  acceptent et que les `z.number()` requis refusent par leur message
+  habituel. `ChampSelection` monte le `Select` Base UI (le contrôle que la
+  suite e2e sait cibler : `combobox` nommé puis `option`) ; son entrée
+  « aucun choix » (`libelleVide`) remet `null`, pas `''`. Le libellé est un
+  `<label for>` : `getByLabel` trouve chaque champ, y compris Checkbox et
+  Switch Base UI (l'`id` va sur leur `<input>` caché, le `label` y est
+  associé). Piège du React Compiler : la `ref` de `field` se destructure
+  **sous un autre nom** (`ref: refChamp`) — sinon le lint tient tout
+  l'objet pour une ref et refuse d'en lire `.value` pendant le rendu
+  (constaté au lot 13).
 - **L'arbre de la structure (`ArbreStructure.tsx`) est écrit à la main** et
   quatre fichiers e2e dépendent de son balisage exact : `ul role="tree"`,
   `li role="treeitem"` + `aria-expanded`, enfants en `ul role="group"`, et
