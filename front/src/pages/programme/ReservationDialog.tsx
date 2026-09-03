@@ -162,8 +162,16 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
     return (
         <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
             {/* Pas de croix : la modale MUI n'en avait pas, « Annuler » reste
-                l'issue explicite (Échap et clic hors modale ferment aussi). */}
-            <DialogContent className="sm:max-w-[600px]" showCloseButton={false}>
+                l'issue explicite (Échap et clic hors modale ferment aussi).
+                Hauteur bornée et corps défilant (rangée centrale de la grille)
+                : la modale MUI faisait défiler son `DialogContent` sous un
+                titre et des actions fixes ; sans cette borne, dix champs
+                débordaient de l'écran, titre et bouton « Créer » hors de vue
+                — constaté au navigateur (lot 14). */}
+            <DialogContent
+                className="max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-[600px]"
+                showCloseButton={false}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         {reservation ? t('reservationDialog.titreModifier') : t('reservationDialog.titreCreer')}
@@ -184,7 +192,6 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
 
 function FormulaireReservation({ reservation, start, end, periodeId, optionId, onClose }: Omit<Props, 'open'>) {
     const { t } = useTranslation('programme');
-    const conteneurRef = useRef<HTMLDivElement>(null);
     const [conflictErrors, setConflictErrors] = useState<string[]>([]);
 
     const { control, handleSubmit, getValues } = useForm<ValeursReservation>({
@@ -334,9 +341,15 @@ function FormulaireReservation({ reservation, start, end, periodeId, optionId, o
     // ── Rendu ───────────────────────────────────────────────────────────────
     return (
         <>
-            {/* `ref` : le calendrier des champs date-heure se rend DANS ce
-                sous-arbre (`conteneurPopup`, contrat du lot 12, inchangé). */}
-            <div ref={conteneurRef} className="flex flex-col gap-4">
+            {/* Plus de `conteneurPopup` sur les champs date-heure : il
+                contournait le piège à focus de la modale MUI (lot 12). La
+                modale Base UI reconnaît ses popups portalés vers <body> —
+                sélections et combobox en font autant ici — et un calendrier
+                rendu dans ce corps défilant y serait rogné. Marges négatives
+                compensées par des marges internes : de la place pour l'anneau
+                de focus et pour le libellé flottant des champs de date MUI,
+                que le bord du défilement rognerait sinon (constaté). */}
+            <div className="-mx-1 -mt-2 flex flex-col gap-4 overflow-y-auto px-1 pt-2">
 
                 {conflictErrors.map((msg, i) => (
                     // Liste de messages affichée d'un bloc, jamais réordonnée
@@ -355,7 +368,6 @@ function FormulaireReservation({ reservation, start, end, periodeId, optionId, o
                             label={t('reservationDialog.champDebut')}
                             value={field.value}
                             onChange={field.onChange}
-                            conteneurPopup={conteneurRef}
                         />
                     )}
                 />
@@ -367,7 +379,6 @@ function FormulaireReservation({ reservation, start, end, periodeId, optionId, o
                             label={t('reservationDialog.champFin')}
                             value={field.value}
                             onChange={field.onChange}
-                            conteneurPopup={conteneurRef}
                         />
                     )}
                 />
