@@ -245,6 +245,10 @@ function ComboboxChip({
 }: ComboboxPrimitive.Chip.Props & {
   showRemove?: boolean
 }) {
+  // Base UI ne pose aucun nom accessible sur le bouton de retrait d'un chip
+  // (vérifié dans ComboboxChipRemove.js, lot 14) : même transposition que le
+  // déclencheur et l'effacement ci-dessus.
+  const { t } = useTranslation("app")
   return (
     <ComboboxPrimitive.Chip
       data-slot="combobox-chip"
@@ -257,6 +261,7 @@ function ComboboxChip({
       {children}
       {showRemove && (
         <ComboboxPrimitive.ChipRemove
+          aria-label={t("autocomplete.retirer")}
           render={<Button variant="ghost" size="icon-xs" />}
           className="-ml-1 opacity-50 hover:opacity-100"
           data-slot="combobox-chip-remove"

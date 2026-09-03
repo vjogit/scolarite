@@ -33,7 +33,8 @@
   "autocomplete": {
     "ouvrir": "Ouvrir la liste",
     "fermer": "Fermer la liste",
-    "effacer": "Effacer"
+    "effacer": "Effacer",
+    "retirer": "Retirer"
   },
   "roleGuard": {
     "accesNonAutorise": "Accès non autorisé"

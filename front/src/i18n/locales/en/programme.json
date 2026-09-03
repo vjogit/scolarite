@@ -36,6 +36,7 @@
     "aucuneReservationASupprimer": "No booking to delete.",
     "conflitIntervenant": "{{nom}} is already busy from {{debut}} to {{fin}}",
     "conflitSalle": "Room {{nom}} is already booked from {{debut}} to {{fin}}",
-    "conflitGroupe": "Group {{nom}} is already scheduled from {{debut}} to {{fin}}"
+    "conflitGroupe": "Group {{nom}} is already scheduled from {{debut}} to {{fin}}",
+    "aucuneOption": "No options"
   }
 }

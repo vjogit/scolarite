@@ -33,7 +33,8 @@
   "autocomplete": {
     "ouvrir": "Open",
     "fermer": "Close",
-    "effacer": "Clear"
+    "effacer": "Clear",
+    "retirer": "Remove"
   },
   "roleGuard": {
     "accesNonAutorise": "Access denied"

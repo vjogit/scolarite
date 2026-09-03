@@ -19,6 +19,7 @@ import { Field, FieldError, FieldLabel } from '../components/ui/field';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
+import { Checkbox } from '../components/ui/checkbox';
 import { Switch } from '../components/ui/switch';
 import { cn } from '../lib/utils';
 import type { PropsChampBase } from './ChampTexte';
@@ -104,6 +105,43 @@ export function ChampInterrupteur<D extends FieldValues>({
     return (
         <Field orientation="horizontal" data-invalid={estInvalide} className={cn('mb-4', className)}>
             <Switch
+                id={id}
+                name={name}
+                inputRef={refChamp}
+                checked={valeurChamp === true}
+                onCheckedChange={(coche) => { onChange(coche); }}
+                onBlur={onBlur}
+                disabled={disabled}
+                aria-invalid={estInvalide ? true : undefined}
+                aria-describedby={estInvalide ? idErreur : undefined}
+            />
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
+        </Field>
+    );
+}
+
+export type PropsChampCase<D extends FieldValues> = PropsChampBase<D>;
+
+/**
+ * Un booléen en case à cocher (rôle `checkbox`), libellé à sa droite comme le
+ * `FormControlLabel` + `Checkbox` MUI. Cinquième champ du contrat, ajouté au
+ * lot 14 pour `ReservationDialog` (« Distanciel ») : l'interrupteur aurait
+ * changé le contrôle sous les yeux de l'utilisateur, et un écran n'a pas à
+ * recâbler une case à la main.
+ */
+export function ChampCase<D extends FieldValues>({
+    name, control, label, disabled, className,
+}: PropsChampCase<D>) {
+    const { field: { ref: refChamp, value: valeurChamp, onChange, onBlur }, fieldState } = useController({ name, control });
+    const id = useId();
+    const idErreur = `${id}-erreur`;
+    const erreur = fieldState.error?.message;
+    const estInvalide = erreur !== undefined;
+
+    return (
+        <Field orientation="horizontal" data-invalid={estInvalide} className={cn('mb-4', className)}>
+            <Checkbox
                 id={id}
                 name={name}
                 inputRef={refChamp}

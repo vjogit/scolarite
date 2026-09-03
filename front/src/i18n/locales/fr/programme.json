@@ -36,6 +36,7 @@
     "aucuneReservationASupprimer": "Aucune réservation à supprimer.",
     "conflitIntervenant": "{{nom}} est déjà occupé·e de {{debut}} à {{fin}}",
     "conflitSalle": "La salle {{nom}} est déjà réservée de {{debut}} à {{fin}}",
-    "conflitGroupe": "Le groupe {{nom}} est déjà planifié de {{debut}} à {{fin}}"
+    "conflitGroupe": "Le groupe {{nom}} est déjà planifié de {{debut}} à {{fin}}",
+    "aucuneOption": "Aucune option"
   }
 }
