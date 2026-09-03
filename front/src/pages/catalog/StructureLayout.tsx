@@ -223,7 +223,15 @@ export function StructureLayout() {
                     // hors panneau le ferment) ; le titre ne s'adresse qu'aux
                     // lecteurs d'écran.
                     <Sheet open={tiroirOuvert} onOpenChange={(ouvert) => { setTiroirOuvert(ouvert); }}>
-                        <SheetContent side="left" showCloseButton={false} className="w-80 gap-0 p-0 sm:max-w-80">
+                        {/* Les largeurs se posent sous la même variante `data-[side=left]`
+                            que celles du composant : un `w-80` nu perdrait face à leur
+                            sélecteur d'attribut, plus spécifique (constaté au navigateur :
+                            tiroir aux trois quarts de l'écran). */}
+                        <SheetContent
+                            side="left"
+                            showCloseButton={false}
+                            className="gap-0 p-0 data-[side=left]:w-80 data-[side=left]:sm:max-w-80"
+                        >
                             <SheetTitle className="sr-only">{tCatalog('structureLayout.arborescence')}</SheetTitle>
                             {arbre}
                         </SheetContent>

@@ -44,7 +44,11 @@ function ChampRoles({ control, disabled }: { control: Control<User>; disabled: b
     const estInvalide = erreur !== undefined;
 
     return (
-        <FieldSet disabled={disabled} data-invalid={estInvalide} className="mb-4 gap-2">
+        // `disabled:opacity-60` sur le groupe : la case Base UI est un <span>,
+        // `disabled:` n'y prend jamais — en consultation les cases paraissaient
+        // saisissables (constaté au navigateur). Le fieldset, lui, est un vrai
+        // contrôle désactivé.
+        <FieldSet disabled={disabled} data-invalid={estInvalide} className="mb-4 gap-2 disabled:opacity-60">
             <FieldLegend variant="label">{t('champs.roles')}</FieldLegend>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
                 {availableRoles(t).map((role) => (
