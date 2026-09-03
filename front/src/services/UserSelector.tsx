@@ -1,6 +1,6 @@
-import { useId, useState, useEffect } from 'react';
+import { useId, useState, useEffect, useMemo } from 'react';
 import type { Control, FieldErrors, FieldValues, Path, PathValue, UseFormGetValues, UseFormSetValue } from 'react-hook-form';
-import  { Controller  } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +42,11 @@ interface FormFields extends FieldValues {
 interface UserSelectorProps<T extends FormFields> {
     control: Control<T>;
     errors: FieldErrors<T>;
+    /**
+     * Plus lu depuis le lot 14 (la sélection vient de `useWatch`), mais
+     * gardé dans la signature : cinq écrans le passent, dont trois hors de
+     * ce lot. À retirer avec eux.
+     */
     getValues: UseFormGetValues<T>;
     setValue: UseFormSetValue<T>;
     isReadOnly?: boolean;
@@ -58,37 +63,53 @@ interface UserSelectorProps<T extends FormFields> {
 export const UserSelector = <T extends FormFields>({
     control,
     errors,
-    getValues,
     setValue,
     isReadOnly = false,
     onChoisir,
 }: UserSelectorProps<T>) => {
     const { t } = useTranslation('app');
     const idChamp = useId();
-    const [inputValue, setInputValue] = useState('');
-    const [debouncedInputValue, setDebouncedInputValue] = useState('');
-    const [selectedUser, setSelectedUser] = useState<UserOption | null>(() => {
-        const id = getValues('user_id' as Path<T>);
-        const firstName = getValues('firstName' as Path<T>);
-        const lastName = getValues('lastName' as Path<T>);
-        if (id && firstName && lastName) {
-            return { id: id as number, firstName, lastName };
-        }
-        return null;
-    });
+    // Le texte tapé, pour la recherche serveur seulement : le champ lui-même
+    // n'est plus contrôlé (voir le commentaire du `Combobox`).
+    const [recherche, setRecherche] = useState('');
+    const [rechercheDifferee, setRechercheDifferee] = useState('');
+
+    /**
+     * La sélection est LUE dans le formulaire, pas recopiée dans un état.
+     *
+     * Constaté au navigateur (lot 13 §9) : en édition, le champ s'ouvrait
+     * vide alors qu'un élève était bien sélectionné — un `useState('')` pour
+     * le texte du champ, à côté d'un `selectedUser` reconstruit une fois au
+     * montage depuis `getValues`. Deux états locaux, deux occasions de
+     * diverger du formulaire : à l'ouverture en édition (constaté), et à
+     * tout `reset` du parent (déduit par lecture : GroupeUserPage remet le
+     * formulaire à vide après un ajout, l'ancien état gardait l'élève ajouté
+     * sous les yeux de l'utilisateur).
+     * `useWatch` suit le formulaire dans les deux sens, et l'objet est
+     * mémorisé sur ses trois valeurs : Base UI compare `value` par référence
+     * pour décider de resynchroniser le texte du champ.
+     */
+    const valeurs = useWatch({ control });
+    const { user_id: idEleve, firstName: prenom, lastName: nom } = valeurs;
+    const eleveChoisi = useMemo<UserOption | null>(
+        () => (typeof idEleve === 'number' && typeof prenom === 'string' && typeof nom === 'string' && prenom && nom
+            ? { id: idEleve, firstName: prenom, lastName: nom }
+            : null),
+        [idEleve, prenom, nom],
+    );
 
     useEffect(() => {
         const handler = setTimeout(() => {
-            setDebouncedInputValue(inputValue);
+            setRechercheDifferee(recherche);
         }, 500);
         return () => { clearTimeout(handler); };
-    }, [inputValue]);
+    }, [recherche]);
 
     const { data: users, isLoading } = useQuery({
-        queryKey: ['users', debouncedInputValue],
+        queryKey: ['users', rechercheDifferee],
         queryFn: async () => {
-            if (!debouncedInputValue) return [];
-            const params = new URLSearchParams({ q: debouncedInputValue });
+            if (!rechercheDifferee) return [];
+            const params = new URLSearchParams({ q: rechercheDifferee });
             const res = await apiInstance.get<UserOption[]>(`/api/v0/user/search?${params.toString()}`);
             return res.data;
         },
@@ -103,7 +124,7 @@ export const UserSelector = <T extends FormFields>({
                 <Label htmlFor={idChamp}>{t('userSelector.champEleve')}</Label>
                 <Input
                     id={idChamp}
-                    value={`${String(getValues('lastName' as Path<T>) ?? '')} ${String(getValues('firstName' as Path<T>) ?? '')}`.trim()}
+                    value={eleveChoisi ? libelleOption(eleveChoisi) : ''}
                     disabled
                     readOnly
                 />
@@ -122,14 +143,17 @@ export const UserSelector = <T extends FormFields>({
                     filter={null}
                     itemToStringLabel={libelleOption}
                     isItemEqualToValue={(a, b) => a.id === b.id}
-                    value={selectedUser}
-                    inputValue={inputValue}
-                    onInputValueChange={(valeur) => { setInputValue(valeur); }}
+                    value={eleveChoisi}
+                    // `inputValue` volontairement non contrôlé : en mode
+                    // simple, Base UI affiche le libellé de `value` au montage
+                    // et le resynchronise à chaque changement de `value` —
+                    // c'est ce qui remplit le champ en édition et le vide
+                    // après un `reset`. On ne fait qu'écouter la frappe.
+                    onInputValueChange={(valeur) => { setRecherche(valeur); }}
                     onValueChange={(newValue) => {
                         field.onChange(newValue?.id ?? null);
                         setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
                         setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
-                        setSelectedUser(newValue);
                         onChoisir?.(newValue);
                     }}
                 >
