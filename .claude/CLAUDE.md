@@ -10,9 +10,10 @@ Application réservée au personnel administratif. Pas encore en production.
   (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/`),
   Docker Compose + nginx (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
-  `any`), MUI v7 + x-tree-view + x-date-pickers (tables sur le socle
-  `DataTable` — TanStack Table rendu en shadcn ; material-react-table
-  **déposé**, lot 11),
+  `any`), MUI v7 (tables sur le socle `DataTable` — TanStack Table rendu en
+  shadcn ; material-react-table **déposé**, lot 11 ; x-date-pickers et
+  x-tree-view **déposés**, lot 12 — dates via `services/ChampDate.tsx` +
+  react-day-picker, arbre de la structure écrit à la main),
   shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
   `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
   API impérative, durées centralisées), Toolpad **sorti** (lot 3,
@@ -243,8 +244,28 @@ Application réservée au personnel administratif. Pas encore en production.
 
 ## Pièges connus du code
 
-- `isDirty` de react-hook-form se parasite avec les `DatePicker`/dayjs —
+- `isDirty` de react-hook-form se parasite avec les champs de date/dayjs —
   normaliser les valeurs par défaut (précédent traité dans `Form.tsx`).
+- **Tout champ de date de formulaire passe par `ChampDate`/`ChampDateHeure`**
+  (`services/ChampDate.tsx`, lot 12) — jamais un `dayjs(field.value)` direct
+  dans un écran. Le composant porte les deux gardes qui ont chacun mordu :
+  `dayjs(undefined)` rend l'heure courante (un formulaire de création
+  s'ouvrirait pré-rempli à aujourd'hui), et **en édition la valeur est une
+  chaîne ISO**, pas un `Date` — react-hook-form est `reset` avec la réponse
+  brute de l'API, `z.coerce.date` ne joue qu'à la soumission ; `getTime()`
+  sur cette chaîne a fait tomber tout l'écran de détail (constaté au
+  navigateur, lot 12). Saisie invalide → `Date` invalide transmis, refusé
+  par les schémas zod : ne pas court-circuiter ce circuit d'erreur. Depuis
+  une **modale MUI**, passer `conteneurPopup` (ref d'un nœud de la modale) :
+  son piège à focus ferme sitôt ouvert tout popup portalé vers `<body>`
+  (précédent : `ReservationDialog`).
+- **L'arbre de la structure (`ArbreStructure.tsx`) est écrit à la main** et
+  quatre fichiers e2e dépendent de son balisage exact : `ul role="tree"`,
+  `li role="treeitem"` + `aria-expanded`, enfants en `ul role="group"`, et
+  la sélection dite par **`aria-checked`** (le choix MUI historique,
+  affirmé par `navigation.spec.ts` — pas `aria-selected`). Aucun élément
+  focalisable dans un nœud (tabindex tournant) ; clavier par délégation sur
+  la racine. Toute évolution préserve ce contrat tel quel.
 - **`Checkbox.Root` de Base UI rend un `<span>`, inline par défaut** : sans
   le `inline-flex` posé dans `components/ui/checkbox.tsx`, `size-4` est
   ignoré et la case s'écrase à la largeur de sa bordure — rôle et clic
