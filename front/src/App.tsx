@@ -8,8 +8,8 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 // La locale FR de dayjs et son choix par langue i18next vivent désormais dans
 // `services/ChampDate.tsx`, seul endroit qui formate des dates localisées —
-// le rôle que jouait le `LocalizationProvider` (adapterLocale) retiré au
-// lot 12 avec @mui/x-date-pickers.
+// le rôle que jouait le `LocalizationProvider` (adapterLocale), retiré au
+// lot 12 avec la dépose des pickers MUI.
 import { setupAxiosInterceptors } from './services/api';
 import { ContexteHierarchieProvider } from './services/context/ContexteProvider';
 

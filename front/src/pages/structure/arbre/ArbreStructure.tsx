@@ -15,7 +15,8 @@
  * `treeitem` casserait le tabindex tournant, et l'arbre cesserait d'être
  * parcourable au clavier. Les actions sont dans le bandeau du panneau.
  *
- * Depuis le lot 12, l'arbre est écrit ici même — @mui/x-tree-view est déposé.
+ * Depuis le lot 12, l'arbre est écrit ici même — le paquet d'arbre MUI (x)
+ * est déposé.
  * Le balisage reproduit celui que MUI rendait, parce que quatre fichiers e2e
  * s'y appuient (corbeille, navigation, hierarchieE2E) :
  *  - `ul role="tree"` porteur de l'aria-label ;
