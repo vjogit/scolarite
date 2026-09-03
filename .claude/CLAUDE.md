@@ -15,7 +15,8 @@ Application réservée au personnel administratif. Pas encore en production.
   x-tree-view **déposés**, lot 12 — dates via `services/ChampDate.tsx` +
   react-day-picker, arbre de la structure écrit à la main),
   champs de formulaire partagés — `services/ChampTexte.tsx`,
-  `services/ChampChoix.tsx`, lot 13 — sur `components/ui/field.tsx`),
+  `services/ChampChoix.tsx`, lot 13, `ChampCase` ajouté au lot 14 — sur
+  `components/ui/field.tsx`),
   shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
   `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
   API impérative, durées centralisées), Toolpad **sorti** (lot 3,
@@ -263,8 +264,14 @@ Application réservée au personnel administratif. Pas encore en production.
   (précédent : `ReservationDialog`).
 - **Tout champ de formulaire passe par les champs partagés** (lot 13) :
   `ChampTexte`/`ChampNombre` (`services/ChampTexte.tsx`),
-  `ChampSelection`/`ChampInterrupteur` (`services/ChampChoix.tsx`), et
-  `ChampDate` pour les dates. Un écran ne leur passe que `name`, `control`,
+  `ChampSelection`/`ChampInterrupteur`/`ChampCase` (`services/ChampChoix.tsx`),
+  et `ChampDate` pour les dates. **Ils supposent react-hook-form** : un
+  écran qui porte son formulaire en `useState` y passe d'abord (précédent
+  `ReservationDialog`, lot 14 — `useForm` à `defaultValues` calculés au
+  montage, formulaire monté dans le popup, plus d'initialisation sur
+  transition). `ChampSelection` travaille en **chaînes** : un identifiant
+  numérique se convertit à la soumission. Le choix multiple n'est pas dans
+  le contrat (combobox à chips local à `ReservationDialog`). Un écran ne leur passe que `name`, `control`,
   `label` et `disabled={isReadOnly}` : le câblage react-hook-form
   (`useController`), l'erreur (`aria-invalid` + message sous le champ) et
   l'état désactivé vivent dans le composant — jamais de `register(...)`
@@ -285,6 +292,13 @@ Application réservée au personnel administratif. Pas encore en production.
   **sous un autre nom** (`ref: refChamp`) — sinon le lint tient tout
   l'objet pour une ref et refuse d'en lire `.value` pendant le rendu
   (constaté au lot 13).
+- **`UserSelector` lit sa sélection dans le formulaire** (`useWatch`, objet
+  mémorisé sur ses trois valeurs) et laisse Base UI dériver le texte du
+  champ de `value` (`inputValue` non contrôlé) — lot 14. Deux états locaux
+  recopiés du formulaire s'en désynchronisaient (champ vide en édition,
+  élève fantôme après un `reset` du parent). Base UI compare `value` **par
+  référence** pour resynchroniser le texte : un objet reconstruit à chaque
+  rendu rendrait le champ insaisissable.
 - **L'arbre de la structure (`ArbreStructure.tsx`) est écrit à la main** et
   quatre fichiers e2e dépendent de son balisage exact : `ul role="tree"`,
   `li role="treeitem"` + `aria-expanded`, enfants en `ul role="group"`, et
@@ -346,6 +360,28 @@ Application réservée au personnel administratif. Pas encore en production.
   restent accessibles. Précédent : `BarreWorkflows` (lot 5), réglé par un
   dégagement `py-1` sur la racine `Tabs` ; tout futur usage de ces onglets
   dans un conteneur défilant doit prévoir le même dégagement.
+- **Une modale shadcn ne borne pas sa hauteur** : `DialogContent` ne fait
+  pas défiler son contenu, là où la modale MUI faisait défiler son
+  `DialogContent` sous un titre et des actions fixes. Un formulaire long y
+  déborde de l'écran, titre et bouton de soumission hors de vue — invisible
+  des tests (rôles et textes restent accessibles), constaté au navigateur
+  (lot 14, `ReservationDialog`). Le motif : `max-h-[calc(100vh-4rem)]` +
+  `grid-rows-[auto_minmax(0,1fr)_auto]` sur `DialogContent`, corps en
+  `overflow-y-auto` avec marge interne compensée (anneau de focus, libellé
+  flottant des `ChampDate` MUI). Tout popup ouvert depuis ce corps se
+  portalise vers `<body>` — la modale Base UI reconnaît ses popups
+  (sélection, combobox, calendrier) —, sinon le défilement le rogne : le
+  `conteneurPopup` de `ChampDate` ne sert que sous une modale **MUI**.
+- **FullCalendar injecte sa feuille de style à l'exécution, hors couche**
+  (`<style data-fullcalendar>` inséré avant la feuille du projet, variables
+  `--fc-*` déclarées sur `:root`). Son habillage vit dans `index.css` sous
+  `.fc { --fc-…: var(--token) }` (lot 14, bloc `components`) : une variable
+  déclarée **sur l'élément** prime sur celle héritée de `:root`, quelle que
+  soit la couche — c'est ce qui laisse l'invariant 11 intact. Ne jamais
+  redéclarer ces variables sur `:root` (perdant face au style injecté) ni
+  poser un utilitaire Tailwind sur un élément `.fc-*` (toute règle
+  FullCalendar hors couche bat une règle en couche). Les valeurs sont des
+  références aux tokens : `.dark` n'a rien à redéclarer.
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
@@ -372,6 +408,9 @@ Application réservée au personnel administratif. Pas encore en production.
   depuis la dépose de MRT (lot 11). Ne sert plus depuis le lot 4 ; se retire
   à la dépose finale de MUI, où elle servira une dernière fois à vérifier
   qu'aucun style MUI ne subsiste.
+- **`composantsTraduits`** (`layouts/dashboard.tsx`) : trois `Autocomplete`
+  MUI restants, tous dans `pages/note/` (`NoteEleveAxe`, `GrilleNotes`,
+  `FicheExportModal`) ; le mécanisme tombe avec eux, d'un geste.
 - **Montée MUI v9** — déverrouillée par la sortie de Toolpad (lot 3, qui
   épinglait MUI v7) ; non entamée.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
