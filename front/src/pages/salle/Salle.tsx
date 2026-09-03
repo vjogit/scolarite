@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
-import { MenuItem, TextField } from '@mui/material';
 import { useMemo } from 'react';
 import { Crud } from '../../services/crud/Crud';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampSelection } from '../../services/ChampChoix';
 import { ENDPOINT_SALLE, SALLE, typeSalleOptions } from './def';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
@@ -24,76 +24,25 @@ const salleSchema = z.object({
 
 export type Salle = z.infer<typeof salleSchema>;
 
-const SalleFields = ({ register, control, errors, isReadOnly }: RenderProps<Salle>) => {
+// Premier écran passé aux champs partagés (lot 13) : `ChampNombre` remet un
+// nombre au schéma — la création échouait en validation du temps de
+// `register('capacite')` sans `valueAsNumber` (lot 7 §8).
+const SalleFields = ({ control, isReadOnly }: RenderProps<Salle>) => {
     const { t } = useTranslation('salle');
     return (
         <>
-            <TextField
-                {...register('name')}
-                label={t('champs.nom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register('capacite')}
-                label={t('champs.capacite')}
-                type="number"
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.capacite}
-                helperText={errors.capacite?.message}
-                sx={{ mb: 2 }}
-            />
-            <Controller
+            <ChampTexte name="name" control={control} label={t('champs.nom')} disabled={isReadOnly} />
+            <ChampNombre name="capacite" control={control} label={t('champs.capacite')} disabled={isReadOnly} min={0} />
+            <ChampSelection
                 name="type_salle"
                 control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        select
-                        label={t('champs.typeSalle')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.type_salle}
-                        helperText={errors.type_salle?.message}
-                        sx={{ mb: 2 }}
-                    >
-                        <MenuItem value=""><em>—</em></MenuItem>
-                        {typeSalleOptions(t).map((opt) => (
-                            <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
-                        ))}
-                    </TextField>
-                )}
-            />
-            <TextField
-                {...register('batiment')}
-                label={t('champs.batiment')}
-                variant="outlined"
-                fullWidth
+                label={t('champs.typeSalle')}
                 disabled={isReadOnly}
-                error={!!errors.batiment}
-                helperText={errors.batiment?.message}
-                sx={{ mb: 2 }}
+                options={typeSalleOptions(t)}
+                libelleVide="—"
             />
-            <TextField
-                {...register('equipement')}
-                label={t('champs.equipement')}
-                variant="outlined"
-                fullWidth
-                multiline
-                rows={2}
-                disabled={isReadOnly}
-                error={!!errors.equipement}
-                helperText={errors.equipement?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="batiment" control={control} label={t('champs.batiment')} disabled={isReadOnly} />
+            <ChampTexte name="equipement" control={control} label={t('champs.equipement')} disabled={isReadOnly} multiline rows={2} />
         </>
     );
 };
