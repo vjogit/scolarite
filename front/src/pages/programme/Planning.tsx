@@ -6,14 +6,17 @@ import type { DateSelectArg, EventClickArg, EventDropArg } from '@fullcalendar/c
 import frLocale from '@fullcalendar/core/locales/fr';
 import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router';
-import { Box, IconButton, Tooltip, Snackbar, Alert } from '@mui/material';
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { Palette, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import type { TFunction } from 'i18next';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { cn } from '../../lib/utils';
 import { apiInstance } from '../../services/api';
 import { useDroits } from '../../services/context/droits';
+import { notifyError } from '../../services/notify';
 import { Role } from '../user/def';
 import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
 import { ReservationDialog } from './ReservationDialog';
@@ -138,7 +141,6 @@ export function Planning() {
 
     const libelleCouleur = colorMode === 'type' ? t('planning.couleurParMatiere') : t('planning.couleurParType');
     const libelleHeures = panelOpen ? t('planning.masquerHeures') : t('planning.afficherHeures');
-    const [conflictMsg, setConflictMsg] = useState<string | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
     const [editReservation, setEditReservation] = useState<ReservationDetail | null>(null);
@@ -168,7 +170,9 @@ export function Planning() {
                 msg += t('planning.creneauExistant', { debut: dayjs(match[1]).format('HH:mm'), fin: dayjs(match[2]).format('HH:mm') });
             }
         }
-        setConflictMsg(msg);
+        // Le `Snackbar` MUI qui portait ce message est remplacé par la
+        // notification applicative (sonner, durée d'erreur centralisée).
+        notifyError(msg);
     }, [t]);
 
     /**
@@ -201,10 +205,10 @@ export function Planning() {
 
     // ── Rendu ────────────────────────────────────────────────────────────────
     return (
-        <Box sx={{ height: '100%', display: 'flex', overflow: 'hidden' }}>
+        <div className="flex h-full overflow-hidden">
 
             {/* Calendrier */}
-            <Box sx={{ flex: 1, minWidth: 0, p: 2, display: 'flex', flexDirection: 'column' }}>
+            <div className="flex min-w-0 flex-1 flex-col p-4">
                 <FullCalendar
                     plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
                     initialView="timeGridWeek"
@@ -228,40 +232,55 @@ export function Planning() {
                     eventDrop={isEditMode ? deplacer : undefined}
                     eventResize={isEditMode ? deplacer : undefined}
                     eventContent={(info) => (
-                        <Box sx={{ fontSize: '0.75rem', overflow: 'hidden', px: 0.5, lineHeight: 1.3 }}>
+                        <div className="overflow-hidden px-1 text-xs leading-[1.3]">
                             <strong>{info.event.title}</strong>
                             {info.event.extendedProps.intervenantsLabel && (
                                 <div>{info.event.extendedProps.intervenantsLabel}</div>
                             )}
-                        </Box>
+                        </div>
                     )}
                 />
-            </Box>
+            </div>
 
             {/* Boutons toggle. Les deux libellés nomment l'action à venir, pas
-                l'état courant, et servent aussi de nom accessible. */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignSelf: 'flex-start', mt: 2, mr: panelOpen ? 0 : 1, gap: 0.5 }}>
-                <Tooltip title={libelleCouleur} placement="left">
-                    <IconButton
-                        aria-label={libelleCouleur}
-                        size="small"
-                        onClick={() => { setColorMode(m => m === 'type' ? 'matiere' : 'type'); }}
-                        color={colorMode === 'matiere' ? 'primary' : 'default'}
+                l'état courant, et servent aussi de nom accessible. Icônes
+                nues : la taille vient du `Button` shadcn (lot 6). */}
+            <div className={cn('mt-4 flex flex-col gap-1 self-start', !panelOpen && 'mr-2')}>
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={libelleCouleur}
+                                className={cn(colorMode === 'matiere' && 'text-primary')}
+                                onClick={() => { setColorMode(m => m === 'type' ? 'matiere' : 'type'); }}
+                            />
+                        )}
                     >
                         <Palette />
-                    </IconButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">{libelleCouleur}</TooltipContent>
                 </Tooltip>
-                <Tooltip title={libelleHeures} placement="left">
-                    <IconButton
-                        aria-label={libelleHeures}
-                        aria-expanded={panelOpen}
-                        size="small"
-                        onClick={() => { setPanelOpen(p => !p); }}
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={libelleHeures}
+                                aria-expanded={panelOpen}
+                                onClick={() => { setPanelOpen(p => !p); }}
+                            />
+                        )}
                     >
                         {panelOpen ? <PanelRightClose /> : <PanelRightOpen />}
-                    </IconButton>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">{libelleHeures}</TooltipContent>
                 </Tooltip>
-            </Box>
+            </div>
 
             {/* Panel heures */}
             {panelOpen && <HeuresPanel periodeId={periodeId ?? ''} />}
@@ -275,17 +294,6 @@ export function Planning() {
                 periodeId={periodeId ?? ''}
                 optionId={optionId ?? ''}
             />
-
-            <Snackbar
-                open={!!conflictMsg}
-                autoHideDuration={6000}
-                onClose={(_, reason) => { if (reason !== 'clickaway') setConflictMsg(null); }}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            >
-                <Alert severity="error" onClose={() => { setConflictMsg(null); }}>
-                    {conflictMsg}
-                </Alert>
-            </Snackbar>
-        </Box>
+        </div>
     );
 }
