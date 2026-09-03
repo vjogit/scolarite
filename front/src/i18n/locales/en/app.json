@@ -91,5 +91,10 @@
   },
   "filContexte": {
     "ariaLabel": "Breadcrumb"
+  },
+  "champDate": {
+    "ouvrirCalendrier": "Choose date",
+    "gabarit": "MM/DD/YYYY",
+    "heure": "Time"
   }
 }

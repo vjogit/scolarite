@@ -91,5 +91,10 @@
   },
   "filContexte": {
     "ariaLabel": "Fil d'Ariane"
+  },
+  "champDate": {
+    "ouvrirCalendrier": "Choisir une date",
+    "gabarit": "JJ/MM/AAAA",
+    "heure": "Heure"
   }
 }
