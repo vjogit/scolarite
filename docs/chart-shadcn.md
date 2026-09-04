@@ -303,7 +303,7 @@ le mécanisme occupait, les commentaires qui expliquent son absence et le
 | Lockfile | **+0 / −0 / 0 montée parasite** (`cmp` contre la copie d'avant-lot ; le CLI en avait fait +18/−5 avec une montée de recharts et un paquet `cn`, défaits) |
 | Bundle | neutre : +4,4 kB sur le fil, `recharts-libs` et `vendor` aux mêmes hachages (§7) |
 | Vérification à l'écran | §6 — quatorze scénarios, deux modes, deux langues, trois onglets, bascule modale ouverte |
-| Workflows GitHub sur la branche | voir la PR — complété après le premier run (§9 bis) |
+| Workflows GitHub sur la branche (PR #2, commit `5cf2c14`) | ✅ **quatre runs verts sur quatre** : `verification.yml` push 33876709848 et pull_request 33876768498, `e2e.yml` push 33876709748 et pull_request 33876768524 (43 tests fonctionnels contre la stack de l'exécuteur, captures écartées comme prévu par le lot CI) |
 
 Un run de plus, avant tout cela : la suite complète sur `main` après la
 fusion de `ci` (partie 1 de la commande), `make test-ihm` ✅ 63 (2,9 min)
