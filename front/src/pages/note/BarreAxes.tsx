@@ -13,9 +13,9 @@
  */
 
 import { useLocation, useNavigate } from 'react-router';
-import { Box, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
+import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
 import { AXES, axeDuChemin, axesDisponibles, cheminVersAxe } from './axes';
 
 export function BarreAxes() {
@@ -30,40 +30,35 @@ export function BarreAxes() {
     const courant = axeDuChemin(pathname);
 
     return (
-        <Box
-            sx={{
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                px: 2, py: 1, flexWrap: 'wrap',
-                borderBottom: 1, borderColor: 'divider',
-            }}
-        >
-            <Typography variant="body2" component="span" sx={{ color: 'text.secondary' }} id="libelle-axe-notes">
+        <div className="flex flex-wrap items-center gap-3 border-b px-4 py-2">
+            <span id="libelle-axe-notes" className="text-sm text-muted-foreground">
                 {t('barreAxes.axe')}
-            </Typography>
-            <ToggleButtonGroup
-                exclusive
-                size="small"
-                value={courant?.segment ?? null}
+            </span>
+            {/* Groupe à choix unique (`multiple` absent) : la même sémantique
+                que le `ToggleButtonGroup exclusive` MUI — un `div role="group"`
+                nommé par le libellé, des boutons `aria-pressed`. */}
+            <ToggleGroup
+                variant="outline"
+                size="sm"
+                spacing={0}
+                value={courant === null ? [] : [courant.segment]}
                 aria-labelledby="libelle-axe-notes"
-                onChange={(_, segment: string | null) => {
-                    // `exclusive` rend `null` quand on reclique l'axe actif :
+                onValueChange={(segments) => {
+                    // Recliquer l'axe actif le dépresse et rend une liste vide :
                     // il n'y a rien à faire, on y est déjà.
-                    if (segment === null) return;
+                    const segment = segments[0];
+                    if (segment === undefined) return;
                     const axe = AXES.find(candidat => candidat.segment === segment);
                     if (axe === undefined) return;
                     void navigate(cheminVersAxe(pathname, axe));
                 }}
             >
                 {AXES.map(axe => (
-                    <ToggleButton
-                        key={axe.segment}
-                        value={axe.segment}
-                        sx={{ textTransform: 'none' }}
-                    >
+                    <ToggleGroupItem key={axe.segment} value={axe.segment}>
                         {axe.libelle}
-                    </ToggleButton>
+                    </ToggleGroupItem>
                 ))}
-            </ToggleButtonGroup>
-        </Box>
+            </ToggleGroup>
+        </div>
     );
 }
