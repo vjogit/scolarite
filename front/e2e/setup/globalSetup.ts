@@ -1,9 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { RACINE_DEPOT, fichiersEnv } from './env';
 import verifierStack from './verifierStack';
-
-const RACINE_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 /**
  * Point d'entrée unique de la suite, quel que soit l'invocateur
@@ -17,16 +15,17 @@ const RACINE_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..'
  * grille-saisie.spec.ts) : sans re-seed, la suite n'est reproductible que
  * par accident. Voir docs/migration-shadcn/01bis-stabilisation-e2e.md pour
  * la démonstration.
+ *
+ * Les fichiers d'environnement viennent de `fichiersEnv()` (env.ts) : ceux
+ * du makefile quand il invoque la suite, ceux du poste sinon.
  */
 export default async function globalSetup(): Promise<void> {
     await verifierStack();
 
+    const { config, secrets } = fichiersEnv();
     execFileSync(
         resolve(RACINE_DEPOT, 'front/e2e/setup/seed.sh'),
-        [
-            resolve(RACINE_DEPOT, 'infra/env/config-local.env'),
-            resolve(RACINE_DEPOT, 'infra/env/secrets-local.env'),
-        ],
+        [config, secrets],
         { stdio: 'inherit' },
     );
 }

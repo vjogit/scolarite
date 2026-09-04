@@ -1,0 +1,219 @@
+# Suite Playwright (front/e2e) contre la stack complète, montée sur
+# l'exécuteur par la chaîne du projet elle-même — `make start-local-reset` :
+# PostgreSQL, Mailpit, Keycloak (realm appliqué par Terraform), Liquibase,
+# sqlc, puis les images backend et nginx construites depuis le commit testé.
+# Rien n'est monté « à la manière de la CI » : ce que la suite voit ici est ce
+# que `make start-local-keep` sert sur un poste, aux chemins près
+# (infra/env/config-ci.env).
+#
+# Ce que ce workflow respecte, et pourquoi (CLAUDE.md, section « Suite e2e ») :
+#   * une seule suite par base : un job, un exécuteur, `workers: 1` ; aucune
+#     matrice sur les specs — deux suites se contamineraient par le re-seed ;
+#   * `retries: 0` reste celui de playwright.config.ts — un test instable se
+#     corrige, ne se relance pas ; la CI n'y ajoute rien ;
+#   * la suite tourne contre le build du commit, jamais contre une image
+#     figée : l'exécuteur part vide, et le hash du script servi est relevé
+#     dans le résumé de l'exécution ;
+#   * les artefacts d'échec (test-results, rapport HTML, journaux des
+#     conteneurs) sont publiés à CHAQUE exécution, réussie ou non — un échec
+#     intermittent sans artefact est indiagnosticable (registre.spec.ts, lot 11).
+#
+# Les captures de référence (captures.spec.ts, captures-ouvertes.spec.ts,
+# 20 tests) sont ÉCARTÉES de la suite bloquante : générées sur un poste, elles
+# dépendent de ses polices et de son moteur de rendu. Elles se lancent à la
+# demande (workflow_dispatch, entrée `captures`), sans jamais décider du
+# verdict, et leurs diffs sont publiés. Voir docs/ci.md pour le sort des
+# captures et le chemin qui les rendrait portables.
+
+name: Suite e2e
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      captures:
+        description: "Exécuter aussi les 20 captures de référence (informatif, jamais bloquant)"
+        type: boolean
+        default: false
+
+# Un nouveau push sur une branche annule l'exécution précédente de cette
+# branche — chaque exécution a son exécuteur et sa base, ce n'est donc pas la
+# règle « jamais deux suites en parallèle » (qui vise une base partagée),
+# seulement l'économie d'un run devenu sans objet. Les lancements manuels
+# (workflow_dispatch) ont chacun leur groupe : deux lancements sur la même
+# branche s'annulaient l'un l'autre (constaté au lot CI, run 33871245144),
+# ce qui interdisait de rejouer la suite trois fois sur un même commit.
+concurrency:
+  group: e2e-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Les fichiers d'environnement de la CI, passés à make sur la ligne de
+  # commande (une variable de make définie dans le fichier l'emporterait sur
+  # l'environnement). config-ci.env est versionné ; secrets-ci.env est
+  # fabriqué ci-dessous, le temps du job.
+  FICHIERS_ENV: CONFIG_FILE_LOCAL=infra/env/config-ci.env SECRETS_FILE_LOCAL=infra/env/secrets-ci.env
+
+jobs:
+  e2e:
+    name: Suite Playwright (43 tests fonctionnels)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      # ── Outils de la chaîne make, aux versions du poste ──────────────────
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: back/go.mod
+          cache-dependency-path: back/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+      - uses: sqlc-dev/setup-sqlc@v5
+        with:
+          sqlc-version: '1.31.1'
+      # Sans wrapper : infra/keycloak/deploy.sh lit `terraform output -raw`,
+      # que le wrapper de l'action parasite en y ajoutant sa propre sortie.
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.14.2'
+          terraform_wrapper: false
+      - name: mkcert et Liquibase
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mkcert gettext-base
+          curl -fsSL -o /tmp/liquibase.tar.gz \
+            https://github.com/liquibase/liquibase/releases/download/v5.0.1/liquibase-5.0.1.tar.gz
+          mkdir -p "$HOME/liquibase"
+          tar -xzf /tmp/liquibase.tar.gz -C "$HOME/liquibase"
+          echo "$HOME/liquibase" >> "$GITHUB_PATH"
+          "$HOME/liquibase/liquibase" --version | tail -n 3
+
+      # ── Ce que le poste possède et que l'exécuteur n'a pas ───────────────
+      # Certificat nginx signé par une CA mkcert créée ici même : le backend
+      # conteneurisé vérifie l'issuer Keycloak (https://10.20.2.5:9021/auth)
+      # contre cette CA, que start-scolarite.sh dépose dans sa configuration
+      # (jamais d'InsecureSkipVerify) ; Playwright, lui, ignore les erreurs
+      # TLS (playwright.config.ts). Même commande que build-scolarite.sh.
+      - name: Certificat nginx (mkcert)
+        run: |
+          mkdir -p infra/run/build/ssl
+          mkcert -key-file infra/run/build/ssl/nginx.key -cert-file infra/run/build/ssl/nginx.crt 10.20.2.5
+
+      # Les secrets de la CI n'en sont pas : ils protègent une base et un
+      # Keycloak qui vivent le temps du job, sur un exécuteur inaccessible
+      # de l'extérieur. Valeurs aléatoires, jamais stockées, jamais
+      # réutilisées — ni secret GitHub à gérer, ni mot de passe du poste
+      # recopié ici. KC_BACKEND_CLIENT_SECRET reste vide : deploy.sh l'écrit
+      # après l'apply Terraform, comme sur le poste.
+      - name: Secrets jetables (secrets-ci.env)
+        run: |
+          cp infra/env/secrets.env.example infra/env/secrets-ci.env
+          for cle in POSTGRES_PASSWORD SCOLARITE_PASSWORD KC_DB_PASSWORD KEYCLOAK_ADMIN_PASSWORD \
+                     KC_BOOTSTRAP_USER_PASSWORD TEST_CONSULTATION_USER_PASSWORD TEST_NOTES_ECRITURE_USER_PASSWORD; do
+            sed -i "s|^$cle=$|$cle=$(openssl rand -hex 16)|" infra/env/secrets-ci.env
+          done
+          grep -c '=.\+' infra/env/secrets-ci.env | xargs echo "secrets renseignés :"
+
+      # config-ci.env est le jumeau de config-local.env : une variable ajoutée
+      # à l'un sans l'autre serait remplacée par une chaîne vide, sans message.
+      - name: config-ci.env déclare les mêmes variables que config-local.env
+        run: |
+          diff <(grep -o '^[A-Z_]*=' infra/env/config-local.env | sort) \
+               <(grep -o '^[A-Z_]*=' infra/env/config-ci.env | sort)
+
+      # ── La stack, par la chaîne du projet ────────────────────────────────
+      - name: Stack complète (make start-local-reset)
+        run: |
+          debut=$SECONDS
+          make $FICHIERS_ENV start-local-reset
+          echo "- stack montée en $((SECONDS - debut)) s" >> "$GITHUB_STEP_SUMMARY"
+
+      # Preuve que la suite va tourner contre le build de ce commit (parade
+      # du lot 12 : le lot 11 avait validé deux runs contre un nginx vieux de
+      # trois heures) : hash du script servi et date de construction des
+      # images, dans le résumé de l'exécution.
+      - name: L'application répond — build servi
+        run: |
+          code=000
+          for _ in $(seq 1 30); do
+            code=$(curl -ks -o /dev/null -w '%{http_code}' https://10.20.2.5:9021/ || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          if [ "$code" != "200" ]; then
+            echo "::error title=Stack injoignable::nginx répond $code sur https://10.20.2.5:9021/"
+            docker ps --all
+            docker logs scolarite-backend 2>&1 | tail -n 50
+            exit 1
+          fi
+          script=$(curl -ks https://10.20.2.5:9021/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -n 1)
+          {
+            echo "## Build testé"
+            echo "- commit \`$(git rev-parse HEAD)\`"
+            echo "- script servi \`$script\`"
+            echo "- image nginx construite le $(docker image inspect scolarite-nginx --format '{{.Created}}')"
+            echo "- image backend construite le $(docker image inspect scolarite-backend --format '{{.Created}}')"
+          } >> "$GITHUB_STEP_SUMMARY"
+          docker logs scolarite-backend 2>&1 | grep -i "version" | head -n 2
+
+      - name: Navigateur Playwright
+        working-directory: front
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      # ── La suite ─────────────────────────────────────────────────────────
+      # Par la cible du makefile, comme sur le poste. `--grep-invert captures`
+      # écarte captures.spec.ts et captures-ouvertes.spec.ts (le motif est
+      # confronté au chemin du fichier) : 43 tests sur 63.
+      - name: Suite fonctionnelle (make test-ihm, sans captures)
+        run: |
+          debut=$SECONDS
+          statut=0
+          make $FICHIERS_ENV test-ihm PLAYWRIGHT_ARGS="--grep-invert captures" || statut=$?
+          echo "- suite fonctionnelle : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
+          exit $statut
+
+      # À la demande seulement, et jamais décisif : les références ont été
+      # générées sur un poste. Le rapport et les résultats de la suite
+      # fonctionnelle sont mis de côté pour que les deux jeux d'artefacts
+      # coexistent.
+      - name: Captures de référence (informatif, non bloquant)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.captures }}
+        continue-on-error: true
+        run: |
+          [ -d front/playwright-report ] && mv front/playwright-report front/playwright-report-fonctionnel
+          [ -d front/test-results ] && mv front/test-results front/test-results-fonctionnel
+          debut=$SECONDS
+          statut=0
+          make $FICHIERS_ENV test-ihm PLAYWRIGHT_ARGS="captures.spec.ts captures-ouvertes.spec.ts" || statut=$?
+          echo "- captures (informatif) : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
+          exit $statut
+
+      # ── Artefacts, à chaque exécution ────────────────────────────────────
+      - name: Journaux des conteneurs
+        if: always()
+        run: |
+          mkdir -p journaux
+          for conteneur in scolarite-backend scolarite-nginx keycloak-3 postgres-16.10-alpine mailpit; do
+            docker logs "$conteneur" > "journaux/$conteneur.log" 2>&1 || true
+          done
+          docker ps --all > journaux/docker-ps.txt
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-${{ github.run_number }}-tentative-${{ github.run_attempt }}
+          path: |
+            front/test-results/
+            front/test-results-fonctionnel/
+            front/playwright-report/
+            front/playwright-report-fonctionnel/
+            journaux/
+          if-no-files-found: warn
+          retention-days: 14

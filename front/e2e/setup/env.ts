@@ -2,7 +2,30 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const RACINE_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+export const RACINE_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
+
+/**
+ * Les deux fichiers d'environnement que la suite lit — les mêmes que le
+ * makefile. `make test-ihm` exporte `CONFIG_FILE_LOCAL` et
+ * `SECRETS_FILE_LOCAL` (chemins relatifs à la racine du dépôt, `export`
+ * global de makefile.local) ; un `npx playwright test` lancé directement,
+ * sans ces variables, retombe sur les fichiers du poste. Une seule
+ * résolution, pour le seed (`globalSetup.ts`) comme pour les comptes
+ * (`chargerEnvLocal`) : avant ce point, les deux chemins étaient codés ici en
+ * dur là où le makefile passait par ses variables — divergence relevée au
+ * lot 5, que la CI aurait dû contourner (elle passe `config-ci.env` et
+ * `secrets-ci.env` par ces mêmes variables, voir `.github/workflows/e2e.yml`).
+ */
+export function fichiersEnv(): { readonly config: string; readonly secrets: string } {
+    const depuisEnv = (variable: string, defaut: string): string => {
+        const valeur = process.env[variable];
+        return valeur !== undefined && valeur !== '' ? valeur : defaut;
+    };
+    return {
+        config: resolve(RACINE_DEPOT, depuisEnv('CONFIG_FILE_LOCAL', 'infra/env/config-local.env')),
+        secrets: resolve(RACINE_DEPOT, depuisEnv('SECRETS_FILE_LOCAL', 'infra/env/secrets-local.env')),
+    };
+}
 
 /**
  * Lit un fichier `infra/env/*.env` : lignes `CLE=valeur`, commentaires `#` et
@@ -39,8 +62,9 @@ export interface EnvLocal {
  * sont les mêmes fichiers qui alimentent le module Terraform.
  */
 export function chargerEnvLocal(): EnvLocal {
-    const config = lireEnv(resolve(RACINE_DEPOT, 'infra/env/config-local.env'));
-    const secrets = lireEnv(resolve(RACINE_DEPOT, 'infra/env/secrets-local.env'));
+    const fichiers = fichiersEnv();
+    const config = lireEnv(fichiers.config);
+    const secrets = lireEnv(fichiers.secrets);
 
     const requis = (cle: string, source: Record<string, string>): string => {
         const valeur = source[cle];

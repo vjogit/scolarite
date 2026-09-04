@@ -18,8 +18,15 @@ esac
 
 # Configuration scindée en deux : la topologie (versionnée) et les secrets.
 # Voir infra/env/README.md.
-CONFIG_FILE="$PROJECT_ROOT/infra/env/config-$ENV_NAME.env"
-SECRETS_FILE="$PROJECT_ROOT/infra/env/secrets-$ENV_NAME.env"
+#
+# Par défaut, les fichiers de l'espace de travail (config-<env>.env,
+# secrets-<env>.env). makefile.local les passe explicitement — CONFIG_FILE et
+# SECRETS_FILE, les noms que compose.yaml consomme déjà —, ce qui laisse la CI
+# substituer config-ci.env sans changer d'espace de travail : l'exécuteur
+# GitHub est un poste « local » à d'autres chemins (voir infra/env/config-ci.env),
+# et ce script dérivait les noms de fichiers en parallèle du makefile.
+CONFIG_FILE="${CONFIG_FILE:-$PROJECT_ROOT/infra/env/config-$ENV_NAME.env}"
+SECRETS_FILE="${SECRETS_FILE:-$PROJECT_ROOT/infra/env/secrets-$ENV_NAME.env}"
 
 # Source unique du config.yaml, partagée avec le lancement hors conteneur.
 CONFIG_TEMPLATE="$PROJECT_ROOT/back/cmd/serveur/config.yaml"
