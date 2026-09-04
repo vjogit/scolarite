@@ -10,31 +10,27 @@ Application réservée au personnel administratif. Pas encore en production.
   (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/`),
   Docker Compose + nginx (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
-  `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`).
+  `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`) — le
+  seul système de composants ; aucun moteur CSS-in-JS. Une seule feuille de
+  style, `src/index.css` (tokens dérivés de la palette MUI d'origine, voir
+  `docs/migration-shadcn/02-tokens.md`).
   - Tables : socle `DataTable` (TanStack Table), `services/crud/`.
   - Formulaires : champs partagés `services/Champ*.tsx` sur
     `components/ui/field.tsx` — texte, nombre, sélection, interrupteur,
-    case, date. Un écran ne câble pas react-hook-form lui-même.
-  - Dates : react-day-picker via `services/ChampDate.tsx`.
+    case, date (`ChampDate`/`ChampDateHeure`, react-day-picker dans un
+    `Popover`). Un écran ne câble pas react-hook-form lui-même.
+  - Mode clair/sombre : `services/modeCouleur.ts` (`useModeCouleur`), la
+    seule source (invariant 12).
   - Arbre de la structure : écrit à la main (`pages/structure/arbre/`).
   - Notifications : sonner, derrière `services/notify.ts` (API impérative,
     durées centralisées).
   - Shell : sidebar + menu de compte, `layouts/dashboard.tsx`.
-  - **MUI résiduel** : plus aucun écran applicatif (le workflow note est
-    passé au lot 16). Il reste **cinq fichiers d'infrastructure de
-    cohabitation**, tous du lot 17 (la dépose finale) : `App.tsx`
-    (`ThemeProvider` racine, `cssVariables` + `colorSchemes`), `main.tsx`
-    (`StyledEngineProvider` + `GlobalStyles` de l'invariant 11,
-    `CssBaseline`), `layouts/dashboard.tsx` (`createTheme` ×2,
-    `useColorScheme`/`useMediaQuery` de l'invariant 12, `composantsTraduits`
-    sans consommateur), `services/ChampDate.tsx` (`TextField` MUI sous
-    react-day-picker), `pages/_cohabitation/Cohabitation.tsx` (page témoin) —
-    plus la couche `mui` d'`index.css`. **Ne pas en ajouter.** Tout nouveau
-    composant se fait en shadcn/Base UI.
   - TanStack Query, react-router 7 (`createBrowserRouter`),
     **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
     ajoutée l'est dans les deux langues).
-  - L'historique de la migration MUI → shadcn est dans
+  - **MUI et Emotion sont partis** (dix-sept lots, terminés au lot 17) :
+    aucun import `@mui/*` ni `@emotion/*` ne doit revenir, ni dans `src/`,
+    ni dans `package.json`. L'historique de la migration est dans
     `docs/migration-shadcn/`, un document par lot. Ne pas le dupliquer ici.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
@@ -81,49 +77,42 @@ Application réservée au personnel administratif. Pas encore en production.
     local/prod passe par `config.yaml` typé (`services/config.go`) +
     `infra/env/`. Le spécifique-développement est marqué comme tel (Mailpit,
     seed bootstrap, TSA de dev, comptes e2e).
-11. **L'ordre des couches CSS est gelé, et fragile.** `front/src/index.css`
-    ouvre sur `@layer theme, base, mui, components, utilities;` — cette
-    ligne doit rester la toute première du fichier, avant `@import
-    "tailwindcss"`. En CSS, une règle hors couche l'emporte toujours sur une
-    règle en couche : sans cet ordre, MUI (couche `mui`, activée par
-    `enableCssLayer` sur `StyledEngineProvider`, `front/src/main.tsx`)
-    écraserait silencieusement les utilitaires Tailwind et shadcn. **Cette
-    déclaration CSS ne suffit pas à elle seule** : `main.tsx` pose aussi
-    `<GlobalStyles styles="@layer theme, base, mui, components, utilities;"
-    />` comme tout premier enfant de `StyledEngineProvider`, avant tout
-    autre composant MUI. Sans lui, une course s'installe entre le
-    chargement réseau d'`index.css` et l'injection synchrone des styles
-    globaux d'Emotion (`CssBaseline`) au premier rendu ; si Emotion gagne,
-    `mui` s'enregistre en première position (perdant face à `base`) et
-    **toute l'application perd son apparence MUI** (boutons et champs sans
-    fond, sans marge — pas une régression cosmétique isolée, une casse
-    globale silencieuse, invisible aux tests e2e qui ne vérifient que rôles
-    et texte accessibles). Voir `docs/migration-shadcn/01-cohabitation.md`
-    §2 pour le diagnostic complet. Quiconque — humain ou agent — touche au
-    CSS global doit garder ces deux déclarations synchronisées et en tête
-    d'arbre.
-12. **Le mode sombre a une source unique : MUI.** `layouts/dashboard.tsx`
-    résout `estSombre` (thème choisi + `prefers-color-scheme` en cas de
-    `'system'`, via `useColorScheme()`/`useMediaQuery`) et pose la classe
-    `.dark` sur `<html>` en conséquence — c'est le seul endroit qui décide.
-    Tailwind/shadcn n'ont **aucune** logique de résolution à eux : ils
-    suivent la classe (`@custom-variant dark (&:is(.dark *))`,
-    `front/src/index.css`). Ne jamais dupliquer cette résolution ailleurs
-    (un second `useMediaQuery('(prefers-color-scheme: dark)')`, une lecture
-    directe de `localStorage`, etc.) : deux sources désynchronisées
-    afficheraient un mode différent entre MUI et Tailwind sur le même écran.
+11. **Une seule feuille de style, aux couches de Tailwind.**
+    `front/src/index.css` est le seul CSS du projet ; ses couches sont
+    celles que `@import "tailwindcss"` déclare (`theme, base, components,
+    utilities`), et rien ne les redéclare ailleurs. Ne réintroduire **aucun
+    moteur qui injecte du CSS à l'exécution** (CSS-in-JS, `<style>` posé en
+    JS) : en CSS, une règle hors couche l'emporte toujours sur une règle en
+    couche, quelle que soit sa spécificité — un tel moteur écraserait
+    silencieusement les utilitaires Tailwind et les composants shadcn, sans
+    qu'aucun test de rôles ou de textes ne le voie (c'est exactement ce que
+    la couche `mui` et son `GlobalStyles` conjuraient du lot 1 au lot 16,
+    voir `docs/migration-shadcn/01-cohabitation.md` §2 et `17-depose-mui.md`
+    §4). La seule feuille tierce hors couche est celle de FullCalendar,
+    pilotée par des variables posées sur l'élément `.fc`, jamais par un
+    utilitaire (voir « Pièges »). Le corps de page est réglé dans la couche
+    `base` : interlettrage et lissage hérités de MUI, `color-scheme` par la
+    classe `.dark` — ces trois règles y restent tant que la typographie
+    n'est pas redécidée.
+12. **Le mode sombre a une source unique : `services/modeCouleur.ts`.**
+    `useModeCouleur()` lit la préférence enregistrée (`localStorage`, clé
+    `mui-mode` — nom hérité de MUI, gardé au lot 17 pour ne déconnecter
+    aucune préférence ; `light`/`dark`/`system`) et, en cas de `system`, la
+    préférence de l'OS **par abonnement** (`matchMedia`, `storage` pour les
+    autres onglets, via `useSyncExternalStore`), et en tire `estSombre`.
+    `layouts/dashboard.tsx` pose la classe `.dark` sur `<html>` en
+    conséquence — c'est le seul endroit qui décide. Tout le reste suit la
+    classe (`@custom-variant dark (&:is(.dark *))` et `color-scheme` dans
+    `index.css`) ou la valeur (`theme` du toaster). Ne jamais dupliquer
+    cette résolution ailleurs (un second `matchMedia('(prefers-color-scheme:
+    dark)')`, une lecture directe de `localStorage`) : deux sources
+    désynchronisées afficheraient deux modes sur le même écran — c'était
+    le défaut « sombre choisi + OS clair » des lots 7 à 16, fermé au lot 17.
     L'effet qui pose `.dark` doit rester **avant** les `return` anticipés de
     `Layout` (`loading`, `!session`) — sinon l'écran de chargement et l'écran
-    de connexion restent toujours clairs, quel que soit le mode.
-    `useColorScheme` n'existe que parce que `App.tsx` monte un
-    `ThemeProvider` racine à thème `cssVariables` + `colorSchemes`
-    (le rôle que jouait l'`AppProvider` Toolpad) : le retirer ne casse
-    aucune compilation mais fige silencieusement la résolution du mode.
-    Cette source unique est provisoire et assumée comme telle : MUI décide
-    tant qu'il porte le plus de fichiers ; l'inversion (Tailwind/shadcn
-    devient la source, MUI suit) est devenue possible avec la sortie de
-    Toolpad (lot 3) mais reste un lot à part entière, non fait. Voir
-    `docs/migration-shadcn/02-tokens.md` §4.
+    de connexion restent toujours clairs, quel que soit le mode. Aucun écran
+    n'offre encore de bascule : `setMode` n'a pas de consommateur (la page
+    témoin qui l'appelait est partie au lot 17).
 
 ## Conventions
 
@@ -145,9 +134,8 @@ Application réservée au personnel administratif. Pas encore en production.
   **déclaratives** (`services/crud/actions.ts`), jamais de JSX d'action ad
   hoc ; états vides via `EtatVideTable` ; focus via `focus.ts` ;
   téléchargements via `services/telechargement.ts` ; dialogues sur le modèle
-  `DeleteConfirmDialog` / `UnsavedChangesDialog` (son contournement du piège
-  à focus MUI fait référence) ; erreurs d'import en tableau via
-  `LignesRefuseesDialog`.
+  `DeleteConfirmDialog` / `UnsavedChangesDialog` ; erreurs d'import en
+  tableau via `LignesRefuseesDialog`.
 - **sqlc uniquement** (jamais de SQL concaténé) ; régénérer par
   `infra/gen_sql.sh` et committer le généré. Changesets Liquibase avec `id`,
   `author`, `comment` **et `rollback`**.
@@ -211,10 +199,11 @@ Application réservée au personnel administratif. Pas encore en production.
 - **Captures de référence (`e2e/captures.spec.ts-snapshots/`,
   `e2e/captures-ouvertes.spec.ts-snapshots/`) : réaccepter
   un diff est une décision, pas une formalité.** Ces captures figent
-  l'apparence MUI + tokens dérivés (voir `docs/migration-shadcn/02-tokens.md`)
-  dans les deux modes ; elles existent précisément parce que les 31 tests de
-  rôles/textes accessibles sont restés verts pendant que l'étape 1 avait
-  fait perdre à toute l'application son apparence MUI (voir
+  l'apparence shadcn sur les tokens dérivés de MUI (voir
+  `docs/migration-shadcn/02-tokens.md`) dans les deux modes ; elles existent
+  précisément parce que les 31 tests de rôles/textes accessibles sont restés
+  verts pendant que l'étape 1 avait fait perdre à toute l'application son
+  apparence (voir
   `docs/migration-shadcn/02bis-filet-regression.md`, qui démontre cette
   détection par un test négatif). Un lot qui change volontairement
   l'apparence régénère avec `npx playwright test captures.spec.ts
@@ -262,18 +251,18 @@ Application réservée au personnel administratif. Pas encore en production.
 - `isDirty` de react-hook-form se parasite avec les champs de date/dayjs —
   normaliser les valeurs par défaut (précédent traité dans `Form.tsx`).
 - **Tout champ de date de formulaire passe par `ChampDate`/`ChampDateHeure`**
-  (`services/ChampDate.tsx`, lot 12) — jamais un `dayjs(field.value)` direct
-  dans un écran. Le composant porte les deux gardes qui ont chacun mordu :
-  `dayjs(undefined)` rend l'heure courante (un formulaire de création
-  s'ouvrirait pré-rempli à aujourd'hui), et **en édition la valeur est une
-  chaîne ISO**, pas un `Date` — react-hook-form est `reset` avec la réponse
-  brute de l'API, `z.coerce.date` ne joue qu'à la soumission ; `getTime()`
-  sur cette chaîne a fait tomber tout l'écran de détail (constaté au
-  navigateur, lot 12). Saisie invalide → `Date` invalide transmis, refusé
-  par les schémas zod : ne pas court-circuiter ce circuit d'erreur. Depuis
-  une **modale MUI**, passer `conteneurPopup` (ref d'un nœud de la modale) :
-  son piège à focus ferme sitôt ouvert tout popup portalé vers `<body>`
-  (précédent : `ReservationDialog`).
+  (`services/ChampDate.tsx`, lot 12 ; sur le contrat `name`/`control` des
+  autres champs partagés depuis le lot 17) — jamais un `dayjs(field.value)`
+  direct dans un écran. Le composant porte les deux gardes qui ont chacun
+  mordu : `dayjs(undefined)` rend l'heure courante (un formulaire de
+  création s'ouvrirait pré-rempli à aujourd'hui), et **en édition la valeur
+  est une chaîne ISO**, pas un `Date` — react-hook-form est `reset` avec la
+  réponse brute de l'API, `z.coerce.date` ne joue qu'à la soumission ;
+  `getTime()` sur cette chaîne a fait tomber tout l'écran de détail
+  (constaté au navigateur, lot 12). Saisie invalide → `Date` invalide
+  transmis, refusé par les schémas zod : ne pas court-circuiter ce circuit
+  d'erreur. Le calendrier se portalise vers `<body>` : la modale Base UI le
+  reconnaît comme sien, aucun conteneur à passer.
 - **Tout champ de formulaire passe par les champs partagés** (lot 13) :
   `ChampTexte`/`ChampNombre` (`services/ChampTexte.tsx`),
   `ChampSelection`/`ChampInterrupteur`/`ChampCase` (`services/ChampChoix.tsx`),
@@ -295,7 +284,8 @@ Application réservée au personnel administratif. Pas encore en production.
   `a=4,b=3.5,…`). Le câblage react-hook-form
   (`useController`), l'erreur (`aria-invalid` + message sous le champ) et
   l'état désactivé vivent dans le composant — jamais de `register(...)`
-  nu, de `TextField`, ni d'`error`/`helperText` recopiés dans un écran.
+  nu, d'`<input>` de formulaire nu, ni d'`error`/`helperText` recopiés dans
+  un écran.
   **`ChampTexte` soumet `''` pour un champ absent d'`emptyValue`** :
   `useController` soumet la valeur du formulaire (`undefined` en création),
   là où `register` soumettait celle du DOM — sans ce repli, un nom laissé
@@ -343,12 +333,8 @@ Application réservée au personnel administratif. Pas encore en production.
   restent fonctionnels, donc invisible des tests ; seule une capture le
   montre (constaté au lot 7). Et le socle `DataTable` est exclu du React
   Compiler (`'use no memo'` + eslint-disable ciblé, exigence documentée de
-  TanStack Table) : ne retirer ni la directive, ni le commentaire. Une
-  surface shadcn qui peut cohabiter avec la charpente MUI pose ses **deux**
-  tokens (`bg-background` **et** `text-foreground`) : le texte du body
-  appartient à CssBaseline (couche `mui`, qui bat `base`) et ne suit pas la
-  classe `.dark` quand le mode choisi diffère de l'OS (voir
-  `docs/migration-shadcn/07-datatable.md` §8). Depuis le lot 10, le socle
+  TanStack Table) : ne retirer ni la directive, ni le commentaire. Depuis
+  le lot 10, le socle
   porte quatre capacités **opt-in** (`gelColonnes`, `sansPagination`,
   `redimensionnement`, `peutSelectionnerLigne` — seul `JuryPeriode` les
   déclare) : un écran qui ne les déclare pas rend à l'identique, et toute
@@ -361,8 +347,8 @@ Application réservée au personnel administratif. Pas encore en production.
   (`right-0.5`) parce que le bouton de tri du `th` gelé voisin (`-ml-2.5`,
   même z-index) recouvre la frontière — la recoller au bord la rendrait
   inaccessible, sans qu'aucun test le voie (constaté au lot 10).
-- Le nom accessible d'un `IconButton` peut venir du `Tooltip`, mais
-  l'`aria-label` explicite est la convention.
+- Le nom accessible d'un bouton icône (`Button variant="ghost"
+  size="icon"`) est un `aria-label` explicite, jamais le seul `Tooltip`.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
   nouvelle représentation d'URL s'y greffe, on n'écrit pas de parallèle.
 - L'état de table est persisté par parent (`useEtatTablePersistant`,
@@ -376,11 +362,11 @@ Application réservée au personnel administratif. Pas encore en production.
   Playwright matchent par sous-chaîne — « E2E Promotion Vide » rendait
   ambigus tous les sélecteurs « …E2E Promotion » (mode strict), d'où
   « E2E Promo Vide » (lot 4ter).
-- Un bouton **natif** dans un `<form>` est `type="submit"` par défaut — MUI
-  posait `type="button"` à notre place, et le `Button` shadcn le pose aussi
-  (Base UI `useButton`, vérifié au lot 4ter : retirer l'attribut explicite de
-  `Form.tsx` ne casse rien). Le vrai risque des migrations est donc le retour
-  à un `<button>` nu ; tout bouton non-soumission le déclare explicitement
+- Un bouton **natif** dans un `<form>` est `type="submit"` par défaut — le
+  `Button` shadcn pose `type="button"` à notre place (Base UI `useButton`,
+  vérifié au lot 4ter : retirer l'attribut explicite de `Form.tsx` ne casse
+  rien). Le vrai risque est donc un `<button>` nu ; tout bouton
+  non-soumission le déclare explicitement
   (précédent : « Annuler » de `services/crud/Form.tsx`, lot 4), et
   `formulaire.spec.ts` monte la garde (« Annuler ne crée rien »).
 - Les onglets shadcn (variante `line`) débordent de leur liste : le
@@ -398,11 +384,10 @@ Application réservée au personnel administratif. Pas encore en production.
   des tests (rôles et textes restent accessibles), constaté au navigateur
   (lot 14, `ReservationDialog`). Le motif : `max-h-[calc(100vh-4rem)]` +
   `grid-rows-[auto_minmax(0,1fr)_auto]` sur `DialogContent`, corps en
-  `overflow-y-auto` avec marge interne compensée (anneau de focus, libellé
-  flottant des `ChampDate` MUI). Tout popup ouvert depuis ce corps se
-  portalise vers `<body>` — la modale Base UI reconnaît ses popups
-  (sélection, combobox, calendrier) —, sinon le défilement le rogne : le
-  `conteneurPopup` de `ChampDate` ne sert que sous une modale **MUI**.
+  `overflow-y-auto` avec marge interne compensée (anneau de focus). Tout
+  popup ouvert depuis ce corps se portalise vers `<body>` — la modale Base
+  UI reconnaît ses popups (sélection, combobox, calendrier) —, sinon le
+  défilement le rogne.
 - **FullCalendar injecte sa feuille de style à l'exécution, hors couche**
   (`<style data-fullcalendar>` inséré avant la feuille du projet, variables
   `--fc-*` déclarées sur `:root`). Son habillage vit dans `index.css` sous
@@ -435,36 +420,26 @@ Application réservée au personnel administratif. Pas encore en production.
   porteur** (lot 6, `docs/migration-shadcn/06-icones.md` §2). Dans un
   composant shadcn (`Button`, `DropdownMenuItem`, `Alert`, sidebar), l'icône
   se pose **nue** : le CSS `[&_svg:not([class*='size-'])]:size-4` du
-  composant gouverne (16 px). Dans un composant MUI, lucide ne suit pas le
-  `font-size` (tailles en attributs) : `IconButton` → nue (défaut 24 px =
-  MUI medium, même en `size="small"`) ; `startIcon` de `Button` →
-  `size={20}` (`size={18}` si bouton small) ; l'ancien `fontSize="small"` →
-  `size={20}`. Ne pas « corriger » une icône nue dans un bouton shadcn en
-  lui posant une taille : elle créerait un écart avec toutes les autres.
-  `@mui/icons-material` est parti avec la dépose de material-react-table
-  (lot 11) ; aucun import ne doit revenir dans `src/`.
+  composant gouverne (16 px). Ne pas « corriger » une icône nue dans un
+  bouton shadcn en lui posant une taille : elle créerait un écart avec
+  toutes les autres. Hors composant shadcn (un `span` nu), la taille se
+  pose en attribut (`size={20}` pour l'ancien « small » MUI).
 
 ## Dette et chantiers connus
 
-- **Page témoin `_cohabitation`** (`pages/_cohabitation/`, route dans
-  `main.tsx`) — dette du lot 1, devenue la **plus ancienne encore ouverte**
-  depuis la dépose de MRT (lot 11). Ne sert plus depuis le lot 4 ; se retire
-  à la dépose finale de MUI, où elle servira une dernière fois à vérifier
-  qu'aucun style MUI ne subsiste.
-- **`composantsTraduits`** (`layouts/dashboard.tsx`) : **plus aucun
-  consommateur** depuis le lot 16 — les trois derniers `Autocomplete`
-  (`NoteEleveAxe`, `GrilleNotes`, `FicheExportModal`) sont des `Combobox`
-  shadcn, qui portent leurs libellés traduits eux-mêmes (`ui/combobox.tsx` :
-  ouvrir, effacer, retirer, et depuis le lot 16 « Aucune option » par défaut
-  sur `ComboboxEmpty`). La fonction et son injection dans les deux
-  `createTheme` tombent au lot 17 avec le fichier qui les porte.
-- **Versions épinglées à réévaluer** — on ne monte pas MUI, on le retire ;
-  la dette porte désormais sur les remplaçants. `react-day-picker` est
+- **Typographie et bascule de mode : deux décisions de design, pas de
+  migration.** Le corps de page garde la pile Roboto et l'interlettrage
+  `body1` de MUI (`index.css`, `@theme` et couche `base`) ; passer à une
+  typographie shadcn (Geist, sans interlettrage) régénérerait toutes les
+  captures. Et aucun écran n'offre de bascule clair/sombre : `setMode` de
+  `useModeCouleur` attend son premier consommateur (menu de compte) — c'est
+  le moment de renommer la clé `mui-mode`, avec reprise de l'ancienne valeur.
+- **Versions épinglées à réévaluer** — la migration est terminée, la
+  promesse « zéro montée parasite » peut être levée. `react-day-picker` est
   épinglé **9.14.0** (la v10 est sortie pendant le lot 12, API non
   éprouvée) et `@tanstack/react-table` en **8.20.6 exact** (le caret
-  résolvait en 8.21.3, réépinglé au lot 7 pour tenir la promesse « zéro
-  montée parasite »). À rouvrir une fois la migration terminée, hors d'un
-  lot de migration.
+  résolvait en 8.21.3, réépinglé au lot 7). À rouvrir dans un lot de mise à
+  jour dédié, avec `npm audit`.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
   monter — builds, lint, `govulncheck`, `npm audit --omit=dev`, tests Go
   avec services PostgreSQL/Keycloak, Dependabot, protection de branche ;
@@ -496,10 +471,13 @@ ils survivront à celle-ci si personne ne les reprend.
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute
   relance.**
 
-Trois défauts plus anciens sont documentés dans « Pièges connus » plutôt
-qu'ici, parce qu'ils piègent activement quiconque écrit du code : rendu figé
-de `BarreAxes`, rebond Keycloak sur lien profond, désynchronisation des
-variables CSS MUI quand le mode choisi diffère de l'OS.
+Deux défauts plus anciens sont documentés dans « Pièges connus » et dans la
+suite e2e plutôt qu'ici, parce qu'ils piègent activement quiconque écrit du
+code : rendu figé de `BarreAxes`, rebond Keycloak sur lien profond. Le
+troisième — la désynchronisation des variables CSS MUI quand le mode choisi
+différait de l'OS (lots 7, 8, 10) — est **fermé** par la dépose de MUI
+(lot 17, vérifié au navigateur : sombre choisi + OS clair → tout l'écran
+sombre, `color-scheme` compris).
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
