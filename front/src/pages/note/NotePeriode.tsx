@@ -10,10 +10,11 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Typography } from '@mui/material';
+import { CircleAlert } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { TFunction } from 'i18next';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import type { DatasourceListe } from '../../services/crud/def';
 import { AXE_PERIODE } from './axes';
 import { AxeCalcule } from './AxeCalcule';
@@ -23,11 +24,7 @@ import { formatNote } from './provenance';
 
 /** Discret : c'est une absence, elle ne doit pas peser autant qu'une valeur. */
 function Absence({ children }: { children: string }) {
-    return (
-        <Typography component="span" variant="body2" color="text.secondary">
-            {children}
-        </Typography>
-    );
+    return <span className="text-sm text-muted-foreground">{children}</span>;
 }
 
 function colonnes(t: TFunction<'note'>): ColumnDef<NotePeriode>[] {
@@ -61,7 +58,14 @@ export function AxeNotePeriode() {
         isTopToolbar: true,
     }) : null, [periodeId, tCrud, tNote]);
 
-    if (!datasource) return <Alert severity="error">{tNote('commun.parametreObligatoire', { parametre: 'periodeId' })}</Alert>;
+    if (!datasource) {
+        return (
+            <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription>{tNote('commun.parametreObligatoire', { parametre: 'periodeId' })}</AlertDescription>
+            </Alert>
+        );
+    }
 
     return <AxeCalcule datasource={datasource} axe={AXE_PERIODE} />;
 }

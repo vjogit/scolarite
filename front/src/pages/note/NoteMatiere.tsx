@@ -9,10 +9,11 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Alert } from '@mui/material';
+import { CircleAlert } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { TFunction } from 'i18next';
+import { Alert, AlertDescription } from '../../components/ui/alert';
 import type { DatasourceListe } from '../../services/crud/def';
 import { AXE_MATIERE } from './axes';
 import { AxeCalcule } from './AxeCalcule';
@@ -52,7 +53,14 @@ export function AxeNoteMatiere() {
         isTopToolbar: true,
     }) : null, [matiereId, tCrud, tNote]);
 
-    if (!datasource) return <Alert severity="error">{tNote('commun.parametreObligatoire', { parametre: 'matiereId' })}</Alert>;
+    if (!datasource) {
+        return (
+            <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription>{tNote('commun.parametreObligatoire', { parametre: 'matiereId' })}</AlertDescription>
+            </Alert>
+        );
+    }
 
     return <AxeCalcule datasource={datasource} axe={AXE_MATIERE} />;
 }
