@@ -270,14 +270,19 @@ passages identiques de la suite e2e sur le même commit, sans modification.
 | 3 | 33871343683 | 84e3bc0 | manuel | 2 min 16 s | ✅ 43 passed (1,7 min) | — | ✅ vert |
 | 4 | 33871340675 | 84e3bc0 | manuel, `captures=true` | 2 min 54 s | ✅ 43 passed (2,1 min) | ❌ 20 failed / 3 passed (§5), non bloquant | ✅ vert |
 
+| 5 | 33872186324 | 1be5cef (doc) | push | — | ✅ 43 passed | — | ✅ vert, 5 min 58 s |
+| 6 | 33872211290 | 1be5cef (doc) | pull_request (PR #1) | — | ✅ 43 passed | — | ✅ vert, 5 min 42 s |
+
 Trois runs identiques sur 84e3bc0 (runs 2, 3, 4 — le 4 ajoute les
 captures, sans toucher à la suite fonctionnelle), quatre au total en
 comptant le premier commit ; les runs 2 à 4 ont tourné **en parallèle**, sur
 trois exécuteurs, sans se voir. Aucun des trois aléas connus (`BarreAxes`,
 rebond Keycloak, `registre.spec.ts`) ne s'est manifesté sur ces quatre
 passages ; `navigation.spec.ts` a son `test.fail` attendu, compté comme
-passé, contexte archivé dans l'artefact. `Vérification` : vert sur les deux
-commits (2 runs).
+passé, contexte archivé dans l'artefact. Les runs 5 et 6, sur le commit de
+documentation, confirment les deux déclencheurs (`push`, `pull_request` via
+la PR #1) : six runs e2e verts sur six, zéro relance. `Vérification` : vert
+sur les trois commits, `push` et `pull_request` (4 runs).
 
 **Le test de l'artefact d'échec** n'a pas demandé d'échec fabriqué : le run
 4 en a fourni un réel (les captures) — les 20 diffs, les 20 traces, les
