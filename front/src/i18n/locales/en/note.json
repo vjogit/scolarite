@@ -129,6 +129,7 @@
     "ongletDistribution": "2. Distribution (Brackets)",
     "ongletDispersion": "3. Overall Spread",
     "moyenneReferenceLine": "Average ({{moyenne}})",
+    "serieNote": "Grade",
     "axeNombreEleves": "No. of students",
     "axeElevesNom": "Student",
     "axeElevesLabel": "Students (alphabetical order)"

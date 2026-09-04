@@ -450,6 +450,20 @@ Application réservée au personnel administratif. Pas encore en production.
   l'écran à l'ouverture du menu de compte, avec 45 tests verts (lot 3 §5).
   Tout nouveau menu/dialogue shadcn se vérifie ouvert, au navigateur ;
   aucun test e2e n'ouvre le menu de compte à ce jour.
+- **Graphiques recharts : les couleurs sont des références `var(--chart-N)`
+  en props, jamais des valeurs résolues** (lot chart-shadcn,
+  `docs/chart-shadcn.md`). recharts recopie `stroke`/`fill` en attributs
+  SVG, que la cascade résout sur `.dark` — modale ouverte comprise. Ne pas
+  réintroduire une lecture par `getComputedStyle` ni un observateur de la
+  classe de `<html>` (le mécanisme du lot 4bis, retiré). `components/ui/chart.tsx`
+  entre sans `ChartStyle` ni `config.color`/`theme` : le registre shadcn y
+  injecte un `<style>` à l'exécution, ce que l'invariant 11 interdit — ne
+  pas le reprendre du registre sans rouvrir l'invariant. Piège du conteneur :
+  ses règles de classe (`[&_.recharts-…]`) **priment sur les attributs**
+  recharts — le curseur d'un `BarChart` virerait en `fill-muted` malgré son
+  `cursor={{ fill }}` ; `NoteChartModal` le rétablit par une classe
+  `fill-chart-1` sur le conteneur. `--chart-4` et `--chart-5` n'ont aucun
+  consommateur (trois séries seulement) ; laissés au système de design.
 - **Icônes : lucide-react partout dans `src/`, et la taille dépend du
   porteur** (lot 6, `docs/migration-shadcn/06-icones.md` §2). Dans un
   composant shadcn (`Button`, `DropdownMenuItem`, `Alert`, sidebar), l'icône

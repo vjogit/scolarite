@@ -129,6 +129,7 @@
     "ongletDistribution": "2. Distribution (Tranches)",
     "ongletDispersion": "3. Dispersion Globale",
     "moyenneReferenceLine": "Moyenne ({{moyenne}})",
+    "serieNote": "Note",
     "axeNombreEleves": "Nb. d'élèves",
     "axeElevesNom": "Élève",
     "axeElevesLabel": "Élèves (Ordre alphabétique)"
