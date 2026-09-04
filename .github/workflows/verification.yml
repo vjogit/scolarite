@@ -1,0 +1,124 @@
+# Vérification sans infrastructure : lint et build du front, build et tests
+# unitaires du back. C'est le premier filet — il ne demande ni base, ni
+# Keycloak, ni navigateur, et tourne en quelques minutes sur chaque push et
+# chaque pull request. La suite Playwright, qui exige la stack complète, a son
+# propre workflow (e2e.yml). Voir docs/ci.md pour ce que ces deux workflows
+# couvrent, et surtout ce qu'ils ne couvrent pas.
+
+name: Vérification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  front:
+    name: Front — lint et build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v7
+
+      # Node 22 : la version de l'image node:22-alpine qui construit le front
+      # servi par nginx (infra/run/build/Dockerfile) — la CI vérifie ce que la
+      # stack sert, pas la version du poste.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      # `npm ci` installe exactement le lockfile et s'arrête si package.json
+      # et package-lock.json divergent : c'est lui qui garantit qu'aucune
+      # montée de version ne se produit sur l'exécuteur.
+      - name: Dépendances (npm ci)
+        run: npm ci
+
+      # Les deux versions épinglées pendant la migration shadcn (dette
+      # « versions à réévaluer » de CLAUDE.md) sont vérifiées explicitement :
+      # une montée y serait invisible d'un build vert. `git diff` confirme que
+      # l'installation n'a pas réécrit le lockfile.
+      - name: Versions épinglées — aucune montée
+        run: |
+          attendu() {
+            local paquet="$1" version="$2" installee
+            installee=$(node -p "require('$paquet/package.json').version")
+            if [ "$installee" != "$version" ]; then
+              echo "::error title=Montée de version::$paquet $installee installé, $version attendu"
+              exit 1
+            fi
+            echo "$paquet $installee — conforme"
+          }
+          attendu react-day-picker 9.14.0
+          attendu @tanstack/react-table 8.20.6
+          git diff --exit-code package-lock.json
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (mode production)
+        run: npm run build
+
+  back:
+    name: Back — build et tests Go
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: back
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: back/go.mod
+          cache-dependency-path: back/go.sum
+
+      # Le code généré par sqlc (back/pkg/**/gen/) n'est pas versionné
+      # (.gitignore : **/gen/) : un clone neuf ne compile pas sans cette
+      # étape. `sqlc generate` est hors ligne — il lit back/schema.sql,
+      # versionné — et produit exactement ce que infra/gen_sql.sh produit sur
+      # le poste (vérifié par diff au lot CI). Version épinglée sur celle du
+      # poste.
+      - uses: sqlc-dev/setup-sqlc@v5
+        with:
+          sqlc-version: '1.31.1'
+      - name: Code sqlc
+        run: sqlc generate
+
+      - name: Build
+        run: go build ./...
+
+      # Deux paquets ont des tests qui lisent des fixtures absentes du dépôt
+      # (test_salle.csv, testdata/programme.xlsx — voir docs/ci.md). Ils sont
+      # écartés de cette étape, la seule qui décide du verdict, et rejoués
+      # dans la suivante : un échec permanent qu'on apprend à ignorer serait
+      # pire que pas de CI.
+      - name: Tests (paquets sans défaut connu)
+        run: |
+          go test $(go list ./... \
+            | grep -vxF -e cyb-react/cmd/programme-import/pkg/extraction \
+                         -e cyb-react/pkg/structure/exchange)
+
+      # Non bloquant (continue-on-error) mais VISIBLE : une annotation
+      # d'avertissement par paquet en échec sur la page de l'exécution, et une
+      # annotation de notification le jour où un paquet passe — c'est le
+      # signal pour le retirer de la liste ci-dessus et d'ici.
+      - name: Tests des paquets en défaut connu (fixtures absentes du dépôt)
+        continue-on-error: true
+        run: |
+          echec=0
+          for paquet in cyb-react/cmd/programme-import/pkg/extraction cyb-react/pkg/structure/exchange; do
+            if go test "$paquet"; then
+              echo "::notice title=Défaut résorbé::$paquet passe — le retirer des deux étapes de tests de verification.yml"
+              echo "- ✅ \`$paquet\` passe : retirer l'exception de verification.yml" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning title=Défaut connu, non bloquant::$paquet échoue — fixture absente du dépôt (docs/ci.md)"
+              echo "- ⚠️ \`$paquet\` échoue (fixture absente du dépôt, défaut pré-existant, non bloquant)" >> "$GITHUB_STEP_SUMMARY"
+              echec=1
+            fi
+          done
+          exit $echec

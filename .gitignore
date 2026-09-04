@@ -37,6 +37,12 @@ infra/data/
 back/cmd/programme-import/data/
 **/*.xlsx
 **/*.docx
+# Gabarits embarqués par le binaire (go:embed) : sans eux, un clone neuf ne
+# compile pas — Template_note.xlsx était déjà versionné par un ajout forcé,
+# le gabarit de bulletin ne l'était pas (constaté au lot CI). Exceptions
+# explicites plutôt qu'un `git add -f` à retrouver.
+!back/pkg/templates/Template_note.xlsx
+!back/pkg/resultat/jury/template_bulletin.docx
 **/*.jar
 **/*.log
 
