@@ -37,12 +37,15 @@ on:
         type: boolean
         default: false
 
-# Une exécution par branche à la fois : un nouveau push annule la précédente
-# — chaque exécution a son exécuteur et sa base, ce n'est donc pas la règle
-# « jamais deux suites en parallèle » (qui vise une base partagée), seulement
-# l'économie d'un run devenu sans objet.
+# Un nouveau push sur une branche annule l'exécution précédente de cette
+# branche — chaque exécution a son exécuteur et sa base, ce n'est donc pas la
+# règle « jamais deux suites en parallèle » (qui vise une base partagée),
+# seulement l'économie d'un run devenu sans objet. Les lancements manuels
+# (workflow_dispatch) ont chacun leur groupe : deux lancements sur la même
+# branche s'annulaient l'un l'autre (constaté au lot CI, run 33871245144),
+# ce qui interdisait de rejouer la suite trois fois sur un même commit.
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: e2e-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: true
 
 env:

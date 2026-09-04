@@ -92,16 +92,16 @@ jobs:
       - name: Build
         run: go build ./...
 
-      # Deux paquets ont des tests qui lisent des fixtures absentes du dépôt
-      # (test_salle.csv, testdata/programme.xlsx — voir docs/ci.md). Ils sont
-      # écartés de cette étape, la seule qui décide du verdict, et rejoués
+      # Un paquet a des tests qui lisent une fixture absente du dépôt
+      # (test_salle.csv, défaut signalé depuis le lot 5 — voir docs/ci.md). Il
+      # est écarté de cette étape, la seule qui décide du verdict, et rejoué
       # dans la suivante : un échec permanent qu'on apprend à ignorer serait
-      # pire que pas de CI.
+      # pire que pas de CI. Les tests d'intégration (base, Keycloak, Mailpit)
+      # se sautent d'eux-mêmes ici (t.Skip explicite) : ils ne sont PAS
+      # couverts, voir docs/ci.md.
       - name: Tests (paquets sans défaut connu)
         run: |
-          go test $(go list ./... \
-            | grep -vxF -e cyb-react/cmd/programme-import/pkg/extraction \
-                         -e cyb-react/pkg/structure/exchange)
+          go test $(go list ./... | grep -vxF cyb-react/cmd/programme-import/pkg/extraction)
 
       # Non bloquant (continue-on-error) mais VISIBLE : une annotation
       # d'avertissement par paquet en échec sur la page de l'exécution, et une
@@ -111,7 +111,7 @@ jobs:
         continue-on-error: true
         run: |
           echec=0
-          for paquet in cyb-react/cmd/programme-import/pkg/extraction cyb-react/pkg/structure/exchange; do
+          for paquet in cyb-react/cmd/programme-import/pkg/extraction; do
             if go test "$paquet"; then
               echo "::notice title=Défaut résorbé::$paquet passe — le retirer des deux étapes de tests de verification.yml"
               echo "- ✅ \`$paquet\` passe : retirer l'exception de verification.yml" >> "$GITHUB_STEP_SUMMARY"
