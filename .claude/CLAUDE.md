@@ -10,20 +10,24 @@ Application réservée au personnel administratif. Pas encore en production.
   (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/`),
   Docker Compose + nginx (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
-  `any`), MUI v7 (tables sur le socle `DataTable` — TanStack Table rendu en
-  shadcn ; material-react-table **déposé**, lot 11 ; x-date-pickers et
-  x-tree-view **déposés**, lot 12 — dates via `services/ChampDate.tsx` +
-  react-day-picker, arbre de la structure écrit à la main),
-  champs de formulaire partagés — `services/ChampTexte.tsx`,
-  `services/ChampChoix.tsx`, lot 13, `ChampCase` ajouté au lot 14 — sur
-  `components/ui/field.tsx`),
-  shell shadcn/Base UI (`components/ui/`, sidebar + menu de compte,
-  `layouts/dashboard.tsx`) + sonner (notifications, `services/notify.ts` —
-  API impérative, durées centralisées), Toolpad **sorti** (lot 3,
-  `docs/migration-shadcn/03-sortie-toolpad.md`),
-  TanStack Query, react-router 7 (`createBrowserRouter`),
-  **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
-  ajoutée l'est dans les deux langues).
+  `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`).
+  - Tables : socle `DataTable` (TanStack Table), `services/crud/`.
+  - Formulaires : champs partagés `services/Champ*.tsx` sur
+    `components/ui/field.tsx` — texte, nombre, sélection, interrupteur,
+    case, date. Un écran ne câble pas react-hook-form lui-même.
+  - Dates : react-day-picker via `services/ChampDate.tsx`.
+  - Arbre de la structure : écrit à la main (`pages/structure/arbre/`).
+  - Notifications : sonner, derrière `services/notify.ts` (API impérative,
+    durées centralisées).
+  - Shell : sidebar + menu de compte, `layouts/dashboard.tsx`.
+  - **MUI résiduel** : une vingtaine de fichiers dans `pages/note/`, en
+    cours de migration. **Ne pas en ajouter ailleurs.** Tout nouveau
+    composant se fait en shadcn/Base UI.
+  - TanStack Query, react-router 7 (`createBrowserRouter`),
+    **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
+    ajoutée l'est dans les deux langues).
+  - L'historique de la migration MUI → shadcn est dans
+    `docs/migration-shadcn/`, un document par lot. Ne pas le dupliquer ici.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -430,12 +434,41 @@ Application réservée au personnel administratif. Pas encore en production.
 - **`composantsTraduits`** (`layouts/dashboard.tsx`) : trois `Autocomplete`
   MUI restants, tous dans `pages/note/` (`NoteEleveAxe`, `GrilleNotes`,
   `FicheExportModal`) ; le mécanisme tombe avec eux, d'un geste.
-- **Montée MUI v9** — déverrouillée par la sortie de Toolpad (lot 3, qui
-  épinglait MUI v7) ; non entamée.
+- **Versions épinglées à réévaluer** — on ne monte pas MUI, on le retire ;
+  la dette porte désormais sur les remplaçants. `react-day-picker` est
+  épinglé **9.14.0** (la v10 est sortie pendant le lot 12, API non
+  éprouvée) et `@tanstack/react-table` en **8.20.6 exact** (le caret
+  résolvait en 8.21.3, réépinglé au lot 7 pour tenir la promesse « zéro
+  montée parasite »). À rouvrir une fois la migration terminée, hors d'un
+  lot de migration.
 - **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
   monter — builds, lint, `govulncheck`, `npm audit --omit=dev`, tests Go
   avec services PostgreSQL/Keycloak, Dependabot, protection de branche ;
   suite e2e en nocturne (runner auto-hébergé pressenti).
+### Défauts constatés, non corrigés
+
+Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
+apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
+ils survivront à celle-ci si personne ne les reprend.
+
+- **`UpdateToeic` n'écrit pas `user_id`** (lot 14). Changer l'élève d'un
+  résultat TOEIC en édition est **sans effet** : l'interface accepte, le PUT
+  porte la valeur, la requête SQL ne l'écrit pas. Perte de saisie
+  silencieuse, côté back. Le plus sérieux des quatre.
+- **Colonne « Rôles » vide dans la liste des utilisateurs** (lot 13) : la
+  consultation montre les rôles cochés, la liste ne semble pas les recevoir.
+- **Message zod brut pour un nombre requis vidé** (lot 13) : un message
+  métier demande une `error` sur chaque schéma concerné.
+- **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
+  relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
+  écrasés. **Si l'échec revient, sauver `test-results/` avant toute
+  relance.**
+
+Trois défauts plus anciens sont documentés dans « Pièges connus » plutôt
+qu'ici, parce qu'ils piègent activement quiconque écrit du code : rendu figé
+de `BarreAxes`, rebond Keycloak sur lien profond, désynchronisation des
+variables CSS MUI quand le mode choisi diffère de l'OS.
+
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
 - Couverture Go : forte sur resultat/structure/registre/user ; mince sur
