@@ -172,7 +172,13 @@ export function StructureLayout() {
 
     const arbre = (
         <div className="flex h-full min-w-0 flex-col">
-            <div className="flex items-center gap-2 px-3 py-2">
+            {/* Hauteur fixe (`h-11`), non un padding : la rangée ne prend plus
+                celle de son contenu — le bouton « créer » est absent sans droit
+                d'écriture, et la rangée doit rester à la hauteur de celle du
+                panneau, à droite, dont elle est le vis-à-vis. Valeur : celle
+                que la rangée mesurait dans son état le plus haut (bouton
+                `icon-sm` + `py-2`). */}
+            <div className="flex h-11 items-center gap-2 px-3">
                 {/* `h6` : le rang que MUI donnait à `subtitle2` — le titre du
                     panneau, plus bas, garde le même rang, et c'est lui que la
                     suite e2e cible en `heading`. */}
@@ -243,7 +249,15 @@ export function StructureLayout() {
                 )}
 
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="flex items-center gap-2 border-b px-4 py-1">
+                    {/* Hauteur fixe, calée sur la rangée de l'arbre : sans elle la
+                        barre prenait la hauteur de son contenu, et en changeait
+                        trois fois — titre vide sans sélection, titre seul le temps
+                        que `ActionsNoeud` reçoive l'objet, puis le déclencheur du
+                        menu (`icon`, 32 px) — et tout le panneau glissait à chaque
+                        étape. `box-content` : les 44 px sont ceux du contenu, la
+                        bordure s'y ajoute et tombe au niveau du `Separator` de
+                        l'arbre, qui est hors de sa rangée. */}
+                    <div className="flex h-11 box-content items-center gap-2 border-b px-4">
                         {etroit && (
                             <Tooltip>
                                 <TooltipTrigger
