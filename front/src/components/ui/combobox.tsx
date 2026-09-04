@@ -194,7 +194,16 @@ function ComboboxCollection({ ...props }: ComboboxPrimitive.Collection.Props) {
   )
 }
 
-function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
+function ComboboxEmpty({
+  className,
+  children,
+  ...props
+}: ComboboxPrimitive.Empty.Props) {
+  // Sans enfant, le libellé traduit par défaut — le `noOptionsText` que
+  // l'Autocomplete MUI laissait en anglais (« No options ») faute d'entrée
+  // dans `composantsTraduits` (lot 16). Un appelant garde la main en passant
+  // le sien (`UserSelector`, axe Élève).
+  const { t } = useTranslation("app")
   return (
     <ComboboxPrimitive.Empty
       data-slot="combobox-empty"
@@ -203,7 +212,9 @@ function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
         className
       )}
       {...props}
-    />
+    >
+      {children ?? t("autocomplete.aucuneOption")}
+    </ComboboxPrimitive.Empty>
   )
 }
 

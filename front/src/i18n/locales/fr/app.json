@@ -34,7 +34,8 @@
     "ouvrir": "Ouvrir la liste",
     "fermer": "Fermer la liste",
     "effacer": "Effacer",
-    "retirer": "Retirer"
+    "retirer": "Retirer",
+    "aucuneOption": "Aucune option"
   },
   "roleGuard": {
     "accesNonAutorise": "Accès non autorisé"

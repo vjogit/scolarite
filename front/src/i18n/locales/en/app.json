@@ -34,7 +34,8 @@
     "ouvrir": "Open",
     "fermer": "Close",
     "effacer": "Clear",
-    "retirer": "Remove"
+    "retirer": "Remove",
+    "aucuneOption": "No options"
   },
   "roleGuard": {
     "accesNonAutorise": "Access denied"
