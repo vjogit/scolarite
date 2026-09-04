@@ -1,4 +1,3 @@
-import { TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,26 +6,18 @@ import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import { Controller } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
+import { ChampTexte } from '../../services/ChampTexte';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { periodeSchema, type Periode, createPeriodeRepository, ACTION_UES, periodeEntite } from './entites/periode';
 
 export type { Periode } from './entites/periode';
 
-const PeriodeFields = ({ register, control, errors, isReadOnly }: RenderProps<Periode>) => {
+const PeriodeFields = ({ control, errors, isReadOnly }: RenderProps<Periode>) => {
     const { t } = useTranslation('structure');
     return (
         <>
-            <TextField
-                {...register("name")}
-                label={t('periode.champNom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="name" control={control} label={t('periode.champNom')} disabled={isReadOnly} />
 
             <Controller
                 name="debut"
@@ -116,7 +107,7 @@ export function CrudPeriode({ mode, workflow, isAction, isTopToolbar, actionsLig
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('periode.erreurOptionIdObligatoire')}</Typography>
+        <p>{tStructure('periode.erreurOptionIdObligatoire')}</p>
     )
 
     return (

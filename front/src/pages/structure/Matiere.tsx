@@ -1,61 +1,65 @@
-import { Box, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
+import { useController, type Control } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { Field, FieldError, FieldLabel } from '../../components/ui/field';
 import { matiereSchema, type Matiere, createMatiereRepository, matiereEntite } from './entites/matiere';
 
 export type { Matiere } from './entites/matiere';
 
-const MatiereFields = ({ register, errors, isReadOnly }: RenderProps<Matiere>) => {
+/**
+ * La couleur de la matière — un `<input type="color">` natif, le seul de
+ * l'application : local à cet écran, comme `ChampRoles` (User) et
+ * `ChampMultiple` (ReservationDialog), tant qu'un second écran n'en demande
+ * pas un. Le câblage suit celui des champs partagés (`useController`,
+ * `<label for>`, erreur sous le champ, `name` sur l'`<input>`).
+ */
+function ChampCouleur({ control, disabled }: { control: Control<Matiere>; disabled: boolean }) {
+    const { t } = useTranslation('structure');
+    const { field: { ref: refChamp, value, onChange, onBlur }, fieldState } = useController({ name: 'color', control });
+    const id = useId();
+    const idErreur = `${id}-erreur`;
+    const erreur = fieldState.error?.message;
+    const estInvalide = erreur !== undefined;
+
+    return (
+        <Field orientation="horizontal" data-invalid={estInvalide} className="mb-4">
+            {/* Un sélecteur de couleur n'a pas de valeur vide : sans couleur
+                enregistrée, le navigateur affiche noir, comme l'ancien champ
+                non contrôlé. */}
+            <input
+                id={id}
+                name="color"
+                ref={refChamp}
+                type="color"
+                value={typeof value === 'string' && value !== '' ? value : '#000000'}
+                onChange={(evenement) => { onChange(evenement.target.value); }}
+                onBlur={onBlur}
+                disabled={disabled}
+                aria-invalid={estInvalide ? true : undefined}
+                aria-describedby={estInvalide ? idErreur : undefined}
+                className="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-input bg-transparent p-0.5 disabled:cursor-default disabled:opacity-50"
+            />
+            <FieldLabel htmlFor={id}>{t('matiere.champCouleur')}</FieldLabel>
+            {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
+        </Field>
+    );
+}
+
+const MatiereFields = ({ control, isReadOnly }: RenderProps<Matiere>) => {
     const { t } = useTranslation('structure');
     return (
         <>
-            <TextField
-                {...register("name")}
-                label={t('matiere.champNom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("coeff", { valueAsNumber: true })}
-                label={t('matiere.champCoefficient')}
-                variant="outlined"
-                fullWidth
-                type="number"
-                disabled={isReadOnly}
-                error={!!errors.coeff}
-                helperText={errors.coeff?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("heure", { valueAsNumber: true })}
-                label={t('matiere.champHeures')}
-                variant="outlined"
-                fullWidth
-                type="number"
-                disabled={isReadOnly}
-                error={!!errors.heure}
-                helperText={errors.heure?.message}
-                sx={{ mb: 2 }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">{t('matiere.champCouleur')}</Typography>
-                <input
-                    type="color"
-                    {...register("color")}
-                    disabled={isReadOnly}
-                    style={{ width: 48, height: 36, cursor: isReadOnly ? 'default' : 'pointer', border: 'none', padding: 0 }}
-                />
-            </Box>
+            <ChampTexte name="name" control={control} label={t('matiere.champNom')} disabled={isReadOnly} />
+            <ChampNombre name="coeff" control={control} label={t('matiere.champCoefficient')} disabled={isReadOnly} />
+            <ChampNombre name="heure" control={control} label={t('matiere.champHeures')} disabled={isReadOnly} />
+            <ChampCouleur control={control} disabled={isReadOnly} />
         </>
     );
 };
@@ -117,7 +121,7 @@ export function CrudMatiere({ mode, workflow, isAction, isReadOnly, isTopToolbar
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('matiere.erreurUeIdObligatoire')}</Typography>
+        <p>{tStructure('matiere.erreurUeIdObligatoire')}</p>
     )
 
     return (

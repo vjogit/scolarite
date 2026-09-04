@@ -1,4 +1,3 @@
-import { TextField, FormControlLabel, Switch, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +5,8 @@ import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
 import { Controller, useWatch } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampInterrupteur } from '../../services/ChampChoix';
 import { useParams } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ECHELLE_KEYS } from './service';
@@ -14,23 +15,23 @@ import { promotionSchema, type Promotion, createPromotionRepository, ACTION_OPTI
 
 export type { Promotion } from './entites/promotion';
 
+/**
+ * Conversion tableau (API) → chaîne (saisie) : l'API livre les échelles en
+ * nombres, le formulaire les édite en `a=4,b=3,…` et le schéma accepte les
+ * deux formes. La chaîne en cours de frappe passe telle quelle.
+ */
+function formaterEchelle(valeur: unknown): unknown {
+    return Array.isArray(valeur)
+        ? valeur.map((seuil: unknown, indice) => `${ECHELLE_KEYS[indice] ?? ''}=${String(seuil)}`).join(',')
+        : valeur;
+}
 
-
-const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<Promotion>) => {
+const PromotionFields = ({ control, errors, isReadOnly }: RenderProps<Promotion>) => {
     const matiereEliminatoire = useWatch({ control, name: 'matiere_eliminatoire' });
     const { t } = useTranslation('structure');
 
     return <>
-        <TextField
-            {...register("name")}
-            label={t('promotion.champTitre')}
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.name}
-            helperText={errors.name?.message}
-            sx={{ mb: 2 }}
-        />
+        <ChampTexte name="name" control={control} label={t('promotion.champTitre')} disabled={isReadOnly} />
         <Controller
             name="debut"
             control={control}
@@ -67,107 +68,46 @@ const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<
             )}
         />
 
-        <Controller
+        <ChampTexte
             name="echelle_gpa"
             control={control}
-            render={({ field }) => {
-                // Conversion Array (API) -> String (Affichage)
-                const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
-                    : field.value;
-
-                return (
-                    <TextField
-                        {...field}
-                        // `emptyValue` ne porte pas ce champ : en création il vaut
-                        // `undefined`, et `value={undefined}` ferait basculer le
-                        // TextField en non contrôlé — React s'en plaint et la saisie
-                        // peut se perdre. Le repli est ce qui le garde contrôlé.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        value={displayValue ?? ''}
-                        label={t('promotion.champEchelleGpa')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.echelle_gpa}
-                        helperText={errors.echelle_gpa?.message}
-                        sx={{ mb: 2 }}
-                    />
-                );
-            }}
+            label={t('promotion.champEchelleGpa')}
+            disabled={isReadOnly}
+            formater={formaterEchelle}
         />
 
-        <Controller
+        <ChampTexte
             name="echelle"
             control={control}
-            render={({ field }) => {
-                const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
-                    : field.value;
-                return (
-                    <TextField
-                        {...field}
-                        // `emptyValue` ne porte pas ce champ : en création il vaut
-                        // `undefined`, et `value={undefined}` ferait basculer le
-                        // TextField en non contrôlé — React s'en plaint et la saisie
-                        // peut se perdre. Le repli est ce qui le garde contrôlé.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        value={displayValue ?? ''}
-                        label={t('promotion.champEchelle')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.echelle}
-                        helperText={errors.echelle?.message}
-                        sx={{ mb: 2 }}
-                    />
-                );
-            }}
-        />
-
-        <TextField
-            {...register("bareme", { valueAsNumber: true })}
-            label={t('promotion.champBareme')}
-            variant="outlined"
-            fullWidth
-            type="number"
+            label={t('promotion.champEchelle')}
             disabled={isReadOnly}
-            error={!!errors.bareme}
-            helperText={errors.bareme?.message ?? t('promotion.baremeAide')}
-            slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
-            sx={{ mb: 2 }}
+            formater={formaterEchelle}
         />
 
-        <FormControlLabel
-            control={
-                <Controller
-                    name="matiere_eliminatoire"
-                    control={control}
-                    render={({ field }) => (
-                        <Switch
-                            {...field}
-                            checked={field.value === null ? undefined : field.value}
-                            disabled={isReadOnly}
-                        />
-                    )}
-                />
-            }
+        <ChampNombre
+            name="bareme"
+            control={control}
+            label={t('promotion.champBareme')}
+            disabled={isReadOnly}
+            aide={t('promotion.baremeAide')}
+            step="0.01"
+            min={0}
+        />
+
+        <ChampInterrupteur
+            name="matiere_eliminatoire"
+            control={control}
             label={t('promotion.champMatiereEliminatoire')}
-            sx={{ mb: 2, display: 'block' }}
+            disabled={isReadOnly}
         />
 
         {matiereEliminatoire && (
-            <TextField
-                {...register("value_matiere_eliminatoire", { valueAsNumber: true })}
+            <ChampNombre
+                name="value_matiere_eliminatoire"
+                control={control}
                 label={t('promotion.champNoteEliminatoire')}
-                variant="outlined"
-                fullWidth
-                type="number"
                 disabled={isReadOnly}
-                error={!!errors.value_matiere_eliminatoire}
-                helperText={errors.value_matiere_eliminatoire?.message}
-                slotProps={{ htmlInput: { step: "0.01" } }}
-                sx={{ mb: 2 }}
+                step="0.01"
             />
         )}
     </>
@@ -234,7 +174,7 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('promotion.erreurFormationIdObligatoire')}</Typography>
+        <p>{tStructure('promotion.erreurFormationIdObligatoire')}</p>
     )
 
     return (

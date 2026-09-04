@@ -1,4 +1,3 @@
-import { TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,26 +6,15 @@ import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { ChampTexte } from '../../services/ChampTexte';
 import { optionSchema, type Option, createOptionRepository, ACTION_PERIODES, optionEntite } from './entites/option';
 
 export type { Option } from './entites/option';
 
-const OptionFields = ({ register, errors, isReadOnly }: RenderProps<Option>) => {
+const OptionFields = ({ control, isReadOnly }: RenderProps<Option>) => {
     const { t } = useTranslation('structure');
     return (
-        <>
-            <TextField
-                {...register("name")}
-                label={t('option.champNom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-
-        </>
+        <ChampTexte name="name" control={control} label={t('option.champNom')} disabled={isReadOnly} />
     );
 };
 
@@ -80,7 +68,7 @@ export function CrudOption({ mode, workflow, isAction, isReadOnly,isTopToolbar, 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('option.erreurFormationIdObligatoire')}</Typography>
+        <p>{tStructure('option.erreurFormationIdObligatoire')}</p>
     )
 
     return (

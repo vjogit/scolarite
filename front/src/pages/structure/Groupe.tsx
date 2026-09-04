@@ -1,4 +1,3 @@
-import { TextField, Typography, Box } from '@mui/material';
 import type { ActionsBarreOutilsProps, CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo, useCallback, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,26 +6,16 @@ import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { ChampTexte } from '../../services/ChampTexte';
 import { GroupeMultiImportButton } from './GroupeMultiImportButton';
 import { groupeSchema, type Groupe, createGroupeRepository, ACTION_MEMBRES, groupeEntite } from './entites/groupe';
 
 export type { Groupe } from './entites/groupe';
 
-const GroupeFields = ({ register, errors, isReadOnly }: RenderProps<Groupe>) => {
+const GroupeFields = ({ control, isReadOnly }: RenderProps<Groupe>) => {
     const { t } = useTranslation('structure');
     return (
-        <>
-            <TextField
-                {...register("name")}
-                label={t('groupe.champNom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-        </>
+        <ChampTexte name="name" control={control} label={t('groupe.champNom')} disabled={isReadOnly} />
     );
 };
 
@@ -56,10 +45,10 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
     const { t: tStructure } = useTranslation('structure');
 
     const defaultBarreOutils = useCallback(({ defaultActions, peutEcrire }: ActionsBarreOutilsProps<Groupe>): ReactNode => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div className="flex items-center gap-4">
             {defaultActions}
             {peutEcrire && optionId && <GroupeMultiImportButton optionId={optionId} />}
-        </Box>
+        </div>
     ), [optionId]);
 
     const datasource = useMemo((): Datasource<Groupe> | null => optionId ? ({
@@ -76,7 +65,7 @@ export function CrudGroupe({ mode, workflow, isAction, isReadOnly, isTopToolbar,
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('groupe.erreurOptionIdObligatoire')}</Typography>
+        <p>{tStructure('groupe.erreurOptionIdObligatoire')}</p>
     );
 
     return (

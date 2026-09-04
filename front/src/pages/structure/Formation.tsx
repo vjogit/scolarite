@@ -1,4 +1,3 @@
-import { TextField } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,25 +5,15 @@ import type { TFunction } from 'i18next';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Crud } from '../../services/crud/Crud';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { ChampTexte } from '../../services/ChampTexte';
 import { formationSchema, type Formation, formationRepository, ACTION_PROMOTIONS, formationEntite } from './entites/formation';
 
 export type { Formation } from './entites/formation';
 
-const FormationFields = ({ register, errors, isReadOnly }: RenderProps<Formation>) => {
+const FormationFields = ({ control, isReadOnly }: RenderProps<Formation>) => {
     const { t } = useTranslation('structure');
     return (
-        <>
-            <TextField
-                {...register("name")}
-                label={t('formation.champTitre')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-        </>
+        <ChampTexte name="name" control={control} label={t('formation.champTitre')} disabled={isReadOnly} />
     );
 };
 
