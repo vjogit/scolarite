@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import { UserSelector } from '../../services/UserSelector';
 import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
-import { Controller } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_TOEIC } from './def';
@@ -41,24 +40,10 @@ const ToeicFields = ({ control, errors, isReadOnly, getValues, setValue }: Rende
                 isReadOnly={isReadOnly}
             />
             <ChampNombre name="score" control={control} label={t('toic.champScore')} disabled={isReadOnly} min={0} max={990} />
-            <Controller
-                name="date_passage"
-                control={control}
-                render={({ field }) => (
-                    // En création, react-hook-form donne `undefined` (le champ
-                    // est absent d'`emptyValue`) : le garde qui empêche la
-                    // date du jour de se pré-remplir vit dans `ChampDate`.
-                    <ChampDate
-                        label={t('toic.champDatePassage')}
-                        value={field.value}
-                        onChange={field.onChange}
-                        disabled={isReadOnly}
-                        error={!!errors.date_passage}
-                        helperText={errors.date_passage?.message}
-                        fullWidth
-                    />
-                )}
-            />
+            {/* En création, react-hook-form donne `undefined` (le champ est
+                absent d'`emptyValue`) : le garde qui empêche la date du jour
+                de se pré-remplir vit dans `ChampDate`. */}
+            <ChampDate name="date_passage" control={control} label={t('toic.champDatePassage')} disabled={isReadOnly} />
 
             <ChampTexte name="remarque" control={control} label={t('toic.champRemarque')} disabled={isReadOnly} multiline rows={4} />
         </>

@@ -1,18 +1,22 @@
 /**
- * Le champ de date partagé — le remplaçant du `DatePicker` MUI (lot 12).
+ * Le champ de date partagé — le remplaçant du `DatePicker` MUI (lot 12),
+ * aligné au lot 17 sur le contrat des autres `Champ*` : `name`, `control`,
+ * `label`, `disabled`, plus `aide` — câblage react-hook-form, erreur et état
+ * désactivé dans le composant, jamais dans l'écran.
  *
- * Recette shadcn : un `TextField` MUI (les formulaires porteurs restent MUI,
- * le champ doit leur ressembler) + un `Popover` Base UI + le `Calendar`
- * react-day-picker. La saisie au clavier et la sélection au calendrier
- * produisent la même chose : un `Date` natif remis à `onChange`.
+ * Recette shadcn : un `InputGroup` (champ + bouton de calendrier en
+ * adornement) + un `Popover` Base UI + le `Calendar` react-day-picker. La
+ * saisie au clavier et la sélection au calendrier produisent la même chose :
+ * un `Date` natif remis au formulaire.
  *
  * Contrat avec les écrans :
- *  - `value` accepte `Date | null | undefined`. Le schéma des écrans type
- *    leurs champs `Date`, mais `emptyValue` ne les contient pas : en
- *    création, react-hook-form donne `undefined`. Et `dayjs(undefined)` rend
- *    l'heure courante, pas une date invalide — le garde vit ICI, une fois
- *    pour toutes (`value == null`), pour qu'aucun formulaire ne s'ouvre avec
- *    la date du jour pré-remplie. Vérifié au navigateur (lot 12) ; les cinq
+ *  - la valeur du formulaire peut être `Date | string | null | undefined`.
+ *    Le schéma des écrans type leurs champs `Date`, mais `emptyValue` ne les
+ *    contient pas : en création, react-hook-form donne `undefined`. Et
+ *    `dayjs(undefined)` rend l'heure courante, pas une date invalide — le
+ *    garde vit ICI, une fois pour toutes (`value == null`), pour qu'aucun
+ *    formulaire ne s'ouvre avec la date du jour pré-remplie. Vérifié au
+ *    navigateur (lot 12, revérifié au lot 17 sur les cinq écrans) ; les cinq
  *    écrans portaient chacun ce garde du temps de MUI.
  *  - une saisie vide rend `null` ; une saisie inanalysable rend un
  *    `Date` invalide, que les `z.coerce.date()` des schémas refusent — le
@@ -20,11 +24,13 @@
  *  - le format suit la langue i18next active (`L`/`l` de la locale dayjs,
  *    posée instance par instance — dayjs global reste en `en`, comme du
  *    temps de l'`adapterLocale` du `LocalizationProvider`).
+ *  - l'`<input>` porte le `name` du champ et la `ref` de react-hook-form :
+ *    `services/crud/focus.ts` le trouve par le nom, là où le `DatePicker`
+ *    sous `Controller` n'était joignable que par `aria-invalid`.
  */
 
-import { useRef, useState, type RefObject } from 'react';
-import { IconButton, InputAdornment, TextField } from '@mui/material';
-import type { SxProps, Theme } from '@mui/material/styles';
+import { useId, useRef, useState } from 'react';
+import { useController, type FieldValues } from 'react-hook-form';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -36,9 +42,14 @@ import 'dayjs/locale/fr';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 
+import { Field, FieldDescription, FieldError, FieldLabel } from '../components/ui/field';
+import { Input } from '../components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '../components/ui/input-group';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { Calendar } from '../components/ui/calendar';
 import { fr as jourLocaleFr, enUS as jourLocaleEn } from 'react-day-picker/locale';
+import { cn } from '../lib/utils';
+import type { PropsChampBase } from './ChampTexte';
 
 dayjs.extend(customParseFormat);
 dayjs.extend(localizedFormat);
@@ -59,9 +70,11 @@ function locales(langue: string) {
  * soumission. L'ancien `dayjs(field.value)` les avalait sans le dire ;
  * constaté au navigateur (lot 12, plantage `getTime` sur l'écran d'édition).
  */
-function normaliser(value: Date | string | null | undefined): Date | null {
+function normaliser(value: unknown): Date | null {
     if (value == null) return null;
-    return value instanceof Date ? value : new Date(value);
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' || typeof value === 'number') return new Date(value);
+    return new Date(NaN);
 }
 
 function formater(date: Date | null, localeDayjs: string): string {
@@ -77,27 +90,35 @@ function analyser(texte: string, localeDayjs: string): dayjs.Dayjs {
     return dayjs(texte, ['L', 'l'], localeDayjs, true);
 }
 
-export interface PropsChampDate {
-    label: string;
-    /** `string` : voir `normaliser` — la donnée d'édition arrive en ISO. */
-    value: Date | string | null | undefined;
-    onChange: (date: Date | null) => void;
-    disabled?: boolean;
-    error?: boolean;
-    helperText?: string;
-    fullWidth?: boolean;
-    sx?: SxProps<Theme>;
-    /**
-     * Sous-arbre où rendre le popup du calendrier. À fournir depuis une
-     * modale MUI : son piège à focus reprend le focus dès qu'il quitte la
-     * modale, et fermerait un popup portalé vers `<body>` sitôt ouvert.
-     */
-    conteneurPopup?: RefObject<HTMLElement | null>;
+/**
+ * L'identifiant que `aria-describedby` doit viser : l'erreur quand il y en a
+ * une, sinon l'aide quand elle existe — même règle que `ChampTexte`.
+ */
+function decritPar(estInvalide: boolean, idErreur: string, aide: string | undefined, idAide: string): string | undefined {
+    if (estInvalide) return idErreur;
+    return aide === undefined ? undefined : idAide;
 }
 
-export function ChampDate({
-    label, value, onChange, disabled, error, helperText, fullWidth, sx, conteneurPopup,
-}: PropsChampDate) {
+interface PropsSaisieDate {
+    id: string;
+    name: string;
+    refChamp: (instance: HTMLInputElement | null) => void;
+    value: unknown;
+    onChange: (date: Date | null) => void;
+    onBlur: () => void;
+    disabled?: boolean;
+    estInvalide: boolean;
+    decritPar: string | undefined;
+}
+
+/**
+ * Le contrôle lui-même — champ texte, bouton et calendrier — sans libellé ni
+ * message : `ChampDate` et `ChampDateHeure` l'habillent chacun dans leur
+ * `Field`.
+ */
+function SaisieDate({
+    id, name, refChamp, value, onChange, onBlur, disabled, estInvalide, decritPar: decrit,
+}: PropsSaisieDate) {
     const { t, i18n } = useTranslation('app');
     const { dayjs: localeDayjs, calendrier } = locales(i18n.resolvedLanguage ?? i18n.language);
 
@@ -145,44 +166,41 @@ export function ChampDate({
         // langue) ; une saisie invalide reste affichée telle quelle, pour que
         // l'erreur se comprenne.
         if (dateValide) setTexte(formater(dateValide, localeDayjs));
+        onBlur();
     };
 
     return (
         <Popover open={ouvert} onOpenChange={setOuvert}>
-            <TextField
-                ref={racine}
-                label={label}
-                value={texte}
-                onChange={(evenement) => { surSaisie(evenement.target.value); }}
-                onFocus={() => { setEnSaisie(true); }}
-                onBlur={surFinDeSaisie}
-                placeholder={t('champDate.gabarit')}
-                disabled={disabled}
-                error={error}
-                helperText={helperText}
-                fullWidth={fullWidth}
-                sx={sx}
-                slotProps={{
-                    input: {
-                        endAdornment: (
-                            <InputAdornment position="end">
-                                <PopoverTrigger
-                                    render={
-                                        <IconButton
-                                            edge="end"
-                                            aria-label={t('champDate.ouvrirCalendrier')}
-                                            disabled={disabled}
-                                        />
-                                    }
-                                >
-                                    <CalendarIcon />
-                                </PopoverTrigger>
-                            </InputAdornment>
-                        ),
-                    },
-                }}
-            />
-            <PopoverContent anchor={racine} align="end" container={conteneurPopup}>
+            <InputGroup ref={racine}>
+                <InputGroupInput
+                    id={id}
+                    name={name}
+                    ref={refChamp}
+                    value={texte}
+                    onChange={(evenement) => { surSaisie(evenement.target.value); }}
+                    onFocus={() => { setEnSaisie(true); }}
+                    onBlur={surFinDeSaisie}
+                    placeholder={t('champDate.gabarit')}
+                    disabled={disabled}
+                    aria-invalid={estInvalide ? true : undefined}
+                    aria-describedby={decrit}
+                />
+                <InputGroupAddon align="inline-end">
+                    <PopoverTrigger
+                        render={(
+                            <InputGroupButton
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label={t('champDate.ouvrirCalendrier')}
+                                disabled={disabled}
+                            />
+                        )}
+                    >
+                        <CalendarIcon />
+                    </PopoverTrigger>
+                </InputGroupAddon>
+            </InputGroup>
+            <PopoverContent anchor={racine} align="end">
                 <Calendar
                     mode="single"
                     locale={calendrier}
@@ -198,31 +216,71 @@ export function ChampDate({
     );
 }
 
-export interface PropsChampDateHeure {
-    label: string;
-    value: Date | null;
-    onChange: (date: Date | null) => void;
-    disabled?: boolean;
-    conteneurPopup?: RefObject<HTMLElement | null>;
+export type PropsChampDate<D extends FieldValues> = PropsChampBase<D>;
+
+export function ChampDate<D extends FieldValues>({
+    name, control, label, disabled, className, aide,
+}: PropsChampDate<D>) {
+    // `ref` renommée à la sortie de `field` : même motif que `ChampTexte`
+    // (React Compiler).
+    const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({ name, control });
+    const id = useId();
+    const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
+    const erreur = fieldState.error?.message;
+    const estInvalide = erreur !== undefined;
+
+    return (
+        <Field data-invalid={estInvalide} className={cn('mb-4', className)}>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <SaisieDate
+                id={id}
+                name={name}
+                refChamp={refChamp}
+                value={valeur}
+                onChange={onChange}
+                onBlur={onBlur}
+                disabled={disabled}
+                estInvalide={estInvalide}
+                decritPar={decritPar(estInvalide, idErreur, aide, idAide)}
+            />
+            {estInvalide
+                ? <FieldError id={idErreur}>{erreur}</FieldError>
+                : aide !== undefined && <FieldDescription id={idAide}>{aide}</FieldDescription>}
+        </Field>
+    );
 }
+
+export type PropsChampDateHeure<D extends FieldValues> = PropsChampBase<D>;
 
 /**
  * Date et heure — le remplaçant du `DateTimePicker` MUI, pour le seul écran
- * qui en montait (ReservationDialog). La date passe par `ChampDate`, l'heure
+ * qui en montait (ReservationDialog). La date passe par `SaisieDate`, l'heure
  * par un `<input type="time">` natif : pas de roue d'horloge à recomposer.
  * L'heure saisie avant la date est retenue localement et rattachée dès
- * qu'une date arrive.
+ * qu'une date arrive. Une seule valeur de formulaire (`Date | null`) pour
+ * les deux contrôles ; l'erreur, s'il y en a une, s'affiche sous la date.
  */
-export function ChampDateHeure({ label, value, onChange, disabled, conteneurPopup }: PropsChampDateHeure) {
+export function ChampDateHeure<D extends FieldValues>({
+    name, control, label, disabled, className, aide,
+}: PropsChampDateHeure<D>) {
     const { t } = useTranslation('app');
+    const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({ name, control });
+    const id = useId();
+    const idHeure = `${id}-heure`;
+    const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
+    const erreur = fieldState.error?.message;
+    const estInvalide = erreur !== undefined;
 
-    const valide = value != null && !Number.isNaN(value.getTime());
-    const [heure, setHeure] = useState(() => (valide ? dayjs(value).format('HH:mm') : ''));
+    const date = normaliser(valeur);
+    const valide = date != null && !Number.isNaN(date.getTime());
+    const [heure, setHeure] = useState(() => (valide ? dayjs(date).format('HH:mm') : ''));
     const [heureEnSaisie, setHeureEnSaisie] = useState(false);
 
-    // Même ajustement pendant le rendu que dans `ChampDate` (lint interdit le
+    // Même ajustement pendant le rendu que dans `SaisieDate` (lint interdit le
     // setState d'effet) : l'heure suit la valeur externe hors saisie.
-    const instant = value == null ? null : value.getTime();
+    const instant = date == null ? null : date.getTime();
     const [precedentInstant, setPrecedentInstant] = useState<number | null>(instant);
     if (!Object.is(precedentInstant, instant)) {
         setPrecedentInstant(instant);
@@ -240,35 +298,45 @@ export function ChampDateHeure({ label, value, onChange, disabled, conteneurPopu
     };
 
     return (
-        <div className="flex flex-1 gap-2">
-            <ChampDate
-                label={label}
-                value={value}
-                onChange={(jour) => {
-                    if (jour == null || Number.isNaN(jour.getTime())) onChange(jour);
-                    else onChange(combiner(jour, heure));
-                }}
-                disabled={disabled}
-                fullWidth
-                conteneurPopup={conteneurPopup}
-            />
-            <TextField
-                label={t('champDate.heure')}
-                type="time"
-                value={heure}
-                onChange={(evenement) => {
-                    const saisie = evenement.target.value;
-                    setHeure(saisie);
-                    // Sans date, l'heure attend la sienne : retenue localement,
-                    // rattachée par `combiner` au premier jour choisi.
-                    if (valide && saisie !== '') onChange(combiner(value, saisie));
-                }}
-                onFocus={() => { setHeureEnSaisie(true); }}
-                onBlur={() => { setHeureEnSaisie(false); }}
-                disabled={disabled}
-                sx={{ width: '7.5rem', flexShrink: 0 }}
-                slotProps={{ inputLabel: { shrink: true } }}
-            />
+        <div className={cn('flex gap-2', className)}>
+            <Field data-invalid={estInvalide} className="flex-1">
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                <SaisieDate
+                    id={id}
+                    name={name}
+                    refChamp={refChamp}
+                    value={valeur}
+                    onChange={(jour) => {
+                        if (jour == null || Number.isNaN(jour.getTime())) onChange(jour);
+                        else onChange(combiner(jour, heure));
+                    }}
+                    onBlur={onBlur}
+                    disabled={disabled}
+                    estInvalide={estInvalide}
+                    decritPar={decritPar(estInvalide, idErreur, aide, idAide)}
+                />
+                {estInvalide
+                    ? <FieldError id={idErreur}>{erreur}</FieldError>
+                    : aide !== undefined && <FieldDescription id={idAide}>{aide}</FieldDescription>}
+            </Field>
+            <Field className="w-[7.5rem] shrink-0">
+                <FieldLabel htmlFor={idHeure}>{t('champDate.heure')}</FieldLabel>
+                <Input
+                    id={idHeure}
+                    type="time"
+                    value={heure}
+                    onChange={(evenement) => {
+                        const saisie = evenement.target.value;
+                        setHeure(saisie);
+                        // Sans date, l'heure attend la sienne : retenue localement,
+                        // rattachée par `combiner` au premier jour choisi.
+                        if (valide && saisie !== '') onChange(combiner(date, saisie));
+                    }}
+                    onFocus={() => { setHeureEnSaisie(true); }}
+                    onBlur={() => { setHeureEnSaisie(false); onBlur(); }}
+                    disabled={disabled}
+                />
+            </Field>
         </div>
     );
 }

@@ -341,14 +341,12 @@ function FormulaireReservation({ reservation, start, end, periodeId, optionId, o
     // ── Rendu ───────────────────────────────────────────────────────────────
     return (
         <>
-            {/* Plus de `conteneurPopup` sur les champs date-heure : il
-                contournait le piège à focus de la modale MUI (lot 12). La
-                modale Base UI reconnaît ses popups portalés vers <body> —
-                sélections et combobox en font autant ici — et un calendrier
-                rendu dans ce corps défilant y serait rogné. Marges négatives
-                compensées par des marges internes : de la place pour l'anneau
-                de focus et pour le libellé flottant des champs de date MUI,
-                que le bord du défilement rognerait sinon (constaté). */}
+            {/* Les popups des champs (sélections, combobox, calendrier) se
+                portalisent vers <body> : la modale Base UI les reconnaît, et
+                un calendrier rendu dans ce corps défilant y serait rogné.
+                Marges négatives compensées par des marges internes : de la
+                place pour l'anneau de focus, que le bord du défilement
+                rognerait sinon (constaté au lot 14). */}
             <div className="-mx-1 -mt-2 flex flex-col gap-4 overflow-y-auto px-1 pt-2">
 
                 {conflictErrors.map((msg, i) => (
@@ -360,28 +358,8 @@ function FormulaireReservation({ reservation, start, end, periodeId, optionId, o
 
                 {/* L'un sous l'autre : chaque champ date-heure occupe
                     déjà la largeur de deux champs. */}
-                <Controller
-                    name="debut"
-                    control={controle}
-                    render={({ field }) => (
-                        <ChampDateHeure
-                            label={t('reservationDialog.champDebut')}
-                            value={field.value}
-                            onChange={field.onChange}
-                        />
-                    )}
-                />
-                <Controller
-                    name="fin"
-                    control={controle}
-                    render={({ field }) => (
-                        <ChampDateHeure
-                            label={t('reservationDialog.champFin')}
-                            value={field.value}
-                            onChange={field.onChange}
-                        />
-                    )}
-                />
+                <ChampDateHeure name="debut" control={controle} label={t('reservationDialog.champDebut')} />
+                <ChampDateHeure name="fin" control={controle} label={t('reservationDialog.champFin')} />
 
                 <ChampSelection
                     name="type_cours"

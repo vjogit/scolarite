@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
-import { Controller, useWatch } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
 import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
 import { ChampInterrupteur } from '../../services/ChampChoix';
@@ -26,47 +26,17 @@ function formaterEchelle(valeur: unknown): unknown {
         : valeur;
 }
 
-const PromotionFields = ({ control, errors, isReadOnly }: RenderProps<Promotion>) => {
+const PromotionFields = ({ control, isReadOnly }: RenderProps<Promotion>) => {
     const matiereEliminatoire = useWatch({ control, name: 'matiere_eliminatoire' });
     const { t } = useTranslation('structure');
 
     return <>
         <ChampTexte name="name" control={control} label={t('promotion.champTitre')} disabled={isReadOnly} />
-        <Controller
-            name="debut"
-            control={control}
-            render={({ field }) => (
-                // En création, react-hook-form donne `undefined` (le champ est
-                // absent d'`emptyValue`) : le garde qui empêche la date du
-                // jour de se pré-remplir vit dans `ChampDate`, une fois pour
-                // toutes.
-                <ChampDate
-                    label={t('commun.dateDebut')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={isReadOnly}
-                    error={!!errors.debut}
-                    helperText={errors.debut?.message}
-                    fullWidth
-                />
-            )}
-        />
-
-        <Controller
-            name="fin"
-            control={control}
-            render={({ field }) => (
-                <ChampDate
-                    label={t('commun.dateFin')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    disabled={isReadOnly}
-                    error={!!errors.fin}
-                    helperText={errors.fin?.message}
-                    fullWidth
-                />
-            )}
-        />
+        {/* En création, react-hook-form donne `undefined` (le champ est
+            absent d'`emptyValue`) : le garde qui empêche la date du jour de
+            se pré-remplir vit dans `ChampDate`, une fois pour toutes. */}
+        <ChampDate name="debut" control={control} label={t('commun.dateDebut')} disabled={isReadOnly} />
+        <ChampDate name="fin" control={control} label={t('commun.dateFin')} disabled={isReadOnly} />
 
         <ChampTexte
             name="echelle_gpa"

@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { UserSelector } from '../../services/UserSelector';
 import { ChampTexte } from '../../services/ChampTexte';
 import { ChampInterrupteur, ChampSelection } from '../../services/ChampChoix';
-import { Controller } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_MOBILITE } from './def';
@@ -83,43 +82,11 @@ const MobiliteFields = ({ control, errors, isReadOnly, getValues, setValue }: Re
                     options={TYPE_MOBILITE_OPTIONS}
                 />
 
-                <Controller
-                    name="date_debut"
-                    control={control}
-                    render={({ field }) => (
-                        // En création, react-hook-form donne `undefined` (le
-                        // champ est absent d'`emptyValue`) : le garde qui
-                        // empêche la date du jour de se pré-remplir vit dans
-                        // `ChampDate`.
-                        <ChampDate
-                            label={t('mobilite.champDateDebut')}
-                            value={field.value}
-                            onChange={field.onChange}
-                            disabled={isReadOnly}
-                            error={!!errors.date_debut}
-                            helperText={errors.date_debut?.message}
-                            fullWidth
-                            sx={{ mb: 2 }}
-                        />
-                    )}
-                />
-
-                <Controller
-                    name="date_fin"
-                    control={control}
-                    render={({ field }) => (
-                        <ChampDate
-                            label={t('mobilite.champDateFin')}
-                            value={field.value}
-                            onChange={field.onChange}
-                            disabled={isReadOnly}
-                            error={!!errors.date_fin}
-                            helperText={errors.date_fin?.message}
-                            fullWidth
-                            sx={{ mb: 2 }}
-                        />
-                    )}
-                />
+                {/* En création, react-hook-form donne `undefined` (le champ
+                    est absent d'`emptyValue`) : le garde qui empêche la date
+                    du jour de se pré-remplir vit dans `ChampDate`. */}
+                <ChampDate name="date_debut" control={control} label={t('mobilite.champDateDebut')} disabled={isReadOnly} />
+                <ChampDate name="date_fin" control={control} label={t('mobilite.champDateFin')} disabled={isReadOnly} />
             </div>
 
             {/* PLEINE LARGEUR */}
