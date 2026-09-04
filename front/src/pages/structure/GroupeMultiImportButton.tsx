@@ -1,8 +1,9 @@
 import { useRef, useCallback } from 'react';
-import { Tooltip, IconButton } from '@mui/material';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { FolderUp } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
@@ -66,10 +67,21 @@ export function GroupeMultiImportButton({ optionId }: Props) {
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => fileInputRef.current?.click()}
+                        />
+                    )}
+                >
                     <FolderUp />
-                </IconButton>
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
             <input
                 type="file"

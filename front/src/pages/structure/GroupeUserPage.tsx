@@ -2,11 +2,12 @@ import { useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { skipToken, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Box, Typography, IconButton, Tooltip, Button } from '@mui/material';
 import { ArrowLeft, Trash2, UserPlus } from 'lucide-react';
 import type { ColumnDef, Table as TableTanstack } from '@tanstack/react-table';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { DataTable } from '../../services/crud/DataTable';
 import { useEtatTablePersistant } from '../../services/crud/usePersistentTableState';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
@@ -108,18 +109,25 @@ export function GroupeUserPage() {
 
     const { mutate: retirer, isPending: retraitEnCours } = removeMutation;
     const actionsLigne = useCallback((user: User) => (
-        <Tooltip title={t('membres.retirer')}>
-            <IconButton
-                // Hors contexte visuel, « Retirer du groupe » est le même
-                // nom sur toutes les lignes : il faut dire laquelle.
-                aria-label={t('membres.retirerAriaLabel', { nom: nomLisible(user) })}
-                size="small"
-                color="error"
-                disabled={retraitEnCours}
-                onClick={() => { retirer(user.id); }}
+        <Tooltip>
+            <TooltipTrigger
+                render={(
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        // Hors contexte visuel, « Retirer du groupe » est le même
+                        // nom sur toutes les lignes : il faut dire laquelle.
+                        aria-label={t('membres.retirerAriaLabel', { nom: nomLisible(user) })}
+                        className="text-destructive hover:text-destructive"
+                        disabled={retraitEnCours}
+                        onClick={() => { retirer(user.id); }}
+                    />
+                )}
             >
-                <Trash2 size={20} />
-            </IconButton>
+                <Trash2 />
+            </TooltipTrigger>
+            <TooltipContent>{t('membres.retirer')}</TooltipContent>
         </Tooltip>
     ), [retirer, retraitEnCours, t]);
 
@@ -130,42 +138,51 @@ export function GroupeUserPage() {
     ), [t]);
 
     return (
-        <Box sx={{ p: 2, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexShrink: 0 }}>
-                <Tooltip title={t('commun.retour')}>
-                    <IconButton aria-label={t('commun.retour')} onClick={() => { void navigate(-1); }}>
+        <div className="flex h-full flex-col p-4">
+            <div className="mb-4 flex shrink-0 items-center gap-2">
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={t('commun.retour')}
+                                onClick={() => { void navigate(-1); }}
+                            />
+                        )}
+                    >
                         <ArrowLeft />
-                    </IconButton>
+                    </TooltipTrigger>
+                    <TooltipContent>{t('commun.retour')}</TooltipContent>
                 </Tooltip>
-                <Typography variant="h6" sx={{ flex: 1 }}>{t('membres.titre')}</Typography>
+                {/* `h6` : le rang que MUI donnait à `variant="h6"`. */}
+                <h6 className="m-0 flex-1 text-lg font-medium">{t('membres.titre')}</h6>
                 {peutEcrire && groupeId && <GroupeImportButton groupeId={groupeId} />}
-            </Box>
+            </div>
 
             {peutEcrire && (
-                <Box component="form" onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} sx={{ mb: 2, flexShrink: 0 }}>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                        <Box sx={{ flex: 1 }}>
+                <form onSubmit={(event) => { void handleSubmit(onSubmit)(event); }} className="mb-2 shrink-0">
+                    {/* Le sélecteur porte son libellé au-dessus du champ et sa
+                        marge basse : le bouton s'aligne sur le bas du champ. */}
+                    <div className="flex items-end gap-2">
+                        <div className="min-w-0 flex-1">
                             <UserSelector
                                 control={control}
                                 errors={errors}
                                 getValues={getValues}
                                 setValue={setValue}
                             />
-                        </Box>
-                        <Button
-                            type="submit"
-                            variant="contained"
-                            startIcon={<UserPlus size={20} />}
-                            disabled={addMutation.isPending}
-                            sx={{ mt: 0.5 }}
-                        >
+                        </div>
+                        <Button type="submit" disabled={addMutation.isPending} className="mb-4">
+                            <UserPlus />
                             {t('commun.ajouter')}
                         </Button>
-                    </Box>
-                </Box>
+                    </div>
+                </form>
             )}
 
-            <Box sx={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+            <div className="min-h-0 flex-1 overflow-hidden">
                 <DataTable<User>
                     colonnes={colonnes}
                     donnees={members}
@@ -175,7 +192,7 @@ export function GroupeUserPage() {
                     actionsLigne={peutEcrire ? actionsLigne : undefined}
                     etatVide={etatVide}
                 />
-            </Box>
-        </Box>
+            </div>
+        </div>
     );
 }

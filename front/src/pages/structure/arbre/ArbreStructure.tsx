@@ -43,7 +43,6 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { FieldValues } from 'react-hook-form';
-import { Box, Typography } from '@mui/material';
 import { ChevronRight, Folder } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -85,12 +84,15 @@ interface Noeud {
     readonly nom: string;
 }
 
+/** Le texte d'une ligne : la taille et l'interligne du `body2` MUI (14 px / 20 px). */
+const CLASSES_TEXTE = 'text-sm leading-5';
+
 function Etiquette({ icone: Icone, texte }: { icone: IconeAction; texte: string }) {
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.25, minWidth: 0 }}>
+        <div className="flex min-w-0 items-center gap-1.5 py-0.5">
             <Icone size={20} className="shrink-0 text-muted-foreground" />
-            <Typography variant="body2" noWrap title={texte}>{texte}</Typography>
-        </Box>
+            <span className={cn(CLASSES_TEXTE, 'truncate')} title={texte}>{texte}</span>
+        </div>
     );
 }
 
@@ -199,7 +201,7 @@ function NoeudInerte({ texte }: { texte: string }) {
         <LigneArbre
             chemin=""
             desactive
-            etiquette={<Typography variant="body2" sx={{ color: 'text.disabled' }}>{texte}</Typography>}
+            etiquette={<span className={cn(CLASSES_TEXTE, 'text-muted-foreground')}>{texte}</span>}
         />
     );
 }
@@ -229,9 +231,9 @@ function NoeudVide({ chemin, entite, premier }: {
             premier={premier}
             ariaLabel={`${constat} ${invite}`}
             etiquette={
-                <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                    {constat} <Box component="span" sx={{ textDecoration: 'underline' }}>{invite}</Box>
-                </Typography>
+                <span className={cn(CLASSES_TEXTE, 'text-muted-foreground italic')}>
+                    {constat} <span className="underline">{invite}</span>
+                </span>
             }
         />
     );
