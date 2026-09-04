@@ -15,17 +15,25 @@
  *    groupe entier sans jamais toucher la souris.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import {
-    Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent,
-    DialogContentText, DialogTitle, IconButton, Skeleton, Table, TableBody,
-    TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip,
-} from '@mui/material';
-import { CircleCheck, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { CircleAlert, CircleCheck, RefreshCw, RotateCcw, Trash2, TriangleAlert } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import type { QueryKey } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Spinner } from '../../components/ui/spinner';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '../../components/ui/table';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { notifyUndone } from '../../services/notify';
 import { estNavigation, type ActionLigne } from '../../services/crud/actions';
@@ -76,6 +84,7 @@ interface Props {
 
 export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, lectureSeule, onLignesChange, actionsLigne = [] }: Props) {
     const { t } = useTranslation('note');
+    const idGrille = useId();
     const champNote = useMemo(() => createNoteField(bareme), [bareme]);
 
     const { data, isLoading, error } = useQuery<LigneGrilleServeur[]>({
@@ -402,101 +411,119 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
         }
     }, [enregistrerSiModifiee, focusNote, majLigne]);
 
-    if (isLoading) return <Skeleton variant="rounded" height={360} />;
-    if (error) return <Alert severity="error">{t('grilleNotesTable.effectifIntrouvable')}</Alert>;
+    if (isLoading) return <Skeleton className="h-[360px] rounded-lg" />;
+    if (error) {
+        return (
+            <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription>{t('grilleNotesTable.effectifIntrouvable')}</AlertDescription>
+            </Alert>
+        );
+    }
     if (lignes.length === 0) {
-        return <Alert severity="warning">{t('grilleNotesTable.aucunEleveRattache')}</Alert>;
+        return (
+            <Alert variant="warning">
+                <TriangleAlert />
+                <AlertDescription>{t('grilleNotesTable.aucunEleveRattache')}</AlertDescription>
+            </Alert>
+        );
     }
 
+    const bornes = bornesNote(bareme);
+    const colonneActions = actionsLigne.length > 0 || !lectureSeule;
+
     return (
-        <TableContainer>
-            <Table size="small" aria-label={t('grilleNotesTable.grilleAriaLabel')}>
-                <TableHead>
+        <div className="overflow-x-auto">
+            {/* Balisage `<table>` nu, par les primitives fines de `ui/table` :
+                rôles `table`/`row`/`columnheader`/`cell` natifs, ceux que la
+                suite e2e cible. Pas le socle `DataTable` — une grille de saisie
+                n'est pas une liste (voir l'en-tête du fichier). */}
+            <Table aria-label={t('grilleNotesTable.grilleAriaLabel')}>
+                <TableHeader>
                     <TableRow>
-                        <TableCell>{t('commun.eleve')}</TableCell>
-                        <TableCell sx={{ width: 140 }}>{libelleNote(bareme)}</TableCell>
-                        <TableCell sx={{ width: 90 }} align="center">
-                            <Tooltip title={t('noteControle.nonEvalueLabel')}><span>{t('noteControle.nonEvalueAbrege')}</span></Tooltip>
-                        </TableCell>
-                        {isRattrapage && <TableCell sx={{ width: 90 }} align="center">{t('grilleNotesTable.colonneValidee')}</TableCell>}
-                        <TableCell>{t('commun.remarque')}</TableCell>
-                        <TableCell sx={{ width: 80 }} align="center">{t('grilleNotesTable.colonneEtat')}</TableCell>
+                        <TableHead>{t('commun.eleve')}</TableHead>
+                        <TableHead className="w-[140px]">{libelleNote(bareme)}</TableHead>
+                        <TableHead className="w-[90px] text-center">
+                            <Tooltip>
+                                <TooltipTrigger render={<span />}>{t('noteControle.nonEvalueAbrege')}</TooltipTrigger>
+                                <TooltipContent>{t('noteControle.nonEvalueLabel')}</TooltipContent>
+                            </Tooltip>
+                        </TableHead>
+                        {isRattrapage && <TableHead className="w-[90px] text-center">{t('grilleNotesTable.colonneValidee')}</TableHead>}
+                        <TableHead>{t('commun.remarque')}</TableHead>
+                        <TableHead className="w-[80px] text-center">{t('grilleNotesTable.colonneEtat')}</TableHead>
                         {/* La colonne existe dès qu'une ligne peut porter une
                             action : celles que l'écran déclare, ou la suppression
                             que la table ajoute pour qui a le droit d'écrire. */}
-                        {(actionsLigne.length > 0 || !lectureSeule)
-                            && <TableCell sx={{ width: 64 }} align="center">{t('grilleNotesTable.colonneActions')}</TableCell>}
+                        {colonneActions
+                            && <TableHead className="w-[64px] text-center">{t('grilleNotesTable.colonneActions')}</TableHead>}
                     </TableRow>
-                </TableHead>
+                </TableHeader>
                 <TableBody>
                     {lignes.map((ligne, index) => {
                         const eleve = `${ligne.nom} ${ligne.prenom}`.trim();
+                        const enDefaut = ligne.statut === 'erreur' || ligne.statut === 'conflit';
+                        const idMessage = `${idGrille}-message-${String(ligne.userId)}`;
                         return (
-                            <TableRow key={ligne.userId} hover>
+                            <TableRow key={ligne.userId}>
                                 <TableCell>{eleve}</TableCell>
                                 <TableCell>
-                                    <TextField
-                                        inputRef={(element: HTMLInputElement | null) => { champsRef.current[index] = element; }}
+                                    <Input
+                                        ref={(element) => { champsRef.current[index] = element; }}
                                         value={ligne.saisie.note}
                                         onChange={(e) => { modifierSaisie(ligne.userId, { note: e.target.value }); }}
                                         onKeyDown={(e) => { surToucheNote(e, ligne.userId, index); }}
                                         onBlur={() => { enregistrerSiModifiee(ligne.userId); }}
                                         disabled={lectureSeule || ligne.saisie.notEvaluated}
+                                        // Champ texte et non numérique : « 15,5 » doit
+                                        // survivre à la frappe. Les bornes du barème
+                                        // restent annoncées aux technologies d'assistance.
+                                        inputMode="decimal"
+                                        aria-label={t('grilleNotesTable.noteEleveAriaLabel', { eleve })}
+                                        aria-valuemin={bornes.min}
+                                        aria-valuemax={bornes.max}
                                         // Le message vaut pour l'erreur comme pour le
                                         // conflit : le second n'était visible qu'en
                                         // infobulle, donc invisible au clavier.
-                                        error={ligne.statut === 'erreur' || ligne.statut === 'conflit'}
-                                        helperText={ligne.message ?? undefined}
-                                        size="small"
-                                        variant="outlined"
-                                        slotProps={{
-                                            htmlInput: {
-                                                // Champ texte et non numérique : « 15,5 » doit
-                                                // survivre à la frappe. Les bornes du barème
-                                                // restent annoncées aux technologies d'assistance.
-                                                inputMode: 'decimal',
-                                                'aria-label': t('grilleNotesTable.noteEleveAriaLabel', { eleve }),
-                                                'aria-valuemin': bornesNote(bareme).min,
-                                                'aria-valuemax': bornesNote(bareme).max,
-                                            },
-                                        }}
-                                        sx={{ width: 120 }}
+                                        aria-invalid={enDefaut ? true : undefined}
+                                        aria-describedby={enDefaut && ligne.message !== null ? idMessage : undefined}
+                                        className="w-[120px]"
                                     />
+                                    {enDefaut && ligne.message !== null && (
+                                        <p id={idMessage} className="m-0 mt-1 text-xs text-destructive">{ligne.message}</p>
+                                    )}
                                 </TableCell>
-                                <TableCell align="center">
+                                <TableCell className="text-center">
                                     <Checkbox
                                         checked={ligne.saisie.notEvaluated}
                                         disabled={lectureSeule}
-                                        onChange={(e) => { basculerNonEvalue(ligne.userId, index, e.target.checked); }}
-                                        slotProps={{ input: { 'aria-label': t('grilleNotesTable.nonEvaluePourEleveAriaLabel', { eleve }) } }}
+                                        onCheckedChange={(coche) => { basculerNonEvalue(ligne.userId, index, coche); }}
+                                        aria-label={t('grilleNotesTable.nonEvaluePourEleveAriaLabel', { eleve })}
                                     />
                                 </TableCell>
                                 {isRattrapage && (
-                                    <TableCell align="center">
+                                    <TableCell className="text-center">
                                         <Checkbox
                                             checked={ligne.saisie.isValidated}
                                             disabled={lectureSeule}
-                                            onChange={(e) => {
-                                                modifierSaisie(ligne.userId, { isValidated: e.target.checked });
+                                            onCheckedChange={(coche) => {
+                                                modifierSaisie(ligne.userId, { isValidated: coche });
                                                 enregistrerSiModifiee(ligne.userId);
                                             }}
-                                            slotProps={{ input: { 'aria-label': t('grilleNotesTable.valideePourEleveAriaLabel', { eleve }) } }}
+                                            aria-label={t('grilleNotesTable.valideePourEleveAriaLabel', { eleve })}
                                         />
                                     </TableCell>
                                 )}
                                 <TableCell>
-                                    <TextField
+                                    <Input
                                         value={ligne.saisie.remarque}
                                         disabled={lectureSeule}
                                         onChange={(e) => { modifierSaisie(ligne.userId, { remarque: e.target.value }); }}
                                         onBlur={() => { enregistrerSiModifiee(ligne.userId); }}
-                                        size="small"
-                                        variant="outlined"
-                                        fullWidth
-                                        slotProps={{ htmlInput: { 'aria-label': t('grilleNotesTable.remarquePourEleveAriaLabel', { eleve }) } }}
+                                        aria-label={t('grilleNotesTable.remarquePourEleveAriaLabel', { eleve })}
                                     />
                                 </TableCell>
-                                <TableCell align="center">
+                                <TableCell className="text-center">
                                     <IndicateurLigne
                                         ligne={ligne}
                                         eleve={eleve}
@@ -504,8 +531,8 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                                         onRecharger={() => { void rechargerLigne(ligne.userId); }}
                                     />
                                 </TableCell>
-                                {(actionsLigne.length > 0 || !lectureSeule) && (
-                                <TableCell align="center">
+                                {colonneActions && (
+                                <TableCell className="text-center">
                                     <MenuActionsLigne
                                         actions={actionsPourLigne(ligne)}
                                         nomLigne={eleve}
@@ -532,7 +559,7 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
                     setASupprimer(null);
                 }}
             />
-        </TableContainer>
+        </div>
     );
 }
 
@@ -555,8 +582,8 @@ function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
     onConfirmer: () => void;
 }) {
     const { t } = useTranslation('note');
-    // `keepMounted` absent : la modale se démonte, mais `ligne` doit survivre au
-    // rendu de fermeture pour que le nom ne disparaisse pas pendant l'animation.
+    // Base UI démonte le popup après sa transition de fermeture ; `ligne`
+    // doit y survivre pour que le nom ne disparaisse pas pendant l'animation.
     const [derniere, setDerniere] = useState<LigneGrille | null>(null);
     if (ligne !== null && ligne !== derniere) {
         setDerniere(ligne);
@@ -572,22 +599,25 @@ function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
             : t('grilleNotesTable.notee', { valeur: affichee.enregistre.note });
 
     return (
-        <Dialog open={ligne !== null} onClose={onAnnuler} maxWidth="xs" fullWidth>
-            <DialogTitle>{t('grilleNotesTable.supprimerLaNoteTitre')}</DialogTitle>
-            <DialogContent>
-                <DialogContentText>
-                    {t('grilleNotesTable.confirmationSuppressionPrefixe')} <strong>{eleve}</strong> {t('grilleNotesTable.confirmationSuppressionSuffixe', { valeur })}
-                </DialogContentText>
-                <DialogContentText sx={{ mt: 2 }}>
+        <Dialog open={ligne !== null} onOpenChange={(ouvert) => { if (!ouvert) onAnnuler(); }}>
+            {/* Pas de croix (parité MUI) ; `sm:max-w-md` ≈ le `maxWidth="xs"` MUI. */}
+            <DialogContent className="sm:max-w-md" showCloseButton={false}>
+                <DialogHeader>
+                    <DialogTitle>{t('grilleNotesTable.supprimerLaNoteTitre')}</DialogTitle>
+                    <DialogDescription>
+                        {t('grilleNotesTable.confirmationSuppressionPrefixe')} <strong>{eleve}</strong> {t('grilleNotesTable.confirmationSuppressionSuffixe', { valeur })}
+                    </DialogDescription>
+                </DialogHeader>
+                <p className="m-0 text-sm text-muted-foreground">
                     {t('grilleNotesTable.conseilNonEvalue')}
-                </DialogContentText>
+                </p>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onAnnuler}>{t('commun.annuler')}</Button>
+                    <Button type="button" variant="destructive" onClick={onConfirmer}>
+                        {t('grilleNotesTable.supprimerLaNote')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onAnnuler}>{t('commun.annuler')}</Button>
-                <Button onClick={onConfirmer} color="error" variant="contained">
-                    {t('grilleNotesTable.supprimerLaNote')}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }
@@ -595,6 +625,9 @@ function ConfirmerSuppressionNote({ ligne, onAnnuler, onConfirmer }: {
 /**
  * Indicateur d'enregistrement d'une ligne. Discret par principe : la saisie est
  * automatique, l'utilisateur n'a à regarder ici que lorsque quelque chose bloque.
+ *
+ * Les déclencheurs d'infobulle inertes (coche, point) sont rendus en `span` :
+ * Base UI rendrait un bouton, et l'indicateur n'est pas une action.
  */
 function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
     ligne: LigneGrille;
@@ -605,36 +638,67 @@ function IndicateurLigne({ ligne, eleve, onRelancer, onRecharger }: {
     const { t } = useTranslation('note');
     switch (ligne.statut) {
         case 'en-attente':
-            return <CircularProgress size={16} aria-label={t('grilleNotesTable.enregistrementEnCoursAriaLabel', { eleve })} />;
+            return <Spinner className="mx-auto" aria-label={t('grilleNotesTable.enregistrementEnCoursAriaLabel', { eleve })} />;
         case 'enregistre':
             return (
-                <Tooltip title={t('grilleNotesTable.enregistreeTitre')}>
-                    <CircleCheck size={20} className="text-success" aria-label={t('grilleNotesTable.noteEnregistreePourEleveAriaLabel', { eleve })} />
+                <Tooltip>
+                    <TooltipTrigger render={<span className="inline-flex align-middle" />}>
+                        <CircleCheck size={20} className="text-success" aria-label={t('grilleNotesTable.noteEnregistreePourEleveAriaLabel', { eleve })} />
+                    </TooltipTrigger>
+                    <TooltipContent>{t('grilleNotesTable.enregistreeTitre')}</TooltipContent>
                 </Tooltip>
             );
         case 'modifie':
             return (
-                <Tooltip title={t('grilleNotesTable.modifieePasEnregistreeTitre')}>
-                    <Box
-                        aria-label={t('grilleNotesTable.modificationNonEnregistreePourEleveAriaLabel', { eleve })}
-                        sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: 'warning.main', mx: 'auto' }}
-                    />
+                <Tooltip>
+                    <TooltipTrigger render={<span className="inline-flex align-middle" />}>
+                        <span
+                            role="img"
+                            aria-label={t('grilleNotesTable.modificationNonEnregistreePourEleveAriaLabel', { eleve })}
+                            className="mx-auto block size-2 rounded-full bg-warning"
+                        />
+                    </TooltipTrigger>
+                    <TooltipContent>{t('grilleNotesTable.modifieePasEnregistreeTitre')}</TooltipContent>
                 </Tooltip>
             );
         case 'erreur':
             return (
-                <Tooltip title={ligne.message ?? t('grilleNotesTable.echecEnregistrement')}>
-                    <IconButton size="small" color="error" onClick={onRelancer} aria-label={t('grilleNotesTable.reessayerPourEleveAriaLabel', { eleve })}>
-                        <RotateCcw size={20} />
-                    </IconButton>
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-destructive hover:text-destructive"
+                                onClick={onRelancer}
+                                aria-label={t('grilleNotesTable.reessayerPourEleveAriaLabel', { eleve })}
+                            />
+                        )}
+                    >
+                        <RotateCcw />
+                    </TooltipTrigger>
+                    <TooltipContent>{ligne.message ?? t('grilleNotesTable.echecEnregistrement')}</TooltipContent>
                 </Tooltip>
             );
         case 'conflit':
             return (
-                <Tooltip title={ligne.message ?? t('grilleNotesTable.conflitDeVersion')}>
-                    <IconButton size="small" color="warning" onClick={onRecharger} aria-label={t('grilleNotesTable.rechargerLigneDeEleveAriaLabel', { eleve })}>
-                        <RefreshCw size={20} />
-                    </IconButton>
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-warning hover:text-warning"
+                                onClick={onRecharger}
+                                aria-label={t('grilleNotesTable.rechargerLigneDeEleveAriaLabel', { eleve })}
+                            />
+                        )}
+                    >
+                        <RefreshCw />
+                    </TooltipTrigger>
+                    <TooltipContent>{ligne.message ?? t('grilleNotesTable.conflitDeVersion')}</TooltipContent>
                 </Tooltip>
             );
         default:
