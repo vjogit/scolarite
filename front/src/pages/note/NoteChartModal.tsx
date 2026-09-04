@@ -1,8 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-    Box, Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Typography, Paper, Tabs, Tab, Grid, Card, CardContent
-} from "@mui/material";
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -12,6 +8,12 @@ import {
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
+
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { cn } from '../../lib/utils';
 
 export interface NoteData {
     note?: number | null;
@@ -24,17 +26,21 @@ export interface NoteData {
 }
 
 // --- COMPOSANTS UTILITAIRES ---
-interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-}
-function CustomTabPanel(props: TabPanelProps) {
-    const { children, value, index, ...other } = props;
+
+/** Une carte d'indicateur du bandeau : libellé discret, valeur en grand. */
+function CarteKpi({ libelle, valeur, className, classeValeur }: {
+    libelle: string;
+    valeur: string;
+    className?: string;
+    classeValeur?: string;
+}) {
     return (
-        <div role="tabpanel" hidden={value !== index} {...other} style={{ height: '100%' }}>
-            {value === index && (<Box sx={{ height: '100%', pt: 3 }}>{children}</Box>)}
-        </div>
+        <Card size="sm" className={className}>
+            <CardContent>
+                <p className="m-0 mb-1 text-sm text-muted-foreground">{libelle}</p>
+                <p className={cn('m-0 text-2xl', classeValeur)}>{valeur}</p>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -76,16 +82,14 @@ function CustomTooltip({ active, payload }: TooltipContentProps<ValueType, NameT
     if (!active || !point) return null;
 
     return (
-        <Paper elevation={3} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider' }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                {libelleDuPoint(point, t)}
-            </Typography>
-            <Typography variant="body2" color="primary.main">
+        <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-md">
+            <p className="m-0 text-sm font-bold">{libelleDuPoint(point, t)}</p>
+            <p className="m-0 text-sm text-primary">
                 {estTranche(point)
                     ? t('noteChartModal.nombreDeleves', { count: point.count })
                     : t('noteChartModal.noteTooltip', { note: point.note?.toFixed(2) ?? '—' })}
-            </Typography>
-        </Paper>
+            </p>
+        </div>
     );
 }
 
@@ -157,9 +161,6 @@ export function NoteChartModal({
     const { t } = useTranslation('note');
     const couleurs = useCouleursGraphique();
 
-    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-        setTabValue(newValue);
-    };
 
     const { kpis, lineData, barData, scatterData } = useMemo(() => {
         if (data.length === 0) {
@@ -234,95 +235,113 @@ export function NoteChartModal({
     }, [data, successThreshold, bucketRanges]);
 
     return (
-        <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
-            <DialogTitle>{t('noteChartModal.titre')}</DialogTitle>
+        <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
+            {/* Pas de croix (parité MUI) ; `sm:max-w-[1200px]` = le `maxWidth="lg"`
+                MUI. Hauteur bornée et corps défilant (lot 14) : le corps garde
+                ses 600 px tant que l'écran les offre, défile sinon. */}
+            <DialogContent
+                className="max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-[1200px]"
+                showCloseButton={false}
+            >
+                <DialogHeader>
+                    <DialogTitle>{t('noteChartModal.titre')}</DialogTitle>
+                </DialogHeader>
 
-            <DialogContent dividers sx={{ height: 600, display: 'flex', flexDirection: 'column' }}>
+                {/* Les `dividers` du DialogContent MUI : un filet au-dessus du
+                    corps, le pied de page portant déjà le sien. */}
+                <div className="-mx-4 flex h-[600px] max-h-full flex-col overflow-y-auto border-t px-4 pt-4">
 
-                {/* BANDEAU DES KPIs */}
-                {kpis && (
-                    <Grid container spacing={2} sx={{ mb: 3 }}>
-                        {/* ... (Identique à avant : Code des Cartes KPIs Moyenne, Médiane, etc.) ... */}
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined" sx={{ bgcolor: 'primary.50' }}><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.moyenne')}</Typography><Typography variant="h5" color="primary.main">{kpis.avg}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.mediane')}</Typography><Typography variant="h5">{kpis.median}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.tauxReussite')}</Typography><Typography variant="h5" color={parseFloat(kpis.success) >= 50 ? 'success.main' : 'error.main'}>{kpis.success}%</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.noteMax')}</Typography><Typography variant="h5" color="success.main">{kpis.max}</Typography></CardContent></Card></Grid>
-                        <Grid size={{ xs: 12, sm: 2.4 }}><Card variant="outlined"><CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}><Typography color="text.secondary" gutterBottom variant="body2">{t('noteChartModal.noteMin')}</Typography><Typography variant="h5" color="error.main">{kpis.min}</Typography></CardContent></Card></Grid>
-                    </Grid>
-                )}
+                    {/* BANDEAU DES KPIs */}
+                    {kpis && (
+                        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-5">
+                            <CarteKpi libelle={t('noteChartModal.moyenne')} valeur={kpis.avg} className="bg-primary/5" classeValeur="text-primary" />
+                            <CarteKpi libelle={t('noteChartModal.mediane')} valeur={kpis.median} />
+                            <CarteKpi libelle={t('noteChartModal.tauxReussite')} valeur={`${kpis.success}%`} classeValeur={parseFloat(kpis.success) >= 50 ? 'text-success' : 'text-destructive'} />
+                            <CarteKpi libelle={t('noteChartModal.noteMax')} valeur={kpis.max} classeValeur="text-success" />
+                            <CarteKpi libelle={t('noteChartModal.noteMin')} valeur={kpis.min} classeValeur="text-destructive" />
+                        </div>
+                    )}
 
-                <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tabs value={tabValue} onChange={handleTabChange}>
-                        <Tab label={t('noteChartModal.ongletProgression')} />
-                        <Tab label={t('noteChartModal.ongletDistribution')} />
-                        <Tab label={t('noteChartModal.ongletDispersion')} />
+                    <Tabs
+                        value={tabValue}
+                        onValueChange={(valeur) => { if (typeof valeur === 'number') setTabValue(valeur); }}
+                        className="min-h-0 flex-1 gap-0"
+                    >
+                        <div className="border-b">
+                            <TabsList variant="line">
+                                <TabsTrigger value={0} className="flex-none">{t('noteChartModal.ongletProgression')}</TabsTrigger>
+                                <TabsTrigger value={1} className="flex-none">{t('noteChartModal.ongletDistribution')}</TabsTrigger>
+                                <TabsTrigger value={2} className="flex-none">{t('noteChartModal.ongletDispersion')}</TabsTrigger>
+                            </TabsList>
+                        </div>
+
+                        {/* Les panneaux ne sont montés qu'actifs (`keepMounted`
+                            absent) : un seul graphique à la fois, comme avant. */}
+                        <div className="min-h-0 flex-1">
+                            <TabsContent value={0} className="h-full pt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
+                                        {/* `--border` porte déjà son alpha : pas d'`opacity` par-dessus. */}
+                                        <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
+                                        {/* 3. CORRECTION DE L'AXE X */}
+                                        <XAxis
+                                            dataKey="uniqueAxisKey" // On utilise la clé cachée unique
+                                            tickFormatter={(val: string) => val.split('###')[0] ?? val} // Mais on coupe le "###index" pour l'affichage à l'écran !
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={70}
+                                            stroke={couleurs.axe}
+                                            tick={{ fontSize: 12, fill: couleurs.axe }}
+                                        />
+                                        <YAxis domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
+                                        <RechartsTooltip content={CustomTooltip} />
+                                        {kpis && (
+                                            <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4"
+                                                label={{ position: 'top', value: t('noteChartModal.moyenneReferenceLine', { moyenne: kpis.avg }), fill: couleurs.reference, fontSize: 12 }} />
+                                        )}
+                                        {/* Animation JS de recharts coupée : la capture de référence e2e
+                                            la prendrait en plein tracé (`animations: 'disabled'` de
+                                            Playwright ne gèle que le CSS). */}
+                                        <Line type="monotone" dataKey="note" stroke={couleurs.serie} strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} isAnimationActive={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </TabsContent>
+
+                            {/* ... (Le reste des onglets BarChart et ScatterChart reste identique au précédent message) ... */}
+
+                            <TabsContent value={1} className="h-full pt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} vertical={false} />
+                                        <XAxis dataKey="label" stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
+                                        <YAxis allowDecimals={false} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} label={{ value: t('noteChartModal.axeNombreEleves'), angle: -90, position: 'insideLeft', fill: couleurs.axe }} />
+                                        {/* Le curseur est la série à 10 % — `fillOpacity` remplace le rgba() figé. */}
+                                        <RechartsTooltip content={CustomTooltip} cursor={{ fill: couleurs.serie, fillOpacity: 0.1 }} />
+                                        <Bar dataKey="count" fill={couleurs.serie} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </TabsContent>
+
+                            <TabsContent value={2} className="h-full pt-6">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ScatterChart margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
+                                        <XAxis dataKey="indexId" type="number" name={t('noteChartModal.axeElevesNom')} tick={false} stroke={couleurs.axe} label={{ value: t('noteChartModal.axeElevesLabel'), position: 'insideBottom', offset: -10, fill: couleurs.axe }} />
+                                        <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
+                                        <ZAxis range={[60, 60]} />
+                                        <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3', stroke: couleurs.axe }} />
+                                        {kpis && <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4" />}
+                                        <Scatter name="Notes" data={scatterData} fill={couleurs.nuage} isAnimationActive={false} />
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                            </TabsContent>
+                        </div>
                     </Tabs>
-                </Box>
-
-                <Box sx={{ flexGrow: 1, minHeight: 0 }}>
-                    <CustomTabPanel value={tabValue} index={0}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={lineData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }}>
-                                {/* `--border` porte déjà son alpha : pas d'`opacity` par-dessus. */}
-                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
-                                {/* 3. CORRECTION DE L'AXE X */}
-                                <XAxis
-                                    dataKey="uniqueAxisKey" // On utilise la clé cachée unique
-                                    tickFormatter={(val: string) => val.split('###')[0] ?? val} // Mais on coupe le "###index" pour l'affichage à l'écran !
-                                    angle={-45}
-                                    textAnchor="end"
-                                    height={70}
-                                    stroke={couleurs.axe}
-                                    tick={{ fontSize: 12, fill: couleurs.axe }}
-                                />
-                                <YAxis domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
-                                <RechartsTooltip content={CustomTooltip} />
-                                {kpis && (
-                                    <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4"
-                                        label={{ position: 'top', value: t('noteChartModal.moyenneReferenceLine', { moyenne: kpis.avg }), fill: couleurs.reference, fontSize: 12 }} />
-                                )}
-                                {/* Animation JS de recharts coupée : la capture de référence e2e
-                                    la prendrait en plein tracé (`animations: 'disabled'` de
-                                    Playwright ne gèle que le CSS). */}
-                                <Line type="monotone" dataKey="note" stroke={couleurs.serie} strokeWidth={3} activeDot={{ r: 8 }} dot={{ r: 4 }} isAnimationActive={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </CustomTabPanel>
-
-                    {/* ... (Le reste des onglets BarChart et ScatterChart reste identique au précédent message) ... */}
-
-                    <CustomTabPanel value={tabValue} index={1}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} vertical={false} />
-                                <XAxis dataKey="label" stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
-                                <YAxis allowDecimals={false} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} label={{ value: t('noteChartModal.axeNombreEleves'), angle: -90, position: 'insideLeft', fill: couleurs.axe }} />
-                                {/* Le curseur est la série à 10 % — `fillOpacity` remplace le rgba() figé. */}
-                                <RechartsTooltip content={CustomTooltip} cursor={{ fill: couleurs.serie, fillOpacity: 0.1 }} />
-                                <Bar dataKey="count" fill={couleurs.serie} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CustomTabPanel>
-
-                    <CustomTabPanel value={tabValue} index={2}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <ScatterChart margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke={couleurs.grille} />
-                                <XAxis dataKey="indexId" type="number" name={t('noteChartModal.axeElevesNom')} tick={false} stroke={couleurs.axe} label={{ value: t('noteChartModal.axeElevesLabel'), position: 'insideBottom', offset: -10, fill: couleurs.axe }} />
-                                <YAxis dataKey="note" type="number" name="Note" domain={[0, 20]} tickCount={11} stroke={couleurs.axe} tick={{ fill: couleurs.axe }} />
-                                <ZAxis range={[60, 60]} />
-                                <RechartsTooltip content={CustomTooltip} cursor={{ strokeDasharray: '3 3', stroke: couleurs.axe }} />
-                                {kpis && <ReferenceLine y={parseFloat(kpis.avg)} stroke={couleurs.reference} strokeDasharray="4 4" />}
-                                <Scatter name="Notes" data={scatterData} fill={couleurs.nuage} isAnimationActive={false} />
-                            </ScatterChart>
-                        </ResponsiveContainer>
-                    </CustomTabPanel>
-
-                </Box>
+                </div>
+                <DialogFooter>
+                    <Button type="button" onClick={onClose}>{t('commun.fermer')}</Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} variant="contained">{t('commun.fermer')}</Button>
-            </DialogActions>
         </Dialog>
     );
 }
