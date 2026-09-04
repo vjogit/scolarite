@@ -9,7 +9,6 @@
     "sousTitreRefus": "Le programme n'a pas été importé. Corrigez le fichier puis relancez l'import."
   },
   "structureLayout": {
-    "titre": "Structure",
     "arborescence": "Arborescence",
     "ouvrirArborescence": "Ouvrir l'arborescence"
   }

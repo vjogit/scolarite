@@ -18,7 +18,9 @@ test.describe('Droits par rôle', () => {
         await attendreChargementInitial(pageConsultation);
         await pageConsultation.getByRole('tab', { name: app.workflows.structure }).click();
         await pageConsultation.waitForLoadState('networkidle');
-        await expect(pageConsultation.getByRole('heading', { name: app.workflows.structure })).toBeVisible();
+        // L'écran est là — le titre de la liste, comme formulaire.spec.ts —
+        // avant d'affirmer l'absence : la colonne de l'arbre n'a plus de titre.
+        await expect(pageConsultation.getByRole('heading', { name: 'Formations' })).toBeVisible();
         await expect(pageConsultation.getByRole('button', { name: creerUneFormation })).toHaveCount(0);
     });
 

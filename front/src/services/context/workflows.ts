@@ -128,12 +128,16 @@ export const WORKFLOW_USER: DescripteurWorkflow = {
 };
 
 /** Ordre d'affichage de la barre de navigation entre tâches. */
+/**
+ * Dans l'ordre des onglets : les tâches du quotidien d'abord, la construction
+ * de la hiérarchie en dernier — décidé le 4 septembre 2026.
+ */
 export const WORKFLOWS_HIERARCHIQUES: readonly DescripteurWorkflow[] = [
-    WORKFLOW_CATALOG,
-    WORKFLOW_NOTE,
     WORKFLOW_PROGRAMME,
+    WORKFLOW_NOTE,
     WORKFLOW_JURY,
     WORKFLOW_CERTIFICATION,
+    WORKFLOW_CATALOG,
 ];
 
 export const TOUS_LES_WORKFLOWS: readonly DescripteurWorkflow[] = [

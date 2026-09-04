@@ -9,7 +9,6 @@
     "sousTitreRefus": "The program was not imported. Fix the file then run the import again."
   },
   "structureLayout": {
-    "titre": "Structure",
     "arborescence": "Tree view",
     "ouvrirArborescence": "Open the tree view"
   }

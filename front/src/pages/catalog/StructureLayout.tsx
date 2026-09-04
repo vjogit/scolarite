@@ -19,7 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { ListTree, SquarePlus, Trash2 } from 'lucide-react';
+import { ListTree, Trash2 } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import { Separator } from '../../components/ui/separator';
@@ -31,7 +31,7 @@ import { BarreWorkflows } from '../../services/context/BarreWorkflows';
 import { useDroits } from '../../services/context/droits';
 import { WORKFLOW_CATALOG } from '../../services/context/workflows';
 import {
-    ID_ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation, libelleAction,
+    ID_ACTION_VOIR, actionsDeLaLigne, cibleAction, estNavigation,
     type ActionLigne, type ActionRappel,
 } from '../../services/crud/actions';
 import { DeleteConfirmDialog } from '../../services/crud/DeleteConfirmDialog';
@@ -39,7 +39,6 @@ import { MenuActionsLigne } from '../../services/crud/MenuActionsLigne';
 import { useSuppressionCrud } from '../../services/crud/suppression';
 import { ArbreStructure } from '../structure/arbre/ArbreStructure';
 import { useEtatArbre, useNomEnCache, type CibleArbre } from '../structure/arbre/etat';
-import { CREER_FORMATION } from '../structure/arbre/niveaux';
 import { formationEntite } from '../structure/entites/formation';
 import { FORMATION } from '../structure/def';
 import { CATALOG_WORKFLOW } from './def';
@@ -172,36 +171,12 @@ export function StructureLayout() {
 
     const arbre = (
         <div className="flex h-full min-w-0 flex-col">
-            {/* Hauteur fixe (`h-11`), non un padding : la rangée ne prend plus
-                celle de son contenu — le bouton « créer » est absent sans droit
-                d'écriture, et la rangée doit rester à la hauteur de celle du
-                panneau, à droite, dont elle est le vis-à-vis. Valeur : celle
-                que la rangée mesurait dans son état le plus haut (bouton
-                `icon-sm` + `py-2`). */}
-            <div className="flex h-11 items-center gap-2 px-3">
-                {/* `h6` : le rang que MUI donnait à `subtitle2` — le titre du
-                    panneau, plus bas, garde le même rang, et c'est lui que la
-                    suite e2e cible en `heading`. */}
-                <h6 className="m-0 flex-1 text-sm font-medium leading-6">{tCatalog('structureLayout.titre')}</h6>
-                {ecritureFormation && (
-                    <Tooltip>
-                        <TooltipTrigger
-                            render={(
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon-sm"
-                                    aria-label={libelleAction(CREER_FORMATION(t))}
-                                    onClick={() => { void navigate(`${CHEMIN_RACINE}/new`); }}
-                                />
-                            )}
-                        >
-                            <SquarePlus />
-                        </TooltipTrigger>
-                        <TooltipContent>{libelleAction(CREER_FORMATION(t))}</TooltipContent>
-                    </Tooltip>
-                )}
-            </div>
+            {/* Plus de rangée de tête : le titre « Structure » répétait l'onglet
+                actif de `BarreWorkflows`, juste au-dessus, et le bouton « créer
+                une formation » doublait celui de la liste et le nœud vide guidé
+                de l'arbre. L'arbre commence en haut de la colonne ; seule la
+                barre du panneau, à droite, porte un titre — celui du nœud
+                sélectionné, que la suite e2e cible en `heading`. */}
             <Separator />
             <div className="flex-1 overflow-auto px-1">
                 <ArbreStructure

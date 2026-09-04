@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { LogOut } from 'lucide-react';
+import { ChevronDown, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Link, Outlet, useLocation } from 'react-router';
@@ -9,21 +9,22 @@ import { useSession } from '../SessionContext';
 import { useKeycloak } from '../KeycloakContext';
 import { useModeCouleur } from '../services/modeCouleur';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
-import { construireNavigation, filterNavigationByRoles } from './navigation';
+import { construireNavigation, filterNavigationByRoles, type NavigationItemWithRoles } from './navigation';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarSeparator,
   SidebarTrigger,
 } from '../components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,12 +48,30 @@ const TITRE_PRODUIT = 'Gestionnaire Scolarite';
  * La structure des entrées et la frontière avec la barre centrale sont
  * documentées dans `layouts/navigation.tsx`.
  */
+function EntreeMenu({ entree }: { entree: NavigationItemWithRoles }) {
+  const location = useLocation();
+  const chemin = `/${entree.segment ?? ''}`;
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={location.pathname === chemin || location.pathname.startsWith(`${chemin}/`)}
+        tooltip={entree.title}
+        render={<Link to={chemin} />}
+      >
+        {entree.icon}
+        <span>{entree.title}</span>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
 function MenuLateral() {
   const { session } = useSession();
-  const location = useLocation();
   const { t } = useTranslation('app');
 
   const entrees = filterNavigationByRoles(construireNavigation(t), session?.user.roles);
+  const simples = entrees.filter(entree => entree.children === undefined);
+  const groupes = entrees.filter(entree => entree.children !== undefined);
 
   return (
     <Sidebar collapsible="icon">
@@ -60,31 +79,32 @@ function MenuLateral() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {entrees.map((entree, index) => {
-                if (entree.kind === 'divider') {
-                  // Un séparateur n'a pas d'identité propre : sa position est
-                  // sa seule clé stable — même exception que les deux
-                  // no-array-index-key documentées ailleurs.
-                  // eslint-disable-next-line react-x/no-array-index-key
-                  return <SidebarSeparator key={`divider-${index}`} className="my-1" />;
-                }
-                const chemin = `/${entree.segment ?? ''}`;
-                return (
-                  <SidebarMenuItem key={entree.segment}>
-                    <SidebarMenuButton
-                      isActive={location.pathname === chemin || location.pathname.startsWith(`${chemin}/`)}
-                      tooltip={entree.title}
-                      render={<Link to={chemin} />}
-                    >
-                      {entree.icon}
-                      <span>{entree.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {simples.map(entree => <EntreeMenu key={entree.segment} entree={entree} />)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        {/* Un groupe repliable par entrée à enfants (le motif « Collapsible
+            SidebarGroup » de shadcn) : son intitulé est le déclencheur, ouvert
+            par défaut. En mode icône, l'intitulé se masque comme tout
+            `SidebarGroupLabel` et les entrées restent des icônes. */}
+        {groupes.map(groupe => (
+          <Collapsible key={groupe.title} defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel render={<CollapsibleTrigger />} className="w-full gap-2">
+                {groupe.icon}
+                <span>{groupe.title}</span>
+                <ChevronDown className="ml-auto transition-transform group-data-[open]/collapsible:rotate-180" />
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {groupe.children?.map(entree => <EntreeMenu key={entree.segment} entree={entree} />)}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
+        ))}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>

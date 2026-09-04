@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { TFunction } from 'i18next';
-import { DoorOpen, GraduationCap, ShieldCheck, Trash2, UserCog } from 'lucide-react';
+import { DoorOpen, GraduationCap, Settings, ShieldCheck, Trash2, UserCog } from 'lucide-react';
 
 import { Role, ROLES_FONCTIONNELS, USER_WORKFLOW } from '../pages/user/def';
 import { SALLE_WORKFLOW } from '../pages/salle/def';
@@ -14,13 +14,14 @@ import { possedeTousLesRoles, possedeUnRole } from '../services/context/workflow
  * la dessine (le type venait de Toolpad ; il est local depuis sa sortie).
  */
 export interface NavigationItemWithRoles {
-  kind?: 'divider';
+  /** Absent sur un groupe : il ne mène nulle part, il range ses enfants. */
   segment?: string;
-  title?: string;
+  title: string;
   icon?: ReactNode;
   requiredRoles?: string[];
   /** Sémantique ET : tous ces rôles sont exigés (corbeille = composite ADMIN). */
   requiresAllRoles?: readonly string[];
+  /** Un groupe repliable du menu ; vidé par le filtre de rôles, il disparaît. */
   children?: NavigationItemWithRoles[];
 }
 
@@ -41,7 +42,9 @@ export interface NavigationItemWithRoles {
  *
  * Ne reste donc ici que ce qui ne dépend d'aucun contexte, plus « Scolarité »
  * qui ramène à la tâche en cours : sans elle, les salles, les utilisateurs et
- * la corbeille seraient des impasses.
+ * la corbeille seraient des impasses. Ces destinations-là sont rangées sous
+ * « Admin », groupe repliable (décidé le 4 septembre 2026) : ce sont des
+ * gestes de gestion, pas de scolarité.
  */
 export function construireNavigation(t: TFunction<'app'>): NavigationItemWithRoles[] {
   return [
@@ -51,36 +54,41 @@ export function construireNavigation(t: TFunction<'app'>): NavigationItemWithRol
       icon: <GraduationCap />,
       requiredRoles: [Role.CONSULTATION],
     },
-    { kind: 'divider' },
     {
-      // Segment composé : Salle a quitté le dossier « Planning », vidé de ses
-      // autres entrées, sans que son URL bouge.
-      segment: `planning/${SALLE_WORKFLOW}`,
-      title: t('nav.salle'),
-      icon: <DoorOpen />,
-      requiredRoles: [Role.CONSULTATION],
-    },
-    {
-      segment: USER_WORKFLOW,
-      title: t('nav.utilisateur'),
-      icon: <UserCog />,
-      requiredRoles: [Role.CONSULTATION],
-    },
-    {
-      segment: CORBEILLE_WORKFLOW,
-      title: t('nav.corbeille'),
-      icon: <Trash2 />,
-      // Réservée aux porteurs de tous les rôles fonctionnels — le composite
-      // ADMIN, sans jamais tester son nom.
-      requiresAllRoles: ROLES_FONCTIONNELS,
-    },
-    {
-      segment: REGISTRE_WORKFLOW,
-      title: t('nav.registre'),
-      icon: <ShieldCheck />,
-      // Même règle que la corbeille : intégrité, ancrage et témoins sont des
-      // gestes d'administration.
-      requiresAllRoles: ROLES_FONCTIONNELS,
+      title: t('nav.admin'),
+      icon: <Settings />,
+      children: [
+        {
+          // Segment composé : Salle a quitté le dossier « Planning », vidé de ses
+          // autres entrées, sans que son URL bouge.
+          segment: `planning/${SALLE_WORKFLOW}`,
+          title: t('nav.salle'),
+          icon: <DoorOpen />,
+          requiredRoles: [Role.CONSULTATION],
+        },
+        {
+          segment: USER_WORKFLOW,
+          title: t('nav.utilisateur'),
+          icon: <UserCog />,
+          requiredRoles: [Role.CONSULTATION],
+        },
+        {
+          segment: CORBEILLE_WORKFLOW,
+          title: t('nav.corbeille'),
+          icon: <Trash2 />,
+          // Réservée aux porteurs de tous les rôles fonctionnels — le composite
+          // ADMIN, sans jamais tester son nom.
+          requiresAllRoles: ROLES_FONCTIONNELS,
+        },
+        {
+          segment: REGISTRE_WORKFLOW,
+          title: t('nav.registre'),
+          icon: <ShieldCheck />,
+          // Même règle que la corbeille : intégrité, ancrage et témoins sont des
+          // gestes d'administration.
+          requiresAllRoles: ROLES_FONCTIONNELS,
+        },
+      ],
     },
   ];
 }
