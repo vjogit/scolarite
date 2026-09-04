@@ -151,14 +151,8 @@ export default defineConfig(({ command, mode }) => {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-
-            if (id.includes('@mui/x-date-pickers') || id.includes('@mui/material')) {
-              return 'mui-material-libs'; // Un chunk pour les grosses libs
-            }
-            if (id.includes('@toolpad') || id.includes('@mui')) {
-              return 'mui-libs'; // Un chunk pour les grosses libs
-            }
-
+            // Les chunks `mui-material-libs` et `mui-libs` (MUI, Toolpad,
+            // Emotion) sont partis avec la dépose de MUI (lot 17).
             if (id.includes('@tanstack')) {
               return 'tanstack-libs'; // Un chunk pour les grosses libs
             }
