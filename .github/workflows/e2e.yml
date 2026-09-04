@@ -18,12 +18,15 @@
 #     conteneurs) sont publiés à CHAQUE exécution, réussie ou non — un échec
 #     intermittent sans artefact est indiagnosticable (registre.spec.ts, lot 11).
 #
-# Les captures de référence (captures.spec.ts, captures-ouvertes.spec.ts,
-# 20 tests) sont ÉCARTÉES de la suite bloquante : générées sur un poste, elles
-# dépendent de ses polices et de son moteur de rendu. Elles se lancent à la
-# demande (workflow_dispatch, entrée `captures`), sans jamais décider du
-# verdict, et leurs diffs sont publiés. Voir docs/ci.md pour le sort des
-# captures et le chemin qui les rendrait portables.
+# La suite tourne dans le CONTENEUR DE RÉFÉRENCE (front/e2e/conteneur/ :
+# image officielle Playwright épinglée par empreinte, Ubuntu 24.04 comme cet
+# exécuteur), par la même cible make que sur un poste. C'est ce qui rend les
+# 20 captures de référence DÉCISIVES ici : mêmes polices, même Chromium, même
+# antialiasing que là où elles ont été régénérées (make captures-reference,
+# arbitrage du 4 septembre 2026). La comparaison est stricte — aucun seuil de
+# tolérance ; un pixel qui change fait échouer le job, et le diff est publié
+# dans l'artefact. Une référence produite hors du conteneur ne passe pas ici
+# et ne doit jamais être committée. Voir docs/ci.md §10.
 
 name: Suite e2e
 
@@ -31,11 +34,6 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      captures:
-        description: "Exécuter aussi les 20 captures de référence (informatif, jamais bloquant)"
-        type: boolean
-        default: false
 
 # Un nouveau push sur une branche annule l'exécution précédente de cette
 # branche — chaque exécution a son exécuteur et sa base, ce n'est donc pas la
@@ -57,7 +55,7 @@ env:
 
 jobs:
   e2e:
-    name: Suite Playwright (43 tests fonctionnels)
+    name: Suite Playwright (63 tests, captures de référence comprises)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -161,38 +159,34 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           docker logs scolarite-backend 2>&1 | grep -i "version" | head -n 2
 
-      - name: Navigateur Playwright
+      # node_modules du poste… de l'exécuteur : le conteneur de référence
+      # monte le dépôt tel quel et n'apporte que le navigateur (à la version
+      # de @playwright/test). Aucun `playwright install` ici — ce serait un
+      # second Chromium, celui de l'hôte, que la suite n'utilise pas.
+      - name: Dépendances de la suite (npm ci)
         working-directory: front
+        run: npm ci
+
+      # Construit l'image de référence (cache Docker : le téléchargement de
+      # l'image de base domine) et prouve qu'elle voit la suite entière :
+      # `--list` ne lance ni seed ni navigateur. Le nombre de tests listés
+      # est relevé dans le résumé.
+      - name: Conteneur de référence — image et liste des tests
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          debut=$SECONDS
+          front/e2e/conteneur/playwright.sh --list | tee /tmp/liste.txt | tail -n 1
+          echo "- conteneur de référence prêt en $((SECONDS - debut)) s : $(tail -n 1 /tmp/liste.txt)" >> "$GITHUB_STEP_SUMMARY"
 
       # ── La suite ─────────────────────────────────────────────────────────
-      # Par la cible du makefile, comme sur le poste. `--grep-invert captures`
-      # écarte captures.spec.ts et captures-ouvertes.spec.ts (le motif est
-      # confronté au chemin du fichier) : 43 tests sur 63.
-      - name: Suite fonctionnelle (make test-ihm, sans captures)
+      # Par la cible du makefile, comme sur le poste, sans restriction : les
+      # 43 tests fonctionnels ET les 20 captures de référence, toutes
+      # décisives — comparaison stricte, sans seuil.
+      - name: Suite complète (make test-ihm, dans le conteneur de référence)
         run: |
           debut=$SECONDS
           statut=0
-          make $FICHIERS_ENV test-ihm PLAYWRIGHT_ARGS="--grep-invert captures" || statut=$?
-          echo "- suite fonctionnelle : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
-          exit $statut
-
-      # À la demande seulement, et jamais décisif : les références ont été
-      # générées sur un poste. Le rapport et les résultats de la suite
-      # fonctionnelle sont mis de côté pour que les deux jeux d'artefacts
-      # coexistent.
-      - name: Captures de référence (informatif, non bloquant)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.captures }}
-        continue-on-error: true
-        run: |
-          [ -d front/playwright-report ] && mv front/playwright-report front/playwright-report-fonctionnel
-          [ -d front/test-results ] && mv front/test-results front/test-results-fonctionnel
-          debut=$SECONDS
-          statut=0
-          make $FICHIERS_ENV test-ihm PLAYWRIGHT_ARGS="captures.spec.ts captures-ouvertes.spec.ts" || statut=$?
-          echo "- captures (informatif) : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
+          make $FICHIERS_ENV test-ihm || statut=$?
+          echo "- suite complète (63 tests, captures comprises) : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
           exit $statut
 
       # ── Artefacts, à chaque exécution ────────────────────────────────────
@@ -211,9 +205,7 @@ jobs:
           name: e2e-${{ github.run_number }}-tentative-${{ github.run_attempt }}
           path: |
             front/test-results/
-            front/test-results-fonctionnel/
             front/playwright-report/
-            front/playwright-report-fonctionnel/
             journaux/
           if-no-files-found: warn
           retention-days: 14

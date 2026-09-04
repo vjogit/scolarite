@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer test-ihm
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer test-ihm captures-reference
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -52,17 +52,36 @@ ancrer:
 # reposer ici — la commande resterait valide (idempotent) mais dupliquerait
 # ce que la suite fait déjà elle-même.
 #
+# La suite tourne dans le CONTENEUR DE RÉFÉRENCE (front/e2e/conteneur/, image
+# officielle Playwright épinglée par empreinte, Ubuntu 24.04 comme l'exécuteur
+# GitHub) : c'est le seul environnement où les 20 captures de référence se
+# comparent — mêmes polices, même Chromium, sur le poste et en CI (arbitrage
+# du 4 septembre 2026, docs/ci.md §10). Un `npx playwright test` direct depuis
+# front/ reste possible pour les 43 tests fonctionnels ; les captures s'y
+# sautent d'elles-mêmes (e2e/aide/conteneur.ts), elles n'y prouveraient rien.
+#
 # Les fichiers d'environnement que la suite lit (seed, comptes de test) sont
 # CONFIG_FILE_LOCAL / SECRETS_FILE_LOCAL, exportés par l'« export » global de
-# ce fragment — front/e2e/setup/env.ts les résout, avec les fichiers du poste
-# en repli pour un `npx playwright test` direct.
+# ce fragment et transmis au conteneur — front/e2e/setup/env.ts les résout,
+# avec les fichiers du poste en repli pour un `npx playwright test` direct.
 #
 # PLAYWRIGHT_ARGS : options passées telles quelles à Playwright — un fichier
-# de spec, `--grep-invert`… Vide par défaut : la suite entière. La CI s'en
-# sert pour écarter les captures de référence (voir .github/workflows/e2e.yml).
+# de spec, `--grep`… Vide par défaut : la suite entière, captures comprises,
+# ce que la CI lance (voir .github/workflows/e2e.yml).
 test-ihm:
 	@echo "--- 🎭 Suite Playwright ---"
-	cd front && npx playwright test $(PLAYWRIGHT_ARGS)
+	front/e2e/conteneur/playwright.sh $(PLAYWRIGHT_ARGS)
+
+# Régénère les 20 captures de référence, dans le conteneur de référence — la
+# SEULE façon légitime d'en produire : une référence rendue hors de lui (un
+# `--update-snapshots` sur le poste) est refusée par la CI et ne doit jamais
+# être committée. Contre une base RÉDUITE AU SEED : une donnée du poste hors
+# seed (une formation de plus dans la liste) entrerait dans l'image et ferait
+# échouer la comparaison partout ailleurs. Puis REGARDER chaque image avant de
+# committer — réaccepter un diff est une décision (CLAUDE.md, « Suite e2e »).
+captures-reference:
+	@echo "--- 📸 Régénération des captures de référence (conteneur) ---"
+	front/e2e/conteneur/playwright.sh --update-snapshots all captures.spec.ts captures-ouvertes.spec.ts
 
 
 

@@ -4,6 +4,7 @@ import {
     attendreChargementInitial,
 } from './aide/hierarchieE2E';
 import { app, crud, interpoler, titreSuppression } from './aide/i18n';
+import { EN_CONTENEUR_REFERENCE, MOTIF_HORS_CONTENEUR } from './aide/conteneur';
 
 /**
  * Captures d'états OUVERTS — le complément de `captures.spec.ts`, qui ne
@@ -38,6 +39,10 @@ const MODES = ['light', 'dark'] as const;
 
 for (const colorScheme of MODES) {
     test.describe(`Captures ouvertes (${colorScheme})`, () => {
+        // Hors du conteneur de référence, la comparaison ne prouve rien : saut
+        // explicite, motif dans le rapport (voir aide/conteneur.ts).
+        test.skip(!EN_CONTENEUR_REFERENCE, MOTIF_HORS_CONTENEUR);
+
         test.beforeEach(async ({ pageAdmin }) => {
             await pageAdmin.emulateMedia({ colorScheme });
         });

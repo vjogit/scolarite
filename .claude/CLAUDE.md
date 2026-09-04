@@ -35,10 +35,11 @@ Application réservée au personnel administratif. Pas encore en production.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
-  préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go) et
-  `e2e.yml` (les 43 tests fonctionnels contre la stack complète montée par
-  `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`). Les
-  20 captures de référence n'y sont pas — voir « Suite e2e ».
+  préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 63 tests, dont les
+  20 captures de référence — contre la stack montée par
+  `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
+  le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
   d'environnement dans `infra/env/` (`config-*.env`, secrets jamais
   committés). `config-ci.env` est le jumeau de `config-local.env` pour
@@ -210,25 +211,35 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite fonctionnelle sur chaque push par la même cible
-  (`make test-ihm PLAYWRIGHT_ARGS="--grep-invert captures"`), `retries: 0`
-  inchangé, et publie à chaque run `test-results/`, le rapport HTML et les
-  journaux des conteneurs — **un échec intermittent en CI se diagnostique
-  dans l'artefact, jamais par une relance** (consigne `registre.spec.ts`).
-- **Les captures ne tournent pas en CI, et c'est un invariant tant que les
-  références sont celles d'un poste.** Elles sont générées sur la machine
-  de développement (polices, moteur de rendu) **et sur l'état de sa base** :
-  sur l'exécuteur GitHub, 20 échecs sur 20, tous au contour des glyphes —
-  et `formation-liste` y montre une formation de moins, « FIA », qui n'est
-  pas dans le seed mais dans la base du poste (mesuré au lot CI,
-  `docs/ci.md` §5). Deux règles en découlent : **ne jamais régénérer une
-  référence depuis la CI** ni depuis un artefact de CI ; et si l'on veut un
-  jour les y faire tourner, la seule voie est de régénérer les 20
-  références **une fois**, contre une base réduite au seed
-  (`start-local-reset`), dans le conteneur officiel Playwright
-  (`mcr.microsoft.com/playwright`, version de `@playwright/test`), et d'y
-  comparer aussi bien en local qu'en CI — c'est une décision (les 20 images
-  changent d'un coup), pas une formalité.
+  suite complète sur chaque push par la même cible (`make test-ihm`, 63
+  tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
+  `test-results/`, le rapport HTML et les journaux des conteneurs — **un
+  échec intermittent en CI se diagnostique dans l'artefact, jamais par une
+  relance** (consigne `registre.spec.ts`).
+- **Les captures se comparent et se régénèrent dans le conteneur de
+  référence, nulle part ailleurs** (`front/e2e/conteneur/`, arbitrage du
+  4 septembre 2026, `docs/ci.md` §10). `make test-ihm` y lance toute la
+  suite — image officielle Playwright à la version de `@playwright/test`,
+  **épinglée par empreinte**, Ubuntu 24.04 comme l'exécuteur GitHub — et la
+  CI fait exactement de même : **les références font foi dans cet
+  environnement**, et la comparaison est stricte (aucun seuil de tolérance,
+  et aucun ne sera ajouté pour absorber un écart de rendu — un écart de
+  rendu est un écart d'environnement, et l'environnement est fixé par
+  l'empreinte). Hors du conteneur (`npx playwright test` depuis `front/`),
+  les deux specs de captures **se sautent d'elles-mêmes**
+  (`e2e/aide/conteneur.ts`, marqueur posé par l'image, jamais par
+  l'appelant) : un poste rend d'autres glyphes — 20 échecs sur 20 mesurés
+  au lot CI — et un `--update-snapshots` y produirait des références que la
+  CI refuserait. Trois règles : **ne jamais committer une référence
+  produite hors du conteneur** ; régénérer par `make captures-reference`,
+  **contre une base réduite au seed** (une donnée du poste hors seed, telle
+  la formation « FIA », entrerait dans l'image — `start-local-reset`, ou la
+  base du poste écartée le temps de la régénération, `docs/ci.md` §10) ; et
+  **regarder chaque image** avant de committer. Corollaire assumé : sur un
+  poste dont la base porte plus que le seed, `formation-liste` échoue en
+  local — c'est un écart d'état, pas de code ; la CI, base semée, tranche.
+  L'image et `@playwright/test` montent ensemble, jamais l'un sans l'autre,
+  et toute montée régénère les 20 références.
 - **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
   4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
   souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
@@ -248,8 +259,10 @@ Application réservée au personnel administratif. Pas encore en production.
   apparence (voir
   `docs/migration-shadcn/02bis-filet-regression.md`, qui démontre cette
   détection par un test négatif). Un lot qui change volontairement
-  l'apparence régénère avec `npx playwright test captures.spec.ts
-  --update-snapshots`, puis **regarde chaque image avant de committer** —
+  l'apparence régénère avec `make captures-reference` (dans le conteneur de
+  référence, contre une base réduite au seed — jamais un
+  `--update-snapshots` sur le poste), puis **regarde chaque image avant de
+  committer** —
   jamais en confiance sur la seule absence d'erreur de la commande. Un lot
   qui ne touche pas l'apparence et voit une capture échouer a trouvé une
   régression, pas une formalité à contourner par `--update-snapshots`
@@ -501,10 +514,11 @@ Application réservée au personnel administratif. Pas encore en production.
   jour dédié, avec `npm audit`.
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
-  épinglées vérifiées, build + tests Go (hors intégration : ils se sautent
-  sans base), et la suite e2e fonctionnelle (43 tests) contre la stack
-  complète. **Non couvert** : les 20 captures de référence (exclues, voir
-  « Suite e2e ») ; les tests Go d'intégration (`t.Skip` sans PostgreSQL,
+  épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
+  intégration : ils se sautent sans base), et la suite e2e complète (63
+  tests, les 20 captures de référence comprises, dans le conteneur de
+  référence) contre la stack complète. **Non couvert** : les tests Go
+  d'intégration (`t.Skip` sans PostgreSQL,
   Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
   `govulncheck`, `npm audit --omit=dev`, Dependabot, protection de branche.
   `programme-import/pkg/extraction` échoue sur fixture absente : rejoué en

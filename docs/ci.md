@@ -216,8 +216,12 @@ publiés si un jour ils tombent.
 
 ## 5. Le sort des captures
 
-**Décision : exclues de la suite bloquante, exécutables à la demande,
-jamais régénérées depuis la CI.** Les références ont été rendues sur le
+**Dépassé le 4 septembre 2026 — voir §10** : les captures tournent
+désormais en CI, décisives, dans un conteneur de référence. Ce qui suit
+reste la mesure qui a fondé la décision.
+
+**Décision (lot CI) : exclues de la suite bloquante, exécutables à la
+demande, jamais régénérées depuis la CI.** Les références ont été rendues sur le
 poste, avec sa police de repli (pas de Roboto installée) et son Chromium ;
 l'exécuteur a d'autres polices et un autre Chromium. Plutôt que de le
 déduire, le lot l'a mesuré : un lancement manuel avec `captures=true`
@@ -333,9 +337,8 @@ Couvert, sur chaque push et chaque pull request :
 
 **Non couvert :**
 
-- **Les 20 captures de référence.** Le filet visuel — celui qui a attrapé au
-  lot 2bis ce que 31 tests de rôles ne voyaient pas — ne tourne que sur le
-  poste (`make test-ihm` complet). Une régression d'apparence passe la CI.
+- ~~**Les 20 captures de référence.**~~ Couvertes depuis le 4 septembre
+  2026 (§10) : décisives, dans le conteneur de référence.
 - **Les tests Go d'intégration** (`pkg/resultat/note`, `jury`, `user`,
   `structure/exchange`, `registre` intégration…) : ils se sautent sans base,
   Keycloak et Mailpit. La stack du job e2e les rendrait possibles — c'est le
@@ -377,3 +380,119 @@ Couvert, sur chaque push et chaque pull request :
 - Défauts pré-existants intacts : `BarreAxes`, rebond Keycloak,
   `registre.spec.ts`, `UpdateToeic`, colonne « Rôles », message zod,
   `axes.ts` en français.
+
+## 10. Les captures font foi dans le conteneur de référence (arbitrage du 4 septembre 2026)
+
+Le §5 avait mesuré deux causes de non-portabilité — le rendu du poste et
+l'état de sa base — et décrit la voie en quatre gestes. Arbitré : **les
+références font foi dans l'environnement CI**, c'est-à-dire dans un
+conteneur identique sur le poste et sur l'exécuteur ; **comparaison
+stricte, aucun seuil de tolérance**. Les quatre gestes ont été faits, et un
+cinquième s'est ajouté (la garde hors conteneur).
+
+### Le conteneur
+
+- **`front/e2e/conteneur/Dockerfile`** : `mcr.microsoft.com/playwright:v1.62.1-noble`,
+  la version exacte de `@playwright/test` du lockfile, **épinglée par
+  empreinte** (`sha256:dcc5531e…` — un tag peut être republié, une empreinte
+  non). Ubuntu 24.04 (noble), comme l'exécuteur `ubuntu-24.04` : 50 polices,
+  Chromium 1234, Node 24. S'y ajoute le **client Docker statique 29.8.0**
+  (archive vérifiée par empreinte, binaire seul, sans démon) : le seed passe
+  par `docker exec psql` (`setup/seed.sh`), donc par le socket de l'hôte
+  que le script monte — pas de second chemin de seed, `globalSetup.ts`
+  reste ce qu'il est. L'image pose le marqueur
+  `PLAYWRIGHT_CONTENEUR_REFERENCE=1`.
+- **`front/e2e/conteneur/playwright.sh`** : construit l'image (cache Docker,
+  quelques secondes après la première fois) et lance `npx playwright test`
+  dans le conteneur — dépôt monté **au même chemin** (`env.ts` résout les
+  fichiers d'environnement depuis sa position ; rapports, `test-results/`
+  et `e2e/.auth/` s'écrivent dans l'arborescence du poste), `--network host`
+  (la stack répond sur `https://10.20.2.5:9021`, bridge Docker joignable
+  depuis l'hôte), `--user` de l'appelant plus le groupe du socket (les
+  fichiers écrits lui appartiennent, `docker exec` passe), variables
+  `CONFIG_FILE_LOCAL` / `SECRETS_FILE_LOCAL` / `PLAYWRIGHT_BASE_URL` / `CI`
+  transmises quand elles existent. `node_modules` est celui du dépôt monté
+  (même lockfile, même architecture) ; seul le navigateur vient de l'image.
+- **`make test-ihm`** passe par ce script : la suite entière, captures
+  comprises, dans le conteneur — sur le poste comme en CI (la CI n'a plus
+  d'étape `playwright install` : ce serait un second Chromium, celui de
+  l'hôte, que la suite n'utilise pas). **`make captures-reference`** y lance
+  `--update-snapshots captures.spec.ts captures-ouvertes.spec.ts`.
+- **La garde** (`e2e/aide/conteneur.ts`) : hors du conteneur — un
+  `npx playwright test` direct depuis `front/` — les deux specs de captures
+  se **sautent**, motif dans le rapport (« comparaison et régénération
+  réservées au conteneur de référence »). Le marqueur vient de l'image,
+  jamais de l'appelant : personne ne l'obtient par accident, et un
+  `--update-snapshots` sur le poste ne produit rien. Les 43 tests
+  fonctionnels y restent disponibles.
+- **`e2e.yml`** : `npm ci` sur l'exécuteur (les `node_modules` montés), une
+  étape « conteneur de référence — image et liste des tests » (`--list`, ni
+  seed ni navigateur : le nombre de tests dans le résumé), puis
+  `make … test-ihm` sans restriction. L'entrée `captures` de
+  `workflow_dispatch` et l'étape informative disparaissent ; l'artefact ne
+  porte plus qu'un jeu de résultats.
+
+### Où font foi les captures, et contre quelle base
+
+Dans le conteneur, **contre la base semée** — ce que la CI voit toujours
+(`start-local-reset` puis le seed). Sur le poste, la base porte plus que le
+seed (la formation « FIA », 703 maillons de registre, le jeu de données des
+notes) : `formation-liste` y montrerait une ligne de plus. Régénérer contre
+cette base aurait reproduit la seconde cause du §5. Deux façons d'obtenir
+l'état de référence sur le poste : `make start-local-reset` (détruit la
+base), ou **écarter la base le temps de la régénération**, ce que ce lot a
+fait sans rien détruire — connexions terminées, `ALTER DATABASE scolarite
+RENAME TO scolarite_poste`, base neuve du même nom migrée par
+`make liquibase`, backend redémarré ; au retour, la base neuve est renommée
+`scolarite_reference` (conservée, inoffensive) et `scolarite_poste` reprend
+son nom. Keycloak n'est pas touché (sa base est distincte).
+
+### Régénérer — la procédure
+
+1. Stack lancée (`make start-local-keep`), base réduite au seed (ci-dessus).
+2. `make captures-reference` — dans le conteneur, contre le seed que
+   `globalSetup.ts` pose.
+3. **Regarder chaque image** (`e2e/*-snapshots/*.png`) : réaccepter un diff
+   est une décision (CLAUDE.md, « Suite e2e »).
+4. `make test-ihm` deux fois : 63/63, deux fois.
+5. Committer les 20 PNG avec le lot qui change l'apparence — jamais seuls,
+   jamais « pour faire passer ».
+
+### Interdit
+
+- **Committer une référence produite hors du conteneur.** Elle ne passe pas
+  en CI (20 échecs sur 20 mesurés au §5 pour l'écart de rendu poste ↔
+  exécuteur) ; la garde rend ce cas difficile (rien n'est écrit hors
+  conteneur), pas impossible (forcer le marqueur à la main). Une référence
+  dont le diff CI dessine des contours de glyphes est une référence produite
+  ailleurs : la refuser, pas ajouter un seuil.
+- **Ajouter un seuil de tolérance** (`maxDiffPixels`, `threshold`) pour
+  absorber un écart de rendu : l'environnement est fixé par l'empreinte de
+  l'image, un écart de rendu est donc un changement — de code, de données,
+  ou d'image — et doit être vu.
+- **Monter l'image sans monter `@playwright/test`** (ou l'inverse) : le
+  navigateur embarqué est celui que le paquet attend. Les deux montent
+  ensemble, et la montée régénère les 20 références (en regardant chaque
+  image).
+
+### Mesuré
+
+| Mesure | Résultat |
+|---|---|
+| Conteneur, références du poste (avant régénération) | **21 échecs sur 63** : les 20 captures (ratio 0.01, contours de glyphes — le rendu du conteneur n'est pas celui du poste, comme l'exécuteur au §5) **et `import-erreurs.spec.ts`** (`spawnSync zip ENOENT` : le `zip` système, absent de l'image officielle, présent sur un poste ; ajouté au Dockerfile). 42 passés, 3,3 min |
+| Régénération (`make captures-reference`, base réduite au seed) | 23 passés (3 connexions + 20 captures), 58 s ; 20 PNG réécrits, chacun regardé |
+| Suite complète dans le conteneur, deux fois consécutives | **63/63, 2,9 min** puis **63/63, 2,9 min** |
+| Comparaison hôte ↔ conteneur : `npx playwright test captures.spec.ts` sur le poste | **20 sautées** (motif « comparaison et régénération réservées au conteneur de référence »), 3 connexions passées, 4,5 s — rien d'écrit dans `*-snapshots/` |
+| CI, commit de ce point | premier run après la poussée : voir la ligne ajoutée au tableau du §6 |
+
+### Ce qui reste
+
+- **Sur un poste dont la base porte plus que le seed, `formation-liste`
+  échoue en local** (une formation de plus dans la liste) : écart d'état,
+  pas de code. Deux issues possibles, non prises ici parce qu'elles
+  touchent au contenu de la capture ou à la base du poste — filtrer la
+  liste sur « E2E » avant la capture (la capture change), ou travailler sur
+  une base réduite au seed. La CI, base semée, tranche.
+- L'image de base (2,5 Go décompressée) est téléchargée à chaque run, sans
+  cache, comme les images backend et nginx : le temps de l'étape
+  « conteneur de référence » est relevé dans le résumé de chaque run (§6).
