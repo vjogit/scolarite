@@ -9,7 +9,6 @@
 **/terraform-provider-*
 **/*.terraform
 /infra/liquibase/liquibase_libs
-/back/**/gen/*
 **/*.log
 
 

@@ -77,17 +77,26 @@ jobs:
           go-version-file: back/go.mod
           cache-dependency-path: back/go.sum
 
-      # Le code généré par sqlc (back/pkg/**/gen/) n'est pas versionné
-      # (.gitignore : **/gen/) : un clone neuf ne compile pas sans cette
-      # étape. `sqlc generate` est hors ligne — il lit back/schema.sql,
-      # versionné — et produit exactement ce que infra/gen_sql.sh produit sur
-      # le poste (vérifié par diff au lot CI). Version épinglée sur celle du
+      # Le code généré par sqlc (back/pkg/**/gen/) est versionné (tranché le
+      # 4 septembre 2026 ; jusque-là .gitignore l'excluait et un clone neuf ne
+      # compilait pas). Cette étape le régénère hors ligne — sqlc lit
+      # back/schema.sql, versionné — et échoue si le résultat diffère du
+      # commit : une requête ou un changeset modifié sans régénération, ou une
+      # régénération non committée, se voit ici et nulle part ailleurs (le
+      # build passerait sur du généré obsolète). Version épinglée sur celle du
       # poste.
       - uses: sqlc-dev/setup-sqlc@v5
         with:
           sqlc-version: '1.31.1'
-      - name: Code sqlc
-        run: sqlc generate
+      - name: Code sqlc — régénéré, identique au commit
+        run: |
+          sqlc generate
+          if [ -n "$(git status --porcelain -- .)" ]; then
+            git status --porcelain -- .
+            git diff -- . | head -n 200
+            echo "::error title=Généré sqlc obsolète::back/pkg/**/gen/ diffère de « sqlc generate » — régénérer (infra/gen_sql.sh) et committer avec la requête"
+            exit 1
+          fi
 
       - name: Build
         run: go build ./...

@@ -31,7 +31,10 @@ travailler sur `shadcn` aurait rouvert une branche close).
   `back/schema.sql` (versionné, identique à la sortie de `pg_dump` du poste)
   reproduit le généré **à l'identique** : `diff -r` des deux arborescences
   `back/pkg` vide. La CI régénère ; la contradiction CLAUDE.md ↔ `.gitignore`
-  est signalée, pas tranchée (§9).
+  est signalée, pas tranchée (§9). **Tranchée le 4 septembre 2026 : le
+  généré est versionné** (92 fichiers, 17 paquets `gen/`, entrés au dépôt
+  tels que le poste les produit — `sqlc generate` rejoué avant l'ajout,
+  diff vide) ; `verification.yml` régénère et échoue sur tout écart.
 - **Un second fichier manquait au clone** : `back/pkg/resultat/jury/
   template_bulletin.docx`, embarqué par `go:embed`, ignoré par `**/*.docx`.
   `Template_note.xlsx`, dans la même situation (`**/*.xlsx`), était lui
@@ -101,7 +104,7 @@ Sur `push` et `pull_request`. Deux jobs indépendants, ~1 min chacun.
 | Job | Étapes | Ce qui décide |
 |---|---|---|
 | Front — lint et build | Node 22, `npm ci`, versions épinglées, `npm run lint`, `npm run build` | tout |
-| Back — build et tests Go | Go (go.mod), sqlc 1.31.1, `sqlc generate`, `go build ./...`, `go test` hors programme-import, puis programme-import seul | tout sauf la dernière étape |
+| Back — build et tests Go | Go (go.mod), sqlc 1.31.1, `sqlc generate` **puis `git status` vide sur `back/`** (le généré est versionné depuis le 4 septembre 2026 : un écart entre le commit et la régénération fait échouer le job), `go build ./...`, `go test` hors programme-import, puis programme-import seul | tout sauf la dernière étape |
 
 **Le défaut `programme-import`, visible sans bloquer.** L'étape « Tests des
 paquets en défaut connu » est `continue-on-error` : elle rejoue le paquet
@@ -349,7 +352,10 @@ Couvert, sur chaque push et chaque pull request :
 
 - **CLAUDE.md ↔ `.gitignore` sur `gen/`** : « committer le généré » était
   faux. Corrigé dans CLAUDE.md pour dire ce qui est ; la décision (versionner
-  ou non) reste à prendre. En attendant, la CI régénère.
+  ou non) restait à prendre. **Tranchée le 4 septembre 2026 : versionné.**
+  `.gitignore` ne l'exclut plus, CLAUDE.md énonce la règle (régénérer et
+  committer avec la requête), et la CI ne se contente plus de régénérer :
+  elle compare au commit (§2).
 - **`testdata/programme.xlsx`** (test d'intégration `exchange`) : ignoré par
   git, réel, non ajouté. À ajouter (si le document peut l'être) ou à
   remplacer par une fixture synthétique — à décider avant d'ouvrir les tests

@@ -31,7 +31,9 @@ front/e2e/.auth/
 infra/data/
 
 # ── Code généré ───────────────────────────────────────────────────────────────
-**/gen/
+# Le code sqlc (back/pkg/**/gen/) EST versionné — tranché le 4 septembre 2026 :
+# un clone neuf compile sans outil, et la CI vérifie que le commit est à jour
+# (verification.yml). Aucune exclusion ici : régénérer et committer ensemble.
 
 # ── Fichiers de données ───────────────────────────────────────────────────────
 back/cmd/programme-import/data/

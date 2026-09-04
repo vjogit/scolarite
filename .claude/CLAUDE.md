@@ -147,13 +147,15 @@ Application réservée au personnel administratif. Pas encore en production.
   `DeleteConfirmDialog` / `UnsavedChangesDialog` ; erreurs d'import en
   tableau via `LignesRefuseesDialog`.
 - **sqlc uniquement** (jamais de SQL concaténé) ; régénérer par
-  `infra/gen_sql.sh`. **Le généré n'est pas versionné** (`.gitignore` :
-  `**/gen/`), contrairement à ce que cette ligne affirmait jusqu'au lot CI :
-  un clone neuf ne compile qu'après `sqlc generate` (hors ligne, depuis
-  `back/schema.sql`, versionné — sortie identique au poste, vérifiée par
-  diff). La CI le fait ; la contradiction reste à trancher (versionner le
-  généré, ou assumer sa régénération). Changesets Liquibase avec `id`,
-  `author`, `comment` **et `rollback`**.
+  `infra/gen_sql.sh` (pg_dump → `back/schema.sql` → `sqlc generate`), ou
+  par `sqlc generate` seul dans `back/` quand le schéma n'a pas bougé.
+  **Le généré (`back/pkg/**/gen/`) fait partie du dépôt** : à régénérer et
+  à committer à chaque changement de schéma ou de requête, dans le même
+  commit que la requête ou le changeset — tranché le 4 septembre 2026
+  (jusque-là `.gitignore` l'excluait et un clone neuf ne compilait pas, lot
+  CI). La CI (`verification.yml`) régénère hors ligne depuis `schema.sql`
+  et **échoue si le résultat diffère du commit**. Changesets Liquibase avec
+  `id`, `author`, `comment` **et `rollback`**.
 - Pas de nouvelle dépendance sans validation explicite de l'utilisateur.
 - `npm run build`, `npm run lint`, build Go et `go test` au vert avant de
   conclure.
