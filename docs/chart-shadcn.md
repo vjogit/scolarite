@@ -80,25 +80,37 @@ aucune lecture, aucun observateur, aucun état.
 **Ce n'est pas le mécanisme de `ChartStyle`.** Le composant du registre
 attend `config = { note: { label, color: 'var(--chart-1)' } }` et fabrique
 `--color-note` par un `<style>` injecté, que les séries référencent en
-`var(--color-note)`. Deux options se présentaient :
+`var(--color-note)`. Deux options se présentaient ; le lot avait retenu la
+seconde sans trancher seul, et **l'arbitrage du 4 septembre 2026 (après la
+fusion de la PR #2) l'a confirmée** :
 
-- *Écartée — reprendre `ChartStyle` et amender l'invariant 11* (une seconde
-  exception après FullCalendar). La règle injectée ne déclare que des
-  propriétés personnalisées à portée `[data-chart=…]` : elle ne peut
-  écraser aucun utilitaire. Mais l'invariant est écrit sans exception, pour
-  une raison que dix-sept lots ont payée ; l'assouplir pour épargner une
-  indirection (`--chart-1` → `--color-note` → `var(--color-note)`) n'en
-  vaut pas le prix. **Cette option reste ouverte à l'arbitrage** : elle
-  tient en une ligne de `config` par série et la réintroduction de
-  `ChartStyle` depuis le registre.
-- **Retenue — `ChartContainer` sans `ChartStyle`, tokens référencés
-  directement.** `chart.tsx` entre par le CLI, `ChartStyle` et le
-  `color`/`theme` de `ChartConfig` n'en font pas partie (commentaire de
-  tête du fichier) ; le `config` ne porte que `label`/`icon`. Le conteneur
-  garde ce qu'il apporte : le `ResponsiveContainer`, le contexte, et les
-  règles de classe qui corrigent les couleurs codées en dur de recharts
-  (`#ccc` des grilles et lignes de référence par défaut, `#fff` des points
-  actifs, curseurs).
+- *Écartée, définitivement — reprendre `ChartStyle` et amender l'invariant
+  11* (une seconde exception après FullCalendar). La règle injectée ne
+  déclare que des propriétés personnalisées à portée `[data-chart=…]` :
+  elle ne peut écraser aucun utilitaire. Mais l'invariant est écrit sans
+  exception, pour une raison que dix-sept lots ont payée ; l'assouplir pour
+  épargner une indirection (`--chart-1` → `--color-note` →
+  `var(--color-note)`) n'en vaut pas le prix. L'invariant 11 n'est pas
+  amendé.
+- **Retenue et arbitrée — `ChartContainer` sans `ChartStyle`, tokens
+  référencés directement.** `chart.tsx` reste tel qu'il est entré par la
+  PR #2 : `ChartStyle` et le `color`/`theme` de `ChartConfig` n'en font pas
+  partie (commentaire de tête du fichier) ; le `config` ne porte que
+  `label`/`icon`. Le conteneur garde ce qu'il apporte : le
+  `ResponsiveContainer`, le contexte, et les règles de classe qui corrigent
+  les couleurs codées en dur de recharts (`#ccc` des grilles et lignes de
+  référence par défaut, `#fff` des points actifs, curseurs).
+
+  Motifs actés : **conformité à l'invariant 11** (aucun `<style>` posé en
+  JS, vérifié au navigateur — §6, « aucune feuille injectée ») et **rendu
+  identique au pixel** (les 20 captures de référence passent sans
+  régénération, §5). **La divergence avec le registre shadcn est assumée** :
+  le fichier versionné fait foi, pas le CLI. À chaque mise à jour du
+  composant (`npx shadcn add chart`, ou toute reprise du registre), les
+  adaptations listées en tête de `chart.tsx` sont à ré-appliquer — retrait
+  de `ChartStyle` et de `color`/`theme`, `ChartLegend` absent (§3), types
+  recharts du projet — puis les 20 captures doivent repasser sans
+  `--update-snapshots`.
 
 Les règles de classe du conteneur ont deux effets sur cette modale, tous
 deux traités :
@@ -316,8 +328,10 @@ puis `npx playwright test` ✅ 63 (2,9 min), contre le build de `main`
   distinct, non fait ici, comme demandé.
 - **`ChartStyle` et l'invariant 11** : la question « amender l'invariant
   pour une règle injectée qui ne déclare que des propriétés personnalisées
-  à portée locale » reste ouverte (§2) ; ce lot a choisi de ne pas la
-  trancher seul.
+  à portée locale » était restée ouverte, ce lot ayant choisi de ne pas la
+  trancher seul. **Tranchée le 4 septembre 2026** : `chart.tsx` reste
+  amputé, l'invariant 11 n'est pas amendé, la divergence avec le registre
+  est assumée (§2).
 - **`ChartTooltipContent`** non adopté (§4.2) ; `CustomTooltip` reste la
   seule infobulle de graphique du projet.
 - **`name="Note"` et `name="Notes"`** (`YAxis` et `Scatter` du nuage) sont

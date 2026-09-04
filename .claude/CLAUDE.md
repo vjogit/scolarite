@@ -457,8 +457,11 @@ Application réservée au personnel administratif. Pas encore en production.
   réintroduire une lecture par `getComputedStyle` ni un observateur de la
   classe de `<html>` (le mécanisme du lot 4bis, retiré). `components/ui/chart.tsx`
   entre sans `ChartStyle` ni `config.color`/`theme` : le registre shadcn y
-  injecte un `<style>` à l'exécution, ce que l'invariant 11 interdit — ne
-  pas le reprendre du registre sans rouvrir l'invariant. Piège du conteneur :
+  injecte un `<style>` à l'exécution, ce que l'invariant 11 interdit —
+  arbitré le 4 septembre 2026 : le fichier amputé fait foi, l'invariant
+  n'est pas amendé, et **toute mise à jour du composant depuis le registre
+  ré-applique les adaptations listées en tête de `chart.tsx`**
+  (`docs/chart-shadcn.md` §2). Piège du conteneur :
   ses règles de classe (`[&_.recharts-…]`) **priment sur les attributs**
   recharts — le curseur d'un `BarChart` virerait en `fill-muted` malgré son
   `cursor={{ fill }}` ; `NoteChartModal` le rétablit par une classe
