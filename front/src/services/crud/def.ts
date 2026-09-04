@@ -1,13 +1,28 @@
 import type { QueryKey } from '@tanstack/react-query';
 import type { Control, DefaultValues, FieldErrors, FieldValues, UseFormGetValues, UseFormRegister, UseFormSetValue } from 'react-hook-form';
-import type { JSX } from 'react';
-import type { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
+import type { JSX, ReactNode } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { ZodType } from 'zod';
 import { isAxiosError } from 'axios';
 import { apiInstance } from '../api';
 import type { ActionLigne } from './actions';
 
 export type CrudMode = 'create' | 'show' | 'edit' | 'list';
+
+/**
+ * Ce que la liste tend à la barre d'outils personnalisée d'un écran.
+ *
+ * Aucune instance de table n'y figure — c'est le contrat que les migrations
+ * de pages appliqueront en série : un écran ne dépend d'aucun moteur.
+ * `lignesVisibles` est paresseux : seul le graphique des notes le consomme,
+ * au clic, et il reçoit les lignes filtrées et triées, avant pagination —
+ * l'équivalent exact de l'ancien `getPrePaginationRowModel().rows`.
+ */
+export interface ActionsBarreOutilsProps<D> {
+    defaultActions: ReactNode
+    peutEcrire: boolean
+    lignesVisibles: () => D[]
+}
 
 export interface CrudProps<D extends FieldValues> {
     mode: CrudMode
@@ -18,7 +33,8 @@ export interface CrudProps<D extends FieldValues> {
      *  par la liste : les déclarer ici serait les redoubler. */
     actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
+    /** Barre d'outils personnalisée de la liste (`DataTable`). */
+    actionsBarreOutils?: (props: ActionsBarreOutilsProps<D>) => ReactNode
 }
 
 export interface RenderProps<D extends FieldValues> {
@@ -85,7 +101,10 @@ export interface ViewConfig<D extends FieldValues> {
      */
     schema: ZodType<D, FieldValues>
     emptyValue: DefaultValues<D>;
-    columns: MRT_ColumnDef<D>[];
+    /** Colonnes de la liste (`DataTable`), au format TanStack Table nu.
+     *  Alignement et style de cellule par `meta` (voir l'augmentation de
+     *  `ColumnMeta` dans `DataTable.tsx`). */
+    colonnes?: ColumnDef<D>[];
     render: (props: RenderProps<D>) => JSX.Element;
 }
 
@@ -156,7 +175,8 @@ export type EntiteCrud<D extends FieldValues> = Repository<D> & DescriptionEntit
  * d'écriture. Il ne peut donc plus en décrire un par mégarde.
  */
 export interface DatasourceListe<D extends FieldValues> extends Repository<D>, DescriptionEntite {
-    columns: MRT_ColumnDef<D>[]
+    /** Colonnes de la liste — voir la documentation du champ dans `ViewConfig`. */
+    colonnes?: ColumnDef<D>[]
     isAction: boolean
     isReadOnly?: boolean
     /**
@@ -166,7 +186,9 @@ export interface DatasourceListe<D extends FieldValues> extends Repository<D>, D
      */
     actionsLigne?: readonly ActionLigne<D>[]
     isTopToolbar: boolean
-    renderTopToolbarCustomActions?: (props: { table: MRT_TableInstance<D>, defaultActions: React.ReactNode, peutEcrire: boolean }) => React.ReactNode
+    /** Barre d'outils personnalisée — contrat sans instance de table, voir
+     *  `ActionsBarreOutilsProps`. */
+    actionsBarreOutils?: (props: ActionsBarreOutilsProps<D>) => ReactNode
 }
 
 /** Une liste doublée de son formulaire : le cycle CRUD complet. */

@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react';
-import { Tooltip, IconButton } from '@mui/material';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { FileUp } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
@@ -21,7 +21,6 @@ interface Props {
 }
 
 export function GroupeImportButton({ groupeId }: Props) {
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('structure');
     // « depuis Excel » seul serait ambigu : c'est l'effectif qu'on importe.
@@ -48,21 +47,32 @@ export function GroupeImportButton({ groupeId }: Props) {
                 message += t('groupe.importer.emailsIntrouvables', { liste: not_found.join(', ') });
             }
 
-            notifyPartialSuccess(notifications, message, not_found.length === 0);
+            notifyPartialSuccess(message, not_found.length === 0);
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, 'groupe-users', groupeId] });
         } catch (error) {
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [groupeId, notifications, queryClient, t]);
+    }, [groupeId, queryClient, t]);
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
-                    <UploadFileIcon />
-                </IconButton>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => fileInputRef.current?.click()}
+                        />
+                    )}
+                >
+                    <FileUp />
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
             <input
                 type="file"

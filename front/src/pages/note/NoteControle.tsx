@@ -1,14 +1,15 @@
 import { Crud } from "../../services/crud/Crud";
 import { useParams } from 'react-router';
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { z } from 'zod';
 import { useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { TextField, FormControlLabel, Switch, Typography, Box, Skeleton } from "@mui/material";
+import { Skeleton } from '../../components/ui/skeleton';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampInterrupteur } from '../../services/ChampChoix';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from "../../services/crud/def";
-import { Controller } from 'react-hook-form';
-import type { MRT_Cell, MRT_ColumnDef } from 'material-react-table';
+import type { CellContext, ColumnDef } from '@tanstack/react-table';
 import { NoteChartModal } from './NoteChartModal';
 import { ENDPOINT_CONTROLE, ENDPOINT_NOTE_CONTROLE, NOTE } from './def';
 import { UserSelector } from '../../services/UserSelector';
@@ -50,9 +51,19 @@ const createNoteControleSchema = (bareme?: number) => z.object({
 export type NoteControle = z.infer<ReturnType<typeof createNoteControleSchema>>;
 
 const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
-    ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<NoteControle>) => {
+    ({ control, errors, isReadOnly, getValues, setValue }: RenderProps<NoteControle>) => {
         const notEvaluated = useWatch({ control, name: 'not_evaluated' });
         const { t } = useTranslation('note');
+
+        // Cocher « non évalué » vide la note : le `Switch` MUI le faisait dans
+        // son `onChange`, et le contrat des champs partagés n'offre pas de
+        // rappel au changement. Dérivé ici de la valeur observée — consommateur
+        // unique, sur le chemin mort signalé au lot 9 (§1) : reste local.
+        useEffect(() => {
+            if (notEvaluated) setValue('note', null);
+        }, [notEvaluated, setValue]);
+
+        const bornes = bornesNote(bareme);
         return (
             <>
                 <UserSelector
@@ -63,76 +74,43 @@ const createNoteControleFields = (isRattrapage: boolean, bareme?: number) =>
                     isReadOnly={isReadOnly}
                 />
 
-                <FormControlLabel
-                    control={
-                        <Controller
-                            name="not_evaluated"
-                            control={control}
-                            render={({ field }) => (
-                                <Switch
-                                    {...field}
-                                    checked={field.value}
-                                    disabled={isReadOnly}
-                                    onChange={(e) => {
-                                        field.onChange(e);
-                                        if (e.target.checked) setValue('note', null);
-                                    }}
-                                />
-                            )}
-                        />
-                    }
+                <ChampInterrupteur
+                    name="not_evaluated"
+                    control={control}
                     label={t('noteControle.nonEvalueLabel')}
-                    sx={{ mb: 2, display: 'block' }}
+                    disabled={isReadOnly}
                 />
 
-                <TextField
-                    {...register("note", { valueAsNumber: true })}
+                <ChampNombre
+                    name="note"
+                    control={control}
                     label={libelleNote(bareme)}
-                    variant="outlined"
-                    fullWidth
-                    type="number"
                     disabled={isReadOnly || notEvaluated}
-                    error={!!errors.note}
-                    helperText={errors.note?.message}
-                    slotProps={{ htmlInput: { step: "0.01", ...bornesNote(bareme) } }}
-                    sx={{ mb: 2 }}
+                    step="0.01"
+                    min={bornes.min}
+                    max={bornes.max}
                 />
                 {isRattrapage && (
-                    <FormControlLabel
-                        control={
-                            <Controller
-                                name="is_validated"
-                                control={control}
-                                render={({ field }) => (
-                                    <Switch
-                                        {...field}
-                                        checked={field.value}
-                                        disabled={isReadOnly}
-                                    />
-                                )}
-                            />
-                        }
+                    <ChampInterrupteur
+                        name="is_validated"
+                        control={control}
                         label={t('noteControle.valideeLabel')}
-                        sx={{ mb: 2, display: 'block' }}
+                        disabled={isReadOnly}
                     />
                 )}
-                <TextField
-                    {...register("remarque")}
+                <ChampTexte
+                    name="remarque"
+                    control={control}
                     label={t('noteControle.remarqueLabel')}
-                    variant="outlined"
-                    fullWidth
+                    disabled={isReadOnly}
                     multiline
                     rows={4}
-                    disabled={isReadOnly}
-                    error={!!errors.remarque}
-                    helperText={errors.remarque?.message}
-                    sx={{ mb: 2 }}
                 />
             </>
         );
     };
 
-const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>): MRT_ColumnDef<NoteControle>[] => [
+const createNoteControleColonnes = (isRattrapage: boolean, t: TFunction<'note'>): ColumnDef<NoteControle>[] => [
     { accessorKey: 'id', header: t('noteControle.colonneId') },
     { accessorKey: 'version', header: t('noteControle.colonneVersion') },
     {
@@ -142,7 +120,7 @@ const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>):
     {
         accessorKey: 'note',
         header: t('commun.note'),
-        Cell: ({ cell, row }) => {
+        cell: ({ cell, row }) => {
             if (row.original.not_evaluated) return t('noteControle.nonEvalueAbrege');
             const valeur = cell.getValue<number | null>();
             return valeur != null ? valeur.toFixed(2) : '-';
@@ -151,9 +129,9 @@ const createNoteControleColumns = (isRattrapage: boolean, t: TFunction<'note'>):
     ...(isRattrapage ? [{
         accessorKey: 'is_validated' as const,
         header: t('noteControle.colonneValidee'),
-        Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : t('commun.non'),
+        cell: ({ cell }: CellContext<NoteControle, unknown>) => cell.getValue() ? t('commun.oui') : t('commun.non'),
     }] : []),
-    { accessorKey: 'not_evaluated', header: t('noteControle.colonneNonEvalue'), Cell: ({ cell }: { cell: MRT_Cell<NoteControle> }) => cell.getValue() ? t('commun.oui') : '-' },
+    { accessorKey: 'not_evaluated', header: t('noteControle.colonneNonEvalue'), cell: ({ cell }: CellContext<NoteControle, unknown>) => cell.getValue() ? t('commun.oui') : '-' },
     { accessorKey: 'remarque', header: t('noteControle.colonneRemarque') },
 ];
 
@@ -161,7 +139,7 @@ const noteControleViewConfig = (controleId: string, isRattrapage: boolean, t: TF
     return {
         schema: createNoteControleSchema(bareme),
         emptyValue: { id: -1, version: -1, controle_id: parseInt(controleId), is_validated: false, not_evaluated: false, note: 0 },
-        columns: createNoteControleColumns(isRattrapage, t),
+        colonnes: createNoteControleColonnes(isRattrapage, t),
         render: createNoteControleFields(isRattrapage, bareme),
     }
 };
@@ -201,25 +179,25 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
         isAction,
         actionsLigne,
         isTopToolbar,
-        renderTopToolbarCustomActions: ({ table, defaultActions }) => (
-            <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        actionsBarreOutils: ({ defaultActions, lignesVisibles }) => (
+            <div className="flex items-center gap-4">
                 {defaultActions}
-                <NoteChartButton onClick={() => { handleOpenChart(table); }} />
-            </Box>
+                <NoteChartButton onClick={() => { handleOpenChart(lignesVisibles); }} />
+            </div>
         )
     }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!controleId || !datasource) return (
-        <Typography>{t('noteControle.parametreControleIdObligatoire')}</Typography>
+        <p>{t('noteControle.parametreControleIdObligatoire')}</p>
     )
 
     // On attend le contrôle avant de monter le formulaire : sans le barème, le
     // schéma validerait sur la seule borne basse et le champ annoncerait une
     // plage qu'on ne connaît pas encore. C'est aussi ce qui évite que les
     // colonnes changent après coup, une fois is_rattrapage connu.
-    if (controleLoading) return <Skeleton variant="rounded" height={400} />;
+    if (controleLoading) return <Skeleton className="h-[400px] rounded-lg" />;
 
     // La liste des notes du contrôle laisse place à la grille de saisie : elle
     // était alimentée par les notes existantes, la grille l'est par l'effectif.

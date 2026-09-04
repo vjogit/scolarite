@@ -12,18 +12,27 @@
  * de comparer deux semestres sans quitter l'écran.
  */
 
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery, skipToken } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import {
-    Alert, Autocomplete, Box, Chip, FormControlLabel, Paper, Stack, Switch, Tab, Table,
-    TableBody, TableCell, TableContainer, TableHead, TableRow, Tabs, TextField, Typography,
-} from '@mui/material';
+import { Info } from 'lucide-react';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Badge } from '../../components/ui/badge';
+import {
+    Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
+} from '../../components/ui/combobox';
+import { Label } from '../../components/ui/label';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '../../components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { ChampInterrupteur } from '../../services/ChampChoix';
 import { UserSelector, type UserOption } from '../../services/UserSelector';
 import { AXE_ELEVE, cheminVersEleve } from './axes';
+import { AnnonceAxe } from './AnnonceAxe';
 import {
     cleGpaEleve, cleNotesEleve, lireGpaEleve, lireNotesEleve, type NoteEleveLigne,
 } from './entites/noteEleve';
@@ -31,17 +40,21 @@ import { createNotePeriodeRepository } from './entites/notePeriode';
 import { nomEleve } from './entites/noteMatiere';
 import { formatNote, libelleNonEvaluee, origineRattrapage } from './provenance';
 
-/** Voir `CelluleNote.tsx` : une puce tient dans une colonne, sa phrase non. */
-const POUR_LECTEUR_ECRAN = {
-    position: 'absolute', width: 1, height: 1,
-    overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
-} as const;
+/** La pastille d'un rattrapage validé : la teinte de succès du jury (lot 15). */
+const CLASSES_BADGE_SUCCES = 'border-transparent bg-success/15 text-success';
 
+/**
+ * Le formulaire de l'écran : l'élève cherché hors contexte (`UserSelector`) et
+ * l'interrupteur qui ouvre cette recherche. Le second n'est pas une donnée
+ * métier, mais il passe par le contrat des champs partagés comme les
+ * interrupteurs du jury (lot 15) — un écran ne recâble pas un `Switch`.
+ */
 interface ChampEleve {
     id: number;
     user_id: number | null | undefined;
     firstName?: string;
     lastName?: string;
+    tous_les_eleves: boolean;
 }
 
 /** Un élève de l'effectif de la période, tel que le sélecteur le propose. */
@@ -55,8 +68,8 @@ export function AxeNoteEleve() {
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { t } = useTranslation('note');
+    const idEleve = useId();
 
-    const [tousLesEleves, setTousLesEleves] = useState(false);
     // `null` tant que l'utilisateur n'a pas choisi d'onglet : le défaut vient
     // alors du contexte. Après un clic, son choix tient — clamé au nombre de
     // périodes, sans quoi passer à un dossier plus court laisserait l'onglet
@@ -88,14 +101,17 @@ export function AxeNoteEleve() {
         })),
         [effectif],
     );
+    // Référence stable tant que l'effectif ne change pas : Base UI compare
+    // `value` par référence pour resynchroniser le texte du champ (lot 14).
     const choisi = options.find(option => option.identifiant === eleveId) ?? null;
 
     // ── Sélecteur global, pour sortir du contexte ──────────────────────────
     const { control, formState: { errors }, getValues, setValue } = useForm<ChampEleve>({
-        defaultValues: { id: 0, user_id: null },
+        defaultValues: { id: 0, user_id: null, tous_les_eleves: false },
     });
     // Lu pour que le champ reste contrôlé ; la navigation, elle, part du choix.
     useWatch({ control, name: 'user_id' });
+    const tousLesEleves = useWatch({ control, name: 'tous_les_eleves' });
 
     // ── Le relevé ──────────────────────────────────────────────────────────
     const { data: notes = [], isLoading } = useQuery({
@@ -142,14 +158,12 @@ export function AxeNoteEleve() {
     const periodeActive = periodes[onglet];
 
     return (
-        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Alert severity="info" icon={false} variant="outlined" sx={{ py: 0.25 }}>
-                {AXE_ELEVE.annonce}
-            </Alert>
+        <div className="flex flex-col gap-4 p-4">
+            <AnnonceAxe axe={AXE_ELEVE} />
 
-            <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
+            <div className="flex flex-wrap items-center gap-4">
                 {tousLesEleves ? (
-                    <Box sx={{ minWidth: 320 }}>
+                    <div className="min-w-[320px] [&>div]:mb-0">
                         <UserSelector
                             control={control}
                             errors={errors}
@@ -159,73 +173,92 @@ export function AxeNoteEleve() {
                                 if (eleve) allerVers(eleve.id);
                             }}
                         />
-                    </Box>
+                    </div>
                 ) : (
-                    <Autocomplete
-                        sx={{ minWidth: 320 }}
-                        size="small"
-                        options={options}
-                        getOptionLabel={(option) => option.nom}
-                        isOptionEqualToValue={(a, b) => a.identifiant === b.identifiant}
+                    <Combobox
+                        items={options}
+                        itemToStringLabel={(option: EleveDuContexte) => option.nom}
+                        isItemEqualToValue={(a, b) => a.identifiant === b.identifiant}
                         value={choisi}
-                        onChange={(_, valeur) => {
+                        onValueChange={(valeur) => {
                             if (valeur) allerVers(Number(valeur.identifiant));
                         }}
-                        noOptionsText={t('noteEleveAxe.aucunElevePeriode')}
-                        renderInput={(params) => (
-                            <TextField {...params} label={t('noteEleveAxe.eleveLabel')} placeholder={t('noteEleveAxe.elevePlaceholder')} />
-                        )}
-                    />
+                    >
+                        <div className="flex min-w-[320px] flex-col gap-1.5">
+                            {/* Le nom accessible vient du label : c'est le
+                                `combobox` « Élève de la période » que la suite
+                                e2e cible (`notes-unifie.spec.ts`). */}
+                            <Label htmlFor={idEleve}>{t('noteEleveAxe.eleveLabel')}</Label>
+                            <ComboboxInput id={idEleve} placeholder={t('noteEleveAxe.elevePlaceholder')} showClear />
+                        </div>
+                        <ComboboxContent>
+                            <ComboboxEmpty>{t('noteEleveAxe.aucunElevePeriode')}</ComboboxEmpty>
+                            <ComboboxList>
+                                {(option: EleveDuContexte) => (
+                                    <ComboboxItem key={option.identifiant} value={option}>{option.nom}</ComboboxItem>
+                                )}
+                            </ComboboxList>
+                        </ComboboxContent>
+                    </Combobox>
                 )}
 
-                <FormControlLabel
-                    control={(
-                        <Switch
-                            checked={tousLesEleves}
-                            onChange={(event) => { setTousLesEleves(event.target.checked); }}
-                        />
-                    )}
+                <ChampInterrupteur
+                    name="tous_les_eleves"
+                    control={control}
                     label={t('noteEleveAxe.tousLesEleves')}
+                    className="mb-0 w-auto"
                 />
-            </Stack>
+            </div>
 
             {eleveId === undefined && (
-                <Alert severity="info">
-                    {t('noteEleveAxe.choisirEleveInfo')}
+                <Alert variant="info">
+                    <Info />
+                    <AlertDescription>{t('noteEleveAxe.choisirEleveInfo')}</AlertDescription>
                 </Alert>
             )}
 
-            {eleveId !== undefined && isLoading && <Typography>{t('commun.chargement')}</Typography>}
+            {eleveId !== undefined && isLoading && <p className="m-0">{t('commun.chargement')}</p>}
 
             {eleveId !== undefined && !isLoading && periodes.length === 0 && (
-                <Alert severity="info">
-                    {t('noteEleveAxe.aucuneNoteInfo')}
+                <Alert variant="info">
+                    <Info />
+                    <AlertDescription>{t('noteEleveAxe.aucuneNoteInfo')}</AlertDescription>
                 </Alert>
             )}
 
             {periodes.length > 0 && (
-                <Paper variant="outlined">
+                <div className="rounded-xl border bg-card text-card-foreground">
                     <Tabs
                         value={onglet}
-                        onChange={(_, valeur: number) => { setOngletChoisi(valeur); }}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        aria-label={t('noteEleveAxe.periodesRelevAriaLabel')}
+                        onValueChange={(valeur) => { if (typeof valeur === 'number') setOngletChoisi(valeur); }}
+                        className="gap-0"
                     >
-                        {periodes.map(periode => <Tab key={periode.id} label={periode.nom} />)}
-                    </Tabs>
+                        {/* Le débordement défile ici — l'héritier du
+                            `variant="scrollable"` MUI. Le `py-1` dégage le
+                            soulignement de l'onglet actif, posé sous la liste
+                            (piège `BarreWorkflows`, lot 5). */}
+                        <div className="overflow-x-auto border-b px-2 py-1">
+                            <TabsList variant="line" aria-label={t('noteEleveAxe.periodesRelevAriaLabel')}>
+                                {periodes.map((periode, rang) => (
+                                    <TabsTrigger key={periode.id} value={rang} className="flex-none">
+                                        {periode.nom}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </div>
 
-                    {periodeActive && (
-                        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <ChipsGpa gpa={gpaParPeriode.get(periodeActive.id)} />
-                            {[...periodeActive.ues.entries()].map(([ue, lignes]) => (
-                                <TableauUe key={ue} ue={ue} lignes={lignes} />
-                            ))}
-                        </Box>
-                    )}
-                </Paper>
+                        {periodeActive && (
+                            <div className="flex flex-col gap-4 p-4">
+                                <ChipsGpa gpa={gpaParPeriode.get(periodeActive.id)} />
+                                {[...periodeActive.ues.entries()].map(([ue, lignes]) => (
+                                    <TableauUe key={ue} ue={ue} lignes={lignes} />
+                                ))}
+                            </div>
+                        )}
+                    </Tabs>
+                </div>
             )}
-        </Box>
+        </div>
     );
 }
 
@@ -236,65 +269,57 @@ export function AxeNoteEleve() {
 function ChipsGpa({ gpa }: { gpa: { gpa_periode: number | null; gpa_academique_periode: number | null } | undefined }) {
     const { t } = useTranslation('note');
     if (!gpa) {
-        return (
-            <Typography variant="body2" color="text.secondary">
-                {t('noteEleveAxe.aucunGpaInfo')}
-            </Typography>
-        );
+        return <p className="m-0 text-sm text-muted-foreground">{t('noteEleveAxe.aucunGpaInfo')}</p>;
     }
     const texte = (valeur: number | null) => valeur == null ? t('noteEleveAxe.nonCalcule') : formatNote.format(valeur);
     return (
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <Chip label={t('noteEleveAxe.gpaPeriode', { valeur: texte(gpa.gpa_periode) })} color="primary" />
-            <Chip label={t('noteEleveAxe.gpaAcademique', { valeur: texte(gpa.gpa_academique_periode) })} color="secondary" />
-        </Box>
+        <div className="flex flex-wrap gap-4">
+            <Badge>{t('noteEleveAxe.gpaPeriode', { valeur: texte(gpa.gpa_periode) })}</Badge>
+            <Badge variant="secondary">{t('noteEleveAxe.gpaAcademique', { valeur: texte(gpa.gpa_academique_periode) })}</Badge>
+        </div>
     );
 }
 
 function TableauUe({ ue, lignes }: { ue: string; lignes: NoteEleveLigne[] }) {
     const { t } = useTranslation('note');
     return (
-        <Box>
-            <Typography variant="subtitle1" sx={{ mb: 0.5, fontWeight: 600 }}>
+        <div>
+            <h6 className="m-0 mb-1 flex items-center gap-2 text-base font-semibold">
                 {ue}
-                <Chip label={t('noteEleveAxe.ectsChip', { valeur: String(lignes[0]?.unite_enseignement_ects ?? 0) })} size="small" sx={{ ml: 1 }} />
-            </Typography>
-            <TableContainer component={Paper} variant="outlined">
-                <Table size="small" sx={{ tableLayout: 'fixed', width: '100%' }}>
-                    <TableHead>
+                <Badge variant="secondary">{t('noteEleveAxe.ectsChip', { valeur: String(lignes[0]?.unite_enseignement_ects ?? 0) })}</Badge>
+            </h6>
+            <div className="overflow-x-auto rounded-lg border">
+                <Table className="table-fixed">
+                    <TableHeader>
                         <TableRow>
-                            <TableCell sx={{ width: '28%' }}>{t('noteEleveAxe.colonneMatiere')}</TableCell>
-                            <TableCell sx={{ width: '25%' }}>{t('noteEleveAxe.colonneControle')}</TableCell>
-                            <TableCell align="center" sx={{ width: '9%' }}>{t('noteEleveAxe.colonneCoeff')}</TableCell>
-                            <TableCell align="center" sx={{ width: '16%' }}>{t('commun.note')}</TableCell>
-                            <TableCell align="center" sx={{ width: '22%' }}>{t('noteEleveAxe.colonneType')}</TableCell>
+                            <TableHead className="w-[28%]">{t('noteEleveAxe.colonneMatiere')}</TableHead>
+                            <TableHead className="w-[25%]">{t('noteEleveAxe.colonneControle')}</TableHead>
+                            <TableHead className="w-[9%] text-center">{t('noteEleveAxe.colonneCoeff')}</TableHead>
+                            <TableHead className="w-[16%] text-center">{t('commun.note')}</TableHead>
+                            <TableHead className="w-[22%] text-center">{t('noteEleveAxe.colonneType')}</TableHead>
                         </TableRow>
-                    </TableHead>
+                    </TableHeader>
                     <TableBody>
                         {lignes.map(ligne => (
                             <TableRow key={ligne.id}>
                                 <TableCell>{ligne.matiere_name}</TableCell>
                                 <TableCell>{ligne.controle_name}</TableCell>
-                                <TableCell align="center">{ligne.controle_coeff}</TableCell>
-                                <TableCell align="center"><CelluleNote ligne={ligne} /></TableCell>
-                                <TableCell align="center"><CelluleType ligne={ligne} /></TableCell>
+                                <TableCell className="text-center">{ligne.controle_coeff}</TableCell>
+                                <TableCell className="text-center"><CelluleNote ligne={ligne} /></TableCell>
+                                <TableCell className="text-center"><CelluleType ligne={ligne} /></TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
-            </TableContainer>
-        </Box>
+            </div>
+        </div>
     );
 }
 
 /** Une cellule vide se lit comme une saisie oubliée ; « N.E. » ne se lit pas. */
 function CelluleNote({ ligne }: { ligne: NoteEleveLigne }) {
     if (ligne.not_evaluated || ligne.note == null) {
-        return (
-            <Typography component="span" variant="body2" color="text.secondary">
-                {libelleNonEvaluee()}
-            </Typography>
-        );
+        return <span className="text-sm text-muted-foreground">{libelleNonEvaluee()}</span>;
     }
     return <>{formatNote.format(ligne.note)}</>;
 }
@@ -307,12 +332,14 @@ function CelluleNote({ ligne }: { ligne: NoteEleveLigne }) {
  */
 function CelluleType({ ligne }: { ligne: NoteEleveLigne }) {
     const { t } = useTranslation('note');
-    if (!ligne.is_rattrapage) return <Chip label={t('commun.normal')} size="small" />;
-    if (!ligne.is_validated) return <Chip label={t('commun.rattrapage')} size="small" color="secondary" />;
+    if (!ligne.is_rattrapage) return <Badge variant="outline">{t('commun.normal')}</Badge>;
+    if (!ligne.is_validated) return <Badge variant="secondary">{t('commun.rattrapage')}</Badge>;
     return (
-        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center' }}>
-            <Chip label={t('commun.rattrapageValide')} size="small" color="success" />
-            <Box component="span" sx={POUR_LECTEUR_ECRAN}>{origineRattrapage()}</Box>
-        </Box>
+        <span className="inline-flex items-center">
+            <Badge className={CLASSES_BADGE_SUCCES}>{t('commun.rattrapageValide')}</Badge>
+            {/* Voir `CelluleNote.tsx` : une puce tient dans une colonne, sa
+                phrase non. */}
+            <span className="sr-only">{origineRattrapage()}</span>
+        </span>
     );
 }

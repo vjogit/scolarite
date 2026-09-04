@@ -8,8 +8,7 @@
  * données.
  */
 
-import GroupsIcon from '@mui/icons-material/Groups';
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import { List, Users } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
@@ -45,7 +44,7 @@ export function ACTION_GROUPES(t?: TFunction<'crud'>): ActionNavigation<FieldVal
     return {
         id: 'groupes',
         libelle: tCrud(t)('entites.actions.gererGroupes', { ns: 'crud' }),
-        icone: GroupsIcon,
+        icone: Users,
         segment: GROUPE,
     };
 }
@@ -55,7 +54,7 @@ export function ACTION_PERIODES(t?: TFunction<'crud'>): ActionNavigation<FieldVa
     return {
         id: 'periodes',
         libelle: tCrud(t)('entites.actions.gererPeriodes', { ns: 'crud' }),
-        icone: ListAltIcon,
+        icone: List,
         segment: PERIODE,
     };
 }

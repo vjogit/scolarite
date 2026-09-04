@@ -1,24 +1,15 @@
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
+import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import {
-    Alert,
-    Box,
-    Button,
-    Card,
-    CardActions,
-    CardContent,
-    CircularProgress,
-    Stack,
-    TextField,
-    Typography,
-} from '@mui/material';
-import AnchorIcon from '@mui/icons-material/Anchor';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Anchor, CircleAlert, CircleCheck, FileUp, Info, RefreshCw, TriangleAlert } from 'lucide-react';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '../../components/ui/card';
+import { Spinner } from '../../components/ui/spinner';
+import { ChampTexte } from '../../services/ChampTexte';
 import {
     ancrerMaintenant,
     fetchAncres,
@@ -41,14 +32,26 @@ import { notifyError, notifySuccess } from '../../services/notify';
  * preuve — la preuve reste les témoins détenus par le tiers.
  */
 
+type Severite = 'success' | 'destructive' | 'warning';
+
 /** Sévérité d'affichage par verdict — le verdict est le contrat serveur. */
-const SEVERITE_VERDICT: Record<VerdictTemoin['verdict'], 'success' | 'error' | 'warning'> = {
+const SEVERITE_VERDICT: Record<VerdictTemoin['verdict'], Severite> = {
     CONFORME: 'success',
-    REECRITURE_DETECTEE: 'error',
-    CHAINE_CORROMPUE: 'error',
+    REECRITURE_DETECTEE: 'destructive',
+    CHAINE_CORROMPUE: 'destructive',
     TOKEN_INVALIDE: 'warning',
     SIGNATURE_INVALIDE: 'warning',
 };
+
+/** L'icône d'une alerte, par sévérité — celles de `DeleteConfirmDialog`. */
+function IconeSeverite({ severite }: { severite: Severite | 'info' }) {
+    switch (severite) {
+        case 'success': return <CircleCheck />;
+        case 'destructive': return <CircleAlert />;
+        case 'warning': return <TriangleAlert />;
+        case 'info': return <Info />;
+    }
+}
 
 function libelleVerdict(verdict: VerdictTemoin['verdict'], t: TFunction<'registre'>): string {
     switch (verdict) {
@@ -64,6 +67,21 @@ function formatDate(iso: string): string {
     return new Date(iso).toLocaleString();
 }
 
+/** Le titre d'une carte — `h6`, le rang que MUI rendait, ciblé en `heading` par la fumée e2e. */
+function TitreCarte({ children }: { children: string }) {
+    return <h6 className="m-0 text-base font-medium">{children}</h6>;
+}
+
+/** La ligne d'attente d'une carte : le texte porte l'information, le spinner n'annonce rien de plus. */
+function LigneAttente({ texte }: { texte: string }) {
+    return (
+        <div className="flex items-center gap-2">
+            <Spinner aria-hidden />
+            <span className="text-sm">{texte}</span>
+        </div>
+    );
+}
+
 /** Intégrité interne : recalcul de toute la chaîne, verdict affiché tel quel. */
 function CarteIntegrite() {
     const { t } = useTranslation('registre');
@@ -73,39 +91,45 @@ function CarteIntegrite() {
     });
 
     return (
-        <Card variant="outlined">
+        <Card>
+            <CardHeader>
+                <TitreCarte>{t('integrite.titre')}</TitreCarte>
+            </CardHeader>
             <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>{t('integrite.titre')}</Typography>
-                {query.isPending && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CircularProgress size={18} />
-                        <Typography variant="body2">{t('integrite.recalcul')}</Typography>
-                    </Box>
-                )}
+                {query.isPending && <LigneAttente texte={t('integrite.recalcul')} />}
                 {query.isError && (
-                    <Alert severity="error">
-                        {t('integrite.erreurVerification', { erreur: messageForError(query.error) })}
+                    <Alert variant="destructive">
+                        <CircleAlert />
+                        <AlertDescription>
+                            {t('integrite.erreurVerification', { erreur: messageForError(query.error) })}
+                        </AlertDescription>
                     </Alert>
                 )}
                 {query.data && (query.data.ok ? (
-                    <Alert severity="success">
-                        {t('integrite.valide', { count: query.data.maillons })}
+                    <Alert variant="success">
+                        <CircleCheck />
+                        <AlertDescription>{t('integrite.valide', { count: query.data.maillons })}</AlertDescription>
                     </Alert>
                 ) : (
-                    <Alert severity="error">
-                        {t('integrite.rompue', { maillon: query.data.broken_at ?? '?', erreur: query.data.error })}
+                    <Alert variant="destructive">
+                        <CircleAlert />
+                        <AlertDescription>
+                            {t('integrite.rompue', { maillon: query.data.broken_at ?? '?', erreur: query.data.error })}
+                        </AlertDescription>
                     </Alert>
                 ))}
             </CardContent>
-            <CardActions>
+            <CardFooter>
                 <Button
-                    startIcon={<RefreshIcon />}
+                    type="button"
+                    variant="outline"
                     onClick={() => { void query.refetch(); }}
                     disabled={query.isFetching}
                 >
+                    <RefreshCw />
                     {t('integrite.reverifier')}
                 </Button>
-            </CardActions>
+            </CardFooter>
         </Card>
     );
 }
@@ -117,7 +141,6 @@ function CarteIntegrite() {
  */
 function CarteAncrage() {
     const { t } = useTranslation('registre');
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const [resultats, setResultats] = useState<ResultatAncrage[] | null>(null);
 
@@ -134,15 +157,15 @@ function CarteAncrage() {
             const creees = results.filter((r) => r.created).length;
             const echecs = results.filter((r) => r.error).length;
             if (echecs > 0) {
-                notifyError(notifications, t('ancrage.echecNotif'));
+                notifyError(t('ancrage.echecNotif'));
             } else if (creees > 0) {
-                notifySuccess(notifications, t('ancrage.succesNotif'));
+                notifySuccess(t('ancrage.succesNotif'));
             } else {
-                notifySuccess(notifications, t('ancrage.dejaAncreNotif'));
+                notifySuccess(t('ancrage.dejaAncreNotif'));
             }
         },
         onError: (error) => {
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         },
     });
 
@@ -150,172 +173,187 @@ function CarteAncrage() {
     const derniere: Ancre | undefined = ancres.at(-1);
 
     return (
-        <Card variant="outlined">
-            <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>{t('ancrage.titre')}</Typography>
-                {query.isPending && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CircularProgress size={18} />
-                        <Typography variant="body2">{t('ancrage.lecture')}</Typography>
-                    </Box>
-                )}
+        <Card>
+            <CardHeader>
+                <TitreCarte>{t('ancrage.titre')}</TitreCarte>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+                {query.isPending && <LigneAttente texte={t('ancrage.lecture')} />}
                 {query.isError && (
-                    <Alert severity="error">
-                        {t('ancrage.erreurLecture', { erreur: messageForError(query.error) })}
+                    <Alert variant="destructive">
+                        <CircleAlert />
+                        <AlertDescription>
+                            {t('ancrage.erreurLecture', { erreur: messageForError(query.error) })}
+                        </AlertDescription>
                     </Alert>
                 )}
                 {query.data && (derniere ? (
-                    <Alert severity="info">
-                        {t('ancrage.derniereAncrePrefixe')}<strong>{formatDate(derniere.created_at)}</strong>
-                        {t('ancrage.derniereAncreSuffixe', { maillon: derniere.registre_seq, tsa: derniere.tsa_url, count: ancres.length })}
+                    <Alert variant="info">
+                        <Info />
+                        <AlertDescription>
+                            {t('ancrage.derniereAncrePrefixe')}<strong>{formatDate(derniere.created_at)}</strong>
+                            {t('ancrage.derniereAncreSuffixe', { maillon: derniere.registre_seq, tsa: derniere.tsa_url, count: ancres.length })}
+                        </AlertDescription>
                     </Alert>
                 ) : (
-                    <Alert severity="warning">
-                        {t('ancrage.aucuneAncre')}
+                    <Alert variant="warning">
+                        <TriangleAlert />
+                        <AlertDescription>{t('ancrage.aucuneAncre')}</AlertDescription>
                     </Alert>
                 ))}
                 {resultats?.map((r) => (
-                    <Alert
-                        key={r.tsa_url}
-                        severity={r.error ? 'error' : 'success'}
-                        sx={{ mt: 1 }}
-                    >
-                        {r.error
-                            ? t('ancrage.resultatEchec', { tsa: r.tsa_url, erreur: r.error })
-                            : r.created
-                                ? t('ancrage.resultatCree', { tsa: r.tsa_url })
-                                : t('ancrage.resultatDejaAncre', { tsa: r.tsa_url })}
+                    <Alert key={r.tsa_url} variant={r.error ? 'destructive' : 'success'}>
+                        {r.error ? <CircleAlert /> : <CircleCheck />}
+                        <AlertDescription>
+                            {r.error
+                                ? t('ancrage.resultatEchec', { tsa: r.tsa_url, erreur: r.error })
+                                : r.created
+                                    ? t('ancrage.resultatCree', { tsa: r.tsa_url })
+                                    : t('ancrage.resultatDejaAncre', { tsa: r.tsa_url })}
+                        </AlertDescription>
                     </Alert>
                 ))}
             </CardContent>
-            <CardActions>
+            <CardFooter>
                 <Button
-                    startIcon={<AnchorIcon />}
+                    type="button"
+                    variant="outline"
                     onClick={() => { ancrage.mutate(); }}
                     disabled={ancrage.isPending}
                 >
+                    <Anchor />
                     {t('ancrage.ancrerMaintenant')}
                 </Button>
-            </CardActions>
+            </CardFooter>
         </Card>
     );
+}
+
+/** Ce que la carte du témoin fait saisir. */
+interface ValeursTemoin {
+    token: string;
+    cert: string;
 }
 
 /**
  * Dépôt d'un témoin : le fichier .tsr reçu en pièce jointe (ou son contenu
  * collé), plus le certificat TSA optionnel. La vérification est en lecture
  * seule côté serveur ; le verdict s'affiche tel que le serveur le rend.
+ *
+ * Sur react-hook-form depuis le lot 15 (les champs partagés le supposent).
+ * Ce que l'écran affichait sous condition d'une saisie inchangée — le nom du
+ * fichier chargé, le verdict obtenu — se DÉRIVE des valeurs observées plutôt
+ * que d'être effacé par des effets : le nom reste tant que le jeton est
+ * celui du fichier, le verdict tant que jeton et certificat sont ceux
+ * qui ont été vérifiés.
  */
 function CarteTemoin() {
     const { t } = useTranslation('registre');
-    const notifications = useNotifications();
-    const [token, setToken] = useState('');
-    const [cert, setCert] = useState('');
-    const [nomFichier, setNomFichier] = useState<string | null>(null);
-    const [verdict, setVerdict] = useState<VerdictTemoin | null>(null);
+    const { control, handleSubmit, setValue } = useForm<ValeursTemoin>({ defaultValues: { token: '', cert: '' } });
+    const token = useWatch({ control, name: 'token' });
+    const cert = useWatch({ control, name: 'cert' });
+    const [fichier, setFichier] = useState<{ nom: string; token: string } | null>(null);
+    const [verdict, setVerdict] = useState<{ valeurs: ValeursTemoin; resultat: VerdictTemoin } | null>(null);
     const fichierRef = useRef<HTMLInputElement>(null);
 
     const verification = useMutation({
-        mutationFn: () => verifierTemoin(token, cert),
-        onSuccess: setVerdict,
+        mutationFn: (valeurs: ValeursTemoin) => verifierTemoin(valeurs.token, valeurs.cert),
+        onSuccess: (resultat, valeurs) => { setVerdict({ valeurs, resultat }); },
         onError: (error) => {
             setVerdict(null);
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         },
     });
 
     // Le .tsr est du DER binaire : lu en base64, que le serveur décode avec
     // tolérance (c'est aussi la forme qu'un courriel donne au jeton).
-    const chargerFichier = (fichier: File) => {
+    const chargerFichier = (f: File) => {
         const lecteur = new FileReader();
         lecteur.onload = () => {
             const dataURL = lecteur.result as string;
-            setToken(dataURL.slice(dataURL.indexOf(',') + 1));
-            setNomFichier(fichier.name);
-            setVerdict(null);
+            const contenu = dataURL.slice(dataURL.indexOf(',') + 1);
+            setValue('token', contenu);
+            setFichier({ nom: f.name, token: contenu });
         };
-        lecteur.readAsDataURL(fichier);
+        lecteur.readAsDataURL(f);
     };
 
+    const nomFichier = fichier !== null && fichier.token === token ? fichier.nom : null;
+    const verdictAffiche = verdict !== null && verdict.valeurs.token === token && verdict.valeurs.cert === cert
+        ? verdict.resultat
+        : null;
+
     return (
-        <Card variant="outlined">
-            <CardContent>
-                <Typography variant="h6" sx={{ mb: 1 }}>{t('temoin.titre')}</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {t('temoin.description')}
-                </Typography>
-                <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Button
-                            startIcon={<UploadFileIcon />}
-                            variant="outlined"
-                            onClick={() => { fichierRef.current?.click(); }}
-                        >
-                            {t('temoin.fichierBouton')}
-                        </Button>
-                        <input
-                            ref={fichierRef}
-                            type="file"
-                            hidden
-                            accept=".tsr,.der,.pem,.txt"
-                            onChange={(event) => {
-                                const fichier = event.target.files?.[0];
-                                if (fichier) chargerFichier(fichier);
-                                event.target.value = '';
-                            }}
-                        />
-                        {nomFichier && (
-                            <Typography variant="body2" color="text.secondary">{nomFichier}</Typography>
-                        )}
-                    </Box>
-                    <TextField
-                        label={t('temoin.jetonLabel')}
-                        value={token}
+        <Card>
+            <CardHeader>
+                <TitreCarte>{t('temoin.titre')}</TitreCarte>
+                <CardDescription>{t('temoin.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => { fichierRef.current?.click(); }}>
+                        <FileUp />
+                        {t('temoin.fichierBouton')}
+                    </Button>
+                    <input
+                        ref={fichierRef}
+                        type="file"
+                        hidden
+                        accept=".tsr,.der,.pem,.txt"
                         onChange={(event) => {
-                            setToken(event.target.value);
-                            setNomFichier(null);
-                            setVerdict(null);
+                            const choisi = event.target.files?.[0];
+                            if (choisi) chargerFichier(choisi);
+                            event.target.value = '';
                         }}
-                        multiline
-                        minRows={3}
-                        maxRows={6}
-                        fullWidth
-                        slotProps={{ input: { sx: { fontFamily: 'monospace', fontSize: 13 } } }}
                     />
-                    <TextField
-                        label={t('temoin.certLabel')}
-                        value={cert}
-                        onChange={(event) => { setCert(event.target.value); setVerdict(null); }}
-                        multiline
-                        minRows={2}
-                        maxRows={4}
-                        fullWidth
-                        slotProps={{ input: { sx: { fontFamily: 'monospace', fontSize: 13 } } }}
-                    />
-                    {verdict && (
-                        <Alert severity={SEVERITE_VERDICT[verdict.verdict]}>
-                            <Typography variant="body2" component="div">
-                                <strong>{libelleVerdict(verdict.verdict, t)}</strong> — {verdict.message}
-                            </Typography>
-                            {verdict.sealedAt && (
-                                <Typography variant="body2" component="div" sx={{ mt: 0.5 }}>
-                                    {t('temoin.scelleLePrefixe')}{formatDate(verdict.sealedAt)}
-                                    {verdict.tsaName ? t('temoin.parTsa', { tsa: verdict.tsaName }) : ''}
-                                    {verdict.coverageSeq ? t('temoin.rattacheMaillon', { maillon: verdict.coverageSeq }) : ''}.
-                                </Typography>
-                            )}
-                        </Alert>
+                    {nomFichier && (
+                        <span className="text-sm text-muted-foreground">{nomFichier}</span>
                     )}
-                </Stack>
+                </div>
+                {/* Jeton et certificat se lisent en chasse fixe, comme avant. */}
+                <ChampTexte
+                    name="token"
+                    control={control}
+                    label={t('temoin.jetonLabel')}
+                    multiline
+                    rows={3}
+                    className="mb-0 [&_textarea]:font-mono [&_textarea]:text-[13px]"
+                />
+                <ChampTexte
+                    name="cert"
+                    control={control}
+                    label={t('temoin.certLabel')}
+                    multiline
+                    rows={2}
+                    className="mb-0 [&_textarea]:font-mono [&_textarea]:text-[13px]"
+                />
+                {verdictAffiche && (
+                    <Alert variant={SEVERITE_VERDICT[verdictAffiche.verdict]}>
+                        <IconeSeverite severite={SEVERITE_VERDICT[verdictAffiche.verdict]} />
+                        <AlertDescription>
+                            <div>
+                                <strong>{libelleVerdict(verdictAffiche.verdict, t)}</strong> — {verdictAffiche.message}
+                            </div>
+                            {verdictAffiche.sealedAt && (
+                                <div className="mt-1">
+                                    {t('temoin.scelleLePrefixe')}{formatDate(verdictAffiche.sealedAt)}
+                                    {verdictAffiche.tsaName ? t('temoin.parTsa', { tsa: verdictAffiche.tsaName }) : ''}
+                                    {verdictAffiche.coverageSeq ? t('temoin.rattacheMaillon', { maillon: verdictAffiche.coverageSeq }) : ''}.
+                                </div>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
-            <CardActions>
+            <CardFooter>
                 <Button
+                    type="button"
                     disabled={token.trim() === '' || verification.isPending}
-                    onClick={() => { verification.mutate(); }}
+                    onClick={() => { void handleSubmit((valeurs) => { verification.mutate(valeurs); })(); }}
                 >
                     {t('temoin.verifier')}
                 </Button>
-            </CardActions>
+            </CardFooter>
         </Card>
     );
 }
@@ -323,18 +361,15 @@ function CarteTemoin() {
 export function RegistrePage() {
     const { t } = useTranslation('registre');
     return (
-        <Box sx={{ p: 2, maxWidth: 900 }}>
-            <Typography variant="h5" sx={{ mb: 0.5 }}>
-                {t('titre')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('sousTitre')}
-            </Typography>
-            <Stack spacing={2}>
+        <div className="max-w-[900px] p-4">
+            {/* `h5` : le rang que MUI donnait à `variant="h5"`, affirmé par la fumée e2e. */}
+            <h5 className="m-0 mb-1 text-2xl font-normal">{t('titre')}</h5>
+            <p className="m-0 mb-4 text-sm text-muted-foreground">{t('sousTitre')}</p>
+            <div className="flex flex-col gap-4">
                 <CarteIntegrite />
                 <CarteAncrage />
                 <CarteTemoin />
-            </Stack>
-        </Box>
+            </div>
+        </div>
     );
 }

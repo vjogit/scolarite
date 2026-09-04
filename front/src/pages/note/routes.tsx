@@ -15,8 +15,7 @@
  */
 
 import type { FieldValues } from 'react-hook-form';
-import GradingIcon from '@mui/icons-material/Grading';
-import ListAltIcon from '@mui/icons-material/ListAlt';
+import { ClipboardCheck, List } from 'lucide-react';
 import i18n from '../../i18n/config';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
@@ -69,7 +68,7 @@ function actionNotes(): ActionNavigation<FieldValues> {
     return {
         id: 'notes',
         libelle: i18n.t('routes.gererLesNotes', { ns: 'note' }),
-        icone: GradingIcon,
+        icone: ClipboardCheck,
         segment: NOTE,
         directe: true,
     };
@@ -80,7 +79,7 @@ function actionControles(): ActionNavigation<FieldValues> {
     return {
         id: 'controles',
         libelle: i18n.t('routes.gererLesControles', { ns: 'note' }),
-        icone: ListAltIcon,
+        icone: List,
         segment: CONTROLE,
     };
 }

@@ -1,10 +1,10 @@
-import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback, useState } from 'react';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
-import ArticleIcon from '@mui/icons-material/Article';
+import { FileText } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { ENDPOINT_JURY } from './def';
 import { type BulletinParams, JuryBulletinsExportModal } from './JuryBulletinsExportModal';
 import { notifyError, notifySuccess } from '../../services/notify';
@@ -18,7 +18,6 @@ interface JuryBulletinsExportButtonProps {
 }
 
 export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButtonProps) {
-    const notifications = useNotifications();
     const { t } = useTranslation('jury');
     // Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger.
     const libelle = t('exportBulletins.libelle');
@@ -34,22 +33,33 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
 
             telecharger(response, `bulletins_jury_${periodeId}.zip`);
 
-            notifySuccess(notifications, t('exportBulletins.succes'));
+            notifySuccess(t('exportBulletins.succes'));
             setOpen(false);
         } catch (err) {
             console.error(err);
-            notifyError(notifications, t('exportBulletins.erreur'));
+            notifyError(t('exportBulletins.erreur'));
         } finally {
             setLoading(false);
         }
-    }, [periodeId, notifications, t]);
+    }, [periodeId, t]);
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={() => { setOpen(true); }} size="small" color="secondary">
-                    <ArticleIcon fontSize="small" />
-                </IconButton>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => { setOpen(true); }}
+                        />
+                    )}
+                >
+                    <FileText />
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
 
             <JuryBulletinsExportModal

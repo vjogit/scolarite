@@ -37,6 +37,8 @@
     "nonEvalueePrefixe": "Not evaluated: "
   },
   "aucunEleve": "No student in this term.",
+  "pleinEcran": "Full screen",
+  "quitterPleinEcran": "Exit full screen",
   "compteurDeliberes": "{{delibere}} / {{total}} deliberated",
   "dossiersIncomplets_one": "{{count}} incomplete record",
   "dossiersIncomplets_other": "{{count}} incomplete records",

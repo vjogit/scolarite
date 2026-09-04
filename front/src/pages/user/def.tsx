@@ -37,7 +37,7 @@ export const ROLES_FONCTIONNELS: readonly string[] = [
 ];
 
 export function availableRoles(t?: TFunction<'user'>): { id: string; label: string }[] {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'user'>);
+    const traduire = t ?? i18n.getFixedT(null, 'user');
     return [
         { id: Role.ADMIN, label: traduire('roles.ADMIN') },
         { id: Role.CONSULTATION, label: traduire('roles.CONSULTATION') },

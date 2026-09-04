@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, LinearProgress, Divider } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { apiInstance } from '../../services/api';
+import { Progress } from '../../components/ui/progress';
+import { Separator } from '../../components/ui/separator';
+import { cn } from '../../lib/utils';
 
 interface MatiereHeures {
     matiere_id:        number;
@@ -13,6 +15,27 @@ interface MatiereHeures {
 
 interface Props {
     periodeId: string;
+}
+
+type Teinte = 'primary' | 'warning' | 'error';
+
+/**
+ * Barre de consommation — le `LinearProgress` MUI en `Progress` Base UI
+ * (rôle `progressbar`, `aria-valuenow` posés par la primitive). Le composant
+ * shadcn rend lui-même piste et indicateur ; la teinte se pose depuis la
+ * racine, par sélecteur de slot, comme la `color` de MUI.
+ */
+function Barre({ valeur, teinte = 'primary', className }: { valeur: number; teinte?: Teinte; className?: string }) {
+    return (
+        <Progress
+            value={valeur}
+            className={cn(
+                teinte === 'error' && '[&_[data-slot=progress-indicator]]:bg-destructive',
+                teinte === 'warning' && '[&_[data-slot=progress-indicator]]:bg-warning',
+                className,
+            )}
+        />
+    );
 }
 
 export function HeuresPanel({ periodeId }: Props) {
@@ -37,113 +60,81 @@ export function HeuresPanel({ periodeId }: Props) {
     const totalPct        = totalPrevues > 0 ? Math.min((totalConsommees / totalPrevues) * 100, 100) : 0;
 
     return (
-        <Box sx={{
-            width:      260,
-            flexShrink: 0,
-            overflowY:  'auto',
-            borderLeft: 1,
-            borderColor:'divider',
-            p:          1.5,
-            display:    'flex',
-            flexDirection: 'column',
-            gap:        2,
-        }}>
-            {/* Totaux */}
-            <Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                    <Typography variant="subtitle2" fontWeight="bold">{t('heuresPanel.totalPeriode')}</Typography>
-                    <Typography variant="caption" color="text.secondary">
+        <div className="flex w-[260px] shrink-0 flex-col gap-4 overflow-y-auto border-l p-3">
+            {/* Totaux. `h6` : le `subtitle2` MUI rendait cette balise, et la
+                fumée du planning cible le titre en `heading`. */}
+            <div>
+                <div className="mb-1 flex justify-between">
+                    <h6 className="m-0 text-sm font-bold">{t('heuresPanel.totalPeriode')}</h6>
+                    <span className="text-xs text-muted-foreground">
                         {totalConsommees.toFixed(1)}&thinsp;/&thinsp;{totalPrevues}h
-                    </Typography>
-                </Box>
-                <LinearProgress
-                    variant="determinate"
-                    value={totalPct}
-                    sx={{ height: 8, borderRadius: 1 }}
-                />
-            </Box>
+                    </span>
+                </div>
+                <Barre valeur={totalPct} className="[&_[data-slot=progress-track]]:h-2" />
+            </div>
 
-            <Divider />
+            <Separator />
 
             {/* Réservations sans matière */}
             {nonAffectees && nonAffectees.heures_consommees > 0 && (
                 <>
-                    <Box>
-                        <Typography
-                            variant="caption"
-                            color="warning.main"
-                            fontWeight="bold"
-                            sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                        >
+                    <div>
+                        <span className="text-xs font-bold tracking-wide text-warning uppercase">
                             {t('heuresPanel.sansAffectation')}
-                        </Typography>
-                        <Box sx={{ mt: 0.75 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                                <Typography variant="caption" sx={{ fontWeight: 500, color: 'warning.main' }}>
+                        </span>
+                        <div className="mt-1.5">
+                            <div className="mb-0.5 flex justify-between">
+                                <span className="text-xs font-medium text-warning">
                                     {t('heuresPanel.nonAffectees')}
-                                </Typography>
-                                <Typography variant="caption" color="warning.main">
+                                </span>
+                                <span className="text-xs text-warning">
                                     {nonAffectees.heures_consommees.toFixed(1)}h
-                                </Typography>
-                            </Box>
-                            <LinearProgress
-                                variant="determinate"
-                                value={100}
-                                color="warning"
-                                sx={{ height: 4, borderRadius: 1 }}
-                            />
-                        </Box>
-                    </Box>
-                    <Divider />
+                                </span>
+                            </div>
+                            <Barre valeur={100} teinte="warning" />
+                        </div>
+                    </div>
+                    <Separator />
                 </>
             )}
 
             {/* Par UE */}
             {Object.entries(byUe).map(([ueName, matieres]) => (
-                <Box key={ueName}>
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        fontWeight="bold"
-                        sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                    >
+                <div key={ueName}>
+                    <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
                         {ueName}
-                    </Typography>
+                    </span>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 0.75 }}>
+                    <div className="mt-1.5 flex flex-col gap-3">
                         {matieres.map(m => {
                             const pct        = m.heures_prevues > 0 ? Math.min((m.heures_consommees / m.heures_prevues) * 100, 100) : 0;
                             const depassement = m.heures_consommees > m.heures_prevues;
                             const restant    = Math.max(m.heures_prevues - m.heures_consommees, 0);
+                            const teinte: Teinte = depassement ? 'error' : pct >= 80 ? 'warning' : 'primary';
 
                             return (
-                                <Box key={m.matiere_id}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.25 }}>
-                                        <Typography variant="caption" noWrap sx={{ maxWidth: 150, fontWeight: 500 }}>
+                                <div key={m.matiere_id}>
+                                    <div className="mb-0.5 flex justify-between">
+                                        <span className="max-w-[150px] truncate text-xs font-medium">
                                             {m.matiere_name}
-                                        </Typography>
-                                        <Typography variant="caption" color={depassement ? 'error' : 'text.secondary'}>
+                                        </span>
+                                        <span className={cn('text-xs', depassement ? 'text-destructive' : 'text-muted-foreground')}>
                                             {m.heures_consommees.toFixed(1)}&thinsp;/&thinsp;{m.heures_prevues}h
-                                        </Typography>
-                                    </Box>
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={pct}
-                                        color={depassement ? 'error' : pct >= 80 ? 'warning' : 'primary'}
-                                        sx={{ height: 4, borderRadius: 1 }}
-                                    />
-                                    <Typography variant="caption" sx={{ fontSize: '0.65rem', color: depassement ? 'error.main' : 'text.disabled' }}>
+                                        </span>
+                                    </div>
+                                    <Barre valeur={pct} teinte={teinte} />
+                                    <span className={cn('text-[0.65rem]', depassement ? 'text-destructive' : 'text-muted-foreground/60')}>
                                         {depassement
                                             ? t('heuresPanel.depasse', { heures: (m.heures_consommees - m.heures_prevues).toFixed(1) })
                                             : t('heuresPanel.restantes', { heures: restant.toFixed(1) })
                                         }
-                                    </Typography>
-                                </Box>
+                                    </span>
+                                </div>
                             );
                         })}
-                    </Box>
-                </Box>
+                    </div>
+                </div>
             ))}
-        </Box>
+        </div>
     );
 }

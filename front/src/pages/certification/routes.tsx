@@ -7,8 +7,7 @@
 
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
-import PublicIcon from '@mui/icons-material/Public';
-import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import { Award, Globe } from 'lucide-react';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_CERTIFICATION } from '../../services/context/workflows';
@@ -46,17 +45,19 @@ function actionToeic(): ActionNavigation<FieldValues> {
     return {
         id: 'toeic',
         libelle: 'TOEIC',
-        icone: WorkspacePremiumIcon,
+        icone: Award,
         segment: TOEIC,
     };
 }
 
 function actionMobilite(t?: TFunction<'certification'>): ActionNavigation<FieldValues> {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'certification'>);
+    const traduire = t ?? i18n.getFixedT(null, 'certification');
     return {
         id: 'mobilite',
-        libelle: traduire('actionMobiliteLibelle'),
-        icone: PublicIcon,
+        // Fermeture et non chaîne : cette action est créée une seule fois, au
+        // chargement du module — une chaîne figerait la langue de démarrage.
+        libelle: () => traduire('actionMobiliteLibelle'),
+        icone: Globe,
         segment: MOBILITE,
     };
 }

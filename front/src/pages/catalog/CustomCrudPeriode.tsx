@@ -5,35 +5,28 @@
  * sont pas empêche le remplacement à chaud.
  */
 
-import type { ReactNode } from 'react';
-import { Box } from '@mui/material';
+import type { ActionsBarreOutilsProps } from '../../services/crud/def';
 import type { CrudComponentProps } from '../../services/crud/routes';
 import { CATALOG_WORKFLOW } from './def';
-import { CrudPeriode } from '../structure/Periode';
+import { CrudPeriode, type Periode } from '../structure/Periode';
 import { PeriodeImportButton } from './PeriodeImportButton';
 import { PeriodeExportButton } from './PeriodeExportButton';
 
 export function CustomCrudPeriode({ mode }: CrudComponentProps) {
 
-    const renderTopToolbar = ({
-        defaultActions,
-        peutEcrire,
-    }: {
-        defaultActions: ReactNode;
-        peutEcrire: boolean;
-    }) => (
-        <Box sx={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+    const barreOutils = ({ defaultActions, peutEcrire }: ActionsBarreOutilsProps<Periode>) => (
+        <div className="flex items-center gap-4">
             {defaultActions}
             {/* Import : une écriture de structure ; l'export reste une lecture,
                 offerte à tous. */}
             {peutEcrire && <PeriodeImportButton />}
             <PeriodeExportButton />
-        </Box>
+        </div>
     )
     return <CrudPeriode workflow={CATALOG_WORKFLOW}
         mode={mode}
         isAction={true}
         isTopToolbar={true}
-        renderTopToolbarCustomActions={renderTopToolbar}
+        actionsBarreOutils={barreOutils}
     />;
 }

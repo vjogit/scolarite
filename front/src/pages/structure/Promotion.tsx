@@ -1,200 +1,91 @@
-import { TextField, FormControlLabel, Switch, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Crud } from '../../services/crud/Crud';
-import { Controller, useWatch } from 'react-hook-form';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import dayjs from 'dayjs';
+import { useWatch } from 'react-hook-form';
+import { ChampDate } from '../../services/ChampDate';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampInterrupteur } from '../../services/ChampChoix';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { ECHELLE_KEYS } from './service';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { promotionSchema, type Promotion, createPromotionRepository, ACTION_OPTIONS, promotionEntite } from './entites/promotion';
 
 export type { Promotion } from './entites/promotion';
 
+/**
+ * Conversion tableau (API) → chaîne (saisie) : l'API livre les échelles en
+ * nombres, le formulaire les édite en `a=4,b=3,…` et le schéma accepte les
+ * deux formes. La chaîne en cours de frappe passe telle quelle.
+ */
+function formaterEchelle(valeur: unknown): unknown {
+    return Array.isArray(valeur)
+        ? valeur.map((seuil: unknown, indice) => `${ECHELLE_KEYS[indice] ?? ''}=${String(seuil)}`).join(',')
+        : valeur;
+}
 
-
-const PromotionFields = ({ register, control, errors, isReadOnly }: RenderProps<Promotion>) => {
+const PromotionFields = ({ control, isReadOnly }: RenderProps<Promotion>) => {
     const matiereEliminatoire = useWatch({ control, name: 'matiere_eliminatoire' });
     const { t } = useTranslation('structure');
 
     return <>
-        <TextField
-            {...register("name")}
-            label={t('promotion.champTitre')}
-            variant="outlined"
-            fullWidth
-            disabled={isReadOnly}
-            error={!!errors.name}
-            helperText={errors.name?.message}
-            sx={{ mb: 2 }}
-        />
-        <Controller
-            name="debut"
-            control={control}
-            render={({ field }) => (
-                <DatePicker
-                    label={t('commun.dateDebut')}
-                    // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
-                    // pas : en création, react-hook-form donne `undefined`. Et
-                    // `dayjs(undefined)` rend l'heure courante, pas une date
-                    // invalide — sans ce garde, le formulaire s'ouvre avec la date
-                    // du jour pré-remplie. Vérifié au navigateur.
-                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => {
-                        field.onChange(newValue ? newValue.toDate() : null);
-                    }}
-                    disabled={isReadOnly}
-                    slotProps={{
-                        textField: {
-                            error: !!errors.debut,
-                            helperText: errors.debut?.message,
-                            fullWidth: true
-                        }
-                    }}
-                />
-            )}
-        />
+        <ChampTexte name="name" control={control} label={t('promotion.champTitre')} disabled={isReadOnly} />
+        {/* En création, react-hook-form donne `undefined` (le champ est
+            absent d'`emptyValue`) : le garde qui empêche la date du jour de
+            se pré-remplir vit dans `ChampDate`, une fois pour toutes. */}
+        <ChampDate name="debut" control={control} label={t('commun.dateDebut')} disabled={isReadOnly} />
+        <ChampDate name="fin" control={control} label={t('commun.dateFin')} disabled={isReadOnly} />
 
-        <Controller
-            name="fin"
-            control={control}
-            render={({ field }) => (
-                <DatePicker
-                    label={t('commun.dateFin')}
-                    // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
-                    // pas : en création, react-hook-form donne `undefined`. Et
-                    // `dayjs(undefined)` rend l'heure courante, pas une date
-                    // invalide — sans ce garde, le formulaire s'ouvre avec la date
-                    // du jour pré-remplie. Vérifié au navigateur.
-                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                    value={field.value ? dayjs(field.value) : null}
-                    onChange={(newValue) => {
-                        field.onChange(newValue ? newValue.toDate() : null);
-                    }}
-                    disabled={isReadOnly}
-                    slotProps={{
-                        textField: {
-                            error: !!errors.fin,
-                            helperText: errors.fin?.message,
-                            fullWidth: true
-                        }
-                    }}
-                />
-            )}
-        />
-
-        <Controller
+        <ChampTexte
             name="echelle_gpa"
             control={control}
-            render={({ field }) => {
-                // Conversion Array (API) -> String (Affichage)
-                const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
-                    : field.value;
-
-                return (
-                    <TextField
-                        {...field}
-                        // `emptyValue` ne porte pas ce champ : en création il vaut
-                        // `undefined`, et `value={undefined}` ferait basculer le
-                        // TextField en non contrôlé — React s'en plaint et la saisie
-                        // peut se perdre. Le repli est ce qui le garde contrôlé.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        value={displayValue ?? ''}
-                        label={t('promotion.champEchelleGpa')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.echelle_gpa}
-                        helperText={errors.echelle_gpa?.message}
-                        sx={{ mb: 2 }}
-                    />
-                );
-            }}
+            label={t('promotion.champEchelleGpa')}
+            disabled={isReadOnly}
+            formater={formaterEchelle}
         />
 
-        <Controller
+        <ChampTexte
             name="echelle"
             control={control}
-            render={({ field }) => {
-                const displayValue = Array.isArray(field.value)
-                    ? field.value.map((v, i) => `${ECHELLE_KEYS[i] ?? ''}=${v}`).join(',')
-                    : field.value;
-                return (
-                    <TextField
-                        {...field}
-                        // `emptyValue` ne porte pas ce champ : en création il vaut
-                        // `undefined`, et `value={undefined}` ferait basculer le
-                        // TextField en non contrôlé — React s'en plaint et la saisie
-                        // peut se perdre. Le repli est ce qui le garde contrôlé.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        value={displayValue ?? ''}
-                        label={t('promotion.champEchelle')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.echelle}
-                        helperText={errors.echelle?.message}
-                        sx={{ mb: 2 }}
-                    />
-                );
-            }}
-        />
-
-        <TextField
-            {...register("bareme", { valueAsNumber: true })}
-            label={t('promotion.champBareme')}
-            variant="outlined"
-            fullWidth
-            type="number"
+            label={t('promotion.champEchelle')}
             disabled={isReadOnly}
-            error={!!errors.bareme}
-            helperText={errors.bareme?.message ?? t('promotion.baremeAide')}
-            slotProps={{ htmlInput: { step: "0.01", min: 0 } }}
-            sx={{ mb: 2 }}
+            formater={formaterEchelle}
         />
 
-        <FormControlLabel
-            control={
-                <Controller
-                    name="matiere_eliminatoire"
-                    control={control}
-                    render={({ field }) => (
-                        <Switch
-                            {...field}
-                            checked={field.value === null ? undefined : field.value}
-                            disabled={isReadOnly}
-                        />
-                    )}
-                />
-            }
+        <ChampNombre
+            name="bareme"
+            control={control}
+            label={t('promotion.champBareme')}
+            disabled={isReadOnly}
+            aide={t('promotion.baremeAide')}
+            step="0.01"
+            min={0}
+        />
+
+        <ChampInterrupteur
+            name="matiere_eliminatoire"
+            control={control}
             label={t('promotion.champMatiereEliminatoire')}
-            sx={{ mb: 2, display: 'block' }}
+            disabled={isReadOnly}
         />
 
         {matiereEliminatoire && (
-            <TextField
-                {...register("value_matiere_eliminatoire", { valueAsNumber: true })}
+            <ChampNombre
+                name="value_matiere_eliminatoire"
+                control={control}
                 label={t('promotion.champNoteEliminatoire')}
-                variant="outlined"
-                fullWidth
-                type="number"
                 disabled={isReadOnly}
-                error={!!errors.value_matiere_eliminatoire}
-                helperText={errors.value_matiere_eliminatoire?.message}
-                slotProps={{ htmlInput: { step: "0.01" } }}
-                sx={{ mb: 2 }}
+                step="0.01"
             />
         )}
     </>
 };
 
-function promotionColumns(t: TFunction<'structure'>): MRT_ColumnDef<Promotion>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function promotionColonnes(t: TFunction<'structure'>): ColumnDef<Promotion>[] {
     return [
         {
             accessorKey: 'id',
@@ -211,13 +102,13 @@ function promotionColumns(t: TFunction<'structure'>): MRT_ColumnDef<Promotion>[]
         {
             accessorKey: 'debut',
             header: t('commun.debut'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
 
         {
             accessorKey: 'fin',
             header: t('commun.fin'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
 
     ];
@@ -227,12 +118,12 @@ function createPromotionViewConfig(formationId: string, t: TFunction<'structure'
     return {
         schema: promotionSchema,
         emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), bareme: 20 },
-        columns: promotionColumns(t),
+        colonnes: promotionColonnes(t),
         render: PromotionFields,
     }
 }
 
-export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Promotion>) {
+export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Promotion>) {
 
     const { formationId } = useParams();
     const rootPath = useRootPath(mode);
@@ -247,13 +138,13 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t)],
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
+        actionsBarreOutils,
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('promotion.erreurFormationIdObligatoire')}</Typography>
+        <p>{tStructure('promotion.erreurFormationIdObligatoire')}</p>
     )
 
     return (

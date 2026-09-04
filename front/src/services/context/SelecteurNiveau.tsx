@@ -13,23 +13,31 @@
  *
  * Deux propriétés sont défendues ici et ne doivent pas se perdre :
  *
- * - Aucun état ne double l'URL. Le seul état local est l'ancre du menu, qui
- *   décrit l'ouverture d'un menu, pas une position dans la hiérarchie. La
- *   valeur affichée reste dérivée de l'URL, et le rechargement la redonne.
+ * - Aucun état ne double l'URL. Le seul état local est l'ouverture du menu,
+ *   qui décrit un menu, pas une position dans la hiérarchie. La valeur
+ *   affichée reste dérivée de l'URL, et le rechargement la redonne.
  * - Aucune requête au montage. La liste des frères n'est demandée qu'à
  *   l'ouverture — des sélecteurs qui se peupleraient d'eux-mêmes, ce seraient
  *   autant de requêtes de liste sur chaque écran de l'application.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 import { skipToken, useQuery } from '@tanstack/react-query';
-import {
-    Box, Button, Divider, ListItemText, Menu, MenuItem, Skeleton, TextField, Typography,
-} from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import { ChevronDown } from 'lucide-react';
 
+import { Button } from '../../components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import { Input } from '../../components/ui/input';
+import { Skeleton } from '../../components/ui/skeleton';
+import { cn } from '../../lib/utils';
 import type { NiveauResolu } from './contexte';
 import type { DepotFreres, Frere } from './freres';
 import { DUREE_FRAICHEUR_NOMS } from './resolution';
@@ -73,9 +81,9 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
     onChoisir: (identifiant: string) => void;
 }) {
     const { t } = useTranslation('app');
-    const [ancre, setAncre] = useState<HTMLElement | null>(null);
+    const [ouvert, setOuvert] = useState(false);
     const [filtre, setFiltre] = useState('');
-    const ouvert = ancre !== null;
+    const filtreRef = useRef<HTMLInputElement>(null);
 
     // Le nom n'est pas encore résolu : on garde le squelette et l'on n'ouvre pas.
     const enChargementDuNom = valeur?.enChargement === true;
@@ -105,95 +113,89 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
         return freres.filter(frere => normaliser(frere.nom).includes(recherche));
     }, [freres, filtrables, filtre]);
 
-    const fermer = () => {
-        setAncre(null);
-        setFiltre('');
+    const changerOuverture = (estOuvert: boolean) => {
+        setOuvert(estOuvert);
+        if (!estOuvert) setFiltre('');
     };
 
+    // Le menu Base UI se ferme seul au choix d'une entrée ; ne reste qu'à
+    // naviguer — sauf pour rester où l'on est, qui ne le justifie pas.
     const choisir = (frere: Frere) => {
-        fermer();
-        // Rester où l'on est ne justifie pas une navigation.
         if (frere.identifiant === valeur?.identifiant) return;
         onChoisir(frere.identifiant);
     };
 
     const nomAffiche = valeur === undefined ? t('selecteurNiveau.sansSelection') : valeur.nom ?? NOM_INDISPONIBLE;
-    const identifiantMenu = `selecteur-${segment}`;
 
     return (
-        <>
-            <Button
-                size="small"
-                color="inherit"
+        <DropdownMenu
+            open={ouvert}
+            onOpenChange={changerOuverture}
+            // La saisie de filtre prend le focus une fois le menu posé — la
+            // parité de l'`autoFocus` du TextField MUI. Sans elle, Base UI
+            // focalise la première entrée (ouverture clavier) ou le popup.
+            onOpenChangeComplete={(estOuvert) => {
+                if (estOuvert && filtrables) filtreRef.current?.focus();
+            }}
+        >
+            {/* Base UI pose lui-même aria-haspopup/expanded/controls sur le
+                déclencheur. Le nom accessible porte le niveau : « Réseaux »
+                seul ne dit pas qu'il s'agit d'une option. */}
+            <DropdownMenuTrigger
                 disabled={!ouvrable}
-                onClick={evenement => { setAncre(evenement.currentTarget); }}
-                aria-haspopup="menu"
-                aria-expanded={ouvert}
-                aria-controls={ouvert ? identifiantMenu : undefined}
-                // Le nom accessible porte le niveau : « Réseaux » seul ne dit
-                // pas qu'il s'agit d'une option.
-                aria-label={t('selecteurNiveau.ariaLabelNiveau', { libelle, nom: nomAffiche })}
-                endIcon={<ArrowDropDownIcon fontSize="small" />}
-                sx={{
-                    textTransform: 'none', py: 0.25, px: 1, minWidth: 0, maxWidth: 200,
-                    justifyContent: 'space-between', textAlign: 'left',
-                }}
+                render={(
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t('selecteurNiveau.ariaLabelNiveau', { libelle, nom: nomAffiche })}
+                        className="h-auto max-w-[200px] justify-between gap-1 px-2 py-0.5 text-left font-normal"
+                    />
+                )}
             >
-                <Box sx={{ minWidth: 0 }}>
+                <span className="min-w-0">
                     {/* Le libellé de niveau est lu, pas seulement survolé. */}
-                    <Typography
-                        variant="caption"
-                        component="span"
+                    <span
                         aria-hidden
-                        sx={{
-                            display: 'block', lineHeight: 1.1, letterSpacing: '0.06em',
-                            textTransform: 'uppercase', fontSize: '0.625rem',
-                            color: 'text.secondary',
-                        }}
+                        className="block text-[0.625rem] leading-tight tracking-[0.06em] uppercase text-muted-foreground"
                     >
                         {libelle}
-                    </Typography>
+                    </span>
                     {enChargementDuNom
-                        ? <Skeleton variant="text" width={72} sx={{ display: 'block' }} />
+                        ? <Skeleton className="block h-4 w-[72px]" />
                         : (
-                            <Typography
-                                variant="body2"
-                                component="span"
+                            <span
                                 aria-hidden
-                                sx={{
-                                    display: 'block', lineHeight: 1.3,
-                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                    fontStyle: valeur === undefined ? 'italic' : undefined,
-                                    color: valeur === undefined ? 'text.secondary' : 'text.primary',
-                                }}
+                                className={cn(
+                                    'block truncate text-sm leading-snug',
+                                    valeur === undefined ? 'italic text-muted-foreground' : 'text-foreground',
+                                )}
                             >
                                 {nomAffiche}
-                            </Typography>
+                            </span>
                         )}
-                </Box>
-            </Button>
+                </span>
+                <ChevronDown />
+            </DropdownMenuTrigger>
 
-            <Menu
-                id={identifiantMenu}
-                anchorEl={ancre}
-                open={ouvert}
-                onClose={fermer}
-                // La saisie de filtre garde le focus ; sans cela le menu le
-                // reprend et la frappe est perdue.
-                autoFocus={!filtrables}
-                slotProps={{ list: { 'aria-label': t('selecteurNiveau.changerDe', { libelle: libelle.toLowerCase() }), dense: true } }}
+            {/* `w-max` : la largeur suit la plus longue entrée, pas le
+                déclencheur (piège du lot 4). */}
+            <DropdownMenuContent
+                className="w-max min-w-40"
+                aria-label={t('selecteurNiveau.changerDe', { libelle: libelle.toLowerCase() })}
             >
                 {filtrables && (
-                    <Box sx={{ px: 1.5, pt: 0.5, pb: 1 }}>
-                        <TextField
-                            autoFocus
-                            size="small"
-                            fullWidth
-                            variant="standard"
+                    <div className="px-1.5 pt-1 pb-2">
+                        <Input
+                            ref={filtreRef}
+                            className="h-7"
                             value={filtre}
                             onChange={evenement => { setFiltre(evenement.target.value); }}
                             // Les flèches et Échap reviennent au menu : elles
                             // servent à parcourir la liste et à la refermer.
+                            // Le reste de la frappe appartient au filtre — sans
+                            // cela, la saisie déclencherait la recherche par
+                            // premières lettres du menu.
                             onKeyDown={evenement => {
                                 if (!['ArrowDown', 'ArrowUp', 'Escape'].includes(evenement.key)) {
                                     evenement.stopPropagation();
@@ -202,58 +204,60 @@ export function SelecteurNiveau({ segment, libelle, valeur, depot, cheminListe, 
                             placeholder={t('selecteurNiveau.filtrerLes', { libelle: libelle.toLowerCase() })}
                             aria-label={t('selecteurNiveau.filtrerLes', { libelle: libelle.toLowerCase() })}
                         />
-                    </Box>
+                    </div>
                 )}
 
                 {isError && (
                     // L'échec reste dans le menu : une liste de frères qui
-                    // échoue n'a pas à interrompre le travail en cours.
-                    <MenuItem onClick={() => void refetch()}>
-                        <ListItemText
-                            primary={t('selecteurNiveau.chargementImpossible')}
-                            secondary={t('selecteurNiveau.reessayer')}
-                            slotProps={{ primary: { color: 'error' } }}
-                        />
-                    </MenuItem>
+                    // échoue n'a pas à interrompre le travail en cours —
+                    // `closeOnClick={false}`, le réessai garde le menu ouvert.
+                    <DropdownMenuItem closeOnClick={false} onClick={() => void refetch()}>
+                        <span className="flex flex-col">
+                            <span className="text-destructive">{t('selecteurNiveau.chargementImpossible')}</span>
+                            <span className="text-xs text-muted-foreground">{t('selecteurNiveau.reessayer')}</span>
+                        </span>
+                    </DropdownMenuItem>
                 )}
 
                 {!isError && freres === undefined && (
-                    <MenuItem disabled>
-                        <Skeleton variant="text" width={140} />
-                    </MenuItem>
+                    <DropdownMenuItem disabled>
+                        <Skeleton className="h-4 w-[140px]" />
+                    </DropdownMenuItem>
                 )}
 
                 {!isError && freres !== undefined && visibles.length === 0 && (
-                    <MenuItem disabled>
+                    <DropdownMenuItem disabled>
                         {filtre === '' ? t('selecteurNiveau.aucunElement') : t('selecteurNiveau.aucunResultat')}
-                    </MenuItem>
+                    </DropdownMenuItem>
                 )}
 
                 {!isError && visibles.map(frere => (
-                    <MenuItem
+                    <DropdownMenuItem
                         key={frere.identifiant}
-                        selected={frere.identifiant === valeur?.identifiant}
+                        // Le frère courant se distingue, comme le `selected`
+                        // du MenuItem MUI — le rôle reste `menuitem`.
+                        className={cn(frere.identifiant === valeur?.identifiant && 'bg-accent font-medium')}
                         onClick={() => { choisir(frere); }}
                     >
                         {frere.nom}
-                    </MenuItem>
+                    </DropdownMenuItem>
                 ))}
 
                 {isFetching && freres !== undefined && (
-                    <Typography variant="caption" sx={{ px: 2, color: 'text.secondary' }}>
+                    <p className="px-2 py-1 text-xs text-muted-foreground">
                         {t('selecteurNiveau.actualisation')}
-                    </Typography>
+                    </p>
                 )}
 
-                {cheminListe !== undefined && <Divider />}
+                {cheminListe !== undefined && <DropdownMenuSeparator />}
                 {cheminListe !== undefined && (
                     // L'accès à la liste que le fil d'Ariane offrait : même
                     // cible, désormais au bout du menu du niveau.
-                    <MenuItem component={RouterLink} to={cheminListe} onClick={fermer}>
+                    <DropdownMenuItem render={<RouterLink to={cheminListe} />}>
                         {t('selecteurNiveau.voirLaListe')}
-                    </MenuItem>
+                    </DropdownMenuItem>
                 )}
-            </Menu>
-        </>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

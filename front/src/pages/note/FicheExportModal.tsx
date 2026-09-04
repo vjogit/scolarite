@@ -1,11 +1,16 @@
-import { useState } from 'react';
-import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, Autocomplete, TextField, CircularProgress, Box,
-} from '@mui/material';
+import { useId, useState } from 'react';
+import { FileDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '../../components/ui/button';
+import {
+    Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
+} from '../../components/ui/combobox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { InputGroupAddon } from '../../components/ui/input-group';
+import { Label } from '../../components/ui/label';
+import { Spinner } from '../../components/ui/spinner';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { ENDPOINT_GROUPE } from '../structure/def';
@@ -22,8 +27,8 @@ interface Props {
 }
 
 export function FicheExportModal({ open, controleId, optionId, onClose }: Props) {
-    const notifications = useNotifications();
     const { t } = useTranslation('note');
+    const idGroupe = useId();
     const [selectedGroupe, setSelectedGroupe] = useState<Groupe | null>(null);
     const [downloading, setDownloading] = useState(false);
 
@@ -53,55 +58,61 @@ export function FicheExportModal({ open, controleId, optionId, onClose }: Props)
             // Sans ce `catch`, l'échec ne se voyait nulle part : la modale
             // restait ouverte, le bouton cessait de tourner, et rien ne
             // distinguait un export refusé d'un export terminé.
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         } finally {
             setDownloading(false);
         }
     };
 
     return (
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-            <DialogTitle>{t('ficheExportModal.titre')}</DialogTitle>
-            <DialogContent>
-                <Box sx={{ mt: 1 }}>
-                    <Autocomplete
-                        options={groupes}
-                        getOptionLabel={(g) => g.name}
-                        value={selectedGroupe}
-                        onChange={(_, value) => { setSelectedGroupe(value); }}
-                        loading={isLoading}
-                        renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label={t('ficheExportModal.groupeLabel')}
-                                placeholder={t('ficheExportModal.groupePlaceholder')}
-                                slotProps={{
-                                    input: {
-                                        ...params.InputProps,
-                                        endAdornment: (
-                                            <>
-                                                {isLoading && <CircularProgress size={18} />}
-                                                {params.InputProps.endAdornment}
-                                            </>
-                                        ),
-                                    },
-                                }}
-                            />
-                        )}
-                    />
-                </Box>
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={handleClose}>{t('commun.annuler')}</Button>
-                <Button
-                    variant="contained"
-                    onClick={() => { void handleDownload(); }}
-                    disabled={!selectedGroupe || downloading}
-                    startIcon={downloading ? <CircularProgress size={16} /> : undefined}
+        <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) handleClose(); }}>
+            {/* Pas de croix (parité MUI) ; `sm:max-w-[600px]` = le `maxWidth="sm"`
+                MUI. Le popup du combobox se portalise vers `<body>` : la modale
+                Base UI le reconnaît comme sien. */}
+            <DialogContent className="sm:max-w-[600px]" showCloseButton={false}>
+                <DialogHeader>
+                    <DialogTitle>{t('ficheExportModal.titre')}</DialogTitle>
+                </DialogHeader>
+                <Combobox
+                    items={groupes}
+                    itemToStringLabel={(groupe: Groupe) => groupe.name}
+                    isItemEqualToValue={(a, b) => a.id === b.id}
+                    value={selectedGroupe}
+                    onValueChange={(valeur) => { setSelectedGroupe(valeur); }}
                 >
-                    {t('ficheExportModal.telecharger')}
-                </Button>
-            </DialogActions>
+                    <div className="flex flex-col gap-1.5">
+                        {/* Le nom accessible vient du label, comme celui que le
+                            TextField MUI posait. */}
+                        <Label htmlFor={idGroupe}>{t('ficheExportModal.groupeLabel')}</Label>
+                        <ComboboxInput id={idGroupe} placeholder={t('ficheExportModal.groupePlaceholder')} showClear>
+                            {isLoading && (
+                                <InputGroupAddon align="inline-end">
+                                    <Spinner aria-hidden />
+                                </InputGroupAddon>
+                            )}
+                        </ComboboxInput>
+                    </div>
+                    <ComboboxContent>
+                        <ComboboxEmpty />
+                        <ComboboxList>
+                            {(groupe: Groupe) => (
+                                <ComboboxItem key={groupe.id} value={groupe}>{groupe.name}</ComboboxItem>
+                            )}
+                        </ComboboxList>
+                    </ComboboxContent>
+                </Combobox>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={handleClose}>{t('commun.annuler')}</Button>
+                    <Button
+                        type="button"
+                        onClick={() => { void handleDownload(); }}
+                        disabled={!selectedGroupe || downloading}
+                    >
+                        {downloading ? <Spinner aria-hidden /> : <FileDown />}
+                        {t('ficheExportModal.telecharger')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
         </Dialog>
     );
 }

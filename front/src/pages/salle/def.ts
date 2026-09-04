@@ -7,7 +7,7 @@ export const SALLE_WORKFLOW = 'salle_workflow';
 export const ENDPOINT_SALLE = '/api/v0/planning/salle';
 
 export function typeSalleOptions(t?: TFunction<'salle'>): { id: string; label: string }[] {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'salle'>);
+    const traduire = t ?? i18n.getFixedT(null, 'salle');
     return [
         { id: 'AMPHI', label: traduire('types.AMPHI') },
         { id: 'TD', label: traduire('types.TD') },

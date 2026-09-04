@@ -10,6 +10,15 @@
     "connexion": "Connexion",
     "deconnexion": "Déconnexion"
   },
+  "shell": {
+    "chargement": "Chargement…",
+    "basculerMenu": "Afficher ou masquer le menu latéral",
+    "menuLateralTitre": "Menu latéral",
+    "menuLateralDescription": "Navigation principale de l'application",
+    "fermer": "Fermer",
+    "chargement": "Chargement…",
+    "compte": "Compte de l'utilisateur"
+  },
   "workflows": {
     "structure": "Structure",
     "notes": "Notes",
@@ -24,15 +33,17 @@
   },
   "autocomplete": {
     "ouvrir": "Ouvrir la liste",
-    "fermer": "Fermer la liste",
-    "effacer": "Effacer"
+    "effacer": "Effacer",
+    "retirer": "Retirer",
+    "aucuneOption": "Aucune option"
   },
   "roleGuard": {
     "accesNonAutorise": "Accès non autorisé"
   },
   "userSelector": {
     "champEleve": "Élève",
-    "rechercherEleve": "Rechercher un élève"
+    "rechercherEleve": "Rechercher un élève",
+    "aucuneOption": "Aucune option"
   },
   "lignesRefusees": {
     "champs": {
@@ -82,5 +93,10 @@
   },
   "filContexte": {
     "ariaLabel": "Fil d'Ariane"
+  },
+  "champDate": {
+    "ouvrirCalendrier": "Choisir une date",
+    "gabarit": "JJ/MM/AAAA",
+    "heure": "Heure"
   }
 }

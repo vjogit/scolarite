@@ -1,14 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Controller, useForm, useWatch, type Control } from 'react-hook-form';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, TextField, Select, MenuItem, FormControl,
-    InputLabel, FormControlLabel, Checkbox, Autocomplete,
-    Box, Stack, Alert,
-} from '@mui/material';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import dayjs, { type Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
+
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
+import {
+    Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent,
+    ComboboxEmpty, ComboboxItem, ComboboxList, ComboboxValue,
+} from '../../components/ui/combobox';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Field, FieldLabel } from '../../components/ui/field';
+import { ChampDateHeure } from '../../services/ChampDate';
+import { ChampCase, ChampSelection } from '../../services/ChampChoix';
+import { ChampTexte } from '../../services/ChampTexte';
 import { apiInstance } from '../../services/api';
 import { conflitsDetaillesFor, errorMessage } from '../../services/errorMessages';
 import type { ReservationDetail } from './def';
@@ -21,7 +27,115 @@ interface Groupe     { id: number; name: string; option_id: number }
 interface Matiere    { id: number; name: string; ueName: string }
 interface Ue         { id: number; name: string }
 
-const TYPE_COURS_OPTIONS = ['CM', 'TD', 'TP', 'EXAMEN', 'RATTRAPAGE'];
+const TYPE_COURS_OPTIONS = ['CM', 'TD', 'TP', 'EXAMEN', 'RATTRAPAGE'].map((type) => ({ id: type, label: type }));
+
+/**
+ * Le formulaire, tel que react-hook-form le porte (lot 14). `matiere_id` est
+ * une chaîne : `ChampSelection` travaille en chaînes, la conversion se fait à
+ * la soumission. Les trois listes portent les objets choisis eux-mêmes — en
+ * édition, la réservation les fournit complets (`SalleRef`, `GroupeRef`,
+ * `IntervenantRef` ont la forme des référentiels), sans attendre que ceux-ci
+ * soient chargés.
+ */
+interface ValeursReservation {
+    debut:         Date | null;
+    fin:           Date | null;
+    type_cours:    string | null;
+    matiere_id:    string | null;
+    salles:        Salle[];
+    intervenants:  User[];
+    groupes:       Groupe[];
+    is_distanciel: boolean;
+    description:   string;
+}
+
+function valeursInitiales(reservation: ReservationDetail | null, start: Date | null, end: Date | null): ValeursReservation {
+    if (reservation) {
+        return {
+            debut:         new Date(reservation.horaire.Lower),
+            fin:           new Date(reservation.horaire.Upper),
+            type_cours:    reservation.type_cours ?? null,
+            matiere_id:    reservation.matiere_id ? String(reservation.matiere_id) : null,
+            salles:        reservation.salles.map(s => ({ id: s.id, name: s.name, batiment: s.batiment })),
+            intervenants:  reservation.intervenants.map(i => ({ id: i.id, firstName: i.firstName, lastName: i.lastName })),
+            groupes:       reservation.groupes.map(g => ({ id: g.id, name: g.name, option_id: g.option_id })),
+            is_distanciel: reservation.is_distanciel,
+            description:   reservation.description ?? '',
+        };
+    }
+    return {
+        debut: start, fin: end, type_cours: null, matiere_id: null,
+        salles: [], intervenants: [], groupes: [], is_distanciel: false, description: '',
+    };
+}
+
+const userName = (u: User) =>
+    [u.firstName, u.lastName].filter(Boolean).join(' ') || `#${u.id}`;
+
+// Une saisie de date en cours de refus est un `Date` invalide, pas un
+// `null` (contrat de `ChampDate`) : la soumission attend deux instants réels.
+const dateComplete = (d: Date | null): d is Date => d !== null && !Number.isNaN(d.getTime());
+
+// ─── Choix multiple ───────────────────────────────────────────────────────────
+
+interface PropsChampMultiple<E extends { id: number }> {
+    label: string;
+    items: E[];
+    value: E[];
+    onChange: (choisis: E[]) => void;
+    libelle: (element: E) => string;
+    /** Recherche serveur : la frappe est remontée, la liste reçue s'affiche telle quelle. */
+    onRecherche?: (texte: string) => void;
+}
+
+/**
+ * Le remplaçant de l'`Autocomplete multiple` MUI : un `Combobox` Base UI à
+ * chips (`ui/combobox.tsx`). Hors du contrat des champs partagés — le choix
+ * multiple n'y figure pas, et trois écrans seulement en montent (ici, et les
+ * deux `Autocomplete` restants des lots note) ; local tant qu'un second écran
+ * n'en demande pas un.
+ */
+function ChampMultiple<E extends { id: number }>({ label, items, value, onChange, libelle, onRecherche }: PropsChampMultiple<E>) {
+    const { t } = useTranslation('programme');
+    const id = useId();
+    const ancre = useRef<HTMLDivElement>(null);
+    return (
+        <Field>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <Combobox
+                multiple
+                items={items}
+                value={value}
+                onValueChange={onChange}
+                itemToStringLabel={libelle}
+                isItemEqualToValue={(a, b) => a.id === b.id}
+                filter={onRecherche ? null : undefined}
+                onInputValueChange={onRecherche}
+            >
+                <ComboboxChips ref={ancre}>
+                    <ComboboxValue>
+                        {(choisis: E[]) => (
+                            <>
+                                {choisis.map((element) => (
+                                    <ComboboxChip key={element.id}>{libelle(element)}</ComboboxChip>
+                                ))}
+                                <ComboboxChipsInput id={id} />
+                            </>
+                        )}
+                    </ComboboxValue>
+                </ComboboxChips>
+                <ComboboxContent anchor={ancre}>
+                    <ComboboxEmpty>{t('reservationDialog.aucuneOption')}</ComboboxEmpty>
+                    <ComboboxList>
+                        {(element: E) => (
+                            <ComboboxItem key={element.id} value={element}>{libelle(element)}</ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+        </Field>
+    );
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -37,69 +151,68 @@ interface Props {
 
 // ─── Composant ────────────────────────────────────────────────────────────────
 
+/**
+ * La modale. Le formulaire est un composant à part, monté DANS le popup :
+ * Base UI démonte le contenu à la fermeture, chaque ouverture repart donc de
+ * valeurs initiales calculées au montage — plus d'`initialiser` rejoué sur
+ * la transition MUI, plus de référentiels chargés modale fermée.
+ */
 export function ReservationDialog({ open, onClose, reservation, start, end, periodeId, optionId }: Props) {
     const { t } = useTranslation('programme');
+    return (
+        <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
+            {/* Pas de croix : la modale MUI n'en avait pas, « Annuler » reste
+                l'issue explicite (Échap et clic hors modale ferment aussi).
+                Hauteur bornée et corps défilant (rangée centrale de la grille)
+                : la modale MUI faisait défiler son `DialogContent` sous un
+                titre et des actions fixes ; sans cette borne, dix champs
+                débordaient de l'écran, titre et bouton « Créer » hors de vue
+                — constaté au navigateur (lot 14). */}
+            <DialogContent
+                className="max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-[600px]"
+                showCloseButton={false}
+            >
+                <DialogHeader>
+                    <DialogTitle>
+                        {reservation ? t('reservationDialog.titreModifier') : t('reservationDialog.titreCreer')}
+                    </DialogTitle>
+                </DialogHeader>
+                <FormulaireReservation
+                    reservation={reservation}
+                    start={start}
+                    end={end}
+                    periodeId={periodeId}
+                    optionId={optionId}
+                    onClose={onClose}
+                />
+            </DialogContent>
+        </Dialog>
+    );
+}
 
-    // ── État du formulaire ──────────────────────────────────────────────────
-    const [startDate,           setStartDate]           = useState<Dayjs | null>(null);
-    const [endDate,             setEndDate]             = useState<Dayjs | null>(null);
-    const [typeCours,           setTypeCours]           = useState('');
-    const [matiereId,           setMatiereId]           = useState<number | ''>('');
-    // `null` tant que l'utilisateur n'a rien choisi : la sélection se déduit
-    // alors de la réservation, dès que le référentiel arrive. Un état initialisé
-    // à `[]` obligeait à le remplir depuis un effet, une fois la requête revenue.
-    const [sallesChoisies,      setSallesChoisies]      = useState<Salle[] | null>(null);
-    const [selectedIntervenants,setSelectedIntervenants]= useState<User[]>([]);
+function FormulaireReservation({ reservation, start, end, periodeId, optionId, onClose }: Omit<Props, 'open'>) {
+    const { t } = useTranslation('programme');
+    const [conflictErrors, setConflictErrors] = useState<string[]>([]);
+
+    const { control, handleSubmit, getValues } = useForm<ValeursReservation>({
+        defaultValues: valeursInitiales(reservation, start, end),
+    });
+    // Les deux bornes gouvernent le bouton de soumission.
+    const debut = useWatch({ control, name: 'debut' });
+    const fin = useWatch({ control, name: 'fin' });
+
+    // ── Recherche d'intervenants (serveur, différée) ────────────────────────
     const [intervenantQuery,    setIntervenantQuery]    = useState('');
     const [debouncedQuery,      setDebouncedQuery]      = useState('');
-
     useEffect(() => {
         const t = setTimeout(() => { setDebouncedQuery(intervenantQuery); }, 400);
         return () => { clearTimeout(t); };
     }, [intervenantQuery]);
-    const [groupesChoisis,      setGroupesChoisis]      = useState<Groupe[] | null>(null);
-    const [isDistanciel,        setIsDistanciel]        = useState(false);
-    const [description,         setDescription]         = useState('');
-    const [conflictErrors,      setConflictErrors]      = useState<string[]>([]);
-
-    /**
-     * Remise à zéro du formulaire, jouée à l'ouverture de la modale.
-     *
-     * C'était un effet gardé par `if (!open) return`, qui rejouait à chaque
-     * changement de ses dépendances et posait neuf états d'un coup après le
-     * rendu. L'ouverture est un événement : la transition de MUI le donne, et
-     * l'état est prêt avant le premier affichage du contenu.
-     */
-    const initialiser = () => {
-        setConflictErrors([]);
-        setSallesChoisies(null);
-        setGroupesChoisis(null);
-        if (reservation) {
-            setStartDate(dayjs(reservation.horaire.Lower));
-            setEndDate(dayjs(reservation.horaire.Upper));
-            setTypeCours(reservation.type_cours ?? '');
-            setMatiereId(reservation.matiere_id ?? '');
-            setIsDistanciel(reservation.is_distanciel);
-            setDescription(reservation.description ?? '');
-            setSelectedIntervenants(reservation.intervenants.map(i => ({
-                id: i.id, firstName: i.firstName, lastName: i.lastName,
-            })));
-        } else {
-            setStartDate(start ? dayjs(start) : null);
-            setEndDate(end ? dayjs(end) : null);
-            setTypeCours('');
-            setMatiereId('');
-            setSelectedIntervenants([]);
-            setIsDistanciel(false);
-            setDescription('');
-        }
-    };
 
     // ── Référentiels ────────────────────────────────────────────────────────
     const { data: salles = [] } = useQuery<Salle[]>({
         queryKey: ['salles'],
         queryFn: () => apiInstance.get<Salle[]>('/api/v0/planning/salle').then(r => r.data),
-        enabled: open,
     });
 
     const { data: users = [] } = useQuery<User[]>({
@@ -109,19 +222,18 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             const r = await apiInstance.get<User[]>(`/api/v0/user/search?q=${encodeURIComponent(debouncedQuery)}`);
             return r.data;
         },
-        enabled: open,
     });
 
     const { data: groupes = [] } = useQuery<Groupe[]>({
         queryKey: ['groupes', optionId],
         queryFn: () => apiInstance.get<Groupe[]>(`/api/v0/structure/groupe?option_id=${optionId}`).then(r => r.data),
-        enabled: open && !!optionId,
+        enabled: !!optionId,
     });
 
     const { data: ues = [] } = useQuery<Ue[]>({
         queryKey: ['ues', periodeId],
         queryFn: () => apiInstance.get<Ue[]>(`/api/v0/structure/ue?periode_id=${periodeId}`).then(r => r.data),
-        enabled: open && !!periodeId,
+        enabled: !!periodeId,
     });
 
     const matiereResults = useQueries({
@@ -130,22 +242,12 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             queryFn: () => apiInstance
                 .get<{ id: number; name: string }[]>(`/api/v0/structure/matiere?unite_enseignement_id=${ue.id}`)
                 .then(r => r.data.map(m => ({ ...m, ueName: ue.name }))),
-            enabled: open,
         })),
     });
     const matieres: Matiere[] = matiereResults.flatMap(q => q.data ?? []);
-
-    // ── Sélection courante : le choix de l'utilisateur, ou celle de la
-    // réservation en cours d'édition, filtrée sur le référentiel chargé ───────
-    const selectedSalles = sallesChoisies
-        ?? salles.filter(s => reservation?.salles.some(rs => rs.id === s.id) ?? false);
-    const selectedGroupes = groupesChoisis
-        ?? groupes.filter(g => reservation?.groupes.some(rg => rg.id === g.id) ?? false);
+    const optionsMatiere = matieres.map(m => ({ id: String(m.id), label: `${m.ueName} — ${m.name}` }));
 
     // ── Gestion des erreurs de conflit ───────────────────────────────────────
-    const userName = (u: User) =>
-        [u.firstName, u.lastName].filter(Boolean).join(' ') || `#${u.id}`;
-
     const handleConflictError = (error: unknown) => {
         const errors = conflitsDetaillesFor(error);
         if (Object.keys(errors).length === 0) return;
@@ -162,15 +264,15 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
             const existingEnd   = dayjs(match[5]).format('HH:mm');
 
             if (field === 'intervenants') {
-                const u = selectedIntervenants.find(i => i.id === entityId);
+                const u = getValues('intervenants').find(i => i.id === entityId);
                 return t('reservationDialog.conflitIntervenant', { nom: u ? userName(u) : `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             if (field === 'salles') {
-                const s = selectedSalles.find(s => s.id === entityId);
+                const s = getValues('salles').find(s => s.id === entityId);
                 return t('reservationDialog.conflitSalle', { nom: s?.name ?? `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             if (field === 'groupes') {
-                const g = selectedGroupes.find(g => g.id === entityId);
+                const g = getValues('groupes').find(g => g.id === entityId);
                 return t('reservationDialog.conflitGroupe', { nom: g?.name ?? `#${entityId}`, debut: existingStart, fin: existingEnd });
             }
             return errorMessage('BUSINESS_CONFLICT');
@@ -210,172 +312,154 @@ export function ReservationDialog({ open, onClose, reservation, start, end, peri
         },
     });
 
-    const handleSubmit = () => {
-        if (!startDate || !endDate) return;
+    const envoyer = (valeurs: ValeursReservation) => {
+        if (!dateComplete(valeurs.debut) || !dateComplete(valeurs.fin)) return;
         mutation.mutate({
             ...(reservation ? { id: reservation.id, version: reservation.version } : {}),
             horaire: {
-                Lower:     startDate.toISOString(),
-                Upper:     endDate.toISOString(),
+                Lower:     valeurs.debut.toISOString(),
+                Upper:     valeurs.fin.toISOString(),
                 LowerType: 2,
                 UpperType: 2,
                 Valid:     true,
             },
             periode_id:      parseInt(periodeId),
-            matiere_id:      matiereId || null,
-            type_cours:      typeCours || null,
-            is_distanciel:   isDistanciel,
-            description:     description || null,
-            salle_ids:       selectedSalles.map(s => s.id),
-            intervenant_ids: selectedIntervenants.map(u => u.id),
-            groupe_ids:      selectedGroupes.map(g => g.id),
+            matiere_id:      valeurs.matiere_id ? Number(valeurs.matiere_id) : null,
+            type_cours:      valeurs.type_cours,
+            is_distanciel:   valeurs.is_distanciel,
+            description:     valeurs.description || null,
+            salle_ids:       valeurs.salles.map(s => s.id),
+            intervenant_ids: valeurs.intervenants.map(u => u.id),
+            groupe_ids:      valeurs.groupes.map(g => g.id),
         });
     };
 
+    // `Control<ValeursReservation>` : les champs partagés sont génériques sur
+    // le formulaire, l'annotation évite de la répéter à chaque champ.
+    const controle: Control<ValeursReservation> = control;
+
     // ── Rendu ───────────────────────────────────────────────────────────────
     return (
-        <Dialog
-            open={open}
-            onClose={onClose}
-            maxWidth="sm"
-            fullWidth
-            slotProps={{ transition: { onEnter: initialiser } }}
-        >
-            <DialogTitle>
-                {reservation ? t('reservationDialog.titreModifier') : t('reservationDialog.titreCreer')}
-            </DialogTitle>
+        <>
+            {/* Les popups des champs (sélections, combobox, calendrier) se
+                portalisent vers <body> : la modale Base UI les reconnaît, et
+                un calendrier rendu dans ce corps défilant y serait rogné.
+                Marges négatives compensées par des marges internes : de la
+                place pour l'anneau de focus, que le bord du défilement
+                rognerait sinon (constaté au lot 14). */}
+            <div className="-mx-1 -mt-2 flex flex-col gap-4 overflow-y-auto px-1 pt-2">
 
-            <DialogContent>
-                <Stack spacing={2} sx={{ mt: 1 }}>
+                {conflictErrors.map((msg, i) => (
+                    // Liste de messages affichée d'un bloc, jamais réordonnée
+                    // et sans état interne : l'index suffit à les distinguer.
+                    // eslint-disable-next-line react-x/no-array-index-key
+                    <Alert key={i} variant="destructive"><AlertDescription>{msg}</AlertDescription></Alert>
+                ))}
 
-                    {conflictErrors.map((msg, i) => (
-                        // Liste de messages affichée d'un bloc, jamais réordonnée
-                        // et sans état interne : l'index suffit à les distinguer.
-                        // eslint-disable-next-line react-x/no-array-index-key
-                        <Alert key={i} severity="error">{msg}</Alert>
-                    ))}
+                {/* L'un sous l'autre : chaque champ date-heure occupe
+                    déjà la largeur de deux champs. */}
+                <ChampDateHeure name="debut" control={controle} label={t('reservationDialog.champDebut')} />
+                <ChampDateHeure name="fin" control={controle} label={t('reservationDialog.champFin')} />
 
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <DateTimePicker
-                            label={t('reservationDialog.champDebut')}
-                            value={startDate}
-                            onChange={setStartDate}
-                            ampm={false}
-                            sx={{ flex: 1 }}
+                <ChampSelection
+                    name="type_cours"
+                    control={controle}
+                    label={t('reservationDialog.champTypeCours')}
+                    options={TYPE_COURS_OPTIONS}
+                    libelleVide={t('reservationDialog.aucun')}
+                    className="mb-0"
+                />
+
+                <ChampSelection
+                    name="matiere_id"
+                    control={controle}
+                    label={t('reservationDialog.champMatiere')}
+                    options={optionsMatiere}
+                    libelleVide={t('reservationDialog.aucune')}
+                    className="mb-0"
+                />
+
+                <Controller
+                    name="salles"
+                    control={controle}
+                    render={({ field }) => (
+                        <ChampMultiple
+                            label={t('reservationDialog.champSalles')}
+                            items={salles}
+                            value={field.value}
+                            onChange={field.onChange}
+                            libelle={s => `${s.name}${s.batiment ? ` (${s.batiment})` : ''}`}
                         />
-                        <DateTimePicker
-                            label={t('reservationDialog.champFin')}
-                            value={endDate}
-                            onChange={setEndDate}
-                            ampm={false}
-                            sx={{ flex: 1 }}
+                    )}
+                />
+
+                <Controller
+                    name="intervenants"
+                    control={controle}
+                    render={({ field }) => (
+                        <ChampMultiple
+                            label={t('reservationDialog.champIntervenants')}
+                            items={users}
+                            value={field.value}
+                            onChange={field.onChange}
+                            libelle={userName}
+                            onRecherche={setIntervenantQuery}
                         />
-                    </Box>
+                    )}
+                />
 
-                    <FormControl fullWidth>
-                        <InputLabel>{t('reservationDialog.champTypeCours')}</InputLabel>
-                        <Select
-                            value={typeCours}
-                            onChange={e => { setTypeCours(e.target.value); }}
-                            label={t('reservationDialog.champTypeCours')}
-                        >
-                            <MenuItem value=""><em>{t('reservationDialog.aucun')}</em></MenuItem>
-                            {TYPE_COURS_OPTIONS.map(type => (
-                                <MenuItem key={type} value={type}>{type}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                <Controller
+                    name="groupes"
+                    control={controle}
+                    render={({ field }) => (
+                        <ChampMultiple
+                            label={t('reservationDialog.champGroupes')}
+                            items={groupes}
+                            value={field.value}
+                            onChange={field.onChange}
+                            libelle={g => g.name}
+                        />
+                    )}
+                />
 
-                    <FormControl fullWidth>
-                        <InputLabel>{t('reservationDialog.champMatiere')}</InputLabel>
-                        <Select
-                            value={matiereId}
-                            onChange={e => { setMatiereId(e.target.value as number | ''); }}
-                            label={t('reservationDialog.champMatiere')}
-                        >
-                            <MenuItem value=""><em>{t('reservationDialog.aucune')}</em></MenuItem>
-                            {matieres.map(m => (
-                                <MenuItem key={m.id} value={m.id}>
-                                    {m.ueName} — {m.name}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                <ChampCase
+                    name="is_distanciel"
+                    control={controle}
+                    label={t('reservationDialog.champDistanciel')}
+                    className="mb-0"
+                />
 
-                    <Autocomplete
-                        multiple
-                        options={salles}
-                        value={selectedSalles}
-                        onChange={(_, v) => { setSallesChoisies(v); }}
-                        getOptionLabel={s => `${s.name}${s.batiment ? ` (${s.batiment})` : ''}`}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        renderInput={params => <TextField {...params} label={t('reservationDialog.champSalles')} />}
-                    />
+                <ChampTexte
+                    name="description"
+                    control={controle}
+                    label={t('reservationDialog.champDescription')}
+                    multiline
+                    rows={2}
+                    className="mb-0"
+                />
+            </div>
 
-                    <Autocomplete
-                        multiple
-                        options={users}
-                        value={selectedIntervenants}
-                        onChange={(_, v) => { setSelectedIntervenants(v); }}
-                        inputValue={intervenantQuery}
-                        onInputChange={(_, v) => { setIntervenantQuery(v); }}
-                        getOptionLabel={userName}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        filterOptions={x => x}
-                        renderInput={params => <TextField {...params} label={t('reservationDialog.champIntervenants')} />}
-                    />
-
-                    <Autocomplete
-                        multiple
-                        options={groupes}
-                        value={selectedGroupes}
-                        onChange={(_, v) => { setGroupesChoisis(v); }}
-                        getOptionLabel={g => g.name}
-                        isOptionEqualToValue={(a, b) => a.id === b.id}
-                        renderInput={params => <TextField {...params} label={t('reservationDialog.champGroupes')} />}
-                    />
-
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={isDistanciel}
-                                onChange={e => { setIsDistanciel(e.target.checked); }}
-                            />
-                        }
-                        label={t('reservationDialog.champDistanciel')}
-                    />
-
-                    <TextField
-                        label={t('reservationDialog.champDescription')}
-                        multiline
-                        rows={2}
-                        value={description}
-                        onChange={e => { setDescription(e.target.value); }}
-                        fullWidth
-                    />
-                </Stack>
-            </DialogContent>
-
-            <DialogActions>
+            <DialogFooter>
                 {reservation && (
                     <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive sm:mr-auto"
                         onClick={() => { deleteMutation.mutate(); }}
-                        color="error"
                         disabled={deleteMutation.isPending}
-                        sx={{ mr: 'auto' }}
                     >
                         {t('reservationDialog.supprimer')}
                     </Button>
                 )}
-                <Button onClick={onClose}>{t('reservationDialog.annuler')}</Button>
+                <Button type="button" variant="outline" onClick={onClose}>{t('reservationDialog.annuler')}</Button>
                 <Button
-                    onClick={handleSubmit}
-                    variant="contained"
-                    disabled={mutation.isPending || !startDate || !endDate}
+                    type="button"
+                    onClick={() => { void handleSubmit(envoyer)(); }}
+                    disabled={mutation.isPending || !dateComplete(debut) || !dateComplete(fin)}
                 >
                     {reservation ? t('reservationDialog.enregistrer') : t('reservationDialog.creer')}
                 </Button>
-            </DialogActions>
-        </Dialog>
+            </DialogFooter>
+        </>
     );
 }

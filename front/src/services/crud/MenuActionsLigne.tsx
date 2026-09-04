@@ -7,15 +7,21 @@
  * lettres : le sens ne dépend plus d'un survol, inexistant au tactile.
  */
 
-import { useCallback, useId, useState, type MouseEvent } from 'react';
-import {
-    Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip,
-} from '@mui/material';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { Fragment, useCallback } from 'react';
+import { EllipsisVertical } from 'lucide-react';
 import type { FieldValues } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
-import type { ActionLigne } from './actions';
+import { Button } from '../../components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../../components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { libelleAction, type ActionLigne } from './actions';
 
 interface Props<D extends FieldValues> {
     /** Déjà filtrées par les droits et ordonnées : ce composant n'arbitre rien. */
@@ -27,16 +33,10 @@ interface Props<D extends FieldValues> {
 
 export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onChoisir }: Props<D>) {
     const { t } = useTranslation('crud');
-    const [ancre, setAncre] = useState<null | HTMLElement>(null);
-    const idMenu = useId();
 
-    const ouvrir = useCallback((event: MouseEvent<HTMLButtonElement>) => {
-        setAncre(event.currentTarget);
-    }, []);
-    const fermer = useCallback(() => { setAncre(null); }, []);
-
+    // Le menu Base UI se ferme seul au choix d'une entrée : plus d'ancre à
+    // tenir, `choisir` ne fait que remonter l'action.
     const choisir = useCallback((action: ActionLigne<D>) => {
-        setAncre(null);
         onChoisir(action);
     }, [onChoisir]);
 
@@ -53,62 +53,75 @@ export function MenuActionsLigne<D extends FieldValues>({ actions, nomLigne, onC
     const premiereDestructive = entrees.findIndex(action => action.destructive);
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <div className="flex items-center">
             {directe && IconeDirecte && (
-                <Tooltip title={directe.libelle}>
-                    <IconButton aria-label={directe.libelle} onClick={() => { choisir(directe); }}>
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={libelleAction(directe)}
+                                onClick={() => { choisir(directe); }}
+                            />
+                        )}
+                    >
                         <IconeDirecte />
-                    </IconButton>
+                    </TooltipTrigger>
+                    <TooltipContent>{libelleAction(directe)}</TooltipContent>
                 </Tooltip>
             )}
 
             {entrees.length > 0 && (
-                <>
-                    <Tooltip title={t('actions.menu')}>
-                        <IconButton
-                            // Le nom porte l'identité de la ligne : hors contexte
-                            // visuel, « Actions » seul ne dit pas de quoi.
-                            aria-label={t('actions.menuLigne', { nom: nomLigne })}
-                            aria-haspopup="menu"
-                            aria-expanded={ancre !== null}
-                            aria-controls={ancre !== null ? idMenu : undefined}
-                            onClick={ouvrir}
+                <DropdownMenu>
+                    {/* Base UI pose lui-même aria-haspopup/expanded/controls sur
+                        le déclencheur ; seul le nom accessible reste à fournir —
+                        il porte l'identité de la ligne : hors contexte visuel,
+                        « Actions » seul ne dit pas de quoi. */}
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={(
+                                <DropdownMenuTrigger
+                                    render={(
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={t('actions.menuLigne', { nom: nomLigne })}
+                                        />
+                                    )}
+                                />
+                            )}
                         >
-                            <MoreVertIcon />
-                        </IconButton>
+                            <EllipsisVertical />
+                        </TooltipTrigger>
+                        <TooltipContent>{t('actions.menu')}</TooltipContent>
                     </Tooltip>
-                    <Menu
-                        id={idMenu}
-                        anchorEl={ancre}
-                        open={ancre !== null}
-                        onClose={fermer}
-                        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    >
+                    {/* `w-max` : la largeur suit la plus longue entrée, comme le
+                        menu MUI — sans lui, `w-(--anchor-width)` cale le menu
+                        sur le bouton ⋮ et replie les libellés sur deux lignes. */}
+                    <DropdownMenuContent align="end" className="w-max">
                         {entrees.map((action, index) => {
                             const Icone = action.icone;
-                            const item = (
-                                <MenuItem
-                                    key={action.id}
-                                    onClick={() => { choisir(action); }}
-                                    sx={action.destructive ? { color: 'error.main' } : undefined}
-                                >
-                                    {Icone && (
-                                        <ListItemIcon sx={action.destructive ? { color: 'error.main' } : undefined}>
-                                            <Icone fontSize="small" />
-                                        </ListItemIcon>
-                                    )}
-                                    <ListItemText inset={!Icone}>{action.libelle}</ListItemText>
-                                </MenuItem>
+                            return (
+                                <Fragment key={action.id}>
+                                    {/* Séparateur avant le premier bloc destructif. */}
+                                    {index === premiereDestructive && index > 0 && <DropdownMenuSeparator />}
+                                    <DropdownMenuItem
+                                        variant={action.destructive ? 'destructive' : 'default'}
+                                        inset={!Icone}
+                                        onClick={() => { choisir(action); }}
+                                    >
+                                        {Icone && <Icone />}
+                                        {libelleAction(action)}
+                                    </DropdownMenuItem>
+                                </Fragment>
                             );
-                            // Séparateur avant le premier bloc destructif.
-                            return index === premiereDestructive && index > 0
-                                ? [<Divider key={`${action.id}-separateur`} />, item]
-                                : item;
                         })}
-                    </Menu>
-                </>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             )}
-        </Box>
+        </div>
     );
 }

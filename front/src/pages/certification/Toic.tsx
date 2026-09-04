@@ -4,14 +4,12 @@ import { useParams } from 'react-router';
 import { useMemo } from "react";
 import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
-import { TextField, Typography } from "@mui/material";
 import { UserSelector } from '../../services/UserSelector';
-import { Controller } from 'react-hook-form';
-import { DatePicker } from '@mui/x-date-pickers';
-import dayjs from 'dayjs';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampDate } from '../../services/ChampDate';
 import type { TFunction } from 'i18next';
 import { ENDPOINT_TOEIC } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
@@ -30,7 +28,7 @@ const toeicSchema = z.object({
 export type Toeic = z.infer<typeof toeicSchema>;
 
 // Formulaire d'édition
-const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValue }: RenderProps<Toeic>) => {
+const ToeicFields = ({ control, errors, isReadOnly, getValues, setValue }: RenderProps<Toeic>) => {
     const { t } = useTranslation('certification');
     return (
         <>
@@ -41,61 +39,20 @@ const ToeicFields = ({ register, control, errors, isReadOnly, getValues, setValu
                 setValue={setValue}
                 isReadOnly={isReadOnly}
             />
-            <TextField
-                {...register("score", { valueAsNumber: true })}
-                label={t('toic.champScore')}
-                type="number"
-                disabled={isReadOnly}
-                fullWidth
-                error={!!errors.score}
-                helperText={errors.score?.message}
-                sx={{ mb: 2 }}
-            />
-            <Controller
-                name="date_passage"
-                control={control}
-                render={({ field }) => (
-                    <DatePicker
-                        label={t('toic.champDatePassage')}
-                        // Le schéma type ce champ `Date`, mais `emptyValue` ne le contient
-                        // pas : en création, react-hook-form donne `undefined`. Et
-                        // `dayjs(undefined)` rend l'heure courante, pas une date
-                        // invalide — sans ce garde, le formulaire s'ouvre avec la date
-                        // du jour pré-remplie. Vérifié au navigateur.
-                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                        value={field.value ? dayjs(field.value) : null}
-                        onChange={(newValue) => {
-                            field.onChange(newValue ? newValue.toDate() : null);
-                        }}
-                        disabled={isReadOnly}
-                        slotProps={{
-                            textField: {
-                                error: !!errors.date_passage,
-                                helperText: errors.date_passage?.message,
-                                fullWidth: true
-                            }
-                        }}
-                    />
-                )}
-            />
+            <ChampNombre name="score" control={control} label={t('toic.champScore')} disabled={isReadOnly} min={0} max={990} />
+            {/* En création, react-hook-form donne `undefined` (le champ est
+                absent d'`emptyValue`) : le garde qui empêche la date du jour
+                de se pré-remplir vit dans `ChampDate`. */}
+            <ChampDate name="date_passage" control={control} label={t('toic.champDatePassage')} disabled={isReadOnly} />
 
-            <TextField
-                {...register("remarque")}
-                label={t('toic.champRemarque')}
-                variant="outlined"
-                fullWidth
-                multiline
-                rows={4}
-                disabled={isReadOnly}
-                error={!!errors.remarque}
-                helperText={errors.remarque?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="remarque" control={control} label={t('toic.champRemarque')} disabled={isReadOnly} multiline rows={4} />
         </>
     );
 };
 
-function toeicColumns(t: TFunction<'certification'>): MRT_ColumnDef<Toeic>[] {
+// Colonnes au format TanStack nu (lot 9) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function toeicColonnes(t: TFunction<'certification'>): ColumnDef<Toeic>[] {
     return [
         {
             accessorKey: 'id',
@@ -121,7 +78,7 @@ function toeicColumns(t: TFunction<'certification'>): MRT_ColumnDef<Toeic>[] {
         {
             accessorKey: 'date_passage',
             header: t('toic.colonneDatePassage'),
-            Cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
+            cell: ({ cell }) => new Date(cell.getValue<Date>()).toLocaleDateString(),
         },
     ];
 }
@@ -130,7 +87,7 @@ const createToeicViewConfig = (promotionId: string, t: TFunction<'certification'
     return {
         schema: toeicSchema,
         emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId) },
-        columns: toeicColumns(t),
+        colonnes: toeicColonnes(t),
         render: ToeicFields,
     }
 };
@@ -145,7 +102,7 @@ const toeicDatasourceBase = (promotionId: string) => {
     })
 }
 
-export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Toeic>) {
+export function CrudToeic({ mode, workflow, isAction, isTopToolbar, actionsBarreOutils }: CrudProps<Toeic>) {
 
     const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
@@ -162,13 +119,13 @@ export function CrudToeic({ mode, workflow, isAction, isTopToolbar, renderTopToo
         entityLabelPlural: tCrud('entites.toic.nomPluriel'),
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [promotionId, isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tCertification]);
+        actionsBarreOutils,
+    }) : null, [promotionId, isAction, isTopToolbar, actionsBarreOutils, tCrud, tCertification]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tCertification('parametrePromotionIdObligatoire')}</Typography>
+        <p>{tCertification('parametrePromotionIdObligatoire')}</p>
     )
 
     return (

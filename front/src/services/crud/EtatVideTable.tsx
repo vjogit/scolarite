@@ -12,8 +12,8 @@
  * son invite à sa place.
  */
 
-import { Box, Button, Typography } from '@mui/material';
-import type { MRT_RowData, MRT_TableInstance } from 'material-react-table';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../../components/ui/button';
 
 /** Ce que propose l'écran quand la collection est réellement vide. */
 export interface ActionEtatVide {
@@ -21,8 +21,21 @@ export interface ActionEtatVide {
     readonly onClick: () => void;
 }
 
-interface Props<D extends MRT_RowData> {
-    readonly table: MRT_TableInstance<D>;
+/**
+ * Le strict nécessaire d'une instance de table : lire l'état de filtre, le
+ * vider. Type structurel plutôt qu'import d'un moteur — l'instance MRT
+ * (`GroupeUserPage`, `JuryPeriode`) et l'instance TanStack du nouveau socle
+ * le satisfont toutes deux, ce composant survit donc à la migration sans
+ * que ses consommateurs bougent.
+ */
+export interface TableEtatFiltre {
+    getState(): { columnFilters: readonly unknown[]; globalFilter?: unknown };
+    setColumnFilters(valeur: never[]): void;
+    setGlobalFilter(valeur: string): void;
+}
+
+interface Props {
+    readonly table: TableEtatFiltre;
     /** Constat de collection vide, déjà accordé par `entityMessages`. */
     readonly message: string;
     /**
@@ -32,7 +45,8 @@ interface Props<D extends MRT_RowData> {
     readonly action?: ActionEtatVide;
 }
 
-export function EtatVideTable<D extends MRT_RowData>({ table, message, action }: Props<D>) {
+export function EtatVideTable({ table, message, action }: Props) {
+    const { t } = useTranslation('crud');
     // `globalFilter` est typé `any` par la table : on ne le lit que pour sa
     // vacuité, jamais pour sa valeur.
     const etat = table.getState();
@@ -48,31 +62,21 @@ export function EtatVideTable<D extends MRT_RowData>({ table, message, action }:
 
     const contenu: { message: string; action?: ActionEtatVide } = filtree
         ? {
-            message: 'Aucun résultat pour cette recherche.',
-            action: { libelle: 'Effacer les filtres', onClick: effacerFiltres },
+            message: t('listeVideFiltree'),
+            action: { libelle: t('effacerFiltres'), onClick: effacerFiltres },
         }
         : { message, action };
 
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1.5,
-                py: 5,
-                px: 2,
-                textAlign: 'center',
-            }}
-        >
-            <Typography variant="body2" color="text.secondary">
+        <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+            <p className="text-sm text-muted-foreground">
                 {contenu.message}
-            </Typography>
+            </p>
             {contenu.action && (
-                <Button variant="outlined" size="small" onClick={contenu.action.onClick}>
+                <Button variant="outline" size="sm" onClick={contenu.action.onClick}>
                     {contenu.action.libelle}
                 </Button>
             )}
-        </Box>
+        </div>
     );
 }

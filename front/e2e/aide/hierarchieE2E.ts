@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { app, libelleNiveau, note } from './i18n';
+import { app, crud, interpoler, libelleNiveau, note } from './i18n';
 
 /**
  * Les noms de la branche dédiée posée par `e2e/setup/seed.sql` — jamais une
@@ -9,6 +9,7 @@ import { app, libelleNiveau, note } from './i18n';
 export const E2E = {
     formation: 'E2E Formation',
     promotion: 'E2E Promotion',
+    promotionVide: 'E2E Promo Vide',
     option: 'E2E Option',
     optionSacrificielle: 'E2E Option Sacrificielle',
     optionDeliberee: 'E2E Option Deliberee',
@@ -222,6 +223,34 @@ export async function allerALaGrilleDeSaisie(
     await page.getByRole('table', { name: 'Grille de saisie des notes' }).waitFor();
 }
 
+/** Sélectionne la formation E2E depuis l'arborescence Structure (le nœud racine de la branche). */
+export async function allerSurFormationViaStructure(page: Page): Promise<void> {
+    await page.goto('/');
+    await attendreChargementInitial(page);
+    await page.getByRole('tab', { name: app.workflows.structure }).click();
+    await page.waitForLoadState('networkidle');
+    const treeFormation = page.getByRole('treeitem', { name: `Formation ${E2E.formation}` });
+    await cliquerPuisAttendreUrl(
+        page, () => treeFormation.click(), /\/formation\/\d+$/,
+        page.getByRole('heading', { name: `Formation — ${E2E.formation}` }),
+    );
+}
+
+/** Sélectionne une promotion depuis l'arborescence Structure (formation → promotion). */
+export async function allerSurPromotionViaStructure(page: Page, promotion: string): Promise<void> {
+    await page.goto('/');
+    await attendreChargementInitial(page);
+    await page.getByRole('tab', { name: app.workflows.structure }).click();
+    await page.waitForLoadState('networkidle');
+    const treeFormation = page.getByRole('treeitem', { name: `Formation ${E2E.formation}` });
+    await cliquerPuisAttendreUrl(page, () => treeFormation.click(), /\/formation\/\d+$/);
+    const treePromotion = page.getByRole('treeitem', { name: `Promotion ${promotion}`, exact: true });
+    await cliquerPuisAttendreUrl(
+        page, () => treePromotion.click(), /\/promotion\/\d+$/,
+        page.getByRole('heading', { name: `Promotion — ${promotion}` }),
+    );
+}
+
 /** Sélectionne une option depuis l'arborescence Structure (formation → promotion → option). */
 export async function allerSurOptionViaStructure(page: Page, option: string): Promise<void> {
     await page.goto('/');
@@ -257,4 +286,50 @@ export function carteCorbeille(page: Page, titre: string) {
         .filter({ has: page.getByRole('heading', { name: titre, exact: true }) })
         .filter({ has: page.getByRole('button', { name: 'Purger' }) })
         .last();
+}
+
+/** Le bouton qui ouvre le menu d'actions d'une ligne de liste CRUD — voir `MenuActionsLigne`. */
+function boutonActionsLigne(page: Page, nomLigne: string): Locator {
+    return page.getByRole('button', { name: interpoler(crud.actions.menuLigne, { nom: nomLigne }) });
+}
+
+/**
+ * Descend jusqu'à la liste des promotions de la formation E2E, via le
+ * workflow Certifications — le seul qui s'arrête à la promotion (pas de
+ * période : TOEIC et Mobilité internationale se greffent directement
+ * dessous, voir certification/routes.tsx).
+ *
+ * S'arrête volontairement à la sélection de la FORMATION : sélectionner
+ * aussi la promotion via le fil de contexte fait naviguer plus loin, vers le
+ * premier écran terminal du workflow (TOEIC) — sautant la liste des
+ * promotions et le menu d'actions de sa ligne, que les appelants de cette
+ * fonction veulent justement atteindre.
+ */
+export async function allerJusquaPromotionCertification(page: Page): Promise<void> {
+    await page.goto('/');
+    await attendreChargementInitial(page);
+    await page.getByRole('tab', { name: app.workflows.certifications }).click();
+    await page.waitForLoadState('networkidle');
+    await choisirNiveau(page, 'formation', E2E.formation);
+}
+
+/** Ouvre l'écran TOEIC de la promotion E2E, depuis le menu d'actions de sa ligne. */
+export async function allerAuTOEIC(page: Page): Promise<void> {
+    await allerJusquaPromotionCertification(page);
+    await boutonActionsLigne(page, E2E.promotion).click();
+    await page.getByRole('menuitem', { name: 'TOEIC' }).click();
+    await page.waitForLoadState('networkidle');
+}
+
+/**
+ * Ouvre le planning de la période E2E — seul écran terminal du workflow
+ * Programme au niveau période (programme/routes.tsx, la seule greffe :
+ * `Planning`). Sélectionner la période jusqu'au bout via le fil de contexte
+ * y navigue directement (`WorkflowIndex` préfère l'unique écran terminal
+ * quand rien n'est mémorisé) : pas de clic d'action de ligne à faire ici,
+ * contrairement à Certifications (`allerAuTOEIC`), qui expose deux écrans
+ * terminaux et doit donc choisir entre eux par un clic.
+ */
+export async function allerAuPlanning(page: Page): Promise<void> {
+    await allerJusquaPeriode(page, 'programme');
 }

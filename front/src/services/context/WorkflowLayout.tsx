@@ -11,7 +11,6 @@
 
 import type { ReactNode } from 'react';
 import { Navigate, Outlet } from 'react-router';
-import { Box } from '@mui/material';
 
 import { BarreWorkflows } from './BarreWorkflows';
 import { useContexteHierarchie } from './contexte';
@@ -31,22 +30,22 @@ export function WorkflowLayout({ workflow, enTete }: {
     enTete?: ReactNode;
 }) {
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div className="flex h-full flex-col">
             <BarreWorkflows workflowCourant={workflow} />
             {enTete}
-            <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <div className="flex-1 overflow-auto">
                 <Outlet />
-            </Box>
-        </Box>
+            </div>
+        </div>
     );
 }
 
 /** Workflow sans contexte hiérarchique : ni fil d'Ariane, ni barre d'onglets. */
 export function WorkflowLayoutSimple() {
     return (
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
+        <div className="flex-1 overflow-auto">
             <Outlet />
-        </Box>
+        </div>
     );
 }
 

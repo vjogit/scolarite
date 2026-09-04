@@ -22,7 +22,6 @@
 
 import { Fragment, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
@@ -263,15 +262,9 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
         cheminListe === pathname ? undefined : cheminListe;
 
     return (
-        <Stack
-            component="nav"
+        <nav
             aria-label={t('filContexte.ariaLabel')}
-            direction="row"
-            spacing={0.25}
-            alignItems="center"
-            flexWrap="wrap"
-            useFlexGap
-            sx={{ py: 0.5 }}
+            className="flex flex-row flex-wrap items-center gap-0.5 py-1"
         >
             {elements.map((element, index) => (
                 // L'index n'est pas la clé : il départage deux niveaux qui
@@ -279,9 +272,9 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
                 // eslint-disable-next-line react-x/no-array-index-key
                 <Fragment key={`${index}-${segmentDe(element)}`}>
                     {index > 0 && (
-                        <Typography variant="body2" component="span" aria-hidden sx={{ color: 'text.secondary' }}>
+                        <span aria-hidden className="text-sm text-muted-foreground">
                             ›
-                        </Typography>
+                        </span>
                     )}
                     {element.genre === 'niveau' && (
                         <ItemNiveau
@@ -302,17 +295,15 @@ export function FilContexte({ workflowCourant }: { workflowCourant: DescripteurW
                         />
                     )}
                     {element.genre === 'inerte' && (
-                        <Typography
-                            variant="body2"
-                            component="span"
+                        <span
                             aria-current={index === elements.length - 1 ? 'page' : undefined}
-                            sx={{ px: 1, color: 'text.primary' }}
+                            className="px-2 text-sm text-foreground"
                         >
                             {element.libelle}
-                        </Typography>
+                        </span>
                     )}
                 </Fragment>
             ))}
-        </Stack>
+        </nav>
     );
 }

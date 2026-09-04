@@ -1,10 +1,10 @@
-import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback } from 'react';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { FileDown } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { ENDPOINT_JURY } from './def';
 import { notifyError, notifySuccess } from '../../services/notify';
 
@@ -17,7 +17,6 @@ interface JuryExportButtonProps {
 }
 
 export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
-    const notifications = useNotifications();
     const { t } = useTranslation('jury');
     // Deux exports voisinent dans la barre : le nom doit dire lequel.
     const libelle = t('exportJury.libelle');
@@ -30,18 +29,29 @@ export function JuryExportButton({ periodeId }: JuryExportButtonProps) {
 
             telecharger(response, `jury_${periodeId}.xlsx`);
 
-            notifySuccess(notifications, t('exportJury.succes'));
+            notifySuccess(t('exportJury.succes'));
         } catch (err) {
             console.error(err);
-            notifyError(notifications, t('exportJury.erreur'));
+            notifyError(t('exportJury.erreur'));
         }
-    }, [periodeId, notifications, t]);
+    }, [periodeId, t]);
 
     return (
-        <Tooltip title={libelle}>
-            <IconButton aria-label={libelle} onClick={() => { void handleExport(); }} size="small" color="primary">
-                <FileDownloadIcon fontSize="small" />
-            </IconButton>
+        <Tooltip>
+            <TooltipTrigger
+                render={(
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={libelle}
+                        onClick={() => { void handleExport(); }}
+                    />
+                )}
+            >
+                <FileDown />
+            </TooltipTrigger>
+            <TooltipContent>{libelle}</TooltipContent>
         </Tooltip>
     );
 }

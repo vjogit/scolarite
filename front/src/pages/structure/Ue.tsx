@@ -1,59 +1,31 @@
-import { FormControlLabel, Switch, TextField, Typography } from '@mui/material';
 import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../services/crud/def';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Controller } from 'react-hook-form';
 import { Crud } from '../../services/crud/Crud';
 import { useParams } from 'react-router';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampInterrupteur } from '../../services/ChampChoix';
 import { ueSchema, type Ue, createUeRepository, ACTION_MATIERES, ueEntite } from './entites/ue';
 
 export type { Ue } from './entites/ue';
 
-const UeFields = ({ register, errors, control, isReadOnly }: RenderProps<Ue>) => {
+const UeFields = ({ control, isReadOnly }: RenderProps<Ue>) => {
     const { t } = useTranslation('structure');
     return (
         <>
-            <TextField
-                {...register("name")}
-                label={t('ue.champNom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register("ects", { valueAsNumber: true })}
-                label="ECTS"
-                variant="outlined"
-                fullWidth
-                type="number"
-                disabled={isReadOnly}
-                error={!!errors.ects}
-                helperText={errors.ects?.message}
-                sx={{ mb: 2 }}
-            />
-            <Controller
-                name="academique"
-                control={control}
-                render={({ field }) => (
-                    <FormControlLabel
-                        control={<Switch {...field} checked={field.value} disabled={isReadOnly} />}
-                        label={t('ue.champAcademique')}
-                        sx={{ mb: 2 }}
-                    />
-                )}
-            />
+            <ChampTexte name="name" control={control} label={t('ue.champNom')} disabled={isReadOnly} />
+            <ChampNombre name="ects" control={control} label="ECTS" disabled={isReadOnly} />
+            <ChampInterrupteur name="academique" control={control} label={t('ue.champAcademique')} disabled={isReadOnly} />
         </>
-
     );
 };
 
-function ueColumns(t: TFunction<'structure'>): MRT_ColumnDef<Ue>[] {
+// Colonnes au format TanStack nu (lot 8) : leur forme aiguille `List.tsx`
+// vers le nouveau socle `DataTable`.
+function ueColonnes(t: TFunction<'structure'>): ColumnDef<Ue>[] {
     return [
         {
             accessorKey: 'id',
@@ -74,7 +46,7 @@ function ueColumns(t: TFunction<'structure'>): MRT_ColumnDef<Ue>[] {
         {
             accessorKey: 'academique',
             header: t('ue.champAcademique'),
-            Cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
+            cell: ({ cell }) => cell.getValue<boolean>() ? t('commun.oui') : t('commun.non'),
         },
     ];
 }
@@ -83,12 +55,12 @@ function createUeViewConfig(periodeId: string, t: TFunction<'structure'>): ViewC
     return {
         schema: ueSchema,
         emptyValue: { id: -1, version: -1, academique: true, periode_id: parseInt(periodeId) },
-        columns: ueColumns(t),
+        colonnes: ueColonnes(t),
         render: UeFields,
     }
 }
 
-export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, renderTopToolbarCustomActions }: CrudProps<Ue>) {
+export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Ue>) {
 
     const { periodeId } = useParams();
     const rootPath = useRootPath(mode);
@@ -103,13 +75,13 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
         isReadOnly,
         actionsLigne: actionsLigne ?? [ACTION_MATIERES(t)],
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, renderTopToolbarCustomActions, t, tStructure]);
+        actionsBarreOutils,
+    }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
     if (!datasource) return (
-        <Typography>{tStructure('ue.erreurPeriodeIdObligatoire')}</Typography>
+        <p>{tStructure('ue.erreurPeriodeIdObligatoire')}</p>
     )
 
     return (

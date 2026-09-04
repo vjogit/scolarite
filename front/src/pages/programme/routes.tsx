@@ -5,7 +5,7 @@
 
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import { CalendarDays } from 'lucide-react';
 
 import { creerRoutesHierarchie, enrober, type ReglagesNiveau } from '../../services/context/routesHierarchie';
 import { WORKFLOW_PROGRAMME } from '../../services/context/workflows';
@@ -36,11 +36,13 @@ const TRAVERSEE: ReglagesNiveau = {
  * programme, on ne descend pas dans les UE.
  */
 function actionProgramme(t?: TFunction<'programme'>): ActionNavigation<FieldValues> {
-    const traduire = t ?? (i18n.t as unknown as TFunction<'programme'>);
+    const traduire = t ?? i18n.getFixedT(null, 'programme');
     return {
         id: 'programme',
-        libelle: traduire('actionProgrammeLibelle'),
-        icone: CalendarMonthIcon,
+        // Fermeture et non chaîne : cette action est créée une seule fois, au
+        // chargement du module — une chaîne figerait la langue de démarrage.
+        libelle: () => traduire('actionProgrammeLibelle'),
+        icone: CalendarDays,
         segment: PROGRAMME,
     };
 }

@@ -1,6 +1,8 @@
-import { Tooltip, IconButton } from '@mui/material';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
+import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { libelleImportFiche, useFicheImport } from './useFicheImport';
 
 interface Props {
@@ -15,12 +17,21 @@ export function FicheImportButton({ controleId }: Props) {
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton
-                    aria-label={libelle}
-                    onClick={() => { declencher(controleId); }}>
-                    <FileUploadIcon />
-                </IconButton>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => { declencher(controleId); }}
+                        />
+                    )}
+                >
+                    <Upload />
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
             {champ}
         </>

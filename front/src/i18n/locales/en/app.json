@@ -10,6 +10,15 @@
     "connexion": "Sign in",
     "deconnexion": "Sign out"
   },
+  "shell": {
+    "chargement": "Loading…",
+    "basculerMenu": "Show or hide the side menu",
+    "menuLateralTitre": "Side menu",
+    "menuLateralDescription": "Main application navigation",
+    "fermer": "Close",
+    "chargement": "Loading…",
+    "compte": "User account"
+  },
   "workflows": {
     "structure": "Structure",
     "notes": "Grades",
@@ -24,15 +33,17 @@
   },
   "autocomplete": {
     "ouvrir": "Open",
-    "fermer": "Close",
-    "effacer": "Clear"
+    "effacer": "Clear",
+    "retirer": "Remove",
+    "aucuneOption": "No options"
   },
   "roleGuard": {
     "accesNonAutorise": "Access denied"
   },
   "userSelector": {
     "champEleve": "Student",
-    "rechercherEleve": "Search for a student"
+    "rechercherEleve": "Search for a student",
+    "aucuneOption": "No options"
   },
   "lignesRefusees": {
     "champs": {
@@ -82,5 +93,10 @@
   },
   "filContexte": {
     "ariaLabel": "Breadcrumb"
+  },
+  "champDate": {
+    "ouvrirCalendrier": "Choose date",
+    "gabarit": "MM/DD/YYYY",
+    "heure": "Time"
   }
 }

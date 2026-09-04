@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
-import { MenuItem, TextField } from '@mui/material';
 import { useMemo } from 'react';
 import { Crud } from '../../services/crud/Crud';
+import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
+import { ChampSelection } from '../../services/ChampChoix';
 import { ENDPOINT_SALLE, SALLE, typeSalleOptions } from './def';
-import type { MRT_ColumnDef } from 'material-react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { Role } from '../user/def';
 import { messageValidation } from '../../i18n/validation';
@@ -24,81 +24,32 @@ const salleSchema = z.object({
 
 export type Salle = z.infer<typeof salleSchema>;
 
-const SalleFields = ({ register, control, errors, isReadOnly }: RenderProps<Salle>) => {
+// Premier écran passé aux champs partagés (lot 13) : `ChampNombre` remet un
+// nombre au schéma — la création échouait en validation du temps de
+// `register('capacite')` sans `valueAsNumber` (lot 7 §8).
+const SalleFields = ({ control, isReadOnly }: RenderProps<Salle>) => {
     const { t } = useTranslation('salle');
     return (
         <>
-            <TextField
-                {...register('name')}
-                label={t('champs.nom')}
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-                sx={{ mb: 2 }}
-            />
-            <TextField
-                {...register('capacite')}
-                label={t('champs.capacite')}
-                type="number"
-                variant="outlined"
-                fullWidth
-                disabled={isReadOnly}
-                error={!!errors.capacite}
-                helperText={errors.capacite?.message}
-                sx={{ mb: 2 }}
-            />
-            <Controller
+            <ChampTexte name="name" control={control} label={t('champs.nom')} disabled={isReadOnly} />
+            <ChampNombre name="capacite" control={control} label={t('champs.capacite')} disabled={isReadOnly} min={0} />
+            <ChampSelection
                 name="type_salle"
                 control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        select
-                        label={t('champs.typeSalle')}
-                        variant="outlined"
-                        fullWidth
-                        disabled={isReadOnly}
-                        error={!!errors.type_salle}
-                        helperText={errors.type_salle?.message}
-                        sx={{ mb: 2 }}
-                    >
-                        <MenuItem value=""><em>—</em></MenuItem>
-                        {typeSalleOptions(t).map((opt) => (
-                            <MenuItem key={opt.id} value={opt.id}>{opt.label}</MenuItem>
-                        ))}
-                    </TextField>
-                )}
-            />
-            <TextField
-                {...register('batiment')}
-                label={t('champs.batiment')}
-                variant="outlined"
-                fullWidth
+                label={t('champs.typeSalle')}
                 disabled={isReadOnly}
-                error={!!errors.batiment}
-                helperText={errors.batiment?.message}
-                sx={{ mb: 2 }}
+                options={typeSalleOptions(t)}
+                libelleVide="—"
             />
-            <TextField
-                {...register('equipement')}
-                label={t('champs.equipement')}
-                variant="outlined"
-                fullWidth
-                multiline
-                rows={2}
-                disabled={isReadOnly}
-                error={!!errors.equipement}
-                helperText={errors.equipement?.message}
-                sx={{ mb: 2 }}
-            />
+            <ChampTexte name="batiment" control={control} label={t('champs.batiment')} disabled={isReadOnly} />
+            <ChampTexte name="equipement" control={control} label={t('champs.equipement')} disabled={isReadOnly} multiline rows={2} />
         </>
     );
 };
 
-function salleColumns(t: TFunction<'salle'>): MRT_ColumnDef<Salle>[] {
+// Premier écran passé au nouveau socle (lot 7) : colonnes au format TanStack
+// nu — `cell` remplace `Cell`, le reste est inchangé.
+function salleColonnes(t: TFunction<'salle'>): ColumnDef<Salle>[] {
     return [
         { accessorKey: 'id', header: t('colonnes.id') },
         { accessorKey: 'version', header: t('colonnes.version') },
@@ -107,7 +58,7 @@ function salleColumns(t: TFunction<'salle'>): MRT_ColumnDef<Salle>[] {
         {
             accessorKey: 'type_salle',
             header: t('colonnes.type'),
-            Cell: ({ cell }) => {
+            cell: ({ cell }) => {
                 const val = cell.getValue<string | null>();
                 return typeSalleOptions(t).find((o) => o.id === val)?.label ?? val ?? '—';
             },
@@ -121,7 +72,7 @@ function salleViewConfig(t: TFunction<'salle'>): ViewConfig<Salle> {
     return {
         schema: salleSchema,
         emptyValue: { id: -1, version: 0, name: '', capacite: 1, equipement: null, type_salle: null, batiment: null },
-        columns: salleColumns(t),
+        colonnes: salleColonnes(t),
         render: SalleFields,
     };
 }
@@ -132,7 +83,7 @@ const salleDatasourceBase = createRepository<Salle>({
     getId: (data: Salle) => data.id,
 });
 
-export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToolbarCustomActions }: CrudProps<Salle>) {
+export function CrudSalle({ mode, workflow, isAction, isTopToolbar }: CrudProps<Salle>) {
     const rootPath = useRootPath(mode);
     const { t: tCrud } = useTranslation('crud');
     const { t: tSalle } = useTranslation('salle');
@@ -148,8 +99,7 @@ export function CrudSalle({ mode, workflow, isAction, isTopToolbar, renderTopToo
         entityGender: 'f',
         isAction,
         isTopToolbar,
-        renderTopToolbarCustomActions,
-    }), [isAction, isTopToolbar, renderTopToolbarCustomActions, tCrud, tSalle]);
+    }), [isAction, isTopToolbar, tCrud, tSalle]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

@@ -1,6 +1,8 @@
-import { Box, IconButton, Tooltip } from '@mui/material';
-import BarChartIcon from '@mui/icons-material/BarChart';
+import { ChartColumn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 
 // Bouton standardisé pour la toolbar
 export function NoteChartButton({ onClick }: { onClick: () => void }) {
@@ -8,12 +10,13 @@ export function NoteChartButton({ onClick }: { onClick: () => void }) {
     // « Graphique » seul ne dit pas ce qui est tracé.
     const libelle = t('noteChartButton.afficherGraphique');
     return (
-        <Box sx={{ display: 'flex', gap: '1rem' }}>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={onClick}>
-                    <BarChartIcon />
-                </IconButton>
-            </Tooltip>
-        </Box>
+        <Tooltip>
+            <TooltipTrigger
+                render={<Button type="button" variant="ghost" size="icon" aria-label={libelle} onClick={onClick} />}
+            >
+                <ChartColumn />
+            </TooltipTrigger>
+            <TooltipContent>{libelle}</TooltipContent>
+        </Tooltip>
     );
 }

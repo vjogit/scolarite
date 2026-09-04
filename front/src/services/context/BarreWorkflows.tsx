@@ -15,11 +15,10 @@
  * onglets, eux, restent — changer de tâche n'a pas d'autre chemin.
  */
 
-import type { SyntheticEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { Box, Tab, Tabs } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { useSession } from '../../SessionContext';
 import { construireCheminWorkflow, ecranTerminalDuChemin } from './navigation';
 import { libelleWorkflow, possedeUnRole, WORKFLOWS_HIERARCHIQUES, type DescripteurWorkflow } from './workflows';
@@ -36,10 +35,10 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
         workflow => possedeUnRole(session?.user.roles, workflow.rolesRequis),
     );
 
-    const indexCourant = onglets.findIndex(workflow => workflow.id === workflowCourant.id);
+    const courantVisible = onglets.some(workflow => workflow.id === workflowCourant.id);
 
-    const basculer = (_evenement: SyntheticEvent, index: number) => {
-        const cible = onglets.at(index);
+    const basculer = (id: unknown) => {
+        const cible = onglets.find(workflow => workflow.id === id);
         if (cible === undefined || cible.id === workflowCourant.id) return;
 
         const prefere = ecranTerminalDuChemin(chemins[cible.id], cible.ecransTerminaux);
@@ -47,34 +46,37 @@ export function BarreWorkflows({ workflowCourant }: { workflowCourant: Descripte
     };
 
     return (
-        <Box
-            sx={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                gap: 2, px: 2, flexWrap: 'wrap',
-                borderBottom: 1, borderColor: 'divider',
-            }}
-        >
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b px-4">
             {/* Une barre à un seul onglet ne fait basculer nulle part. */}
             {onglets.length >= 2 && (
+                // Onglets de navigation, sans panneaux : la sélection suit
+                // l'URL (`value` contrôlé), le choix navigue. `null` quand le
+                // workflow courant n'est pas dans la barre — l'équivalent du
+                // `value={false}` MUI. L'activation reste au choix explicite
+                // (Entrée/clic), pas au passage des flèches
+                // (`activateOnFocus` est `false` par défaut).
                 <Tabs
-                    value={indexCourant === -1 ? false : indexCourant}
-                    onChange={basculer}
-                    variant="scrollable"
-                    scrollButtons="auto"
-                    aria-label={t('barreWorkflows.navigationAriaLabel')}
-                    sx={{ minHeight: 40 }}
+                    value={courantVisible ? workflowCourant.id : null}
+                    onValueChange={basculer}
+                    // Le débordement défile ici, pas sur la page — l'héritier
+                    // du `variant="scrollable"` MUI. Le `py-1` n'est pas
+                    // décoratif : le soulignement de l'onglet actif dépasse de
+                    // quelques pixels sous la liste, et sans ce dégagement le
+                    // conteneur `overflow-x-auto` fait naître un ascenseur
+                    // vertical permanent (constaté à l'écran).
+                    className="min-w-0 max-w-full overflow-x-auto py-1"
                 >
-                    {onglets.map(workflow => (
-                        <Tab
-                            key={workflow.id}
-                            label={libelleWorkflow(workflow, t)}
-                            sx={{ minHeight: 40, textTransform: 'none' }}
-                        />
-                    ))}
+                    <TabsList variant="line" aria-label={t('barreWorkflows.navigationAriaLabel')}>
+                        {onglets.map(workflow => (
+                            <TabsTrigger key={workflow.id} value={workflow.id} className="flex-none">
+                                {libelleWorkflow(workflow, t)}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
                 </Tabs>
             )}
             {workflowCourant.presentationContexte !== 'arbre'
                 && <FilContexte workflowCourant={workflowCourant} />}
-        </Box>
+        </div>
     );
 }

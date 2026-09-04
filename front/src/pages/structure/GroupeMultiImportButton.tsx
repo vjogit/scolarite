@@ -1,9 +1,9 @@
 import { useRef, useCallback } from 'react';
-import { Tooltip, IconButton } from '@mui/material';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import DriveFolderUploadIcon from '@mui/icons-material/DriveFolderUpload';
+import { FolderUp } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE, GROUPE, STRUCTURE } from './def';
 import { notifyError, notifyPartialSuccess } from '../../services/notify';
@@ -27,7 +27,6 @@ interface Props {
 }
 
 export function GroupeMultiImportButton({ optionId }: Props) {
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('structure');
     // Un seul libellé : l'infobulle et le nom accessible ne peuvent pas diverger.
@@ -57,21 +56,32 @@ export function GroupeMultiImportButton({ optionId }: Props) {
                 message += t('groupe.importerMulti.emailsIntrouvables', { liste: allNotFound.join(', ') });
             }
 
-            notifyPartialSuccess(notifications, message, allNotFound.length === 0);
+            notifyPartialSuccess(message, allNotFound.length === 0);
             void queryClient.invalidateQueries({ queryKey: [STRUCTURE, GROUPE, optionId] });
         } catch (error) {
-            notifyError(notifications, messageForError(error));
+            notifyError(messageForError(error));
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    }, [optionId, notifications, queryClient, t]);
+    }, [optionId, queryClient, t]);
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={() => fileInputRef.current?.click()}>
-                    <DriveFolderUploadIcon />
-                </IconButton>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => fileInputRef.current?.click()}
+                        />
+                    )}
+                >
+                    <FolderUp />
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
             <input
                 type="file"

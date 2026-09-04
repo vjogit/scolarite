@@ -1,13 +1,15 @@
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { Button } from '../components/ui/button';
 import {
-    Button,
     Dialog,
-    DialogActions,
     DialogContent,
-    DialogContentText,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
     DialogTitle,
-} from '@mui/material';
+} from '../components/ui/dialog';
 
 interface Props {
     open: boolean;
@@ -29,36 +31,25 @@ export function UnsavedChangesDialog({ open, onStay, onLeave }: Props) {
     const resterRef = useRef<HTMLButtonElement>(null);
 
     return (
-        <Dialog
-            open={open}
-            onClose={onStay}
-            maxWidth="xs"
-            fullWidth
-            aria-labelledby="unsaved-changes-dialog-title"
-            // `autoFocus` sur le bouton ne suffit pas : le piège à focus de MUI
-            // prend la main sur le conteneur de la modale. On place donc le
-            // focus une fois la transition terminée.
-            slotProps={{ transition: { onEntered: () => { resterRef.current?.focus(); } } }}
-        >
-            <DialogTitle id="unsaved-changes-dialog-title">
-                {t('unsavedDialog.titre')}
-            </DialogTitle>
-
-            <DialogContent>
-                <DialogContentText>
-                    {t('unsavedDialog.corps')}
-                </DialogContentText>
+        <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) onStay(); }}>
+            {/* Pas de croix de fermeture (parité MUI) : les deux issues restent
+                « Rester » et « Quitter ». `initialFocus` remplace le
+                contournement du piège à focus MUI (`onEntered`) : le focus
+                initial va sur l'action qui préserve le travail. */}
+            <DialogContent showCloseButton={false} initialFocus={resterRef}>
+                <DialogHeader>
+                    <DialogTitle>{t('unsavedDialog.titre')}</DialogTitle>
+                    <DialogDescription>{t('unsavedDialog.corps')}</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button type="button" variant="outline" ref={resterRef} onClick={onStay}>
+                        {t('unsavedDialog.rester')}
+                    </Button>
+                    <Button type="button" variant="destructive" onClick={onLeave}>
+                        {t('unsavedDialog.quitter')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-
-            <DialogActions>
-                {/* Le focus initial va sur l'action qui préserve le travail. */}
-                <Button ref={resterRef} onClick={onStay}>
-                    {t('unsavedDialog.rester')}
-                </Button>
-                <Button onClick={onLeave} color="error">
-                    {t('unsavedDialog.quitter')}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }

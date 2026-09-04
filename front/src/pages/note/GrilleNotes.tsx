@@ -11,20 +11,28 @@
  * option, ils n'ont plus à servir de contournement.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import {
-    Alert, Autocomplete, Box, Chip, CircularProgress, IconButton, Paper, Stack,
-    TextField, Tooltip, Typography,
-} from '@mui/material';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { CircleAlert, FileDown, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import {
+    Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList,
+} from '../../components/ui/combobox';
+import { InputGroupAddon } from '../../components/ui/input-group';
+import { Label } from '../../components/ui/label';
+import { Spinner } from '../../components/ui/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { apiInstance } from '../../services/api';
 import { ENDPOINT_GROUPE } from '../structure/def';
 import type { Groupe } from '../structure/Groupe';
 import type { Controle } from './Controle';
+import { AnnonceAxe } from './AnnonceAxe';
 import { FicheExportModal } from './FicheExportModal';
 import { FicheImportButton } from './FicheImportButton';
 import { NoteChartButton } from './NoteChartButton';
@@ -45,6 +53,9 @@ import { Role } from '../user/def';
  */
 const cleGroupeMemorise = (controleId: string) => `note_grille_groupe_${controleId}`;
 
+/** La pastille « Rattrapage » : la teinte d'avertissement du jury (lot 15). */
+const CLASSES_BADGE_AVERTISSEMENT = 'border-transparent bg-warning/15 text-warning';
+
 interface Props {
     controleId: string;
     optionId: string | undefined;
@@ -62,6 +73,7 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { t } = useTranslation('note');
+    const idGroupe = useId();
 
     /**
      * La couture entre l'axe de saisie et l'axe Élève : depuis la ligne d'un
@@ -95,6 +107,8 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
         enabled: !!optionId,
     });
 
+    // Référence stable tant que la liste ne change pas : Base UI compare
+    // `value` par référence pour resynchroniser le texte du champ (lot 14).
     const groupeChoisi = groupes.find(g => String(g.id) === groupeId) ?? null;
 
     const choisirGroupe = useCallback((groupe: Groupe | null) => {
@@ -124,108 +138,122 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
     }), [lignes, champNote]);
 
     return (
-        <Paper sx={{ p: 2 }}>
-            <Stack spacing={2}>
-                {/* Même annonce de nature que sur les quatre autres axes : ce que
-                    l'écran est, dit par lui et non déduit de ce qu'il permet. */}
-                <Alert severity="info" icon={false} variant="outlined" sx={{ py: 0.25 }}>
-                    {AXE_CONTROLE.annonce}
+        // `Card` à marges latérales : le `Paper p={2}` et son `Stack spacing={2}`
+        // (16 px de marge, 16 px entre les blocs) tiennent dans l'espacement
+        // par défaut de la carte.
+        <Card className="px-4">
+            {/* Même annonce de nature que sur les quatre autres axes : ce que
+                l'écran est, dit par lui et non déduit de ce qu'il permet. */}
+            <AnnonceAxe axe={AXE_CONTROLE} />
+
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2">
+                    <h6 className="m-0 text-lg font-medium">{controle?.name ?? t('grilleNotes.notesDuControleParDefaut')}</h6>
+                    {controle?.coeff != null && (
+                        <Badge variant="secondary">{t('grilleNotes.coeffChip', { coeff: formatNombre.format(controle.coeff) })}</Badge>
+                    )}
+                    {bareme != null && (
+                        <Badge variant="secondary">{t('grilleNotes.baremeChip', { bareme: formatNombre.format(bareme) })}</Badge>
+                    )}
+                    {isRattrapage && <Badge className={CLASSES_BADGE_AVERTISSEMENT}>{t('commun.rattrapage')}</Badge>}
+                </div>
+
+                <Combobox
+                    items={groupes}
+                    itemToStringLabel={(groupe: Groupe) => groupe.name}
+                    isItemEqualToValue={(a, b) => a.id === b.id}
+                    value={groupeChoisi}
+                    onValueChange={(valeur) => { choisirGroupe(valeur); }}
+                >
+                    <div className="flex min-w-[260px] flex-col gap-1.5">
+                        {/* Le nom accessible vient du label, comme celui que le
+                            TextField MUI posait : c'est le `combobox` « Groupe »
+                            que la suite e2e cible. */}
+                        <Label htmlFor={idGroupe}>{t('grilleNotes.groupeLabel')}</Label>
+                        <ComboboxInput id={idGroupe} placeholder={t('grilleNotes.groupePlaceholder')} showClear>
+                            {groupesEnCours && (
+                                <InputGroupAddon align="inline-end">
+                                    <Spinner aria-hidden />
+                                </InputGroupAddon>
+                            )}
+                        </ComboboxInput>
+                    </div>
+                    <ComboboxContent>
+                        <ComboboxEmpty />
+                        <ComboboxList>
+                            {(groupe: Groupe) => (
+                                <ComboboxItem key={groupe.id} value={groupe}>{groupe.name}</ComboboxItem>
+                            )}
+                        </ComboboxList>
+                    </ComboboxContent>
+                </Combobox>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-baseline gap-4">
+                    <p className="m-0 text-sm" aria-label={t('grilleNotes.progressionSaisie')}>
+                        {t('grilleNotes.saisieLabel')} <strong>{pourvues}/{lignes.length}</strong>
+                    </p>
+                    {/* Sans ce second cas, une grille aux champs tous grisés
+                        n'expliquait pas pourquoi : elle passait pour en panne. */}
+                    <span className="text-xs text-muted-foreground">
+                        {lectureSeule
+                            ? t('grilleNotes.consultationSeule')
+                            : t('grilleNotes.raccourciSaisie')}
+                    </span>
+                </div>
+
+                <div className="flex items-center">
+                    <NoteChartButton onClick={() => { setGraphiqueOuvert(true); }} />
+                    <Tooltip>
+                        <TooltipTrigger
+                            render={(
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    aria-label={t('grilleNotes.exporterLaFiche')}
+                                    onClick={() => { setExportOuvert(true); }}
+                                />
+                            )}
+                        >
+                            <FileDown />
+                        </TooltipTrigger>
+                        <TooltipContent>{t('grilleNotes.exporterLaFiche')}</TooltipContent>
+                    </Tooltip>
+                    {/* L'import écrit des notes ; l'export reste une lecture. */}
+                    {!lectureSeule && <FicheImportButton controleId={Number(controleId)} />}
+                </div>
+            </div>
+
+            {!optionId && (
+                <Alert variant="destructive">
+                    <CircleAlert />
+                    <AlertDescription>{t('grilleNotes.contexteOptionIntrouvable')}</AlertDescription>
                 </Alert>
+            )}
 
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-                        <Typography variant="h6">{controle?.name ?? t('grilleNotes.notesDuControleParDefaut')}</Typography>
-                        {controle?.coeff != null && (
-                            <Chip size="small" label={t('grilleNotes.coeffChip', { coeff: formatNombre.format(controle.coeff) })} />
-                        )}
-                        {bareme != null && (
-                            <Chip size="small" label={t('grilleNotes.baremeChip', { bareme: formatNombre.format(bareme) })} />
-                        )}
-                        {isRattrapage && <Chip size="small" color="warning" label={t('commun.rattrapage')} />}
-                    </Box>
+            {optionId && !groupeId && (
+                <Alert variant="info">
+                    <Info />
+                    <AlertDescription>{t('grilleNotes.choisirGroupe')}</AlertDescription>
+                </Alert>
+            )}
 
-                    <Autocomplete
-                        sx={{ minWidth: 260 }}
-                        size="small"
-                        options={groupes}
-                        getOptionLabel={(g) => g.name}
-                        value={groupeChoisi}
-                        onChange={(_, valeur) => { choisirGroupe(valeur); }}
-                        loading={groupesEnCours}
-                        renderInput={(params) => (
-                            <TextField
-                                {...params}
-                                label={t('grilleNotes.groupeLabel')}
-                                placeholder={t('grilleNotes.groupePlaceholder')}
-                                slotProps={{
-                                    input: {
-                                        ...params.InputProps,
-                                        endAdornment: (
-                                            <>
-                                                {groupesEnCours && <CircularProgress size={18} />}
-                                                {params.InputProps.endAdornment}
-                                            </>
-                                        ),
-                                    },
-                                }}
-                            />
-                        )}
-                    />
-                </Box>
-
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'baseline' }}>
-                        <Typography variant="body2" aria-label={t('grilleNotes.progressionSaisie')}>
-                            {t('grilleNotes.saisieLabel')} <strong>{pourvues}/{lignes.length}</strong>
-                        </Typography>
-                        {/* Sans ce second cas, une grille aux champs tous grisés
-                            n'expliquait pas pourquoi : elle passait pour en panne. */}
-                        <Typography variant="caption" color="text.secondary">
-                            {lectureSeule
-                                ? t('grilleNotes.consultationSeule')
-                                : t('grilleNotes.raccourciSaisie')}
-                        </Typography>
-                    </Box>
-
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <NoteChartButton onClick={() => { setGraphiqueOuvert(true); }} />
-                        <Tooltip title={t('grilleNotes.exporterLaFiche')}>
-                            <IconButton onClick={() => { setExportOuvert(true); }} aria-label={t('grilleNotes.exporterLaFiche')}>
-                                <FileDownloadIcon />
-                            </IconButton>
-                        </Tooltip>
-                        {/* L'import écrit des notes ; l'export reste une lecture. */}
-                        {!lectureSeule && <FicheImportButton controleId={Number(controleId)} />}
-                    </Box>
-                </Box>
-
-                {!optionId && (
-                    <Alert severity="error">
-                        {t('grilleNotes.contexteOptionIntrouvable')}
-                    </Alert>
-                )}
-
-                {optionId && !groupeId && (
-                    <Alert severity="info">
-                        {t('grilleNotes.choisirGroupe')}
-                    </Alert>
-                )}
-
-                {optionId && groupeId && (
-                    // Remontage à chaque changement de groupe : l'état de saisie
-                    // d'un effectif n'a aucun sens pour un autre.
-                    <GrilleNotesTable
-                        key={groupeId}
-                        controleId={controleId}
-                        groupeId={groupeId}
-                        bareme={bareme}
-                        isRattrapage={isRattrapage}
-                        lectureSeule={lectureSeule}
-                        onLignesChange={setLignes}
-                        actionsLigne={actionsLigne}
-                    />
-                )}
-            </Stack>
+            {optionId && groupeId && (
+                // Remontage à chaque changement de groupe : l'état de saisie
+                // d'un effectif n'a aucun sens pour un autre.
+                <GrilleNotesTable
+                    key={groupeId}
+                    controleId={controleId}
+                    groupeId={groupeId}
+                    bareme={bareme}
+                    isRattrapage={isRattrapage}
+                    lectureSeule={lectureSeule}
+                    onLignesChange={setLignes}
+                    actionsLigne={actionsLigne}
+                />
+            )}
 
             <FicheExportModal
                 open={exportOuvert}
@@ -238,6 +266,6 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                 onClose={() => { setGraphiqueOuvert(false); }}
                 data={donneesGraphique}
             />
-        </Paper>
+        </Card>
     );
 }

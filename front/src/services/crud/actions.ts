@@ -14,20 +14,26 @@
  */
 
 import type { ComponentType } from 'react';
-import type { SvgIconProps } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import { Eye, Pencil, type LucideProps } from 'lucide-react';
 import type { FieldValues } from 'react-hook-form';
 import type { TFunction } from 'i18next';
 
 /** Le composant d'icône lui-même, jamais un élément JSX : aucun rendu ici. */
-export type IconeAction = ComponentType<SvgIconProps>;
+export type IconeAction = ComponentType<LucideProps>;
 
 interface ActionLigneCommune<D extends FieldValues> {
     /** Clé stable : `key` React et repère de test. Unique dans un écran. */
     readonly id: string;
-    /** Libellé textuel, en toutes lettres. « Gérer les groupes ». */
-    readonly libelle: string;
+    /**
+     * Libellé textuel, en toutes lettres. « Gérer les groupes ».
+     *
+     * Fermeture obligatoire dès que l'action est créée au chargement d'un
+     * module (les `actionsLigne` des `routes.tsx`, figées dans le routeur) :
+     * une chaîne y serait résolue une seule fois, dans la langue de
+     * démarrage, et ne suivrait plus la bascule de langue. Une action créée
+     * au rendu (avec le `t` du composant) reste une chaîne simple.
+     */
+    readonly libelle: string | (() => string);
     /** Icône du menu, et de l'action directe — obligatoire pour celle-ci. */
     readonly icone?: IconeAction;
     /**
@@ -69,6 +75,11 @@ export function estNavigation<D extends FieldValues>(
     return 'segment' in action;
 }
 
+/** Le libellé d'une action, résolu au rendu — la langue active au moment où on l'affiche. */
+export function libelleAction<D extends FieldValues>(action: ActionLigne<D>): string {
+    return typeof action.libelle === 'function' ? action.libelle() : action.libelle;
+}
+
 /** Chemin visé par une action de navigation. `rootPath` porte déjà son `/`. */
 export function cibleAction<D extends FieldValues>(
     action: ActionNavigation<D>,
@@ -91,7 +102,7 @@ function actionVoir<D extends FieldValues>(t: TFunction<'crud'>): ActionNavigati
     return {
         id: ID_ACTION_VOIR,
         libelle: t('actions.voir', { ns: 'crud' }),
-        icone: VisibilityIcon,
+        icone: Eye,
         segment: '',
     };
 }
@@ -100,7 +111,7 @@ function actionEditer<D extends FieldValues>(t: TFunction<'crud'>): ActionNaviga
     return {
         id: 'editer',
         libelle: t('actions.editer', { ns: 'crud' }),
-        icone: EditIcon,
+        icone: Pencil,
         segment: 'edit',
         exigeEcriture: true,
     };

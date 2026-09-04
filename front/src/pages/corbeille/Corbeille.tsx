@@ -1,28 +1,18 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNotifications } from '@toolpad/core/useNotifications';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import {
-    Alert,
-    Box,
-    Button,
-    Card,
-    CardActions,
-    CardContent,
-    CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
-    Stack,
-    TextField,
-    Typography,
-} from '@mui/material';
-import RestoreIcon from '@mui/icons-material/Restore';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import { ArchiveRestore, CircleAlert, Info, Trash, TriangleAlert } from 'lucide-react';
 
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '../../components/ui/card';
+import {
+    Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Spinner } from '../../components/ui/spinner';
 import { fetchCorbeille, purgerOperation, restaurerOperation, type OperationCorbeille } from './service';
 import { CORBEILLE } from './def';
 import type { DeleteImpactEntry } from '../../services/crud/def';
@@ -84,71 +74,73 @@ function PurgeDialog({
     const { t } = useTranslation('corbeille');
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
+    const idSaisie = useId();
 
     const [seulElement] = operation?.items ?? [];
     const phraseAttendue =
         operation?.items.length === 1 && seulElement ? seulElement.name : t('motConfirmation');
     const confirmationOk = operation !== null && saisie.trim() === phraseAttendue;
 
-    const fermer = () => {
-        setSaisie('');
-        onClose();
-    };
-
     return (
         <Dialog
             open={operation !== null}
-            onClose={fermer}
-            maxWidth="sm"
-            fullWidth
-            // La saisie est le geste attendu, et elle existe dès l'ouverture :
-            // le piège à focus de MUI reprendrait la main sur un `autoFocus`.
-            // Même contournement que dans `UnsavedChangesDialog`.
-            slotProps={{ transition: { onEntered: () => { saisieRef.current?.focus(); } } }}
+            onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}
+            // La saisie ne survit pas à la fermeture ; vidée à la fin de la
+            // transition, pas sous les yeux de l'utilisateur (même règle que
+            // `DeleteConfirmDialog`).
+            onOpenChangeComplete={(ouvert) => { if (!ouvert) setSaisie(''); }}
         >
-            <DialogTitle>
-                {operation ? t('purgerTitre', { titre: titreOperation(operation, t) }) : ''}
-            </DialogTitle>
-            <DialogContent>
-                <Stack spacing={2}>
+            {/* Pas de croix (parité MUI). `initialFocus` sur la saisie, le
+                geste attendu — l'ancien contournement du piège à focus MUI
+                (`onEntered`) devient inutile. */}
+            <DialogContent className="sm:max-w-xl" showCloseButton={false} initialFocus={saisieRef}>
+                <DialogHeader>
+                    <DialogTitle>
+                        {operation ? t('purgerTitre', { titre: titreOperation(operation, t) }) : ''}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-4">
                     {operation && operation.cascade.length > 0 && (
-                        <Alert severity="warning">
-                            <Typography variant="body2" component="span">
+                        <Alert variant="warning">
+                            <TriangleAlert />
+                            <AlertDescription>
                                 {t('contientPrefixe')}<strong>{joinEnumeration(operation.cascade.map(formatEntry), t)}</strong>.
-                            </Typography>
+                            </AlertDescription>
                         </Alert>
                     )}
-                    <DialogContentText>
+                    <p className="m-0 text-sm text-muted-foreground">
                         {t('purgeIrreversible')}
-                    </DialogContentText>
-                    <Box>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
+                    </p>
+                    <div>
+                        <p className="mb-2 text-sm">
                             {t('confirmerSaisiePrefixe')} <strong>{phraseAttendue}</strong> :
-                        </Typography>
-                        <TextField
-                            inputRef={saisieRef}
-                            value={saisie}
-                            onChange={(event) => { setSaisie(event.target.value); }}
-                            size="small"
-                            fullWidth
-                            autoComplete="off"
-                            label={t('confirmationLabel')}
-                        />
-                    </Box>
-                </Stack>
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor={idSaisie}>{t('confirmationLabel')}</Label>
+                            <Input
+                                id={idSaisie}
+                                ref={saisieRef}
+                                value={saisie}
+                                onChange={(event) => { setSaisie(event.target.value); }}
+                                autoComplete="off"
+                            />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose}>
+                        {t('annuler')}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        disabled={!confirmationOk || enCours}
+                        onClick={() => { if (operation) onConfirm(operation); }}
+                    >
+                        {t('purgerDefinitivement')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={fermer}>
-                    {t('annuler')}
-                </Button>
-                <Button
-                    color="error"
-                    disabled={!confirmationOk || enCours}
-                    onClick={() => { if (operation) onConfirm(operation); }}
-                >
-                    {t('purgerDefinitivement')}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }
@@ -166,37 +158,41 @@ function RestoreDialog({
     enCours: boolean;
 }) {
     const { t } = useTranslation('corbeille');
+    // Parité avec l'`autoFocus` que portait « Annuler » : l'action par défaut
+    // est celle qui ne fait rien.
+    const annulerRef = useRef<HTMLButtonElement>(null);
     return (
-        <Dialog open={operation !== null} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>
-                {operation ? t('restaurerTitre', { titre: titreOperation(operation, t) }) : ''}
-            </DialogTitle>
-            <DialogContent>
-                <DialogContentText>
-                    {t('restaurationTout')}
-                    {operation && operation.cascade.length > 0
-                        ? t('restaurationToutSuffixe', { liste: joinEnumeration(operation.cascade.map(formatEntry), t) })
-                        : '.'}
-                </DialogContentText>
+        <Dialog open={operation !== null} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
+            <DialogContent className="sm:max-w-xl" showCloseButton={false} initialFocus={annulerRef}>
+                <DialogHeader>
+                    <DialogTitle>
+                        {operation ? t('restaurerTitre', { titre: titreOperation(operation, t) }) : ''}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t('restaurationTout')}
+                        {operation && operation.cascade.length > 0
+                            ? t('restaurationToutSuffixe', { liste: joinEnumeration(operation.cascade.map(formatEntry), t) })
+                            : '.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button type="button" variant="outline" ref={annulerRef} onClick={onClose}>
+                        {t('annuler')}
+                    </Button>
+                    <Button
+                        type="button"
+                        disabled={enCours}
+                        onClick={() => { if (operation) onConfirm(operation); }}
+                    >
+                        {t('restaurer')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} autoFocus>
-                    {t('annuler')}
-                </Button>
-                <Button
-                    color="primary"
-                    disabled={enCours}
-                    onClick={() => { if (operation) onConfirm(operation); }}
-                >
-                    {t('restaurer')}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }
 
 export function CorbeillePage() {
-    const notifications = useNotifications();
     const queryClient = useQueryClient();
     const { t } = useTranslation('corbeille');
 
@@ -218,11 +214,11 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setARestaurer(null);
             void invalidateTout();
-            notifySuccess(notifications, t('restaurationSucces', { titre: titreOperation(op, t) }));
+            notifySuccess(t('restaurationSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setARestaurer(null);
-            notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
+            notifyError(blockingMessageFor(error) ?? messageForError(error));
         },
     });
 
@@ -231,11 +227,11 @@ export function CorbeillePage() {
         onSuccess: (_data, op) => {
             setAPurger(null);
             void invalidateTout();
-            notifySuccess(notifications, t('purgeSucces', { titre: titreOperation(op, t) }));
+            notifySuccess(t('purgeSucces', { titre: titreOperation(op, t) }));
         },
         onError: (error) => {
             setAPurger(null);
-            notifyError(notifications, blockingMessageFor(error) ?? messageForError(error));
+            notifyError(blockingMessageFor(error) ?? messageForError(error));
         },
     });
 
@@ -243,83 +239,91 @@ export function CorbeillePage() {
 
     if (query.isPending) {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
-                <CircularProgress size={18} />
-                <Typography variant="body2">{t('chargement')}</Typography>
-            </Box>
+            <div className="flex items-center gap-2 p-4">
+                {/* Le texte voisin porte l'information : le spinner n'a rien à
+                    annoncer de plus au lecteur d'écran. */}
+                <Spinner aria-hidden />
+                <span className="text-sm">{t('chargement')}</span>
+            </div>
         );
     }
 
     if (query.isError) {
         return (
-            <Alert severity="error" sx={{ m: 2 }}>
-                {t('erreurLecture', { erreur: messageForError(query.error) })}
+            <Alert variant="destructive" className="m-4 w-auto">
+                <CircleAlert />
+                <AlertDescription>{t('erreurLecture', { erreur: messageForError(query.error) })}</AlertDescription>
             </Alert>
         );
     }
 
     return (
-        <Box sx={{ p: 2 }}>
-            <Typography variant="h5" sx={{ mb: 0.5 }}>
-                {t('titre')}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('sousTitre')}
-            </Typography>
+        <div className="p-4">
+            {/* `h5` : le rang que MUI donnait à `variant="h5"`. */}
+            <h5 className="m-0 mb-1 text-2xl font-normal">{t('titre')}</h5>
+            <p className="m-0 mb-4 text-sm text-muted-foreground">{t('sousTitre')}</p>
 
             {/* Rien à créer dans une corbeille : le message se suffit, et dit
                 d'où viendra ce qui s'y trouvera. */}
             {operations.length === 0 && (
-                <Alert severity="info">
-                    {t('vide')}
+                <Alert variant="info">
+                    <Info />
+                    <AlertDescription>{t('vide')}</AlertDescription>
                 </Alert>
             )}
 
-            <Stack spacing={2}>
+            <div className="flex flex-col gap-4">
                 {operations.map((op) => (
-                    <Card key={op.id} variant="outlined">
-                        <CardContent>
-                            <Typography variant="h6">{titreOperation(op, t)}</Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                {sousTitreOperation(op, t)}
-                            </Typography>
+                    <Card key={op.id}>
+                        <CardHeader>
+                            {/* `h6` : le titre de carte que MUI rendait, ciblé en
+                                `heading` par la suite e2e. */}
+                            <h6 className="m-0 text-base font-medium">{titreOperation(op, t)}</h6>
+                            <CardDescription>{sousTitreOperation(op, t)}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex flex-col gap-2">
                             {op.cascade.length > 0 ? (
-                                <Typography variant="body2">
+                                <p className="m-0 text-sm">
                                     {t('contientPrefixe')}{joinEnumeration(op.cascade.map(formatEntry), t)}.
-                                </Typography>
+                                </p>
                             ) : (
-                                <Typography variant="body2">{t('aucuneDonneeLiee')}</Typography>
+                                <p className="m-0 text-sm">{t('aucuneDonneeLiee')}</p>
                             )}
                             {op.blocking.length > 0 && (
-                                <Alert severity="error" sx={{ mt: 1 }}>
-                                    {op.blocking.map((blocage) => (
-                                        <Typography key={blocage.reason} variant="body2">
-                                            {blocage.message}
-                                        </Typography>
-                                    ))}
+                                <Alert variant="destructive">
+                                    <CircleAlert />
+                                    <AlertDescription className="flex flex-col gap-1">
+                                        {op.blocking.map((blocage) => (
+                                            <span key={blocage.reason}>{blocage.message}</span>
+                                        ))}
+                                    </AlertDescription>
                                 </Alert>
                             )}
                         </CardContent>
-                        <CardActions>
+                        <CardFooter className="gap-2">
                             <Button
-                                startIcon={<RestoreIcon />}
+                                type="button"
+                                variant="outline"
                                 onClick={() => { setARestaurer(op); }}
                                 disabled={restauration.isPending || purge.isPending}
                             >
+                                <ArchiveRestore />
                                 {t('restaurer')}
                             </Button>
                             <Button
-                                color="error"
-                                startIcon={<DeleteForeverIcon />}
+                                type="button"
+                                variant="outline"
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => { setAPurger(op); }}
                                 disabled={op.blocking.length > 0 || restauration.isPending || purge.isPending}
                             >
+                                <Trash />
                                 {t('purger')}
                             </Button>
-                        </CardActions>
+                        </CardFooter>
                     </Card>
                 ))}
-            </Stack>
+            </div>
 
             <RestoreDialog
                 operation={aRestaurer}
@@ -333,6 +337,6 @@ export function CorbeillePage() {
                 onConfirm={(op) => { purge.mutate(op); }}
                 enCours={purge.isPending}
             />
-        </Box>
+        </div>
     );
 }

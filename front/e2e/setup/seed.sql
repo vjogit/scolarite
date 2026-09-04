@@ -5,8 +5,16 @@
 -- e2e-*@scolarite.local (élèves) — la purge en tête de script ne supprime
 -- donc que ce que ce script a lui-même posé, jamais la hiérarchie
 -- manuellement vérifiée qui vit à côté (voir la mémoire
--- jeu-donnees-verif-hierarchie). Deux exécutions consécutives laissent l'état
--- final identique : c'est la preuve attendue en étape 4.
+-- jeu-donnees-verif-hierarchie). Deux exécutions consécutives DE CE SCRIPT
+-- laissent l'état final identique : c'est la preuve attendue en étape 4.
+--
+-- Ne pas lire au-delà de ce que ça dit : l'idempotence est celle du script,
+-- pas de la suite qui le consomme. Les tests, eux, MUTENT cet état (notes
+-- saisies, éléments mis à la corbeille...) et certains dépendent de ce
+-- qu'un test précédent y a laissé (voir grille-saisie.spec.ts). La suite
+-- n'est reproductible que si ce script est reposé avant chaque exécution —
+-- ce que `e2e/setup/globalSetup.ts` fait désormais sans condition, quel que
+-- soit le point d'entrée. Voir docs/migration-shadcn/01bis-stabilisation-e2e.md.
 --
 -- Une branche dédiée plutôt que la réutilisation de données existantes : un
 -- aller-retour Excel a déjà détruit un jeu de données partagé par le passé.
@@ -89,6 +97,21 @@ with f as (
     where eleves."lastName" = v."lastName"
 )
 select 1;
+
+-- ── Promotion vide (dialogue de suppression avec saisie — lot 4ter) ────────
+-- Sans descendance : sa suppression n'est pas bloquée par la période
+-- délibérée, contrairement à « E2E Formation » et « E2E Promotion » qui la
+-- contiennent — c'est donc la seule entité du seed à afficher la saisie de
+-- confirmation (`deleteRequiresNameConfirmation`) plutôt que l'état bloqué.
+-- Aucun test ne la supprime : le dialogue est ouvert puis refermé. Portée par
+-- « E2E Formation » : la purge en tête de script l'emporte par CASCADE,
+-- l'idempotence par pose est inchangée.
+insert into promotion (name, debut, fin, echelle_gpa, echelle, matiere_eliminatoire, value_matiere_eliminatoire, formation_id, bareme)
+select 'E2E Promo Vide', '2025-09-01', '2026-08-31',
+       array[4, 3.5, 3, 2.5, 2, 0]::real[], array[16, 14, 12, 10, 8]::real[],
+       true, 6, f.id, 20
+from formation f
+where f.name = 'E2E Formation';
 
 -- ── Option sacrificielle (suite corbeille) ─────────────────────────────────
 -- Un contrôle et un effectif non vide : la modale de suppression chiffre une
