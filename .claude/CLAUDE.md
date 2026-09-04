@@ -271,11 +271,30 @@ Application réservée au personnel administratif. Pas encore en production.
   montage, formulaire monté dans le popup, plus d'initialisation sur
   transition). `ChampSelection` travaille en **chaînes** : un identifiant
   numérique se convertit à la soumission. Le choix multiple n'est pas dans
-  le contrat (combobox à chips local à `ReservationDialog`). Un écran ne leur passe que `name`, `control`,
-  `label` et `disabled={isReadOnly}` : le câblage react-hook-form
+  le contrat (combobox à chips local à `ReservationDialog`), ni le
+  sélecteur de couleur (`<input type="color">` local à `Matiere`, seul
+  écran à en monter un). Un écran ne leur passe que `name`, `control`,
+  `label` et `disabled={isReadOnly}` — plus, depuis le lot 15, **`aide`**
+  (le texte sous le champ, l'ancien `helperText` hors erreur ; en légende
+  sous le libellé d'un interrupteur ou d'une case, ce que les modales du
+  jury faisaient à la main) et, sur `ChampTexte` seul, **`formater`**
+  (la valeur que l'API livre sous une autre forme que la saisie — les
+  échelles de Promotion arrivent en tableau, se saisissent en
+  `a=4,b=3.5,…`). Le câblage react-hook-form
   (`useController`), l'erreur (`aria-invalid` + message sous le champ) et
   l'état désactivé vivent dans le composant — jamais de `register(...)`
   nu, de `TextField`, ni d'`error`/`helperText` recopiés dans un écran.
+  **`ChampTexte` soumet `''` pour un champ absent d'`emptyValue`** :
+  `useController` soumet la valeur du formulaire (`undefined` en création),
+  là où `register` soumettait celle du DOM — sans ce repli, un nom laissé
+  vide recevait le message générique de zod (« string attendu, undefined
+  reçu ») au lieu de « Le nom est requis » (constaté au navigateur, lot 15,
+  sur les sept formulaires de structure ; Salle ne le montrait pas parce
+  que son `emptyValue` porte `name: ''`). Une modale à interrupteur ou à
+  champs sans schéma (délibération, bulletins) passe aussi par `useForm` +
+  champs partagés, formulaire monté dans le popup (lot 15, précédent lot
+  14) ; seule la saisie de confirmation d'une suppression ou d'une purge
+  reste un `Label` + `Input` nus, sur le modèle de `DeleteConfirmDialog`.
   **Un nombre passe par `ChampNombre`**, qui remet au schéma un `number`
   (ou `null` si vidé) : c'est ce qui a réglé la création de salle, qui
   échouait en validation (« nombre attendu, string reçu ») depuis le lot 7
