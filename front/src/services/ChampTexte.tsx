@@ -31,7 +31,7 @@
  */
 
 import { useId } from 'react';
-import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
+import { useController, type Control, type FieldValues, type Path, type PathValue } from 'react-hook-form';
 
 import { Field, FieldDescription, FieldError, FieldLabel } from '../components/ui/field';
 import { Input } from '../components/ui/input';
@@ -92,7 +92,18 @@ export function ChampTexte<D extends FieldValues>({
     // `ref` sort de `field` sous un autre nom : le React Compiler tient tout
     // objet dont il voit lire `.ref` pour une ref, et refuse ensuite d'en lire
     // `.value` pendant le rendu. Renommer lève l'ambiguïté sans rien cacher.
-    const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({ name, control });
+    //
+    // `defaultValue: ''` — un champ absent d'`emptyValue` vaut `undefined`
+    // dans le formulaire ; `register` soumettait la valeur du DOM (`''`),
+    // `useController` soumet la valeur du formulaire. Sans ce repli, un nom
+    // laissé vide en création arrivait `undefined` au schéma et recevait le
+    // message générique de zod (« string attendu, undefined reçu ») au lieu
+    // de « Le nom est requis » — constaté au navigateur, lot 15. Le repli ne
+    // joue que si ni `defaultValues` ni le formulaire ne portent le champ :
+    // en édition, la valeur de l'API (chaîne ou `null`) reste la sienne.
+    const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({
+        name, control, defaultValue: '' as PathValue<D, Path<D>>,
+    });
     const id = useId();
     const idErreur = `${id}-erreur`;
     const idAide = `${id}-aide`;
