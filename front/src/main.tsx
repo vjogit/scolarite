@@ -1,7 +1,5 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { StyledEngineProvider } from '@mui/material/styles';
-import GlobalStyles from '@mui/material/GlobalStyles';
 import './index.css';
 import './i18n/config';
 import App from './App.tsx'
@@ -166,22 +164,6 @@ if (!racine) throw new Error("L'élément #root est absent de index.html.");
 
 createRoot(racine).render(
   <StrictMode>
-    {/* Racine de l'arbre, en dehors du routeur : ne fait que fournir le cache
-        Emotion partagé (`enableCssLayer`), sans rendu propre — le placement
-        au-dessus de App/Layout (déjà des fournisseurs de style empilés)
-        couvre tout composant MUI sans toucher à leurs contextes de thème. */}
-    <StyledEngineProvider enableCssLayer>
-      {/* Déclare l'ordre des couches AVANT tout autre insertion Emotion.
-          `index.css` le déclare aussi, mais cette feuille externe charge en
-          parallèle du bundle JS : si CssBaseline (ou tout composant MUI)
-          insère son propre `@layer mui { ... }` avant que ce fichier n'ait
-          fini de charger, `mui` se retrouve enregistré en PREMIER — donc
-          perdant face à `base` — et MUI perd sa propre apparence par défaut
-          partout (constaté : boutons et champs sans fond ni marge). Cet
-          élément, premier enfant du Provider, fixe l'ordre de façon
-          synchrone, sans dépendre d'une requête réseau. */}
-      <GlobalStyles styles="@layer theme, base, mui, components, utilities;" />
-      <RouterProvider router={router} />
-    </StyledEngineProvider>
+    <RouterProvider router={router} />
   </StrictMode>
 )

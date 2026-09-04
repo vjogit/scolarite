@@ -1,22 +1,18 @@
 /*
- * Point d'entrée CSS global — le seul du projet (tout le reste passe par
- * Emotion, moteur de style de MUI).
+ * Point d'entrée CSS global — le seul du projet. Tout le style vient de cette
+ * feuille (Tailwind, les tokens ci-dessous, les composants shadcn par leurs
+ * classes) ; aucun moteur n'injecte de CSS à l'exécution, hormis FullCalendar
+ * (voir le bloc `.fc` en fin de fichier).
  *
- * L'ordre des couches ci-dessous DOIT rester la toute première déclaration
- * du fichier, avant l'import Tailwind. Emotion (MUI) injecte du CSS hors
- * couche par défaut ; en CSS, une règle hors couche l'emporte toujours sur
- * une règle en couche, quelle que soit sa spécificité. Sans cet ordre
- * explicite, MUI écraserait silencieusement les utilitaires Tailwind et la
- * migration composant par composant deviendrait impossible.
- *
- * `enableCssLayer` sur StyledEngineProvider (src/App.tsx) fait passer les
- * styles injectés par Emotion dans la couche `mui` déclarée ici. Elle est
- * placée avant `components`/`utilities` : Tailwind et, plus tard, shadcn
- * peuvent donc surcharger MUI. Voir la doc MUI « CSS layers » et
- * l'invariant correspondant dans .claude/CLAUDE.md.
+ * Les couches sont celles que Tailwind déclare lui-même à l'import
+ * (`theme, base, components, utilities`). Du lot 1 au lot 16, une couche
+ * `mui` intercalée ici — et redéclarée en JS par un `<GlobalStyles>` pour
+ * gagner la course contre l'injection synchrone d'Emotion — faisait
+ * cohabiter MUI avec Tailwind ; elle est partie avec MUI (lot 17,
+ * docs/migration-shadcn/17-depose-mui.md). Toute feuille tierce chargée hors
+ * couche l'emporte sur les règles en couche : c'est le cas de FullCalendar,
+ * traité par des variables posées sur l'élément, jamais par un utilitaire.
  */
-@layer theme, base, mui, components, utilities;
-
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
