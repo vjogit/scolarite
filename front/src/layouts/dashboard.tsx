@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import LinearProgress from '@mui/material/LinearProgress';
-import useMediaQuery from '@mui/material/useMediaQuery';
 import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -9,8 +8,9 @@ import { Link, Outlet, useLocation } from 'react-router';
 import { Toaster } from 'sonner';
 
 import { useSession } from '../SessionContext';
-import { createTheme, ThemeProvider, useColorScheme, type Theme } from '@mui/material/styles';
+import { createTheme, ThemeProvider, type Theme } from '@mui/material/styles';
 import { useKeycloak } from '../KeycloakContext';
+import { useModeCouleur } from '../services/modeCouleur';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
 import { construireNavigation, filterNavigationByRoles } from './navigation';
 import {
@@ -158,7 +158,7 @@ function MenuCompte() {
 export default function Layout() {
   const { session } = useSession()
   const location = useLocation()
-  const { mode } = useColorScheme()
+  const { estSombre } = useModeCouleur()
   const { keycloak, loading } = useKeycloak()
   const { t } = useTranslation('app')
 
@@ -180,20 +180,14 @@ export default function Layout() {
     });
   }, [loading, session, keycloak, location.pathname, location.search]);
 
-  // `useMediaQuery` s'abonne à la préférence système ; la lecture directe de
-  // `window.matchMedia` pendant le rendu marchait, mais seulement parce que
-  // `useColorScheme` ci-dessus s'y abonne pour son compte et provoque le rendu.
-  // Le composant dépendait donc d'un abonnement posé par un voisin.
-  const systemeSombre = useMediaQuery('(prefers-color-scheme: dark)');
-
-  const estSombre = (mode == undefined || mode == 'system') ? systemeSombre : mode === 'dark';
   const theme: Theme = estSombre ? darkTheme : lightTheme;
 
-  // Source unique du mode sombre : MUI résout `estSombre` ci-dessus (thème
-  // + préférence système) ; Tailwind/shadcn n'ont pas leur propre logique de
-  // résolution, ils suivent la classe `.dark` posée ici sur `<html>` — celle
-  // qu'attend `@custom-variant dark (&:is(.dark *))` dans src/index.css.
-  // Ne pas dupliquer cette résolution ailleurs (voir invariant CLAUDE.md).
+  // Source unique du mode sombre : `useModeCouleur` (services/modeCouleur.ts)
+  // résout `estSombre` — préférence enregistrée, ou système en cas de
+  // `system`, par abonnement — et cet effet pose la classe `.dark` sur
+  // `<html>`, celle qu'attend `@custom-variant dark (&:is(.dark *))` dans
+  // src/index.css. Le thème MUI ci-dessus la suit pendant la dépose ; rien
+  // d'autre ne résout le mode (voir invariant CLAUDE.md #12).
   //
   // Posé AVANT les `return` anticipés ci-dessous (loading/session) : les
   // Hooks doivent s'exécuter à chaque rendu quel que soit le chemin de sortie

@@ -2,8 +2,8 @@ import MuiButton from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import { useColorScheme } from '@mui/material/styles';
 import { Button as ShadButton } from '@/components/ui/button';
+import { useModeCouleur } from '../../services/modeCouleur';
 
 /**
  * Route de vérification temporaire — dette du lot « cohabitation ».
@@ -14,7 +14,7 @@ import { Button as ShadButton } from '@/components/ui/button';
  * imposée par `Layout` s'applique.
  */
 export default function Cohabitation() {
-  const { mode, setMode } = useColorScheme();
+  const { mode, setMode } = useModeCouleur();
 
   return (
     <Stack spacing={4} sx={{ p: 4 }}>
@@ -77,19 +77,19 @@ export default function Cohabitation() {
 
       <section>
         <Typography variant="h6" gutterBottom>
-          5. Basculement clair/sombre (source unique : MUI)
+          5. Basculement clair/sombre (source unique : useModeCouleur)
         </Typography>
         <MuiButton
           variant="outlined"
           onClick={() => { setMode(mode === 'dark' ? 'light' : 'dark'); }}
         >
-          Basculer le mode (actuel : {mode ?? 'system'})
+          Basculer le mode (actuel : {mode})
         </MuiButton>
         <Typography variant="body2" sx={{ mt: 1 }}>
-          Ce bouton change `useColorScheme().mode` — la même source que
-          `layouts/dashboard.tsx` lit pour choisir le thème MUI. La classe
-          `.dark` posée sur `&lt;html&gt;` par ce même composant doit faire
-          bouger MUI et les blocs Tailwind du point 6 ensemble, sans décalage.
+          Ce bouton change `useModeCouleur().mode` — la même source que
+          `layouts/dashboard.tsx` lit pour poser la classe `.dark` sur
+          `&lt;html&gt;` (et, tant qu'il reste, choisir le thème MUI). MUI et
+          les blocs Tailwind du point 6 doivent bouger ensemble, sans décalage.
         </Typography>
       </section>
 
