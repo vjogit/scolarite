@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import {
-    Dialog, DialogTitle, DialogContent, DialogActions,
-    Button, TextField, Stack, CircularProgress,
-} from '@mui/material';
+import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { FileText } from 'lucide-react';
+
+import { Button } from '../../components/ui/button';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Spinner } from '../../components/ui/spinner';
+import { ChampTexte } from '../../services/ChampTexte';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -32,6 +34,21 @@ const defaultParams: BulletinParams = {
     nom_responsable: '',
 };
 
+/** Les neuf champs, dans l'ordre du bulletin, avec leur libellé. */
+function champsBulletin(t: TFunction<'jury'>): { name: keyof BulletinParams; label: string }[] {
+    return [
+        { name: 'entete_ligne_1', label: t('exportBulletins.champEnteteLigne1') },
+        { name: 'entete_ligne_2', label: t('exportBulletins.champEnteteLigne2') },
+        { name: 'entete_ligne_3', label: t('exportBulletins.champEnteteLigne3') },
+        { name: 'entete_ligne_4', label: t('exportBulletins.champEnteteLigne4') },
+        { name: 'entete_ligne_5', label: t('exportBulletins.champEnteteLigne5') },
+        { name: 'periode', label: t('exportBulletins.champPeriode') },
+        { name: 'entete_ue', label: t('exportBulletins.champEnteteUe') },
+        { name: 'date_jury', label: t('exportBulletins.champDateJury') },
+        { name: 'nom_responsable', label: t('exportBulletins.champNomResponsable') },
+    ];
+}
+
 interface Props {
     open: boolean;
     loading: boolean;
@@ -40,42 +57,44 @@ interface Props {
 }
 
 export function JuryBulletinsExportModal({ open, loading, onClose, onConfirm }: Props) {
-    const [params, setParams] = useState<BulletinParams>(defaultParams);
     const { t } = useTranslation('jury');
-
-    const set = (key: keyof BulletinParams) => (e: React.ChangeEvent<HTMLInputElement>) => {
-        setParams(prev => ({ ...prev, [key]: e.target.value }));
-    };
-
-    const handleConfirm = () => { onConfirm(params); };
+    // Le formulaire vit ici, au niveau de la modale, et non dans le popup :
+    // les paramètres saisis survivent à une fermeture puis une réouverture,
+    // comme l'état de la modale MUI, qui restait montée. Les champs, eux,
+    // sont démontés avec le popup ; react-hook-form garde leurs valeurs.
+    const { control, handleSubmit } = useForm<BulletinParams>({ defaultValues: defaultParams });
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{t('exportBulletins.titreParametres')}</DialogTitle>
-            <DialogContent>
-                <Stack spacing={2} sx={{ mt: 1 }}>
-                    <TextField label={t('exportBulletins.champEnteteLigne1')} value={params.entete_ligne_1} onChange={set('entete_ligne_1')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champEnteteLigne2')} value={params.entete_ligne_2} onChange={set('entete_ligne_2')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champEnteteLigne3')} value={params.entete_ligne_3} onChange={set('entete_ligne_3')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champEnteteLigne4')} value={params.entete_ligne_4} onChange={set('entete_ligne_4')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champEnteteLigne5')} value={params.entete_ligne_5} onChange={set('entete_ligne_5')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champPeriode')} value={params.periode} onChange={set('periode')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champEnteteUe')} value={params.entete_ue} onChange={set('entete_ue')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champDateJury')} value={params.date_jury} onChange={set('date_jury')} size="small" fullWidth />
-                    <TextField label={t('exportBulletins.champNomResponsable')} value={params.nom_responsable} onChange={set('nom_responsable')} size="small" fullWidth />
-                </Stack>
+        <Dialog open={open} onOpenChange={(ouvert) => { if (!ouvert) onClose(); }}>
+            {/* Pas de croix (parité MUI). Hauteur bornée et corps défilant
+                (lot 14) : neuf champs dépassent un écran bas, titre et bouton
+                d'export doivent rester en vue. */}
+            <DialogContent
+                className="max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-[600px]"
+                showCloseButton={false}
+            >
+                <DialogHeader>
+                    <DialogTitle>{t('exportBulletins.titreParametres')}</DialogTitle>
+                </DialogHeader>
+                <div className="-mx-1 -mt-2 flex flex-col gap-4 overflow-y-auto px-1 pt-2">
+                    {champsBulletin(t).map(({ name, label }) => (
+                        <ChampTexte key={name} name={name} control={control} label={label} className="mb-0" />
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
+                        {t('commun.annuler')}
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => { void handleSubmit(onConfirm)(); }}
+                        disabled={loading}
+                    >
+                        {loading ? <Spinner aria-hidden /> : <FileText />}
+                        {t('exportBulletins.exporter')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose} disabled={loading}>{t('commun.annuler')}</Button>
-                <Button
-                    variant="contained"
-                    onClick={handleConfirm}
-                    disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : <FileText size={20} />}
-                >
-                    {t('exportBulletins.exporter')}
-                </Button>
-            </DialogActions>
         </Dialog>
     );
 }

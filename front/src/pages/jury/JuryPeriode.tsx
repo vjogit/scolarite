@@ -1,4 +1,3 @@
-import { Box, Button, Chip, Tooltip, Typography } from '@mui/material';
 import { useParams } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +8,6 @@ import { apiInstance } from '../../services/api';
 import { handleAxiosError } from '../../services/crud/def';
 import { messageForError } from '../../services/errorMessages';
 import { useCallback, useMemo, memo, useState } from 'react';
-import { Alert } from '@mui/material';
 import type {
     ColumnDef,
     RowSelectionState,
@@ -18,7 +16,11 @@ import type {
 import { DataTable } from '../../services/crud/DataTable';
 import { useEtatTablePersistant } from '../../services/crud/usePersistentTableState';
 import { EtatVideTable } from '../../services/crud/EtatVideTable';
-import { Button as BoutonTable } from '../../components/ui/button';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
+import { cn } from '../../lib/utils';
 import { ENDPOINT_DELIBERER, ENDPOINT_JURY } from './def';
 import { JuryExportButton } from './JuryExportButton';
 import { JuryBulletinsExportButton } from './JuryBulletinsExportButton';
@@ -26,7 +28,7 @@ import { DelibererButton } from './DelibererButton';
 import { DelibererBulkDialog, type BulkStudent } from './DelibererBulkDialog';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
-import { Gavel, Maximize2, Minimize2 } from 'lucide-react';
+import { CircleAlert, Gavel, Maximize2, Minimize2 } from 'lucide-react';
 import { useDroits } from '../../services/context/droits';
 import { Role } from '../user/def';
 
@@ -34,20 +36,17 @@ import { Role } from '../user/def';
 // Constantes visuelles
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Le tiret d'une valeur absente — le `text.disabled` MUI. */
+const Absent = () => <span className="text-sm text-muted-foreground">—</span>;
+
 /** Rendu d'un grade : rouge si F, normal sinon */
 function GradeBadge({ grade }: { grade: string | null | undefined }) {
-    if (!grade) return <Typography variant="body2" color="text.disabled">—</Typography>;
+    if (!grade) return <Absent />;
     const isF = grade === 'F';
     return (
-        <Typography
-            variant="body2"
-            sx={{
-                fontWeight: isF ? 700 : 400,
-                color: isF ? 'error.main' : 'inherit',
-            }}
-        >
+        <span className={cn('text-sm', isF && 'font-bold text-destructive')}>
             {grade}
-        </Typography>
+        </span>
     );
 }
 
@@ -59,33 +58,27 @@ function GradeBadge({ grade }: { grade: string | null | undefined }) {
 
 /** Cellule GPA */
 const GpaCell = memo(({ value }: { value: number | null | undefined }) => {
-    if (value === null || value === undefined)
-        return <Typography variant="body2" color="text.disabled">—</Typography>;
-    return <Typography variant="body2">{value.toFixed(2)}</Typography>;
+    if (value === null || value === undefined) return <Absent />;
+    return <span className="text-sm">{value.toFixed(2)}</span>;
 });
 
 /** Cellule ECTS non validés */
 const EctsEchecCell = memo(({ value }: { value: number }) => (
-    <Typography
-        variant="body2"
-        sx={{ fontWeight: value > 0 ? 700 : 400, color: value > 0 ? 'error.main' : 'success.main' }}
-    >
+    <span className={cn('text-sm', value > 0 ? 'font-bold text-destructive' : 'text-success')}>
         {value}
-    </Typography>
+    </span>
 ));
 
 /** Cellule Booléenne pour afficher Oui/Non ou — */
 const BooleanCell = memo(({ value, oui, non }: { value: boolean | null | undefined; oui: string; non: string }) => {
-    if (value === null || value === undefined)
-        return <Typography variant="body2" color="text.disabled">—</Typography>;
-    return <Typography variant="body2">{value ? oui : non}</Typography>;
+    if (value === null || value === undefined) return <Absent />;
+    return <span className="text-sm">{value ? oui : non}</span>;
 });
 
 /** Cellule Entier pour afficher un nombre entier ou — */
 const IntegerCell = memo(({ value }: { value: number | null | undefined }) => {
-    if (value === null || value === undefined)
-        return <Typography variant="body2" color="text.disabled">—</Typography>;
-    return <Typography variant="body2">{value}</Typography>;
+    if (value === null || value === undefined) return <Absent />;
+    return <span className="text-sm">{value}</span>;
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,16 +90,27 @@ const IntegerCell = memo(({ value }: { value: number | null | undefined }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type CelluleJury = NonNullable<ColumnDef<StudentEntry>['cell']>;
+
+/**
+ * Les pastilles de statut — les `Chip` MUI, teintées sur les tokens de
+ * sévérité (lot 2) comme les alertes : fond /15 + texte de la teinte pour
+ * l'ancien « plein », contour de la teinte pour l'ancien « outlined ». Les
+ * deux modes suivent les tokens.
+ */
+const CLASSES_BADGE_SUCCES = 'border-transparent bg-success/15 text-success';
+const CLASSES_BADGE_AVERTISSEMENT = 'border-transparent bg-warning/15 text-warning';
+const CLASSES_BADGE_AVERTISSEMENT_CONTOUR = 'border-warning/50 text-warning';
 type DeliberationParEleve = ReadonlyMap<number, { delibere: boolean; compteCumul: boolean }>;
 
 /** L'entête des colonnes de synthèse : une infobulle sur un libellé court. */
 const enteteInfobulle = (titre: string, libelle: string, multiligne = false) => () => (
-    <Tooltip title={titre}>
-        <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, ...(multiligne ? { whiteSpace: 'pre-line' } : {}) }}>
+    <Tooltip>
+        <TooltipTrigger render={<div className="text-center" />}>
+            <span className={cn('text-xs font-bold', multiligne && 'whitespace-pre-line')}>
                 {libelle}
-            </Typography>
-        </Box>
+            </span>
+        </TooltipTrigger>
+        <TooltipContent>{titre}</TooltipContent>
     </Tooltip>
 );
 
@@ -118,30 +122,34 @@ function celluleBooleen(t: TFunction<'jury'>): CelluleJury {
 const celluleEctsEchec: CelluleJury = ({ cell }) => <EctsEchecCell value={cell.getValue<number>()} />;
 
 const celluleEctsValides: CelluleJury = ({ cell }) => (
-    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+    <span className="text-sm font-medium">
         {cell.getValue<number>()}
-    </Typography>
+    </span>
 );
 
 const celluleGrade: CelluleJury = ({ cell }) => (
-    <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+    <div className="flex justify-center">
         <GradeBadge grade={cell.getValue<string | null>()} />
-    </Box>
+    </div>
 );
 
 /** L'entête d'un groupe d'UE : le nom complet en infobulle s'il est tronqué. */
 const enteteUe = (ue: { nom: string; ects: number }) => () => {
-    const displayName = ue.nom.length > 40 ? `${ue.nom.substring(0, 39)}…` : ue.nom;
+    const tronque = ue.nom.length > 40;
+    const displayName = tronque ? `${ue.nom.substring(0, 39)}…` : ue.nom;
+    const contenu = (
+        <>
+            <span className="block text-xs font-bold">{displayName}</span>
+            <span className="text-xs opacity-80">{ue.ects} ECTS</span>
+        </>
+    );
+    if (!tronque) return <div className="text-center leading-[1.3]">{contenu}</div>;
     return (
-        <Tooltip title={ue.nom} disableHoverListener={ue.nom.length <= 40}>
-            <Box sx={{ textAlign: 'center', lineHeight: 1.3 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', color: 'inherit' }}>
-                    {displayName}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.8, color: 'inherit' }}>
-                    {ue.ects} ECTS
-                </Typography>
-            </Box>
+        <Tooltip>
+            <TooltipTrigger render={<div className="text-center leading-[1.3]" />}>
+                {contenu}
+            </TooltipTrigger>
+            <TooltipContent>{ue.nom}</TooltipContent>
         </Tooltip>
     );
 };
@@ -162,28 +170,22 @@ const celluleStatut = (
     const nom = `${row.original.juryStat.lastName ?? ''} ${row.original.juryStat.firstName ?? ''}`.trim();
     const incompletes = dossiersIncomplets.get(row.original.userID);
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <div className="flex items-center gap-1">
             {info?.delibere ? (
-                <Chip
-                    label={info.compteCumul ? t('statut.delibere') : t('statut.redoublant')}
-                    size="small"
-                    color={info.compteCumul ? 'success' : 'warning'}
-                    sx={{ fontSize: '0.68rem', height: 20 }}
-                />
+                <Badge className={info.compteCumul ? CLASSES_BADGE_SUCCES : CLASSES_BADGE_AVERTISSEMENT}>
+                    {info.compteCumul ? t('statut.delibere') : t('statut.redoublant')}
+                </Badge>
             ) : incompletes ? (
                 // « En attente » dirait qu'il ne manque qu'une décision.
                 // Ici c'est une note qui manque, et le jury doit le voir.
-                <Tooltip title={`${t('statut.nonEvalueePrefixe')}${incompletes.join(', ')}`}>
-                    <Chip
-                        label={t('statut.incomplet')}
-                        size="small"
-                        color="warning"
-                        variant="outlined"
-                        sx={{ fontSize: '0.68rem', height: 20 }}
-                    />
+                <Tooltip>
+                    <TooltipTrigger render={<Badge variant="outline" className={CLASSES_BADGE_AVERTISSEMENT_CONTOUR} />}>
+                        {t('statut.incomplet')}
+                    </TooltipTrigger>
+                    <TooltipContent>{`${t('statut.nonEvalueePrefixe')}${incompletes.join(', ')}`}</TooltipContent>
                 </Tooltip>
             ) : (
-                <Chip label={t('statut.enAttente')} size="small" variant="outlined" sx={{ fontSize: '0.68rem', height: 20 }} />
+                <Badge variant="outline">{t('statut.enAttente')}</Badge>
             )}
             {peutDeliberer && (
                 <DelibererButton
@@ -195,7 +197,7 @@ const celluleStatut = (
                     uesNonEvaluees={incompletes}
                 />
             )}
-        </Box>
+        </div>
     );
 };
 
@@ -485,51 +487,53 @@ export const JuryPeriode = () => {
     // ── Barre d'outils : le bandeau MUI (compteurs, exports) + le plein écran ─
     const barreOutils = useCallback(() => {
         if (!periodeId) return null;
+        const toutDelibere = nbDeliberes === nbTotal && nbTotal > 0;
+        const libellePleinEcran = pleinEcran ? t('quitterPleinEcran') : t('pleinEcran');
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
+            <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
                     {data?.hierarchy?.periode}
-                </Typography>
-                <Chip
-                    label={t('compteurDeliberes', { delibere: nbDeliberes, total: nbTotal })}
-                    size="small"
-                    color={nbDeliberes === nbTotal && nbTotal > 0 ? 'success' : 'default'}
-                    variant={nbDeliberes === nbTotal && nbTotal > 0 ? 'filled' : 'outlined'}
-                />
+                </span>
+                <Badge variant={toutDelibere ? 'default' : 'outline'} className={cn(toutDelibere && CLASSES_BADGE_SUCCES)}>
+                    {t('compteurDeliberes', { delibere: nbDeliberes, total: nbTotal })}
+                </Badge>
                 {nbIncomplets > 0 && (
-                    <Tooltip title={t('tooltipDossiersIncomplets')}>
-                        <Chip
-                            label={t('dossiersIncomplets', { count: nbIncomplets })}
-                            size="small"
-                            color="warning"
-                            variant="outlined"
-                        />
+                    <Tooltip>
+                        <TooltipTrigger render={<Badge variant="outline" className={CLASSES_BADGE_AVERTISSEMENT_CONTOUR} />}>
+                            {t('dossiersIncomplets', { count: nbIncomplets })}
+                        </TooltipTrigger>
+                        <TooltipContent>{t('tooltipDossiersIncomplets')}</TooltipContent>
                     </Tooltip>
                 )}
                 {selectedStudents.length > 0 && (
                     <Button
-                        size="small"
-                        variant="contained"
-                        startIcon={<Gavel size={18} />}
+                        type="button"
+                        size="sm"
                         onClick={() => { setBulkDialogOpen(true); }}
                     >
+                        <Gavel />
                         {t('delibererSelection', { count: selectedStudents.length })}
                     </Button>
                 )}
                 <JuryExportButton periodeId={periodeId} />
                 <JuryBulletinsExportButton periodeId={periodeId} />
-                <Tooltip title={pleinEcran ? t('quitterPleinEcran') : t('pleinEcran')}>
-                    <BoutonTable
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label={pleinEcran ? t('quitterPleinEcran') : t('pleinEcran')}
-                        onClick={() => { setPleinEcran(actif => !actif); }}
+                <Tooltip>
+                    <TooltipTrigger
+                        render={(
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                aria-label={libellePleinEcran}
+                                onClick={() => { setPleinEcran(actif => !actif); }}
+                            />
+                        )}
                     >
                         {pleinEcran ? <Minimize2 /> : <Maximize2 />}
-                    </BoutonTable>
+                    </TooltipTrigger>
+                    <TooltipContent>{libellePleinEcran}</TooltipContent>
                 </Tooltip>
-            </Box>
+            </div>
         );
     }, [periodeId, data, nbDeliberes, nbTotal, nbIncomplets, selectedStudents, pleinEcran, t]);
 
@@ -542,14 +546,17 @@ export const JuryPeriode = () => {
     // ── Rendu ─────────────────────────────────────────────────────────────────
     if (isError) {
         return (
-            <Alert severity="error">
-                {t('erreurChargementSynthese', { erreur: messageForError(error) })}
+            <Alert variant="destructive">
+                <CircleAlert />
+                <AlertDescription>
+                    {t('erreurChargementSynthese', { erreur: messageForError(error) })}
+                </AlertDescription>
             </Alert>
         );
     }
 
     return (
-        <Box sx={{ m: '20px' }}>
+        <div className="m-5">
             <div className={pleinEcran
                 ? 'fixed inset-0 z-50 flex flex-col bg-background p-4'
                 : 'flex max-h-[75vh] flex-col'}
@@ -576,6 +583,6 @@ export const JuryPeriode = () => {
                 onClose={() => { setBulkDialogOpen(false); }}
                 onConfirm={(entries) => { void handleBulkConfirm(entries); }}
             />
-        </Box>
+        </div>
     );
 };

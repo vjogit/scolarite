@@ -1,9 +1,10 @@
-import { IconButton, Tooltip } from '@mui/material';
 import { apiInstance } from '../../services/api';
 import { telecharger } from '../../services/telechargement';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../../components/ui/tooltip';
 import { ENDPOINT_JURY } from './def';
 import { type BulletinParams, JuryBulletinsExportModal } from './JuryBulletinsExportModal';
 import { notifyError, notifySuccess } from '../../services/notify';
@@ -44,10 +45,21 @@ export function JuryBulletinsExportButton({ periodeId }: JuryBulletinsExportButt
 
     return (
         <>
-            <Tooltip title={libelle}>
-                <IconButton aria-label={libelle} onClick={() => { setOpen(true); }} size="small" color="secondary">
-                    <FileText size={20} />
-                </IconButton>
+            <Tooltip>
+                <TooltipTrigger
+                    render={(
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={libelle}
+                            onClick={() => { setOpen(true); }}
+                        />
+                    )}
+                >
+                    <FileText />
+                </TooltipTrigger>
+                <TooltipContent>{libelle}</TooltipContent>
             </Tooltip>
 
             <JuryBulletinsExportModal
