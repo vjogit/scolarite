@@ -282,6 +282,19 @@ passages identiques de la suite e2e sur le même commit, sans modification.
 | 5 | 33872186324 | 1be5cef (doc) | push | — | ✅ 43 passed | — | ✅ vert, 5 min 58 s |
 | 6 | 33872211290 | 1be5cef (doc) | pull_request (PR #1) | — | ✅ 43 passed | — | ✅ vert, 5 min 42 s |
 
+Arbitrage du 4 septembre 2026 (quatre commits sur `main`, un par point) :
+
+| # | Run | Commit | Déclencheur | Stack | Suite | Captures | Verdict |
+|---|---|---|---|---|---|---|---|
+| 7 | 33881003527 | 8033dfa (doc chart) | push, **tentative 2** — la tentative 1 annulée par la poussée suivante (groupe de concurrence par branche, `cancel-in-progress` : deux poussées à moins d'un run d'écart s'annulent, relance par `gh run rerun`) | — | ✅ 43 passed | — | ✅ vert |
+| 8 | 33881405996 | 45fbfff (généré sqlc versionné) | push | — | ✅ 43 passed | — | ✅ vert ; `Vérification` 33881406114 vert, garde « généré identique au commit » passée |
+| 9 | 33882748941 | 9d0c5e9 (testdata versionné) | push | — | ✅ 43 passed | — | ✅ vert |
+| 10 | 33883389236 | a0320ae (conteneur de référence) | push | 2 min 35 s | **✅ 63 passed (2,9 min)** dans le conteneur de référence — `npm ci` 12 s, image + `--list` 34 s | **20/20 décisives, vertes** | ✅ vert, 6 min 55 s ; `Vérification` 33883389237 vert (Go 19 s, front 1 min 9 s) |
+
+Le run 10 est la première comparaison des captures sur l'exécuteur avec les
+références du conteneur : 20 sur 20 passent, au pixel, là où le run 4 en
+échouait 20 sur 20 avec les références du poste.
+
 Trois runs identiques sur 84e3bc0 (runs 2, 3, 4 — le 4 ajoute les
 captures, sans toucher à la suite fonctionnelle), quatre au total en
 comptant le premier commit ; les runs 2 à 4 ont tourné **en parallèle**, sur
@@ -483,7 +496,7 @@ son nom. Keycloak n'est pas touché (sa base est distincte).
 | Régénération (`make captures-reference`, base réduite au seed) | 23 passés (3 connexions + 20 captures), 58 s ; 20 PNG réécrits, chacun regardé |
 | Suite complète dans le conteneur, deux fois consécutives | **63/63, 2,9 min** puis **63/63, 2,9 min** |
 | Comparaison hôte ↔ conteneur : `npx playwright test captures.spec.ts` sur le poste | **20 sautées** (motif « comparaison et régénération réservées au conteneur de référence »), 3 connexions passées, 4,5 s — rien d'écrit dans `*-snapshots/` |
-| CI, commit de ce point | premier run après la poussée : voir la ligne ajoutée au tableau du §6 |
+| CI, commit de ce point (`a0320ae`) | **run 33883389236 : 63 passed (2,9 min), 20 captures sur 20 vertes**, job 6 min 55 s (§6, run 10) |
 
 ### Ce qui reste
 
