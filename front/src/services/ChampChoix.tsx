@@ -10,12 +10,16 @@
  * ouvert au navigateur comme tout popup Base UI (piège lot 3 §5).
  * L'`<input>` caché que Base UI rend porte le `name` du champ, et renvoie le
  * focus au déclencheur : `services/crud/focus.ts` continue d'y arriver.
+ *
+ * `aide` (lot 15) : sous le contrôle pour la sélection ; pour l'interrupteur
+ * et la case, sous le libellé, à droite du contrôle (`FieldContent`) — c'est
+ * la légende que les dialogues du jury glissaient sous leur `Switch`.
  */
 
 import { useId } from 'react';
 import { useController, type FieldValues } from 'react-hook-form';
 
-import { Field, FieldError, FieldLabel } from '../components/ui/field';
+import { Field, FieldContent, FieldDescription, FieldError, FieldLabel } from '../components/ui/field';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
@@ -23,6 +27,17 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Switch } from '../components/ui/switch';
 import { cn } from '../lib/utils';
 import type { PropsChampBase } from './ChampTexte';
+
+/**
+ * L'identifiant que `aria-describedby` doit viser : l'erreur quand il y en a
+ * une, sinon l'aide quand elle existe. Même règle que dans `ChampTexte` —
+ * recopiée plutôt qu'exportée : un module de composants n'exporte que des
+ * composants (contrainte du rechargement à chaud).
+ */
+function decritPar(estInvalide: boolean, idErreur: string, aide: string | undefined, idAide: string): string | undefined {
+    if (estInvalide) return idErreur;
+    return aide === undefined ? undefined : idAide;
+}
 
 export interface OptionChoix {
     id: string;
@@ -39,12 +54,13 @@ export interface PropsChampSelection<D extends FieldValues> extends PropsChampBa
 }
 
 export function ChampSelection<D extends FieldValues>({
-    name, control, label, disabled, className, options, libelleVide,
+    name, control, label, disabled, className, aide, options, libelleVide,
 }: PropsChampSelection<D>) {
     // `ref` renommée à la sortie de `field` : même motif que `ChampTexte`.
     const { field: { ref: refChamp, value: valeurChamp, onChange, onBlur }, fieldState } = useController({ name, control });
     const id = useId();
     const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
     const erreur = fieldState.error?.message;
     const estInvalide = erreur !== undefined;
 
@@ -74,7 +90,7 @@ export function ChampSelection<D extends FieldValues>({
                     className="w-full"
                     onBlur={onBlur}
                     aria-invalid={estInvalide ? true : undefined}
-                    aria-describedby={estInvalide ? idErreur : undefined}
+                    aria-describedby={decritPar(estInvalide, idErreur, aide, idAide)}
                 >
                     <SelectValue />
                 </SelectTrigger>
@@ -85,7 +101,9 @@ export function ChampSelection<D extends FieldValues>({
                     ))}
                 </SelectContent>
             </Select>
-            {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
+            {estInvalide
+                ? <FieldError id={idErreur}>{erreur}</FieldError>
+                : aide !== undefined && <FieldDescription id={idAide}>{aide}</FieldDescription>}
         </Field>
     );
 }
@@ -94,11 +112,12 @@ export type PropsChampInterrupteur<D extends FieldValues> = PropsChampBase<D>;
 
 /** Un booléen : le `Switch` (rôle `switch`), libellé à sa droite comme le `FormControlLabel` MUI. */
 export function ChampInterrupteur<D extends FieldValues>({
-    name, control, label, disabled, className,
+    name, control, label, disabled, className, aide,
 }: PropsChampInterrupteur<D>) {
     const { field: { ref: refChamp, value: valeurChamp, onChange, onBlur }, fieldState } = useController({ name, control });
     const id = useId();
     const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
     const erreur = fieldState.error?.message;
     const estInvalide = erreur !== undefined;
 
@@ -113,11 +132,27 @@ export function ChampInterrupteur<D extends FieldValues>({
                 onBlur={onBlur}
                 disabled={disabled}
                 aria-invalid={estInvalide ? true : undefined}
-                aria-describedby={estInvalide ? idErreur : undefined}
+                aria-describedby={decritPar(estInvalide, idErreur, aide, idAide)}
             />
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <LibelleEtAide id={id} label={label} aide={aide} idAide={idAide} />
             {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
         </Field>
+    );
+}
+
+/**
+ * Le libellé d'un contrôle horizontal, et sa légende s'il en a une : Base UI
+ * associe `<label for>` au contrôle, la légende est reliée par
+ * `aria-describedby`. Sans légende, le libellé seul — le balisage des lots
+ * 13 et 14 ne bouge pas.
+ */
+function LibelleEtAide({ id, label, aide, idAide }: { id: string; label: string; aide: string | undefined; idAide: string }) {
+    if (aide === undefined) return <FieldLabel htmlFor={id}>{label}</FieldLabel>;
+    return (
+        <FieldContent>
+            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <FieldDescription id={idAide}>{aide}</FieldDescription>
+        </FieldContent>
     );
 }
 
@@ -131,11 +166,12 @@ export type PropsChampCase<D extends FieldValues> = PropsChampBase<D>;
  * recâbler une case à la main.
  */
 export function ChampCase<D extends FieldValues>({
-    name, control, label, disabled, className,
+    name, control, label, disabled, className, aide,
 }: PropsChampCase<D>) {
     const { field: { ref: refChamp, value: valeurChamp, onChange, onBlur }, fieldState } = useController({ name, control });
     const id = useId();
     const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
     const erreur = fieldState.error?.message;
     const estInvalide = erreur !== undefined;
 
@@ -150,9 +186,9 @@ export function ChampCase<D extends FieldValues>({
                 onBlur={onBlur}
                 disabled={disabled}
                 aria-invalid={estInvalide ? true : undefined}
-                aria-describedby={estInvalide ? idErreur : undefined}
+                aria-describedby={decritPar(estInvalide, idErreur, aide, idAide)}
             />
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <LibelleEtAide id={id} label={label} aide={aide} idAide={idAide} />
             {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
         </Field>
     );

@@ -24,12 +24,16 @@
  *    habituel.
  *  - le libellé est un `<label for>` : le nom accessible que le `TextField`
  *    MUI posait par son label flottant est conservé, `getByLabel` le trouve.
+ *  - `aide` (lot 15) : le texte d'aide sous le champ — l'ancien `helperText`
+ *    hors erreur. Il s'efface quand l'erreur prend sa place, comme MUI
+ *    n'affichait qu'une ligne ; il est relié au contrôle par
+ *    `aria-describedby` comme l'erreur.
  */
 
 import { useId } from 'react';
 import { useController, type Control, type FieldValues, type Path } from 'react-hook-form';
 
-import { Field, FieldError, FieldLabel } from '../components/ui/field';
+import { Field, FieldDescription, FieldError, FieldLabel } from '../components/ui/field';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { cn } from '../lib/utils';
@@ -42,6 +46,8 @@ export interface PropsChampBase<D extends FieldValues> {
     /** Consultation : le champ se lit, ne se saisit pas. */
     disabled?: boolean;
     className?: string;
+    /** Texte d'aide sous le champ, remplacé par le message d'erreur le cas échéant. */
+    aide?: string;
 }
 
 /**
@@ -60,10 +66,28 @@ export interface PropsChampTexte<D extends FieldValues> extends PropsChampBase<D
     multiline?: boolean;
     rows?: number;
     autoComplete?: string;
+    /**
+     * Comment afficher une valeur que l'API livre sous une autre forme que
+     * la saisie (lot 15 : les échelles de Promotion arrivent en tableau de
+     * nombres, se saisissent en `a=4,b=3,…`). Appelé avant la normalisation,
+     * y compris sur la chaîne en cours de frappe, qu'il doit rendre telle
+     * quelle. Sans lui, tout ce qui n'est ni chaîne ni nombre s'affiche vide.
+     */
+    formater?: (valeur: unknown) => unknown;
+}
+
+/**
+ * L'identifiant que `aria-describedby` doit viser : l'erreur quand il y en a
+ * une, sinon l'aide quand elle existe — une seule ligne sous le champ, celle
+ * qui est affichée.
+ */
+function decritPar(estInvalide: boolean, idErreur: string, aide: string | undefined, idAide: string): string | undefined {
+    if (estInvalide) return idErreur;
+    return aide === undefined ? undefined : idAide;
 }
 
 export function ChampTexte<D extends FieldValues>({
-    name, control, label, disabled, className, type = 'text', multiline = false, rows, autoComplete,
+    name, control, label, disabled, className, aide, type = 'text', multiline = false, rows, autoComplete, formater,
 }: PropsChampTexte<D>) {
     // `ref` sort de `field` sous un autre nom : le React Compiler tient tout
     // objet dont il voit lire `.ref` pour une ref, et refuse ensuite d'en lire
@@ -71,6 +95,7 @@ export function ChampTexte<D extends FieldValues>({
     const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({ name, control });
     const id = useId();
     const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
     const erreur = fieldState.error?.message;
     const estInvalide = erreur !== undefined;
 
@@ -78,14 +103,14 @@ export function ChampTexte<D extends FieldValues>({
         id,
         name,
         ref: refChamp,
-        value: texteDe(valeur),
+        value: texteDe(formater ? formater(valeur) : valeur),
         onChange: (evenement: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
             onChange(evenement.target.value);
         },
         onBlur,
         disabled,
         'aria-invalid': estInvalide ? true : undefined,
-        'aria-describedby': estInvalide ? idErreur : undefined,
+        'aria-describedby': decritPar(estInvalide, idErreur, aide, idAide),
     };
 
     return (
@@ -94,7 +119,9 @@ export function ChampTexte<D extends FieldValues>({
             {multiline
                 ? <Textarea {...communs} rows={rows} />
                 : <Input {...communs} type={type} autoComplete={autoComplete} />}
-            {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
+            {estInvalide
+                ? <FieldError id={idErreur}>{erreur}</FieldError>
+                : aide !== undefined && <FieldDescription id={idAide}>{aide}</FieldDescription>}
         </Field>
     );
 }
@@ -112,11 +139,12 @@ export interface PropsChampNombre<D extends FieldValues> extends PropsChampBase<
  * l'incrémenteur sans court-circuiter zod (voir son commentaire).
  */
 export function ChampNombre<D extends FieldValues>({
-    name, control, label, disabled, className, step, min, max,
+    name, control, label, disabled, className, aide, step, min, max,
 }: PropsChampNombre<D>) {
     const { field: { ref: refChamp, value: valeur, onChange, onBlur }, fieldState } = useController({ name, control });
     const id = useId();
     const idErreur = `${id}-erreur`;
+    const idAide = `${id}-aide`;
     const erreur = fieldState.error?.message;
     const estInvalide = erreur !== undefined;
 
@@ -140,9 +168,11 @@ export function ChampNombre<D extends FieldValues>({
                 onBlur={onBlur}
                 disabled={disabled}
                 aria-invalid={estInvalide ? true : undefined}
-                aria-describedby={estInvalide ? idErreur : undefined}
+                aria-describedby={decritPar(estInvalide, idErreur, aide, idAide)}
             />
-            {estInvalide && <FieldError id={idErreur}>{erreur}</FieldError>}
+            {estInvalide
+                ? <FieldError id={idErreur}>{erreur}</FieldError>
+                : aide !== undefined && <FieldDescription id={idAide}>{aide}</FieldDescription>}
         </Field>
     );
 }
