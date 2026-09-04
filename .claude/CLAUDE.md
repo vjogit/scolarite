@@ -20,8 +20,16 @@ Application réservée au personnel administratif. Pas encore en production.
   - Notifications : sonner, derrière `services/notify.ts` (API impérative,
     durées centralisées).
   - Shell : sidebar + menu de compte, `layouts/dashboard.tsx`.
-  - **MUI résiduel** : une vingtaine de fichiers dans `pages/note/`, en
-    cours de migration. **Ne pas en ajouter ailleurs.** Tout nouveau
+  - **MUI résiduel** : plus aucun écran applicatif (le workflow note est
+    passé au lot 16). Il reste **cinq fichiers d'infrastructure de
+    cohabitation**, tous du lot 17 (la dépose finale) : `App.tsx`
+    (`ThemeProvider` racine, `cssVariables` + `colorSchemes`), `main.tsx`
+    (`StyledEngineProvider` + `GlobalStyles` de l'invariant 11,
+    `CssBaseline`), `layouts/dashboard.tsx` (`createTheme` ×2,
+    `useColorScheme`/`useMediaQuery` de l'invariant 12, `composantsTraduits`
+    sans consommateur), `services/ChampDate.tsx` (`TextField` MUI sous
+    react-day-picker), `pages/_cohabitation/Cohabitation.tsx` (page témoin) —
+    plus la couche `mui` d'`index.css`. **Ne pas en ajouter.** Tout nouveau
     composant se fait en shadcn/Base UI.
   - TanStack Query, react-router 7 (`createBrowserRouter`),
     **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
@@ -405,6 +413,18 @@ Application réservée au personnel administratif. Pas encore en production.
   poser un utilitaire Tailwind sur un élément `.fc-*` (toute règle
   FullCalendar hors couche bat une règle en couche). Les valeurs sont des
   références aux tokens : `.dark` n'a rien à redéclarer.
+- **Déplacer le focus depuis le rappel d'un contrôle Base UI se fait après
+  le rendu, pas dans le rappel** (lot 16, grille de saisie). Décocher « non
+  évalué » doit rendre la main au champ de note : appelé dans
+  `onCheckedChange`, `focus()` ne fait rien parce que le champ porte encore
+  `disabled` — React n'a pas rejoué le rendu qui le réactive — et le focus
+  reste sur la case, à la souris comme au clavier. `GrilleNotesTable` le
+  diffère (`requestAnimationFrame`) ; le `Checkbox` MUI avait la même
+  mécanique (déduit par lecture, jamais vérifié à l'écran avant ce lot).
+  Corollaire pour qui pilote l'écran : tant qu'un popup Base UI est ouvert
+  dans une modale (le combobox de l'export), la modale porte
+  `data-base-ui-inert` et ses boutons disparaissent de l'arbre accessible —
+  fermer le popup (Échap) avant de cibler « Annuler ».
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
@@ -431,9 +451,13 @@ Application réservée au personnel administratif. Pas encore en production.
   depuis la dépose de MRT (lot 11). Ne sert plus depuis le lot 4 ; se retire
   à la dépose finale de MUI, où elle servira une dernière fois à vérifier
   qu'aucun style MUI ne subsiste.
-- **`composantsTraduits`** (`layouts/dashboard.tsx`) : trois `Autocomplete`
-  MUI restants, tous dans `pages/note/` (`NoteEleveAxe`, `GrilleNotes`,
-  `FicheExportModal`) ; le mécanisme tombe avec eux, d'un geste.
+- **`composantsTraduits`** (`layouts/dashboard.tsx`) : **plus aucun
+  consommateur** depuis le lot 16 — les trois derniers `Autocomplete`
+  (`NoteEleveAxe`, `GrilleNotes`, `FicheExportModal`) sont des `Combobox`
+  shadcn, qui portent leurs libellés traduits eux-mêmes (`ui/combobox.tsx` :
+  ouvrir, effacer, retirer, et depuis le lot 16 « Aucune option » par défaut
+  sur `ComboboxEmpty`). La fonction et son injection dans les deux
+  `createTheme` tombent au lot 17 avec le fichier qui les porte.
 - **Versions épinglées à réévaluer** — on ne monte pas MUI, on le retire ;
   la dette porte désormais sur les remplaçants. `react-day-picker` est
   épinglé **9.14.0** (la v10 est sortie pendant le lot 12, API non
@@ -459,6 +483,14 @@ ils survivront à celle-ci si personne ne les reprend.
   consultation montre les rôles cochés, la liste ne semble pas les recevoir.
 - **Message zod brut pour un nombre requis vidé** (lot 13) : un message
   métier demande une `error` sur chaque schéma concerné.
+- **Les libellés et annonces des axes de notes sont des chaînes françaises
+  en dur** (`pages/note/axes.ts`, `AXES[].libelle`/`annonce`, depuis l'écran
+  unifié) : en anglais, la barre d'axe affiche « Élève, Contrôle, Matière, UE,
+  Période » et chaque écran son annonce en français (constaté au navigateur,
+  lot 16, langue `en` + rechargement). Hors périmètre de la migration ; à
+  passer en fermetures `() => traduire(...)` comme les `actionsLigne` des
+  `routes.tsx` — `notes-unifie.spec.ts` et `hierarchieE2E.ts` ciblent ces
+  libellés en français, langue épinglée, et ne bougeraient pas.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute
