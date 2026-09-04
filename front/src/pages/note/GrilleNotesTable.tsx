@@ -379,7 +379,14 @@ export function GrilleNotesTable({ controleId, groupeId, bareme, isRattrapage, l
         } else {
             // Décocher la vide. Refuser l'écriture avant même que la note soit
             // tapée n'apprendrait rien ; on rend la main au champ.
-            focusNote(index);
+            //
+            // Après le rendu, pas dans le gestionnaire : à cet instant le champ
+            // porte encore `disabled` (React n'a pas rejoué le rendu) et
+            // `focus()` sur un champ désactivé ne fait rien — le focus restait
+            // sur la case, à la souris comme au clavier (constaté au
+            // navigateur, lot 16 ; le `Checkbox` MUI avait la même mécanique,
+            // déduit par lecture).
+            requestAnimationFrame(() => { focusNote(index); });
         }
     }, [enregistrerSiModifiee, focusNote, majLigne]);
 
