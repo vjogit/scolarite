@@ -34,7 +34,6 @@ import { CorbeillePage } from './pages/corbeille/Corbeille.tsx';
 import { REGISTRE_WORKFLOW } from './pages/registre/def.ts';
 import { RegistrePage } from './pages/registre/Registre.tsx';
 import { RetourScolarite, SEGMENT_SCOLARITE } from './services/context/RetourScolarite.tsx';
-import Cohabitation from './pages/_cohabitation/Cohabitation.tsx';
 
 
 
@@ -58,13 +57,6 @@ const routes = [
           {
             path: SEGMENT_SCOLARITE,
             element: <RoleGuard roles={[Role.CONSULTATION]}><RetourScolarite /></RoleGuard>,
-          },
-          {
-            // Route de vérification temporaire (étape 1 migration shadcn) :
-            // non liée au menu, non protégée par un rôle. Voir le
-            // commentaire de tête de Cohabitation.tsx pour son retrait.
-            path: '_cohabitation',
-            Component: Cohabitation,
           },
           {
             path: USER_WORKFLOW,
