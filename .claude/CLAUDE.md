@@ -34,9 +34,19 @@ Application réservée au personnel administratif. Pas encore en production.
     `docs/migration-shadcn/`, un document par lot. Ne pas le dupliquer ici.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
+- **CI GitHub Actions** (`.github/workflows/`, un fichier par
+  préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go) et
+  `e2e.yml` (les 43 tests fonctionnels contre la stack complète montée par
+  `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`). Les
+  20 captures de référence n'y sont pas — voir « Suite e2e ».
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
   d'environnement dans `infra/env/` (`config-*.env`, secrets jamais
-  committés).
+  committés). `config-ci.env` est le jumeau de `config-local.env` pour
+  l'exécuteur GitHub (même espace de travail `local`, autres chemins) ; la
+  CI vérifie que les deux déclarent les mêmes variables, et les scripts
+  reçoivent leurs fichiers par `CONFIG_FILE_LOCAL` / `SECRETS_FILE_LOCAL`
+  sur la ligne de commande de `make` — plus aucun script ne dérive ces
+  chemins de son côté.
 
 ## Invariants — ne jamais les casser
 
@@ -137,7 +147,12 @@ Application réservée au personnel administratif. Pas encore en production.
   `DeleteConfirmDialog` / `UnsavedChangesDialog` ; erreurs d'import en
   tableau via `LignesRefuseesDialog`.
 - **sqlc uniquement** (jamais de SQL concaténé) ; régénérer par
-  `infra/gen_sql.sh` et committer le généré. Changesets Liquibase avec `id`,
+  `infra/gen_sql.sh`. **Le généré n'est pas versionné** (`.gitignore` :
+  `**/gen/`), contrairement à ce que cette ligne affirmait jusqu'au lot CI :
+  un clone neuf ne compile qu'après `sqlc generate` (hors ligne, depuis
+  `back/schema.sql`, versionné — sortie identique au poste, vérifiée par
+  diff). La CI le fait ; la contradiction reste à trancher (versionner le
+  généré, ou assumer sa régénération). Changesets Liquibase avec `id`,
   `author`, `comment` **et `rollback`**.
 - Pas de nouvelle dépendance sans validation explicite de l'utilisateur.
 - `npm run build`, `npm run lint`, build Go et `go test` au vert avant de
@@ -186,7 +201,26 @@ Application réservée au personnel administratif. Pas encore en production.
   modification d'interface se conclut par `make test-ihm` ; un scénario
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
-  une suite qui ne re-sème pas ne prouve rien.
+  une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
+  suite fonctionnelle sur chaque push par la même cible
+  (`make test-ihm PLAYWRIGHT_ARGS="--grep-invert captures"`), `retries: 0`
+  inchangé, et publie à chaque run `test-results/`, le rapport HTML et les
+  journaux des conteneurs — **un échec intermittent en CI se diagnostique
+  dans l'artefact, jamais par une relance** (consigne `registre.spec.ts`).
+- **Les captures ne tournent pas en CI, et c'est un invariant tant que les
+  références sont celles d'un poste.** Elles sont générées sur la machine
+  de développement (polices, moteur de rendu) **et sur l'état de sa base** :
+  sur l'exécuteur GitHub, 20 échecs sur 20, tous au contour des glyphes —
+  et `formation-liste` y montre une formation de moins, « FIA », qui n'est
+  pas dans le seed mais dans la base du poste (mesuré au lot CI,
+  `docs/ci.md` §5). Deux règles en découlent : **ne jamais régénérer une
+  référence depuis la CI** ni depuis un artefact de CI ; et si l'on veut un
+  jour les y faire tourner, la seule voie est de régénérer les 20
+  références **une fois**, contre une base réduite au seed
+  (`start-local-reset`), dans le conteneur officiel Playwright
+  (`mcr.microsoft.com/playwright`, version de `@playwright/test`), et d'y
+  comparer aussi bien en local qu'en CI — c'est une décision (les 20 images
+  changent d'un coup), pas une formalité.
 - **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
   4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
   souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
@@ -440,10 +474,16 @@ Application réservée au personnel administratif. Pas encore en production.
   éprouvée) et `@tanstack/react-table` en **8.20.6 exact** (le caret
   résolvait en 8.21.3, réépinglé au lot 7). À rouvrir dans un lot de mise à
   jour dédié, avec `npm audit`.
-- **Aucune intégration continue** (`.github/workflows` absent) : lot CI à
-  monter — builds, lint, `govulncheck`, `npm audit --omit=dev`, tests Go
-  avec services PostgreSQL/Keycloak, Dependabot, protection de branche ;
-  suite e2e en nocturne (runner auto-hébergé pressenti).
+- **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
+  Couvert sur chaque push et pull request : lint + build du front, versions
+  épinglées vérifiées, build + tests Go (hors intégration : ils se sautent
+  sans base), et la suite e2e fonctionnelle (43 tests) contre la stack
+  complète. **Non couvert** : les 20 captures de référence (exclues, voir
+  « Suite e2e ») ; les tests Go d'intégration (`t.Skip` sans PostgreSQL,
+  Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
+  `govulncheck`, `npm audit --omit=dev`, Dependabot, protection de branche.
+  `programme-import/pkg/extraction` échoue sur fixture absente : rejoué en
+  étape non bloquante, annotation d'avertissement à chaque run.
 ### Défauts constatés, non corrigés
 
 Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
