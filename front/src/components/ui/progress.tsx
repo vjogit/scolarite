@@ -43,7 +43,15 @@ function ProgressIndicator({
   return (
     <ProgressPrimitive.Indicator
       data-slot="progress-indicator"
-      className={cn("h-full bg-primary transition-all", className)}
+      className={cn(
+        "h-full bg-primary transition-all",
+        // Sans valeur (`value={null}`), Base UI pose `data-indeterminate` et
+        // ne dimensionne pas l'indicateur : un tiers de piste qui va et vient
+        // (animation déclarée dans src/index.css, `--animate-indetermine`) —
+        // le rôle du `LinearProgress` MUI sans valeur, écran de chargement.
+        "data-indeterminate:w-1/3 data-indeterminate:animate-indetermine",
+        className
+      )}
       {...props}
     />
   )

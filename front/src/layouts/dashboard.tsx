@@ -1,14 +1,11 @@
-import { useEffect, useMemo } from 'react';
-import LinearProgress from '@mui/material/LinearProgress';
+import { useEffect } from 'react';
 import { LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 
 import { Link, Outlet, useLocation } from 'react-router';
 import { Toaster } from 'sonner';
 
 import { useSession } from '../SessionContext';
-import { createTheme, ThemeProvider, type Theme } from '@mui/material/styles';
 import { useKeycloak } from '../KeycloakContext';
 import { useModeCouleur } from '../services/modeCouleur';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
@@ -36,32 +33,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
+import { Progress } from '../components/ui/progress';
 
 /**
  * Le nom du produit ne se traduit pas : c'est une marque, pas un libellé —
  * comme « TOEIC » ou « ECTS » ailleurs dans l'application.
  */
 const TITRE_PRODUIT = 'Gestionnaire Scolarite';
-
-/**
- * Les trois commandes qu'`Autocomplete` dessine lui-même — ouvrir, fermer,
- * effacer — tirent leur nom accessible de ces props, anglaises par défaut
- * (« Open », « Close », « Clear »). Six `Autocomplete` sont montés dans
- * l'application ; les nommer un par un multiplierait les endroits où la même
- * chaîne devrait rester juste. Le thème est le seul endroit qui les tient
- * tous.
- */
-function composantsTraduits(t: TFunction<'app'>) {
-  return {
-    MuiAutocomplete: {
-      defaultProps: {
-        openText: t('autocomplete.ouvrir'),
-        closeText: t('autocomplete.fermer'),
-        clearText: t('autocomplete.effacer'),
-      },
-    },
-  } as const;
-}
 
 /**
  * Le menu latéral — les destinations globales, filtrées par rôles (le menu
@@ -162,14 +140,6 @@ export default function Layout() {
   const { keycloak, loading } = useKeycloak()
   const { t } = useTranslation('app')
 
-  const { darkTheme, lightTheme } = useMemo(() => {
-    const composants = composantsTraduits(t);
-    return {
-      darkTheme: createTheme({ palette: { mode: 'dark' }, components: composants }),
-      lightTheme: createTheme({ palette: { mode: 'light' }, components: composants }),
-    };
-  }, [t]);
-
   // La redirection vers Keycloak est un effet de bord : la déclencher pendant
   // le rendu rendait `Layout` impur, et React se réserve le droit de rejouer un
   // rendu — ce qui déclenchait la redirection deux fois.
@@ -180,14 +150,11 @@ export default function Layout() {
     });
   }, [loading, session, keycloak, location.pathname, location.search]);
 
-  const theme: Theme = estSombre ? darkTheme : lightTheme;
-
   // Source unique du mode sombre : `useModeCouleur` (services/modeCouleur.ts)
   // résout `estSombre` — préférence enregistrée, ou système en cas de
   // `system`, par abonnement — et cet effet pose la classe `.dark` sur
   // `<html>`, celle qu'attend `@custom-variant dark (&:is(.dark *))` dans
-  // src/index.css. Le thème MUI ci-dessus la suit pendant la dépose ; rien
-  // d'autre ne résout le mode (voir invariant CLAUDE.md #12).
+  // src/index.css. Rien d'autre ne résout le mode (invariant CLAUDE.md #12).
   //
   // Posé AVANT les `return` anticipés ci-dessous (loading/session) : les
   // Hooks doivent s'exécuter à chaque rendu quel que soit le chemin de sortie
@@ -197,24 +164,14 @@ export default function Layout() {
     document.documentElement.classList.toggle('dark', estSombre);
   }, [estSombre]);
 
-  if (loading) {
-    return (
-      <div style={{ width: '100%' }}>
-        <LinearProgress />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div style={{ width: '100%' }}>
-        <LinearProgress />
-      </div>
-    );
+  // Barre d'attente indéterminée en haut de page — l'ancien `LinearProgress`
+  // MUI, en `Progress` Base UI sans valeur (rôle `progressbar`).
+  if (loading || !session) {
+    return <Progress value={null} aria-label={t('shell.chargement')} className="w-full" />;
   }
 
   return (
-    <ThemeProvider theme={theme}>
+    <>
       {/* Notifications applicatives (services/notify.ts). Haut/centre : la
           même ancre que l'ancien snackbar Toolpad — le positionnement fait
           partie de l'apparence. Le thème suit `estSombre`, la résolution
@@ -246,6 +203,6 @@ export default function Layout() {
           </div>
         </SidebarInset>
       </SidebarProvider>
-    </ThemeProvider>
+    </>
   )
 }

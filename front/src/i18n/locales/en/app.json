@@ -11,6 +11,7 @@
     "deconnexion": "Sign out"
   },
   "shell": {
+    "chargement": "Loading…",
     "basculerMenu": "Show or hide the side menu",
     "menuLateralTitre": "Side menu",
     "menuLateralDescription": "Main application navigation",
@@ -32,7 +33,6 @@
   },
   "autocomplete": {
     "ouvrir": "Open",
-    "fermer": "Close",
     "effacer": "Clear",
     "retirer": "Remove",
     "aucuneOption": "No options"

@@ -25,10 +25,9 @@
  */
 @theme inline {
     --font-heading: var(--font-sans);
-    /* Pile MUI par défaut (createTheme sans personnalisation typographique,
-       cf. node_modules/@mui/material/styles/createTypography.js) — pas de
-       police shadcn distincte tant que la typographie n'a pas été décidée
-       pour la migration. Voir docs/migration-shadcn/02-tokens.md §3. */
+    /* Pile MUI par défaut (createTypography.js du paquet material, lu au
+       lot 2) — pas de police shadcn distincte tant que la typographie n'a
+       pas été décidée. Voir docs/migration-shadcn/02-tokens.md §3. */
     --font-sans: 'Roboto', 'Helvetica', 'Arial', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -71,19 +70,33 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+    /* Barre d'attente indéterminée (components/ui/progress.tsx). */
+    --animate-indetermine: indetermine 1.5s ease-in-out infinite;
+    @keyframes indetermine {
+        0% { translate: -100% 0; }
+        100% { translate: 300% 0; }
+    }
 }
 /*
  ---break---
  */
 /*
  * Tokens dérivés de la palette MUI v7 par défaut (createTheme() sans
- * personnalisation — voir layouts/dashboard.tsx). Table de correspondance
- * complète, source par source, dans docs/migration-shadcn/02-tokens.md §1.
- * Ne pas réintroduire de valeur choisie « à l'œil » : toute couleur ici
- * doit se retracer à node_modules/@mui/material (couleur + chemin) ou être
- * signalée comme jugement (muted/accent, sans pendant MUI direct).
+ * personnalisation, celle des écrans jusqu'au lot 16). Table de
+ * correspondance complète, source par source, dans
+ * docs/migration-shadcn/02-tokens.md §1. Ne pas réintroduire de valeur
+ * choisie « à l'œil » : toute couleur ici se retrace à une couleur MUI
+ * nommée (fichier + chemin, dans la table) ou est signalée comme jugement
+ * (muted/accent, sans pendant MUI direct).
+ *
+ * `color-scheme` : les contrôles natifs (ascenseurs, calendriers des
+ * <input type="time">, cases) suivent le mode CHOISI, par la classe `.dark`
+ * — ce que `CssBaseline enableColorScheme` ne faisait pas (il suivait la
+ * media query, d'où le décalage « sombre choisi + OS clair » signalé aux
+ * lots 7, 8 et 10, fermé au lot 17).
  */
 :root {
+    color-scheme: light;
     --background: oklch(1 0 0);
     --foreground: oklch(0 0 0 / 87%);
     --card: oklch(1 0 0);
@@ -141,6 +154,7 @@
  ---break---
  */
 .dark {
+    color-scheme: dark;
     --background: oklch(0.1822 0 0);
     --foreground: oklch(1 0 0);
     --card: oklch(0.1822 0 0);
@@ -175,15 +189,29 @@
 /*
  ---break---
  */
+/*
+ * Remise à zéro du corps de page : le préflight Tailwind, plus ce que
+ * `CssBaseline` (MUI, parti au lot 17) posait en plus et que le préflight
+ * n'a pas — relevé au navigateur avant la dépose, règle par règle :
+ *  - lissage des polices (`antialiased`/`grayscale`), sans effet sous Linux
+ *    et Windows, visible sur macOS ;
+ *  - l'interlettrage de `body1` (0.00938em, soit 0,15 px à 16 px) : la
+ *    typographie du corps reste celle de MUI, comme la pile Roboto du
+ *    `@theme` — choisir une typographie shadcn (Geist, sans interlettrage)
+ *    est une décision de design à part, pas une dépose.
+ * Le préflight couvre déjà le reste : `box-sizing`, `margin: 0`,
+ * `line-height: 1.5`, `text-size-adjust`, `strong { font-weight: bolder }`.
+ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
     }
   body {
     @apply bg-background text-foreground;
+    letter-spacing: 0.00938em;
     }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
     }
 }/*
  ---break---

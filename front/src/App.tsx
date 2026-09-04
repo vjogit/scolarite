@@ -4,8 +4,6 @@ import React from 'react';
 import { demarrerKeycloak, instantaneKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
 import Keycloak from 'keycloak-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
 // La locale FR de dayjs et son choix par langue i18next vivent désormais dans
 // `services/ChampDate.tsx`, seul endroit qui formate des dates localisées —
 // le rôle que jouait le `LocalizationProvider` (adapterLocale), retiré au
@@ -15,18 +13,10 @@ import { ContexteHierarchieProvider } from './services/context/ContexteProvider'
 
 const queryClient = new QueryClient()
 
-/**
- * Le thème racine ne sert qu'à une chose : porter `colorSchemes` pour que
- * `useColorScheme()` (mode clair/sombre/système, persistance comprise)
- * fonctionne partout — le rôle que jouait l'`AppProvider` de Toolpad. Le
- * thème concret des écrans reste celui de `layouts/dashboard.tsx`, qui
- * l'emboîte par-dessous ; `CssBaseline enableColorScheme` (rendu lui aussi
- * par Toolpad auparavant) garde la remise à zéro du corps de page.
- */
-const themeRacine = createTheme({
-  cssVariables: true,
-  colorSchemes: { light: true, dark: true },
-});
+// Plus de fournisseur de thème ni de remise à zéro du corps de page ici : le
+// mode clair/sombre vient de `services/modeCouleur.ts` (lu par
+// `layouts/dashboard.tsx`), la remise à zéro et la typographie du corps de
+// page vivent dans `src/index.css` (préflight Tailwind + couche `base`).
 
 /**
  * La session telle que le jeton la décrit.
@@ -85,17 +75,14 @@ export default function App() {
     <SessionContext value={sessionContextValue}>
       <KeycloakContext value={{ keycloak, loading }}>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={themeRacine}>
-            <CssBaseline enableColorScheme />
-            {/* Le contexte résout des noms par l'API : il ne se monte qu'une
-                fois l'intercepteur d'authentification en place, en même temps
-                que les écrans — sinon ses requêtes partent sans jeton. */}
-            {!loading && (
-              <ContexteHierarchieProvider>
-                <Outlet />
-              </ContexteHierarchieProvider>
-            )}
-          </ThemeProvider>
+          {/* Le contexte résout des noms par l'API : il ne se monte qu'une
+              fois l'intercepteur d'authentification en place, en même temps
+              que les écrans — sinon ses requêtes partent sans jeton. */}
+          {!loading && (
+            <ContexteHierarchieProvider>
+              <Outlet />
+            </ContexteHierarchieProvider>
+          )}
         </QueryClientProvider>
       </KeycloakContext>
     </SessionContext>
