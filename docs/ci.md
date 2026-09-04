@@ -51,7 +51,9 @@ travailler sur `shadcn` aurait rouvert une branche close).
   bloquante l'a signalé comme « défaut résorbé » ; il a été retiré de la
   liste des exceptions au second commit. Sur un poste avec base de test, ce
   test exige le fichier. Non ajouté au dépôt : c'est un document réel, la
-  décision revient à l'utilisateur (§9).
+  décision revient à l'utilisateur (§9). **Tranchée le 4 septembre 2026 :
+  versionné**, avec la règle générale « les fixtures de `testdata/` sont
+  suivies » (`.gitignore` : `!**/testdata/**`, CLAUDE.md).
 - **`go test ./...` échoue sur `cmd/programme-import/pkg/extraction`**, comme
   annoncé : `test_salle.csv` et `test_prof.csv` absents, `log.Fatal` dans le
   test. Reproduit sur le poste (`FAIL 0.003s`) et en CI.
@@ -359,7 +361,8 @@ Couvert, sur chaque push et chaque pull request :
 - **`testdata/programme.xlsx`** (test d'intégration `exchange`) : ignoré par
   git, réel, non ajouté. À ajouter (si le document peut l'être) ou à
   remplacer par une fixture synthétique — à décider avant d'ouvrir les tests
-  d'intégration en CI.
+  d'intégration en CI. **Tranché le 4 septembre 2026 : ajouté**, et toute
+  fixture de `testdata/` avec lui.
 - **`test_salle.csv` / `test_prof.csv`** (programme-import) : absents
   partout, défaut signalé depuis le lot 5, intact.
 - **`makefile.prod`** n'a pas reçu le passage explicite de `CONFIG_FILE` /

@@ -45,6 +45,10 @@ back/cmd/programme-import/data/
 # explicites plutôt qu'un `git add -f` à retrouver.
 !back/pkg/templates/Template_note.xlsx
 !back/pkg/resultat/jury/template_bulletin.docx
+# Les fixtures de tests Go (répertoires testdata/) sont suivies, quel que soit
+# leur format — tranché le 4 septembre 2026 pour programme.xlsx d'exchange,
+# que le test d'intégration exige et que `**/*.xlsx` retenait hors du dépôt.
+!**/testdata/**
 **/*.jar
 **/*.log
 

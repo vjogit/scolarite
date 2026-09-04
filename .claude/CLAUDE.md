@@ -164,6 +164,12 @@ Application réservée au personnel administratif. Pas encore en production.
   handlers en direct, `sub` injecté au contexte) ; comptes Keycloak de test
   en `@test.invalid`, purgés en `t.Cleanup` **et** en préalable ;
   `pkg/user/` documente la stratégie double-système (base ↔ Keycloak).
+  **Les fixtures de `testdata/` sont suivies** par git, quel que soit leur
+  format (`.gitignore` : `!**/testdata/**`, tranché le 4 septembre 2026) —
+  `pkg/structure/exchange/testdata/programme.xlsx`, que le test
+  d'intégration d'import exige, en est le précédent ; un test ne doit jamais
+  dépendre d'un fichier que le dépôt ne porte pas (les CSV manquants de
+  `programme-import` restent le contre-exemple, voir « Dette »).
 
 ## Suite e2e (front/e2e) — le filet de régression
 
