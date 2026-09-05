@@ -7,8 +7,10 @@ Application réservée au personnel administratif. Pas encore en production.
 ## Stack
 
 - **Back** : Go (chi, pgx, sqlc), PostgreSQL, migrations Liquibase
-  (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/`),
-  Docker Compose + nginx (`infra/run/`), Mailpit en local.
+  (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/` ;
+  thème de connexion `infra/keycloak/themes/scolarite/`, CSS et scripts
+  seuls sur keycloak.v2, voir « Pièges »), Docker Compose + nginx
+  (`infra/run/`), Mailpit en local.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
   `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`) — le
   seul système de composants ; aucun moteur CSS-in-JS. Une seule feuille de
@@ -37,7 +39,7 @@ Application réservée au personnel administratif. Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 64 tests, dont les
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 65 tests, dont les
   20 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
@@ -215,7 +217,7 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 64
+  suite complète sur chaque push par la même cible (`make test-ihm`, 65
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -487,6 +489,35 @@ Application réservée au personnel administratif. Pas encore en production.
   dans une modale (le combobox de l'export), la modale porte
   `data-base-ui-inert` et ses boutons disparaissent de l'arbre accessible —
   fermer le popup (Échap) avant de cibler « Annuler ».
+- **La page de connexion Keycloak suit les préférences de l'application
+  par `localStorage`, une clé par préférence, et le thème ne résout rien**
+  (`infra/keycloak/themes/scolarite/login/resources/js/`, 5 septembre
+  2026). Possible parce que Keycloak est servi sous l'origine du front en
+  `/auth` dans les deux modes ; servi ailleurs, les scripts se tairaient.
+  `mode-couleur.js` relit `mode-couleur` (invariant 12) ; `langue.js` relit
+  et écrit `i18nextLng`, la clé du détecteur i18next du front — aucune
+  seconde variable, aucun `ui_locales`, aucune lecture du jeton. La langue
+  étant rendue côté serveur, le script fait rerendre la page par
+  `kc_locale` — **honoré uniquement sur les URL `login-actions/…`** (celles
+  du sélecteur de langue de la page, avec `tab_id`/`execution`), **ignoré
+  sur le point d'entrée `/protocol/openid-connect/auth`** où la page
+  s'affiche d'abord (constaté sur Keycloak 26.7.1) : le script suit le
+  lien du sélecteur, jamais une URL fabriquée, et attend que le sélecteur
+  soit analysé. Ordre des règles gelé : `kc_locale` dans l'URL → écrire le
+  magasin et s'arrêter ; sinon magasin connu ≠ `<html lang>` → un seul
+  rechargement. C'est cet ordre qui interdit toute boucle. Les libellés du
+  sélecteur sont dans la langue rendue (« Français » / « French
+  (Français) ») : une spec le cible par le paramètre de l'option
+  (`langue-login.spec.ts`). Keycloak mémorise de son côté la langue
+  demandée à la connexion dans l'attribut `locale` du compte et la repose
+  en cookie à chaque connexion suivante : la page peut donc déjà être dans
+  la bonne langue sans rechargement — une spec affirme la langue rendue et
+  « au plus un rechargement », jamais « exactement un ». Limite assumée,
+  comme pour le mode couleur : la préférence est par navigateur, pas par
+  compte. Une spec qui se connecte elle-même le fait dans un **contexte
+  neuf** (`locale: 'fr'` nu, voir « Défauts constatés ») : une déconnexion
+  depuis un contexte monté sur `e2e/.auth/` clôturerait la session que
+  toute la suite partage.
 - Un popup Base UI peut planter **au montage du popup**, donc rester
   invisible de tout test qui ne l'ouvre pas et de toute capture fermée —
   précédent : `Menu.GroupLabel` hors `Menu.Group` faisait tomber tout
@@ -556,6 +587,13 @@ ils survivront à celle-ci si personne ne les reprend.
   consultation montre les rôles cochés, la liste ne semble pas les recevoir.
 - **Message zod brut pour un nombre requis vidé** (lot 13) : un message
   métier demande une `error` sur chaque schéma concerné.
+- **Un navigateur qui n'annonce que `fr-FR` fait démarrer l'application en
+  anglais** (5 septembre 2026, constaté dans le conteneur de référence
+  avec `locale: 'fr-FR'`) : `fr-FR` n'est pas dans `supportedLngs`, et le
+  détecteur i18next retombe sur le `lang="en"` de `front/index.html`
+  (source `htmlTag`) avant d'essayer la langue seule. Les navigateurs
+  réels envoient `fr-FR,fr` et n'y tombent pas ; à corriger côté
+  `i18n/config.ts` ou `index.html` dans un lot front.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute
