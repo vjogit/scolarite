@@ -41,6 +41,11 @@ resource "keycloak_realm" "cyb_scolarite" {
 
   edit_username_allowed = true
 
+  # Page de connexion aux couleurs du front : thème infra/keycloak/themes/
+  # scolarite (CSS et script seuls, par-dessus keycloak.v2), monté dans le
+  # conteneur par infra/container/compose.yaml.
+  login_theme = "scolarite"
+
   internationalization {
     supported_locales = [
       "en",

@@ -20,6 +20,14 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    volumes:
+      # Thèmes de connexion (infra/keycloak/themes, un dossier par thème),
+      # lus directement par Keycloak sans étape `build` ; en `start-dev` ils
+      # ne sont pas mis en cache, une modification se voit au rechargement.
+      # Lecture seule : le conteneur n'a rien à y écrire. Le realm est
+      # rattaché au thème « scolarite » par `login_theme` dans
+      # infra/keycloak/keycloak.tf.
+      - ../keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       db:
         condition: service_healthy
