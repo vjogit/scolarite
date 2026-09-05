@@ -10,13 +10,27 @@
  * Le composant est monté une fois, par `NoteLayout`, entre la barre partagée et
  * l'écran. Il s'efface de lui-même au-dessus de la période, où il n'y a pas
  * encore d'axe à commuter.
+ *
+ * Deux bascules n'ont pas le même coût, et rien ne le disait à l'avance :
+ * vers un axe dont l'identifiant est déjà dans l'URL, l'écran de notes s'ouvre
+ * aussitôt ; vers un axe dont il manque, `cheminVersAxe` dépose sur une liste
+ * où le choix reste à faire — on cliquait « Contrôle » pour voir des notes et
+ * on voyait une liste de matières. Le libellé de ces axes-là se termine par
+ * des points de suspension, la convention qui annonce depuis toujours qu'un
+ * choix précède l'action. Le suffixe est contextuel — il dépend du chemin, pas
+ * de l'axe — et vient de l'i18n, jamais d'une concaténation : la typographie
+ * des points diffère d'une langue à l'autre. Une couleur a été écartée : elle
+ * porterait une valence (vert = bon) que l'information n'a pas, elle
+ * entrerait en collision avec le vert des grades juste en dessous, et elle ne
+ * transmettrait rien à qui ne la voit pas. Aucun état désactivé non plus :
+ * ces axes fonctionnent, ils demandent seulement un choix de plus.
  */
 
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 
 import { ToggleGroup, ToggleGroupItem } from '../../components/ui/toggle-group';
-import { AXES, axeDuChemin, axesDisponibles, cheminVersAxe } from './axes';
+import { AXES, axeDirect, axeDuChemin, axesDisponibles, cheminVersAxe } from './axes';
 
 export function BarreAxes() {
     const { pathname } = useLocation();
@@ -53,11 +67,14 @@ export function BarreAxes() {
                     void navigate(cheminVersAxe(pathname, axe));
                 }}
             >
-                {AXES.map(axe => (
-                    <ToggleGroupItem key={axe.segment} value={axe.segment}>
-                        {axe.libelle()}
-                    </ToggleGroupItem>
-                ))}
+                {AXES.map(axe => {
+                    const libelle = axe.libelle();
+                    return (
+                        <ToggleGroupItem key={axe.segment} value={axe.segment}>
+                            {axeDirect(pathname, axe) ? libelle : t('barreAxes.axeIndirect', { libelle })}
+                        </ToggleGroupItem>
+                    );
+                })}
             </ToggleGroup>
         </div>
     );

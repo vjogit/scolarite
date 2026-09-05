@@ -21,7 +21,8 @@
   },
 
   "barreAxes": {
-    "axe": "Axe"
+    "axe": "Axe",
+    "axeIndirect": "{{libelle}}…"
   },
 
   "axes": {

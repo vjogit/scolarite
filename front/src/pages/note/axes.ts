@@ -152,6 +152,23 @@ export function axesDisponibles(pathname: string): boolean {
     return chainonsUtiles(pathname).some(chainon => chainon.segment === PERIODE);
 }
 
+/** La position de l'axe dans les chaînons, `-1` s'il n'y est pas. */
+function rangAxe(utiles: readonly Chainon[], axe: Axe): number {
+    return utiles.findIndex(chainon => chainon.segment === axe.segment);
+}
+
+/**
+ * L'axe s'ouvre-t-il directement depuis la position courante ?
+ *
+ * C'est le premier des deux cas de `cheminVersAxe`, exposé pour que le
+ * commutateur puisse l'annoncer : un axe dont l'identifiant manque à l'URL
+ * dépose sur une liste où un choix reste à faire. Rien d'autre n'en découle —
+ * l'axe reste actif et mène au même endroit, il demande un choix de plus.
+ */
+export function axeDirect(pathname: string, axe: Axe): boolean {
+    return rangAxe(chainonsUtiles(pathname), axe) !== -1;
+}
+
 /**
  * Le chemin qui mène à un axe depuis la position courante.
  *
@@ -170,7 +187,7 @@ export function axesDisponibles(pathname: string): boolean {
 export function cheminVersAxe(pathname: string, axe: Axe): string {
     const utiles = chainonsUtiles(pathname);
 
-    const rang = utiles.findIndex(chainon => chainon.segment === axe.segment);
+    const rang = rangAxe(utiles, axe);
     if (rang !== -1) {
         return `${construireChemin(PREFIXE, utiles.slice(0, rang + 1))}/${NOTE}`;
     }

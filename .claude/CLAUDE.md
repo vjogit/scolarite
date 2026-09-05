@@ -406,6 +406,24 @@ Application réservée au personnel administratif. Pas encore en production.
   (`right-0.5`) parce que le bouton de tri du `th` gelé voisin (`-ml-2.5`,
   même z-index) recouvre la frontière — la recoller au bord la rendrait
   inaccessible, sans qu'aucun test le voie (constaté au lot 10).
+- **Le nom accessible d'un bouton d'axe des notes est contextuel**
+  (`BarreAxes.tsx`, 5 septembre 2026) : un axe dont l'identifiant manque à
+  l'URL — celui qui dépose sur une liste intermédiaire — porte le suffixe
+  `barreAxes.axeIndirect` de `note.json` (« Matière… » depuis l'axe UE,
+  « Matière » depuis l'axe Contrôle), résolu par `axeDirect`, le premier des
+  deux cas de `cheminVersAxe`. Ni couleur ni état désactivé : ces axes
+  fonctionnent, ils demandent un choix de plus. Une spec ne cible jamais le
+  libellé en clair : `boutonAxe`/`cliquerAxe` de `hierarchieE2E.ts` prennent
+  la clé de l'axe (`'ue'`, `'matiere'`…) et admettent les deux noms, entiers ;
+  `nomAxeDirect`/`nomAxeIndirect` servent à affirmer le suffixe lui-même.
+  Le suffixe ne vient jamais d'une concaténation : la typographie des points
+  diffère d'une langue à l'autre. Une seule limite, mesurée au navigateur :
+  la barre (`flex-wrap`) garde ses 44,8 px à 448 px CSS de large en
+  français quelle que soit la position, mais en anglais, à cette largeur,
+  la position Période (cinq libellés, quatre suffixes, 402 px) passe sous le
+  libellé « View » quand la position Contrôle (363 px) reste sur sa ligne —
+  la hauteur y dépend donc de l'axe. Sous toute largeur d'usage de
+  l'application ; pas de réservation de largeur pour l'absorber.
 - Le nom accessible d'un bouton icône (`Button variant="ghost"
   size="icon"`) est un `aria-label` explicite, jamais le seul `Tooltip`.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
@@ -538,14 +556,6 @@ ils survivront à celle-ci si personne ne les reprend.
   consultation montre les rôles cochés, la liste ne semble pas les recevoir.
 - **Message zod brut pour un nombre requis vidé** (lot 13) : un message
   métier demande une `error` sur chaque schéma concerné.
-- **Les libellés et annonces des axes de notes sont des chaînes françaises
-  en dur** (`pages/note/axes.ts`, `AXES[].libelle`/`annonce`, depuis l'écran
-  unifié) : en anglais, la barre d'axe affiche « Élève, Contrôle, Matière, UE,
-  Période » et chaque écran son annonce en français (constaté au navigateur,
-  lot 16, langue `en` + rechargement). Hors périmètre de la migration ; à
-  passer en fermetures `() => traduire(...)` comme les `actionsLigne` des
-  `routes.tsx` — `notes-unifie.spec.ts` et `hierarchieE2E.ts` ciblent ces
-  libellés en français, langue épinglée, et ne bougeraient pas.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute
@@ -558,6 +568,10 @@ troisième — la désynchronisation des variables CSS MUI quand le mode choisi
 différait de l'OS (lots 7, 8, 10) — est **fermé** par la dépose de MUI
 (lot 17, vérifié au navigateur : sombre choisi + OS clair → tout l'écran
 sombre, `color-scheme` compris).
+Le quatrième — les libellés et annonces des axes de notes en français en
+dur (`axes.ts`, lot 16) — est **fermé** le 5 septembre 2026 : fermetures
+`() => traduire(...)` sur `note.json` (bloc `axes`), vérifié au navigateur
+dans les deux langues, bascule en place comprise.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
