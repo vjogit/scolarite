@@ -24,6 +24,29 @@
     "axe": "View"
   },
 
+  "axes": {
+    "eleve": {
+      "libelle": "Student",
+      "annonce": "A student's full transcript. Nothing is entered here."
+    },
+    "controle": {
+      "libelle": "Assessment",
+      "annonce": "The only view where grades are entered: every other value is computed from them."
+    },
+    "matiere": {
+      "libelle": "Subject",
+      "annonce": "Averages computed from assessment grades. Nothing is entered here."
+    },
+    "ue": {
+      "libelle": "Course unit",
+      "annonce": "Course unit averages, computed from subject averages. Nothing is entered here."
+    },
+    "periode": {
+      "libelle": "Period",
+      "annonce": "GPAs set by the jury. Only the deliberation produces them; nothing is entered here."
+    }
+  },
+
   "provenance": {
     "originRattrapage": "Validation threshold assigned after a passed resit: this value does not correspond to any actual paper.",
     "nonEvaluee": "Not assessed"

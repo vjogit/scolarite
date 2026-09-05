@@ -24,6 +24,29 @@
     "axe": "Axe"
   },
 
+  "axes": {
+    "eleve": {
+      "libelle": "Élève",
+      "annonce": "Relevé complet d'un élève. Aucune valeur ne se saisit ici."
+    },
+    "controle": {
+      "libelle": "Contrôle",
+      "annonce": "Seul axe où les notes se saisissent : toutes les autres valeurs en sont calculées."
+    },
+    "matiere": {
+      "libelle": "Matière",
+      "annonce": "Moyennes calculées à partir des notes de contrôle. Aucune valeur ne se saisit ici."
+    },
+    "ue": {
+      "libelle": "UE",
+      "annonce": "Moyennes d'unité d'enseignement, calculées à partir des moyennes de matière. Aucune valeur ne se saisit ici."
+    },
+    "periode": {
+      "libelle": "Période",
+      "annonce": "GPA arrêtés par le jury. Seule la délibération les produit ; aucune valeur ne se saisit ici."
+    }
+  },
+
   "provenance": {
     "originRattrapage": "Seuil de validation attribué après un rattrapage validé : cette valeur ne correspond à aucune copie.",
     "nonEvaluee": "Non évaluée"

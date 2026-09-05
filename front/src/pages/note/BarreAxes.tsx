@@ -55,7 +55,7 @@ export function BarreAxes() {
             >
                 {AXES.map(axe => (
                     <ToggleGroupItem key={axe.segment} value={axe.segment}>
-                        {axe.libelle}
+                        {axe.libelle()}
                     </ToggleGroupItem>
                 ))}
             </ToggleGroup>

@@ -22,6 +22,7 @@
  * n'est pas celui de la bascule d'axe.
  */
 
+import i18n from '../../i18n/config';
 import { analyserChemin, construireChemin, type Chainon } from '../../services/context/chainons';
 import { WORKFLOW_NOTE } from '../../services/context/workflows';
 import { FORMATION, MATIERE, OPTION, PERIODE, PROMOTION, UES } from '../structure/def';
@@ -29,6 +30,14 @@ import { CONTROLE, ELEVE, NOTE } from './def';
 
 /** Préfixe de route du workflow, tel que `chainons.ts` l'attend. */
 const PREFIXE = WORKFLOW_NOTE.chemin;
+
+/**
+ * Lié au namespace `note`, langue active suivie à chaque appel. Les axes sont
+ * des constantes de module : une chaîne résolue ici figerait la langue de
+ * démarrage, d'où des fermetures résolues au rendu — le parti des
+ * `actionsLigne` des `routes.tsx`.
+ */
+const traduire = i18n.getFixedT(null, 'note');
 
 /**
  * Ce que l'axe donne à voir. `saisie` est le seul à porter une route
@@ -39,45 +48,46 @@ export type NatureAxe = 'saisie' | 'calcule' | 'releve';
 export interface Axe {
     /** Segment porteur dans l'URL : c'est lui qui identifie l'axe. */
     readonly segment: string;
-    readonly libelle: string;
+    /** Résolu au rendu, dans la langue active — jamais au chargement du module. */
+    readonly libelle: () => string;
     readonly nature: NatureAxe;
-    /** Ce que l'écran annonce de lui-même, sous son titre. */
-    readonly annonce: string;
+    /** Ce que l'écran annonce de lui-même, sous son titre. Résolu au rendu aussi. */
+    readonly annonce: () => string;
 }
 
 export const AXE_ELEVE: Axe = {
     segment: ELEVE,
-    libelle: 'Élève',
+    libelle: () => traduire('axes.eleve.libelle'),
     nature: 'releve',
-    annonce: "Relevé complet d'un élève. Aucune valeur ne se saisit ici.",
+    annonce: () => traduire('axes.eleve.annonce'),
 };
 
 export const AXE_CONTROLE: Axe = {
     segment: CONTROLE,
-    libelle: 'Contrôle',
+    libelle: () => traduire('axes.controle.libelle'),
     nature: 'saisie',
-    annonce: "Seul axe où les notes se saisissent : toutes les autres valeurs en sont calculées.",
+    annonce: () => traduire('axes.controle.annonce'),
 };
 
 export const AXE_MATIERE: Axe = {
     segment: MATIERE,
-    libelle: 'Matière',
+    libelle: () => traduire('axes.matiere.libelle'),
     nature: 'calcule',
-    annonce: "Moyennes calculées à partir des notes de contrôle. Aucune valeur ne se saisit ici.",
+    annonce: () => traduire('axes.matiere.annonce'),
 };
 
 export const AXE_UE: Axe = {
     segment: UES,
-    libelle: 'UE',
+    libelle: () => traduire('axes.ue.libelle'),
     nature: 'calcule',
-    annonce: "Moyennes d'unité d'enseignement, calculées à partir des moyennes de matière. Aucune valeur ne se saisit ici.",
+    annonce: () => traduire('axes.ue.annonce'),
 };
 
 export const AXE_PERIODE: Axe = {
     segment: PERIODE,
-    libelle: 'Période',
+    libelle: () => traduire('axes.periode.libelle'),
     nature: 'calcule',
-    annonce: "GPA arrêtés par le jury. Seule la délibération les produit ; aucune valeur ne se saisit ici.",
+    annonce: () => traduire('axes.periode.annonce'),
 };
 
 /** Ordre du commutateur : du plus fin au plus large. */
