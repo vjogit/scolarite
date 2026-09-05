@@ -9,6 +9,7 @@ import { useSession } from '../SessionContext';
 import { useKeycloak } from '../KeycloakContext';
 import { useModeCouleur } from '../services/modeCouleur';
 import { LanguageSwitcher } from '../services/LanguageSwitcher';
+import { BasculeModeCouleur } from '../services/BasculeModeCouleur';
 import { construireNavigation, filterNavigationByRoles, type NavigationItemWithRoles } from './navigation';
 import {
   Sidebar,
@@ -214,6 +215,7 @@ export default function Layout() {
             <SidebarTrigger aria-label={t('shell.basculerMenu')} />
             <span className="text-base font-medium">{TITRE_PRODUIT}</span>
             <div className="ml-auto flex items-center gap-2">
+              <BasculeModeCouleur />
               <LanguageSwitcher />
               <MenuCompte />
             </div>

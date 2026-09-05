@@ -123,11 +123,6 @@ const entiteUe = (periodeId: string, t?: TFunction<'crud'>) => entite(createUeRe
 const entiteMatiere = (ueId: string, t?: TFunction<'crud'>) => entite(createMatiereRepository(ueId), matiereEntite(t));
 const entiteGroupe = (optionId: string, t?: TFunction<'crud'>) => entite(createGroupeRepository(optionId), groupeEntite(t));
 
-/** Le libellé « Créer un/une … » de chaque niveau, calculé sur son entité. */
-export function CREER_FORMATION(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
-    return actionCreer(FORMATION, formationEntite(t), t);
-}
-
 const NIVEAUX: readonly NiveauArbre[] = [
     {
         segment: FORMATION,

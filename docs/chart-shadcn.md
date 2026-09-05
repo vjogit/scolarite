@@ -226,7 +226,7 @@ infobulle fermée ; seuls les états de survol changent (§6).
 
 Playwright MCP sur `https://10.20.2.5:9021` (nginx, build du lot), contrôle
 de rattrapage E2E (deux notes : 7 et 11, moyenne 9,00), puis écran d'axe UE.
-Mode piloté par `emulateMedia({ colorScheme })` — préférence `mui-mode`
+Mode piloté par `emulateMedia({ colorScheme })` — préférence `mode-couleur` (`mui-mode` avant le 5 septembre 2026)
 absente, donc `system` : c'est l'abonnement `matchMedia` de `useModeCouleur`
 qui pose `.dark`, le chemin réel de l'invariant 12. Couleurs lues par
 `getComputedStyle` sur les éléments SVG (valeurs `lab()` telles que Chromium

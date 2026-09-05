@@ -1,6 +1,9 @@
 {
   "langueTooltip": "Change language",
   "langueAriaLabel": "Change language",
+  "modeSombreAriaLabel": "Dark mode",
+  "modeVersSombre": "Switch to dark mode",
+  "modeVersClair": "Switch to light mode",
   "nav": {
     "scolarite": "Academics",
     "salle": "Room",
@@ -17,7 +20,6 @@
     "menuLateralTitre": "Side menu",
     "menuLateralDescription": "Main application navigation",
     "fermer": "Close",
-    "chargement": "Loading…",
     "compte": "User account"
   },
   "workflows": {

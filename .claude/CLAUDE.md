@@ -24,7 +24,8 @@ Application réservée au personnel administratif. Pas encore en production.
   - Arbre de la structure : écrit à la main (`pages/structure/arbre/`).
   - Notifications : sonner, derrière `services/notify.ts` (API impérative,
     durées centralisées).
-  - Shell : sidebar + menu de compte, `layouts/dashboard.tsx`.
+  - Shell : sidebar (groupe « Admin » repliable), bascule clair/sombre,
+    langue et menu de compte, `layouts/dashboard.tsx`.
   - TanStack Query, react-router 7 (`createBrowserRouter`),
     **i18next fr/en** (namespaces dans `front/src/i18n/locales/` — toute clé
     ajoutée l'est dans les deux langues).
@@ -107,8 +108,9 @@ Application réservée au personnel administratif. Pas encore en production.
     n'est pas redécidée.
 12. **Le mode sombre a une source unique : `services/modeCouleur.ts`.**
     `useModeCouleur()` lit la préférence enregistrée (`localStorage`, clé
-    `mui-mode` — nom hérité de MUI, gardé au lot 17 pour ne déconnecter
-    aucune préférence ; `light`/`dark`/`system`) et, en cas de `system`, la
+    `mode-couleur` — renommée le 5 septembre 2026 depuis `mui-mode`, avec
+    reprise de l'ancienne valeur au chargement du module ;
+    `light`/`dark`/`system`) et, en cas de `system`, la
     préférence de l'OS **par abonnement** (`matchMedia`, `storage` pour les
     autres onglets, via `useSyncExternalStore`), et en tire `estSombre`.
     `layouts/dashboard.tsx` pose la classe `.dark` sur `<html>` en
@@ -121,9 +123,11 @@ Application réservée au personnel administratif. Pas encore en production.
     le défaut « sombre choisi + OS clair » des lots 7 à 16, fermé au lot 17.
     L'effet qui pose `.dark` doit rester **avant** les `return` anticipés de
     `Layout` (`loading`, `!session`) — sinon l'écran de chargement et l'écran
-    de connexion restent toujours clairs, quel que soit le mode. Aucun écran
-    n'offre encore de bascule : `setMode` n'a pas de consommateur (la page
-    témoin qui l'appelait est partie au lot 17).
+    de connexion restent toujours clairs, quel que soit le mode. La seule
+    bascule est `services/BasculeModeCouleur.tsx`, dans l'en-tête (rôle
+    `switch` « Mode sombre », deux positions : elle écrit `light` ou `dark`,
+    jamais `system` — cet état est celui d'un navigateur sans préférence) ;
+    elle n'appelle que `setMode`, elle ne résout rien.
 
 ## Conventions
 
@@ -499,13 +503,10 @@ Application réservée au personnel administratif. Pas encore en production.
 
 ## Dette et chantiers connus
 
-- **Typographie et bascule de mode : deux décisions de design, pas de
-  migration.** Le corps de page garde la pile Roboto et l'interlettrage
-  `body1` de MUI (`index.css`, `@theme` et couche `base`) ; passer à une
-  typographie shadcn (Geist, sans interlettrage) régénérerait toutes les
-  captures. Et aucun écran n'offre de bascule clair/sombre : `setMode` de
-  `useModeCouleur` attend son premier consommateur (menu de compte) — c'est
-  le moment de renommer la clé `mui-mode`, avec reprise de l'ancienne valeur.
+- **Typographie : une décision de design, pas de migration.** Le corps de
+  page garde la pile Roboto et l'interlettrage `body1` de MUI (`index.css`,
+  `@theme` et couche `base`) ; passer à une typographie shadcn (Geist, sans
+  interlettrage) régénérerait toutes les captures.
 - **Versions épinglées à réévaluer** — la migration est terminée, la
   promesse « zéro montée parasite » peut être levée. `react-day-picker` est
   épinglé **9.14.0** (la v10 est sortie pendant le lot 12, API non

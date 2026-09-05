@@ -1,6 +1,9 @@
 {
   "langueTooltip": "Changer de langue",
   "langueAriaLabel": "Changer de langue",
+  "modeSombreAriaLabel": "Mode sombre",
+  "modeVersSombre": "Passer en mode sombre",
+  "modeVersClair": "Passer en mode clair",
   "nav": {
     "scolarite": "Scolarité",
     "salle": "Salle",
@@ -17,7 +20,6 @@
     "menuLateralTitre": "Menu latéral",
     "menuLateralDescription": "Navigation principale de l'application",
     "fermer": "Fermer",
-    "chargement": "Chargement…",
     "compte": "Compte de l'utilisateur"
   },
   "workflows": {

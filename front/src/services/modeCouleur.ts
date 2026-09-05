@@ -20,21 +20,21 @@
  *    le composant dépendait d'un abonnement posé par un voisin (constaté au
  *    lot 3). Ici l'abonnement est le sien.
  *
- * La clé de persistance reste `mui-mode`, celle que MUI posait depuis le
- * lot 3 (`toolpad-mode` avant lui). Choix explicite : la renommer aurait
- * déconnecté toute préférence déjà enregistrée dans un navigateur, sans
- * autre bénéfice qu'un nom plus juste. Aucun écran n'offre de bascule de
- * mode à ce jour : la clé n'est écrite que par `setMode`, que seule la page
- * témoin a jamais appelée. Le jour où une bascule entre dans le menu de
- * compte, renommer la clé est une constante à changer ici — et un petit
- * script de reprise de l'ancienne valeur.
+ * La clé de persistance est `mode-couleur` depuis le 5 septembre 2026, jour
+ * où la bascule est entrée dans l'en-tête (`BasculeModeCouleur.tsx`, seul
+ * consommateur de `setMode`). Jusque-là elle s'appelait `mui-mode`, le nom
+ * que MUI posait depuis le lot 3 (`toolpad-mode` avant lui), gardé au lot 17
+ * pour ne déconnecter aucune préférence : au chargement du module, une
+ * valeur encore rangée sous l'ancienne clé est reprise sous la nouvelle,
+ * puis l'ancienne est effacée.
  */
 
 import { useSyncExternalStore } from 'react';
 
 export type ModeCouleur = 'light' | 'dark' | 'system';
 
-const CLE_MODE = 'mui-mode';
+const CLE_MODE = 'mode-couleur';
+const ANCIENNE_CLE_MODE = 'mui-mode';
 const REQUETE_SOMBRE = '(prefers-color-scheme: dark)';
 
 function estMode(valeur: unknown): valeur is ModeCouleur {
@@ -43,6 +43,21 @@ function estMode(valeur: unknown): valeur is ModeCouleur {
 
 /** Repli quand `localStorage` est indisponible (navigation privée verrouillée). */
 let modeMemoire: ModeCouleur = 'system';
+
+/** Reprise, une fois, d'une préférence rangée sous l'ancienne clé `mui-mode`. */
+function reprendreAncienneCle(): void {
+    try {
+        const ancienne = localStorage.getItem(ANCIENNE_CLE_MODE);
+        if (ancienne === null) return;
+        if (localStorage.getItem(CLE_MODE) === null && estMode(ancienne)) {
+            localStorage.setItem(CLE_MODE, ancienne);
+        }
+        localStorage.removeItem(ANCIENNE_CLE_MODE);
+    } catch {
+        // Sans magasin, rien à reprendre.
+    }
+}
+reprendreAncienneCle();
 
 function lireMode(): ModeCouleur {
     try {
