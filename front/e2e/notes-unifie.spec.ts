@@ -1,5 +1,7 @@
 import { test, expect } from './fixtures/roles';
-import { E2E, allerJusquaPeriode, cliquerAxe, allerAAxeEleve } from './aide/hierarchieE2E';
+import {
+    E2E, allerJusquaPeriode, cliquerAxe, allerAAxeEleve, boutonAxe, groupeAxes, nomAxeDirect, nomAxeIndirect,
+} from './aide/hierarchieE2E';
 import { note } from './aide/i18n';
 
 test.describe('Écran Notes unifié', () => {
@@ -9,12 +11,12 @@ test.describe('Écran Notes unifié', () => {
         // transitions (couvert séparément par les tests « changement
         // d'axe » ci-dessous).
         await allerJusquaPeriode(pageAdmin, 'notes');
-        await expect(pageAdmin.getByRole('group', { name: note.barreAxes.axe }).getByRole('button', { name: 'Période' })).toBeVisible();
+        await expect(boutonAxe(pageAdmin, 'periode')).toBeVisible();
         await expect(pageAdmin.getByRole('heading', { name: 'GPA délibéré' })).toBeVisible();
 
         await allerJusquaPeriode(pageAdmin, 'notes');
         const ligneUe = pageAdmin.getByRole('row', { name: E2E.ue }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageAdmin, 'UE', /\/ue$/, ligneUe);
+        await cliquerAxe(pageAdmin, 'ue', /\/ue$/, ligneUe);
         await expect(pageAdmin.getByRole('heading', { name: 'UE' })).toBeVisible();
 
         // Matière et Contrôle se chargent depuis l'écran du niveau parent —
@@ -24,13 +26,13 @@ test.describe('Écran Notes unifié', () => {
         await ligneUe.click();
         await pageAdmin.waitForURL(/\/ue\/\d+\/note$/);
         const ligneMatiere = pageAdmin.getByRole('row', { name: E2E.matiere }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageAdmin, 'Matière', /\/matiere$/, ligneMatiere);
+        await cliquerAxe(pageAdmin, 'matiere', /\/matiere$/, ligneMatiere);
         await expect(pageAdmin.getByRole('heading', { name: 'Matières' })).toBeVisible();
 
         await ligneMatiere.click();
         await pageAdmin.waitForURL(/\/matiere\/\d+\/note$/);
         const ligneControle = pageAdmin.getByRole('row', { name: E2E.controleContinu }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageAdmin, 'Contrôle', /\/controle$/, ligneControle);
+        await cliquerAxe(pageAdmin, 'controle', /\/controle$/, ligneControle);
         await expect(pageAdmin.getByRole('heading', { name: 'Contrôles' })).toBeVisible();
 
         await allerJusquaPeriode(pageAdmin, 'notes');
@@ -43,7 +45,7 @@ test.describe('Écran Notes unifié', () => {
         // champ de saisie apparaissait ici, ce serait sur cet axe.
         await allerJusquaPeriode(pageSaisie, 'notes');
         const ligneUe = pageSaisie.getByRole('row', { name: E2E.ue }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageSaisie, 'UE', /\/ue$/, ligneUe);
+        await cliquerAxe(pageSaisie, 'ue', /\/ue$/, ligneUe);
         await ligneUe.click();
         await pageSaisie.waitForURL(/\/ue\/\d+\/note$/);
         await pageSaisie.waitForLoadState('networkidle');
@@ -55,7 +57,7 @@ test.describe('Écran Notes unifié', () => {
     test('« non évaluée » s\'affiche comme texte, pas une cellule vide ; le rattrapage validé indique sa provenance', async ({ pageAdmin }) => {
         await allerJusquaPeriode(pageAdmin, 'notes');
         const ligneUe = pageAdmin.getByRole('row', { name: E2E.ue }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageAdmin, 'UE', /\/ue$/, ligneUe);
+        await cliquerAxe(pageAdmin, 'ue', /\/ue$/, ligneUe);
         await ligneUe.click();
         await pageAdmin.waitForURL(/\/ue\/\d+\/note$/);
         await pageAdmin.waitForLoadState('networkidle');
@@ -72,7 +74,7 @@ test.describe('Écran Notes unifié', () => {
         const urlPeriode = pageAdmin.url();
         expect(urlPeriode.endsWith('/note')).toBe(true);
 
-        await cliquerAxe(pageAdmin, 'UE', /\/ue$/, pageAdmin.getByRole('heading', { name: 'UE' }));
+        await cliquerAxe(pageAdmin, 'ue', /\/ue$/, pageAdmin.getByRole('heading', { name: 'UE' }));
         expect(pageAdmin.url()).toContain('/ue');
         // Le contexte période reste dans l'URL, sans re-sélection.
         expect(pageAdmin.url().startsWith(urlPeriode.replace(/\/note$/, ''))).toBe(true);
@@ -81,13 +83,53 @@ test.describe('Écran Notes unifié', () => {
     test('changement d\'axe UE → Matière depuis l\'écran d\'une UE', async ({ pageAdmin }) => {
         await allerJusquaPeriode(pageAdmin, 'notes');
         const ligneUe = pageAdmin.getByRole('row', { name: E2E.ue }).getByRole('button', { name: note.routes.gererLesNotes });
-        await cliquerAxe(pageAdmin, 'UE', /\/ue$/, ligneUe);
+        await cliquerAxe(pageAdmin, 'ue', /\/ue$/, ligneUe);
         await ligneUe.click();
         await pageAdmin.waitForURL(/\/ue\/\d+\/note$/);
         await pageAdmin.waitForLoadState('networkidle');
 
-        await cliquerAxe(pageAdmin, 'Matière', /\/matiere$/, pageAdmin.getByRole('heading', { name: 'Matières' }));
+        await cliquerAxe(pageAdmin, 'matiere', /\/matiere$/, pageAdmin.getByRole('heading', { name: 'Matières' }));
         await expect(pageAdmin.getByRole('heading', { name: 'Matières' })).toBeVisible();
+    });
+
+    test('la barre dit quels axes demandent encore un choix', async ({ pageAdmin }) => {
+        // Le suffixe « … » de `BarreAxes` est contextuel : il marque les axes
+        // dont l'identifiant manque à l'URL, ceux qui déposent sur une liste
+        // intermédiaire au lieu d'ouvrir l'écran de notes. On lit les cinq
+        // noms d'un coup, dans l'ordre du commutateur, depuis quatre positions.
+        const noms = (directs: readonly string[]) => (['eleve', 'controle', 'matiere', 'ue', 'periode'] as const)
+            .map(axe => (directs.includes(axe) ? nomAxeDirect(axe) : nomAxeIndirect(axe)));
+        const boutons = groupeAxes(pageAdmin).getByRole('button');
+
+        // Axe Période : seule la période est dans l'URL.
+        await allerJusquaPeriode(pageAdmin, 'notes');
+        await expect(boutons).toHaveText(noms(['periode']));
+
+        // Axe UE : l'UE choisie rejoint la période.
+        const ligneUe = pageAdmin.getByRole('row', { name: E2E.ue }).getByRole('button', { name: note.routes.gererLesNotes });
+        await cliquerAxe(pageAdmin, 'ue', /\/ue$/, ligneUe);
+        await ligneUe.click();
+        await pageAdmin.waitForURL(/\/ue\/\d+\/note$/);
+        await expect(boutons).toHaveText(noms(['ue', 'periode']));
+
+        // Liste intermédiaire des matières : aucun axe actif, le commutateur
+        // reste, et Matière garde ses points — le choix est justement en cours.
+        const ligneMatiere = pageAdmin.getByRole('row', { name: E2E.matiere }).getByRole('button', { name: note.routes.gererLesNotes });
+        await cliquerAxe(pageAdmin, 'matiere', /\/matiere$/, ligneMatiere);
+        await expect(boutons).toHaveText(noms(['ue', 'periode']));
+        await expect(groupeAxes(pageAdmin).getByRole('button', { pressed: true })).toHaveCount(0);
+
+        // Axe Matière, puis axe Contrôle : seul Élève demande encore un choix.
+        await ligneMatiere.click();
+        await pageAdmin.waitForURL(/\/matiere\/\d+\/note$/);
+        await expect(boutons).toHaveText(noms(['matiere', 'ue', 'periode']));
+
+        const ligneControle = pageAdmin.getByRole('row', { name: E2E.controleContinu }).getByRole('button', { name: note.routes.gererLesNotes });
+        await cliquerAxe(pageAdmin, 'controle', /\/controle$/, ligneControle);
+        await ligneControle.click();
+        await pageAdmin.waitForURL(/\/controle\/\d+\/note$/);
+        await expect(boutons).toHaveText(noms(['controle', 'matiere', 'ue', 'periode']));
+        await expect(boutonAxe(pageAdmin, 'controle')).toHaveAttribute('aria-pressed', 'true');
     });
 
     test('axe Élève partageable : l\'URL porte le user_id', async ({ pageAdmin }) => {

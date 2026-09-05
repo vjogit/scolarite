@@ -37,7 +37,7 @@ Application réservée au personnel administratif. Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 63 tests, dont les
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 64 tests, dont les
   20 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
@@ -215,7 +215,7 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 63
+  suite complète sur chaque push par la même cible (`make test-ihm`, 64
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une

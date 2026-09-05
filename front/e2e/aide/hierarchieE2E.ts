@@ -28,6 +28,40 @@ export const E2E = {
 
 type Niveau = keyof typeof app.niveaux;
 
+/** Un axe de `BarreAxes`, par sa clé dans `note.json` (`axes`). */
+export type CleAxe = keyof typeof note.axes;
+
+function echapperRegExp(texte: string): string {
+    return texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Le nom d'un bouton d'axe quand l'axe s'ouvre directement. */
+export function nomAxeDirect(axe: CleAxe): string {
+    return note.axes[axe].libelle;
+}
+
+/** Le nom d'un bouton d'axe quand un choix reste à faire — le suffixe de `BarreAxes`. */
+export function nomAxeIndirect(axe: CleAxe): string {
+    return interpoler(note.barreAxes.axeIndirect, { libelle: note.axes[axe].libelle });
+}
+
+/** Le commutateur d'axe de l'écran Notes. */
+export function groupeAxes(page: Page): Locator {
+    return page.getByRole('group', { name: note.barreAxes.axe });
+}
+
+/**
+ * Le bouton d'un axe, que l'axe s'ouvre directement ou demande encore un
+ * choix : son nom accessible porte le suffixe de `BarreAxes` selon le chemin
+ * courant, que l'appelant n'a pas à connaître. Le motif n'admet que ces deux
+ * noms, entiers — plus strict que la sous-chaîne, qui prendrait « UE » dans
+ * n'importe quel libellé qui la contient.
+ */
+export function boutonAxe(page: Page, axe: CleAxe): Locator {
+    const noms = [nomAxeDirect(axe), nomAxeIndirect(axe)].map(echapperRegExp).join('|');
+    return groupeAxes(page).getByRole('button', { name: new RegExp(`^(${noms})$`) });
+}
+
 /** Attend que Keycloak ait fini son aller-retour avant de s'appuyer sur l'URL. */
 export async function attendreChargementInitial(page: Page): Promise<void> {
     await page.waitForFunction(() => !location.href.includes('/auth/realms/'), null, { timeout: 15_000 });
@@ -167,19 +201,14 @@ async function remonterDepuisUrlActuelle(page: Page): Promise<void> {
     }, url);
 }
 
-/** Bascule vers un axe de `BarreAxes` — voir `cliquerPuisAttendreUrl`. */
-export async function cliquerAxe(page: Page, libelle: string, motif: RegExp, contenu?: Locator): Promise<void> {
-    await cliquerPuisAttendreUrl(
-        page,
-        () => page.getByRole('group', { name: note.barreAxes.axe }).getByRole('button', { name: libelle }).click(),
-        motif,
-        contenu,
-    );
+/** Bascule vers un axe de `BarreAxes` — voir `cliquerPuisAttendreUrl` et `boutonAxe`. */
+export async function cliquerAxe(page: Page, axe: CleAxe, motif: RegExp, contenu?: Locator): Promise<void> {
+    await cliquerPuisAttendreUrl(page, () => boutonAxe(page, axe).click(), motif, contenu);
 }
 
 /** Bascule vers l'axe Élève et attend son sélecteur — voir `cliquerPuisAttendreUrl`. */
 export async function allerAAxeEleve(page: Page): Promise<void> {
-    await cliquerAxe(page, 'Élève', /\/eleve$/, page.getByRole('combobox', { name: 'Élève de la période' }));
+    await cliquerAxe(page, 'eleve', /\/eleve$/, page.getByRole('combobox', { name: note.noteEleveAxe.eleveLabel }));
 }
 
 /**
@@ -199,21 +228,20 @@ export async function allerALaGrilleDeSaisie(
 ): Promise<void> {
     await allerJusquaPeriode(page, 'notes', option, periode);
 
-    const axe = page.getByRole('group', { name: note.barreAxes.axe });
     const ligneUe = page.getByRole('row', { name: ue }).getByRole('button', { name: note.routes.gererLesNotes });
-    await cliquerPuisAttendreUrl(page, () => axe.getByRole('button', { name: 'UE' }).click(), /\/ue$/, ligneUe);
+    await cliquerAxe(page, 'ue', /\/ue$/, ligneUe);
     await ligneUe.click();
     await page.waitForURL(/\/ue\/\d+\/note$/);
     await page.waitForLoadState('networkidle');
 
     const ligneMatiere = page.getByRole('row', { name: matiere }).getByRole('button', { name: note.routes.gererLesNotes });
-    await cliquerPuisAttendreUrl(page, () => axe.getByRole('button', { name: 'Matière' }).click(), /\/matiere$/, ligneMatiere);
+    await cliquerAxe(page, 'matiere', /\/matiere$/, ligneMatiere);
     await ligneMatiere.click();
     await page.waitForURL(/\/matiere\/\d+\/note$/);
     await page.waitForLoadState('networkidle');
 
     const ligneControle = page.getByRole('row', { name: controle }).getByRole('button', { name: note.routes.gererLesNotes });
-    await cliquerPuisAttendreUrl(page, () => axe.getByRole('button', { name: 'Contrôle' }).click(), /\/controle$/, ligneControle);
+    await cliquerAxe(page, 'controle', /\/controle$/, ligneControle);
     await ligneControle.click();
     await page.waitForURL(/\/controle\/\d+\/note$/);
     await page.waitForLoadState('networkidle');
