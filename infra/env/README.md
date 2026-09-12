@@ -10,7 +10,8 @@ scripts d'infrastructure, et **le module Terraform du realm Keycloak** :
 | `infra/liquibase/migrate.sh` | applique les changesets Liquibase |
 | `infra/keycloak/deploy.sh` | applique le module Terraform du realm |
 | `infra/gen_sql.sh` | extrait le schéma et régénère le code sqlc |
-| `infra/run/start-scolarite.sh` | rend `back/cmd/serveur/config.yaml` et lance la pile applicative |
+| `infra/run/start-scolarite.sh` | rend `back/cmd/serveur/config.yaml`, dépose certificat et CA, lance la pile applicative (images construites ou tirées, `IMAGES_*`) |
+| `infra/run/build-scolarite.sh` | construit les deux images publiables et les pousse (`make publier-images`) |
 
 Les scripts prennent les deux fichiers en arguments, dans cet ordre :
 
@@ -104,6 +105,25 @@ la console Keycloak (le prochain `apply` écraserait).
 L'état, lui, est séparé par espace de travail Terraform (`local` / `prod`).
 Une `precondition` du module confronte `terraform.workspace` à
 `TF_VAR_environnement` et refuse l'`apply` s'ils divergent.
+
+## Les images applicatives : `IMAGES_MODE`, `IMAGES_REGISTRE`, `IMAGES_TAG`
+
+Trois variables de topologie disent à `start-scolarite.sh` comment obtenir les
+images de `infra/run/compose.yaml` (voir `docs/deployements.md`, « Images et
+déploiement ») :
+
+| Variable | local / CI | prod |
+|---|---|---|
+| `IMAGES_MODE` | `build` — construites sur place | `pull` — tirées puis lancées sans build |
+| `IMAGES_REGISTRE` | vide — noms locaux `scolarite-backend`, `scolarite-nginx` | préfixe du registre, barre oblique finale comprise (`ghcr.io/compte/`) |
+| `IMAGES_TAG` | `latest` — ce que le mode build pose | l'étiquette déployée |
+
+Ce sont les **seules** variables que `start-scolarite.sh` laisse surcharger sur
+la ligne de commande de `make`, parce qu'elles changent à chaque déploiement
+ou répétition : `make start-prod-keep IMAGES_TAG=v1.4.0`, ou sur le poste
+`make start-local-keep IMAGES_MODE=pull IMAGES_TAG=<étiquette>` après
+`make publier-images`. `config-prod.env` porte `REMPLACER` en étiquette :
+un déploiement sans étiquette explicite échoue au `pull`, c'est voulu.
 
 ## Le piège que ces fichiers tendent
 

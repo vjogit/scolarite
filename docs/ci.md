@@ -85,8 +85,8 @@ travailler sur `shadcn` aurait rouvert une branche close).
 - **`keycloak.tf` n'accepte que `local` ou `prod`** pour `environnement`
   (validation de `variables.tf`) : la CI est un espace de travail `local`
   sur une autre machine, pas un troisième environnement — ce qui est aussi
-  ce que `start-scolarite.sh local` (cible Docker avec Delve, mode Vite
-  `conteneurs`, CA mkcert) reproduit.
+  ce que `start-scolarite.sh local` (cible Docker avec Delve, images
+  construites sur place, CA mkcert) reproduit.
 - **Les captures de référence portent le suffixe `-chromium-linux.png`** et
   le poste n'a pas Roboto (`fc-list` vide) : elles ont été rendues avec la
   police de repli du poste. Déduit, puis mesuré (§5).
@@ -127,10 +127,13 @@ faux par défaut). Un job, un exécuteur `ubuntu-24.04`, 45 min de plafond.
    **sans wrapper** (le wrapper de `setup-terraform` parasite
    `terraform output -raw`, que `deploy.sh` lit), mkcert par apt, Liquibase
    5.0.1 par l'archive GitHub. 11 s.
-2. Certificat nginx par `mkcert` pour 10.20.2.5 — la même commande que
-   `build-scolarite.sh`. La CA créée au passage est celle que
-   `start-scolarite.sh` dépose pour le backend (vérification TLS de l'issuer
-   intacte, jamais d'`InsecureSkipVerify`).
+2. Aucune étape de certificat : `start-scolarite.sh` génère lui-même le
+   certificat nginx (10.20.2.5) dans `${SCOLARITE_CONF_DIR}/ssl/` quand il
+   manque, avec le mkcert de l'exécuteur — l'image nginx ne porte aucun
+   certificat, compose monte ce répertoire —, et la CA créée au passage est celle qu'il dépose
+   pour le backend (vérification TLS de l'issuer intacte, jamais
+   d'`InsecureSkipVerify`). C'est ce qui fait de ce job la preuve qu'un poste
+   neuf démarre (l'étape manuelle a existé jusqu'au 12 septembre 2026).
 3. `secrets-ci.env` fabriqué depuis `secrets.env.example` (§3).
 4. Garde : `config-ci.env` et `config-local.env` déclarent le même jeu de
    variables (`diff` des noms). Une variable ajoutée à l'un sans l'autre
@@ -360,10 +363,14 @@ Couvert, sur chaque push et chaque pull request :
 - **`programme-import/pkg/extraction`** : rejoué, jamais décisif.
 - **`govulncheck`, `npm audit --omit=dev`, Dependabot, protection de
   branche** : listés dans la dette de CLAUDE.md, hors de ce lot.
-- **Le build du front en mode `conteneurs`** n'est vérifié que par le job
-  e2e (dans l'image nginx) ; `verification.yml` construit en `production`.
-- **La production** : `makefile.prod`, `config-prod.env`, cible Docker
-  `prod` — rien n'est construit ni testé sous cette forme.
+- **Le bundle du front est unique** (aucune URL figée, `front/.env` commun) :
+  `verification.yml` le construit sur l'exécuteur, le job e2e dans l'image
+  nginx — le même dans les deux cas.
+- **La production** : `makefile.prod`, `config-prod.env`, cible Docker `prod`
+  (sans Delve) — la CI ne construit pas cette cible ; c'est `make
+  publier-images` qui la construit, et la répétition locale en `IMAGES_MODE=pull`
+  qui la lance (`docs/deployements.md`, « Images et déploiement »). Publier
+  depuis la CI (`docker/build-push-action` sur tag) reste à faire.
 - **Firefox, WebKit, mobile** : Chromium seul, comme la suite.
 
 ## 9. Ce qui n'a pas été traité, et ce qui est signalé

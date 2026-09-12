@@ -1,0 +1,28 @@
+# Contexte de build des images (infra/run/compose.yaml : context ../../,
+# dockerfile infra/run/build/Dockerfile). Le Dockerfile ne copie que back/,
+# front/ et infra/run/build/ ; tout ce qui suit n'a rien à y faire.
+
+# Le stage frontend-builder fait son propre `npm ci` puis `COPY front/ ./` :
+# sans cette exclusion, le node_modules du poste ÉCRASE celui de l'image, et
+# l'état du poste décide du build (constaté le 12 septembre 2026 : des
+# .bin/* copiés sans liens symboliques faisaient échouer `tsc` dans l'image,
+# alors que `npm ci` venait de l'installer correctement).
+front/node_modules/
+front/dist/
+front/.vite/
+
+# Artefacts de la suite Playwright et du serveur MCP
+front/test-results/
+front/playwright-report/
+front/e2e/.auth/
+.playwright-mcp/
+
+# Historique git, données et secrets : jamais dans une image
+.git/
+infra/data/
+infra/env/secrets-*.env
+.env
+
+# Éditeurs
+.idea/
+.vscode/

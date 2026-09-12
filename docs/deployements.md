@@ -168,13 +168,108 @@ Les fichiers `cert/` sont dans `.gitignore` et doivent être régénérés sur c
 
 **nginx (container)**
 
-Le certificat nginx est généré automatiquement par `mkcert` lors du build Docker :
+Le certificat de nginx vit **hors du dépôt et hors de l'image**, dans
+`${SCOLARITE_CONF_DIR}/ssl/` (`nginx.crt`, `nginx.key`), que
+`infra/run/compose.yaml` monte en lecture seule sur `/etc/nginx/ssl`. L'image
+nginx n'embarque donc ni clé ni certificat : elle peut être poussée sur un
+registre et la même sert à tous les environnements.
+
+- **En local**, `infra/run/start-scolarite.sh` (via `make start-local-reset` /
+  `start-local-keep`) le génère par `mkcert` pour `10.20.2.5` s'il manque, et
+  le régénère s'il n'est plus signé par la CA mkcert courante du poste (CA
+  recréée après une réinstallation). Sans `mkcert`, le lancement s'arrête avec
+  le message d'installation : le backend ne pourrait pas valider les jetons et
+  chaque appel d'API répondrait 503. La CI n'a aucune étape de certificat,
+  c'est ce script qui prouve qu'un poste neuf démarre.
+- **En prod**, rien n'est généré : le certificat réel et sa clé se déposent à
+  la main dans `${SCOLARITE_CONF_DIR}/ssl/`, et leur renouvellement les
+  remplace sur place (`docker compose restart nginx`, ou un `nginx -s reload`
+  dans le conteneur). `start-scolarite.sh prod` refuse de partir s'ils
+  manquent.
+
+---
+
+## Images et déploiement
+
+Les deux images applicatives, `scolarite-backend` (cible Docker `prod`, sans
+Delve) et `scolarite-nginx`, sont **neutres vis-à-vis de l'environnement** :
+rien de ce qui varie entre local et prod n'est dedans.
+
+| Ce qui varie | Où il vit | Comment il arrive dans le conteneur |
+|---|---|---|
+| `config.yaml` du backend | rendu par `start-scolarite.sh` dans `${SCOLARITE_CONF_DIR}` | montage `/opt/scolarite/conf` |
+| `nginx.conf` | idem | montage `/etc/nginx/nginx.conf` |
+| certificat TLS de nginx | `${SCOLARITE_CONF_DIR}/ssl/` | montage `/etc/nginx/ssl` |
+| CA de l'issuer Keycloak (local) | `${SCOLARITE_CONF_DIR}/rootCA.pem` | `keycloak.ca_cert` du `config.yaml` rendu |
+| URL de l'API et de Keycloak (front) | nulle part | le front s'adresse à `window.location.origin` (nginx sert `/`, `/api` et `/auth` sous la même origine) |
+
+Seuls le realm et l'identifiant client Keycloak sont figés au build du front
+(`front/.env`), identiques dans les deux topologies.
+
+### Publier
 
 ```bash
-./build-scolarite.sh nginx
+make publier-images                                  # images locales, étiquette `git describe`
+make publier-images IMAGES_REGISTRE=ghcr.io/compte/  # idem, puis docker push (docker login avant)
 ```
 
-Le script détecte l'absence de `infra/run/build/ssl/` et appelle `mkcert` pour `10.20.2.5`.
+`infra/run/build-scolarite.sh` construit les deux cibles sous
+`${IMAGES_REGISTRE}scolarite-{backend,nginx}:${IMAGES_TAG}`. Un arbre de travail
+modifié est refusé : l'image publiée correspond à un commit, celui que la CI a
+exercé. Construire en CI plutôt que sur le poste reste la cible ; la cible
+`make` en est l'équivalent manuel.
+
+### Déployer
+
+`start-scolarite.sh` obtient les images selon trois variables de
+`infra/env/config-<env>.env`, surchargeables sur la ligne de commande de `make`
+(voir `infra/env/README.md`) :
+
+| Variable | local / CI | prod |
+|---|---|---|
+| `IMAGES_MODE` | `build` : `docker compose up --build` | `pull` : `docker compose pull` puis `up --no-build` |
+| `IMAGES_REGISTRE` | vide (noms locaux) | `ghcr.io/compte/` |
+| `IMAGES_TAG` | `latest` (ce que le mode build pose) | l'étiquette déployée, **sur la ligne de commande** |
+
+```bash
+make start-prod-keep IMAGES_TAG=v1.4.0
+```
+
+En prod, `start-prod-*` ne construit rien et ne génère rien (plus de `gen_sql`
+dans la chaîne) : Postgres et Keycloak montent, Terraform applique le realm,
+Liquibase migre, puis les images sont tirées et lancées.
+
+### Répéter le déploiement sur le poste, sans hôte de prod
+
+Le mode `pull` fonctionne aussi en local, avec des images locales :
+
+```bash
+make publier-images                                            # scolarite-*:<étiquette>
+make start-local-keep IMAGES_MODE=pull IMAGES_TAG=<étiquette>  # la pile tourne sur ces images
+make test-ihm                                                  # la même suite les juge
+```
+
+C'est le backend `prod` (sans Delve) qui tourne alors ; la ligne « Delve
+disponible » n'est pas affichée.
+
+### Le kit de déploiement
+
+Un hôte de prod n'a ni sources, ni Go, ni Node, ni mkcert : il a Docker, les
+images, ses secrets, et le **kit** — ce que les chaînes `make` exécutent :
+
+```bash
+make kit-deploiement IMAGES_TAG=v1.4.0     # scolarite-kit-v1.4.0.tar.gz
+```
+
+Le kit est extrait de git à l'étiquette des images (jamais de l'arbre de
+travail) : `makefile`, `makefile.local`, `makefile.prod`, `infra/` (compose,
+scripts, Liquibase, Terraform, thème Keycloak, topologies) et
+`back/cmd/serveur/config.yaml`, le gabarit que `start-scolarite.sh` rend.
+L'hôte y ajoute `infra/env/secrets-prod.env` et dépose le certificat dans
+`${SCOLARITE_CONF_DIR}/ssl/`. Ce que le kit ne couvre pas encore : Terraform
+et Liquibase doivent être installés sur l'hôte (les passer en conteneurs est
+le lot suivant), Keycloak reste en `start-dev` dans `infra/container/compose.yaml`,
+et l'issuer public (nom DNS, résolution depuis le backend) n'est pas traité.
 
 ---
 

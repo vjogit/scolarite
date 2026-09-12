@@ -5,7 +5,10 @@ set -euo pipefail
 #
 # Rend le config.yaml du backend depuis sa source unique
 # (back/cmd/serveur/config.yaml, également lue telle quelle par le debugger
-# VSCode), puis (re)lance la composition applicative (backend + nginx).
+# VSCode), dépose ce que les conteneurs montent (nginx.conf, certificat TLS,
+# CA), puis (re)lance la composition applicative (backend + nginx) — en
+# construisant les images (IMAGES_MODE=build) ou en prenant celles d'un
+# registre (IMAGES_MODE=pull). Voir docs/deployements.md, « Images ».
 
 cd "$(dirname "$0")"
 PROJECT_ROOT="$(cd ../.. && pwd)"
@@ -40,6 +43,15 @@ for f in "$CONFIG_FILE" "$SECRETS_FILE"; do
 done
 [ -f "$CONFIG_TEMPLATE" ] || { echo "ERREUR : source de configuration introuvable : $CONFIG_TEMPLATE" >&2; exit 1; }
 
+# Les trois variables IMAGES_* ont leur valeur dans config-<env>.env, mais un
+# déploiement les surcharge sur la ligne de commande — `make start-prod-keep
+# IMAGES_TAG=v1.4.0`, ou une répétition du mode pull sur le poste. `source`
+# ci-dessous écraserait ces surcharges : on les retient avant, on les repose
+# après.
+IMAGES_MODE_CLI="${IMAGES_MODE:-}"
+IMAGES_REGISTRE_CLI="${IMAGES_REGISTRE-__non_defini__}"
+IMAGES_TAG_CLI="${IMAGES_TAG:-}"
+
 echo "--- 🔧 Génération de la configuration ($ENV_NAME) ---"
 set -a
 # shellcheck source=/dev/null
@@ -48,8 +60,28 @@ source "$CONFIG_FILE"
 source "$SECRETS_FILE"
 set +a
 
+[ -n "$IMAGES_MODE_CLI" ] && IMAGES_MODE="$IMAGES_MODE_CLI"
+[ "$IMAGES_REGISTRE_CLI" != "__non_defini__" ] && IMAGES_REGISTRE="$IMAGES_REGISTRE_CLI"
+[ -n "$IMAGES_TAG_CLI" ] && IMAGES_TAG="$IMAGES_TAG_CLI"
+IMAGES_MODE="${IMAGES_MODE:-build}"
+IMAGES_REGISTRE="${IMAGES_REGISTRE:-}"
+IMAGES_TAG="${IMAGES_TAG:-latest}"
+case "$IMAGES_MODE" in
+    build|pull) ;;
+    *) echo "❌ IMAGES_MODE vaut « $IMAGES_MODE » : attendu build ou pull (infra/env/README.md)" >&2; exit 1 ;;
+esac
+export IMAGES_MODE IMAGES_REGISTRE IMAGES_TAG
+
 CONF_DIR="${SCOLARITE_CONF_DIR:?SCOLARITE_CONF_DIR absent de $CONFIG_FILE}"
 mkdir -p "$CONF_DIR"
+
+# ── Certificat TLS de nginx : hors de l'image, monté depuis $CONF_DIR/ssl ────
+# compose.yaml monte ce répertoire sur /etc/nginx/ssl en lecture seule. L'image
+# nginx n'embarque donc ni clé ni certificat : elle peut être poussée sur un
+# registre et servir tous les environnements.
+SSL_DIR="$CONF_DIR/ssl"
+NGINX_CRT="$SSL_DIR/nginx.crt"
+NGINX_KEY="$SSL_DIR/nginx.key"
 
 # keycloak.ca_cert : chemin DANS le conteneur, fixé par le montage déclaré dans
 # compose.yaml — ce n'est pas de la topologie d'environnement, il n'a donc rien
@@ -61,9 +93,65 @@ mkdir -p "$CONF_DIR"
 # publique, et la variable reste vide — le backend s'en tient aux CA système.
 # Hors conteneur (debugger VSCode), personne ne la définit : même résultat.
 SCOLARITE_CA_CERT=""
-if [ "$ENV_NAME" = "local" ] && command -v mkcert >/dev/null 2>&1; then
+if [ "$ENV_NAME" = "local" ]; then
+    # mkcert n'est pas optionnel en local : sans la CA dans sa configuration,
+    # le backend démarre, la connexion Keycloak réussit, et chaque appel d'API
+    # répond 503 « Service d'authentification indisponible » (la découverte
+    # OIDC échoue en TLS). Mieux vaut échouer ici, avec le remède.
+    command -v mkcert >/dev/null 2>&1 || {
+        echo "❌ mkcert introuvable : l'espace de travail local en a besoin (CA de l'issuer Keycloak)." >&2
+        echo "   sudo apt install mkcert libnss3-tools && mkcert -install   (docs/deployements.md)" >&2
+        exit 1
+    }
+
+    # Certificat mkcert de nginx (10.20.2.5). Généré quand il manque (poste ou
+    # exécuteur neuf : la CI n'a aucune étape pour lui, c'est ce script qui
+    # prouve qu'un poste neuf démarre), et régénéré quand il n'est plus signé
+    # par la CA courante (CA recréée après réinstallation du poste — le backend
+    # le refuserait de la même façon). La génération précède la copie de la
+    # racine : mkcert crée sa CA au premier certificat si elle n'existe pas.
+    if [ ! -f "$NGINX_CRT" ] || [ ! -f "$NGINX_KEY" ]; then
+        echo "--- 🔐 Génération du certificat mkcert de nginx (10.20.2.5) ---"
+    elif [ -f "$(mkcert -CAROOT)/rootCA.pem" ] && command -v openssl >/dev/null 2>&1 \
+         && ! openssl verify -CAfile "$(mkcert -CAROOT)/rootCA.pem" "$NGINX_CRT" >/dev/null 2>&1; then
+        echo "--- 🔐 Certificat de nginx signé par une autre CA que celle du poste : régénération ---"
+        rm -f "$NGINX_CRT" "$NGINX_KEY"
+    fi
+    if [ ! -f "$NGINX_CRT" ] || [ ! -f "$NGINX_KEY" ]; then
+        mkdir -p "$SSL_DIR"
+        mkcert -key-file "$NGINX_KEY" -cert-file "$NGINX_CRT" 10.20.2.5
+    fi
+    # [DEV-LOCAL] mkcert écrit la clé en 0600 pour le compte du poste ; montée
+    # telle quelle, nginx (utilisateur scolarite de l'image, UID 10001) ne peut
+    # pas la lire et boucle au démarrage. Clé d'une CA de développement, sans
+    # valeur hors du poste : lisible suffit. En prod, c'est le dépôt du
+    # certificat qui règle les droits (chown 10001), vérifié ci-dessous.
+    chmod 0644 "$NGINX_KEY"
+
     cp "$(mkcert -CAROOT)/rootCA.pem" "$CONF_DIR/rootCA.pem"
     SCOLARITE_CA_CERT=/opt/scolarite/conf/rootCA.pem
+else
+    # En prod, rien n'est généré : le certificat réel (CA publique ou CA de
+    # l'établissement) se dépose à la main, et son renouvellement le remplace
+    # sur place. Un fichier absent ferait tomber nginx au démarrage, sans
+    # message utile — autant le dire ici.
+    if [ ! -f "$NGINX_CRT" ] || [ ! -f "$NGINX_KEY" ]; then
+        echo "❌ Certificat TLS de nginx absent : $NGINX_CRT et $NGINX_KEY attendus." >&2
+        echo "   Déposer le certificat et sa clé (docs/deployements.md, « Certificats HTTPS »)." >&2
+        exit 1
+    fi
+    # La clé est lue par l'utilisateur scolarite de l'image (UID/GID 10001,
+    # fixés dans le Dockerfile). Trois façons d'y satisfaire : propriétaire
+    # 10001, groupe 10001 avec mode g+r, ou mode o+r. Sinon nginx boucle au
+    # démarrage sur « Permission denied » — autant le dire avant.
+    lire_stat() { stat -c "$1" "$NGINX_KEY"; }
+    if ! { [ "$(lire_stat %u)" = 10001 ] \
+           || { [ "$(lire_stat %g)" = 10001 ] && [ $(( 0$(lire_stat %a) & 040 )) -ne 0 ]; } \
+           || [ $(( 0$(lire_stat %a) & 04 )) -ne 0 ]; }; then
+        echo "❌ $NGINX_KEY n'est pas lisible par nginx (UID 10001 dans le conteneur)." >&2
+        echo "   sudo chown 10001 $NGINX_KEY   (ou chgrp 10001 + chmod 0640)" >&2
+        exit 1
+    fi
 fi
 export SCOLARITE_CA_CERT
 
@@ -100,22 +188,26 @@ envsubst '${NGINX_TRUSTED_PROXIES}' < "$NGINX_CONF_TEMPLATE" > "$CONF_DIR/nginx.
 # Consommés par infra/run/compose.yaml.
 export CONFIG_FILE SECRETS_FILE
 export BACKEND_TARGET="$ENV_NAME"
-# Mode Vite du build front. « local » est un nom de mode interdit par
-# Vite (conflit avec le suffixe .local des fichiers d'env) : l'espace de
-# travail local bâtit donc front/.env.conteneurs.
-if [ "$ENV_NAME" = "local" ]; then
-    export FRONT_MODE="conteneurs"
-else
-    export FRONT_MODE="production"
-fi
 export VERSION=$(git -C "$PROJECT_ROOT" describe --tags --always --dirty 2>/dev/null || echo "dev")
 export BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-echo "--- 🐳 Build et lancement des containers ---"
 docker compose -f compose.yaml down 2>/dev/null || true
-docker compose -f compose.yaml up --build -d
+if [ "$IMAGES_MODE" = "pull" ]; then
+    echo "--- 🐳 Lancement des containers depuis les images ${IMAGES_REGISTRE}scolarite-{backend,nginx}:${IMAGES_TAG} ---"
+    # Sans registre, les images sont celles du poste (make publier-images) :
+    # rien à tirer, compose les prend telles quelles ou échoue si elles manquent.
+    if [ -n "$IMAGES_REGISTRE" ]; then
+        docker compose -f compose.yaml pull
+    fi
+    docker compose -f compose.yaml up -d --no-build
+else
+    echo "--- 🐳 Build et lancement des containers ---"
+    docker compose -f compose.yaml up --build -d
+fi
 
 echo "--- ✅ Application disponible sur https://10.20.2.5:9021 ---"
-if [ "$ENV_NAME" = "local" ]; then
+# L'image publiée (cible prod) n'embarque pas Delve : en mode pull, même en
+# local, il n'y a pas de débogueur à annoncer.
+if [ "$ENV_NAME" = "local" ] && [ "$IMAGES_MODE" = "build" ]; then
     echo "--- 🐛 Delve disponible sur localhost:2345 ---"
 fi

@@ -36,19 +36,22 @@ RUN npm ci
 
 COPY front/ ./
 
-# Mode Vite, donc fichier front/.env.<mode> retenu : « conteneurs » pour la
-# stack locale (URL de nginx en 10.20.2.5:9021), « production » pour la prod.
-# Positionné par infra/run/compose.yaml depuis start-scolarite.sh, en parallèle
-# de BACKEND_TARGET.
-ARG FRONT_MODE=production
-RUN npm run build -- --mode "${FRONT_MODE}"
+# Un seul bundle pour tous les environnements : le front s'adresse à l'origine
+# qui le sert (window.location.origin, voir src/services/api.ts et
+# src/KeycloakContext.tsx), il n'embarque aucune URL. Realm et identifiant
+# client viennent de front/.env, identiques partout.
+RUN npm run build
 
 # ── Target nginx ──────────────────────────────────────────────────────────────
 FROM alpine:3.22 AS nginx
 
 RUN apk add --no-cache nginx openssl
 
-RUN addgroup -S scolarite && adduser -S scolarite -G scolarite
+# UID/GID fixés : le certificat TLS est monté depuis l'hôte (voir plus bas), sa
+# clé doit être lisible par CET utilisateur — en prod, `chown 10001 nginx.key`
+# (ou mode 0640 avec le groupe 10001) ; un identifiant attribué par adduser
+# varierait d'une image à l'autre et la consigne ne pourrait pas le nommer.
+RUN addgroup -S -g 10001 scolarite && adduser -S -u 10001 -G scolarite scolarite
 
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 
@@ -59,10 +62,12 @@ COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 # à la place si le montage venait à manquer.
 RUN touch /etc/nginx/nginx.conf
 
-RUN mkdir -p /etc/nginx/ssl
-COPY infra/run/build/ssl/nginx.crt /etc/nginx/ssl/nginx.crt
-COPY infra/run/build/ssl/nginx.key /etc/nginx/ssl/nginx.key
-RUN chown -R scolarite:scolarite /etc/nginx/ssl
+# Le certificat TLS n'est PAS dans l'image : clé privée et certificat sont
+# montés en lecture seule sur ce répertoire par infra/run/compose.yaml depuis
+# ${SCOLARITE_CONF_DIR}/ssl (mkcert en local, déposé par start-scolarite.sh ;
+# le certificat réel en prod). Une image poussée sur un registre ne doit
+# porter aucun secret, et la même image sert à tous les environnements.
+RUN mkdir -p /etc/nginx/ssl && chown -R scolarite:scolarite /etc/nginx/ssl
 
 RUN chown -R scolarite:scolarite /usr/share/nginx/html /var/log/nginx /var/lib/nginx && \
     mkdir -p /tmp/client_body /tmp/proxy /tmp/fastcgi /tmp/uwsgi /tmp/scgi && \

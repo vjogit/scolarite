@@ -5,23 +5,22 @@ import tailwindcss from '@tailwindcss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'; // Importez le visualizer
 import fs from 'fs'
 
-// ── Les trois façons de lancer le front ──────────────────────────────────────
+// ── Les deux façons de lancer le front ───────────────────────────────────────
 //
-//   development  `npm run dev`
-//                Serveur Vite sur https://10.20.2.1:5173, backend lancé à la
-//                main depuis le debugger VSCode sur localhost:3333.
+//   `npm run dev`    Serveur Vite sur https://10.20.2.1:5173, qui proxifie /api
+//                    et /auth/ vers les cibles du mode (CIBLES_PROXY) :
+//                    development = backend lancé à la main depuis le debugger
+//                    VSCode, conteneurs = backend de la pile locale.
 //
-//   conteneurs   `npm run build:conteneurs`, via start-scolarite.sh local
-//                Build servi par nginx (10.20.2.5:9021), qui reverse-proxie
-//                vers le conteneur backend. Le serveur Vite n'est pas utilisé.
+//   `npm run build`  Un seul bundle, construit dans l'image nginx
+//                    (infra/run/build/Dockerfile) pour tous les environnements.
 //
-//   production   `npm run build`, via start-scolarite.sh prod
-//
-// Le mode « conteneurs » ne peut pas s'appeler « local » : Vite réserve ce nom
-// à cause du suffixe .local des fichiers d'env.
-//
-// Chaque mode lit front/.env.<mode>. Attention au suffixe .local : un
-// .env.<mode>.local surcharge silencieusement le fichier du mode.
+// Le bundle n'embarque aucune URL : le front s'adresse à l'origine qui le sert
+// (window.location.origin — src/services/api.ts, src/KeycloakContext.tsx), que
+// ce soit Vite, le nginx de la pile locale ou celui de la prod. Seuls le realm
+// et l'identifiant client Keycloak sont figés au build, depuis front/.env,
+// commun à tous les modes. Attention au suffixe .local : un .env.local ou
+// .env.<mode>.local surchargerait silencieusement ce fichier.
 
 const HOTE_DEV = '10.20.2.1'
 const PORT_DEV = 5173
@@ -40,11 +39,8 @@ const CIBLES_PROXY: Record<string, { api: string; auth: string }> = {
   conteneurs: { api: 'http://10.20.2.4:3333', auth: 'http://10.20.2.2:8080' },
 }
 
-// Sans elles le front part avec des `undefined` : baseURL axios vide
-// (src/services/api.ts) ou init Keycloak muet (src/KeycloakContext.tsx).
+// Sans elles l'init Keycloak part avec des `undefined` (src/KeycloakContext.tsx).
 const VARIABLES_REQUISES = [
-  'VITE_API_URL',
-  'VITE_KEYCLOAK_URL',
   'VITE_KEYCLOAK_REALM',
   'VITE_KEYCLOAK_CLIENT_ID',
 ]
@@ -121,12 +117,12 @@ export default defineConfig(({ command, mode }) => {
   const manquantes = VARIABLES_REQUISES.filter((cle) => !env[cle])
   if (manquantes.length > 0) {
     throw new Error(
-      `Mode « ${mode} » : variables absentes de front/.env.${mode} — ` +
+      `Mode « ${mode} » : variables absentes de front/.env — ` +
       manquantes.join(', '),
     )
   }
 
-  console.log(`[vite] mode « ${mode} » — API ${env.VITE_API_URL}`)
+  console.log(`[vite] mode « ${mode} » — realm ${env.VITE_KEYCLOAK_REALM}`)
 
   return {
   plugins: [

@@ -176,8 +176,13 @@ gen_sql:
 # et compose.yaml) : start-scolarite.sh ne les dérive plus seul du nom de
 # l'espace de travail, la CI substitue les siens par CONFIG_FILE_LOCAL /
 # SECRETS_FILE_LOCAL sur la ligne de commande de make.
+#
+# Les images viennent de compose lui-même (IMAGES_MODE de config-local.env :
+# build, ou pull pour répéter un déploiement depuis des images publiées —
+# `make start-local-keep IMAGES_MODE=pull IMAGES_TAG=…`). Plus de build séparé
+# du backend ici : build-scolarite.sh est devenu l'outil de publication
+# (`make publier-images`).
 start-scolarite :
-	$(RUN_DIR)/build-scolarite.sh local
 	CONFIG_FILE=$(abspath $(CONFIG_FILE_LOCAL)) SECRETS_FILE=$(abspath $(SECRETS_FILE_LOCAL)) $(RUN_DIR)/start-scolarite.sh local
 
 # Ordre inversé par rapport à la version d'origine : backend et nginx

@@ -50,7 +50,30 @@ Application réservée au personnel administratif. Pas encore en production.
   CI vérifie que les deux déclarent les mêmes variables, et les scripts
   reçoivent leurs fichiers par `CONFIG_FILE_LOCAL` / `SECRETS_FILE_LOCAL`
   sur la ligne de commande de `make` — plus aucun script ne dérive ces
-  chemins de son côté.
+  chemins de son côté. **L'espace de travail local exige `mkcert`** :
+  `start-scolarite.sh` s'arrête sans lui (sinon le backend ne validerait
+  aucun jeton et chaque appel d'API répondrait 503), génère le certificat
+  nginx dans `${SCOLARITE_CONF_DIR}/ssl/` quand il manque ou n'est plus signé
+  par la CA du poste, puis dépose la racine pour le backend — la CI n'a plus
+  d'étape de certificat, c'est elle qui prouve qu'un poste neuf démarre
+  (12 septembre 2026). Le contexte de build des images est protégé par le
+  `.dockerignore` racine (`front/node_modules/` surtout : sans lui, celui du
+  poste écrasait le `npm ci` de l'image).
+- **Les images applicatives sont neutres vis-à-vis de l'environnement**
+  (12 septembre 2026, `docs/deployements.md` « Images et déploiement ») : ni
+  certificat (monté depuis `${SCOLARITE_CONF_DIR}/ssl`, clé lisible par
+  l'UID 10001 de nginx — mkcert la pose en 0600, le script la passe en
+  0644 en local), ni URL du front (le bundle s'adresse à
+  `window.location.origin` ; `front/.env` ne porte que realm et client,
+  plus aucun `.env.<mode>` ni `FRONT_MODE`), ni configuration (rendue et
+  montée). `compose.yaml` porte `image:` **et** `build:` ; `IMAGES_MODE`
+  (`build`/`pull`), `IMAGES_REGISTRE`, `IMAGES_TAG` viennent des
+  `config-*.env` et sont les seules variables surchargeables sur la ligne de
+  `make`. `make publier-images` construit et pousse (arbre propre exigé),
+  `make kit-deploiement` archive ce qu'un hôte sans sources exécute
+  (makefiles, `infra/`, gabarit `config.yaml`) ; la prod ne construit ni ne
+  génère rien (`gen_sql` retiré de ses chaînes). Ne réintroduire aucune
+  valeur d'environnement dans le Dockerfile.
 
 ## Invariants — ne jamais les casser
 

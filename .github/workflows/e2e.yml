@@ -92,15 +92,14 @@ jobs:
           "$HOME/liquibase/liquibase" --version | tail -n 3
 
       # ── Ce que le poste possède et que l'exécuteur n'a pas ───────────────
-      # Certificat nginx signé par une CA mkcert créée ici même : le backend
-      # conteneurisé vérifie l'issuer Keycloak (https://10.20.2.5:9021/auth)
-      # contre cette CA, que start-scolarite.sh dépose dans sa configuration
-      # (jamais d'InsecureSkipVerify) ; Playwright, lui, ignore les erreurs
-      # TLS (playwright.config.ts). Même commande que build-scolarite.sh.
-      - name: Certificat nginx (mkcert)
-        run: |
-          mkdir -p infra/run/build/ssl
-          mkcert -key-file infra/run/build/ssl/nginx.key -cert-file infra/run/build/ssl/nginx.crt 10.20.2.5
+      # Le certificat nginx et sa CA mkcert ne sont PAS fabriqués ici :
+      # start-scolarite.sh (cible make start-local-reset) les génère lui-même
+      # quand ils manquent, avec le mkcert de l'exécuteur — c'est ce qui fait
+      # de ce job la preuve qu'un poste neuf démarre. Le backend conteneurisé
+      # vérifie l'issuer Keycloak (https://10.20.2.5:9021/auth) contre cette
+      # CA, déposée dans sa configuration par le même script (jamais
+      # d'InsecureSkipVerify) ; Playwright, lui, ignore les erreurs TLS
+      # (playwright.config.ts).
 
       # Les secrets de la CI n'en sont pas : ils protègent une base et un
       # Keycloak qui vivent le temps du job, sur un exécuteur inaccessible

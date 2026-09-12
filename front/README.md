@@ -16,18 +16,21 @@ Base mixte entre le gabarit `react-ts` de Vite et
 
   Ils ne servent qu'au mode `development` ; les builds n'en ont pas besoin.
 
-## Les trois façons de lancer le front
+## Les deux façons de lancer le front
 
-| Mode | Commande | Qui sert le front | Backend joint |
-|---|---|---|---|
-| `development` | `make start-dev` puis `npm run dev` | serveur Vite, `https://10.20.2.1:5173` | `localhost:3333`, lancé à la main |
-| `conteneurs` | `make start-local-keep` | nginx, `https://10.20.2.5:9021` | conteneur `scolarite-backend` |
-| `production` | `make start-prod-keep` | nginx | conteneur `scolarite-backend` |
+| Commande | Qui sert le front | Backend joint |
+|---|---|---|
+| `make start-dev` puis `npm run dev` | serveur Vite, `https://10.20.2.1:5173` | `localhost:3333`, lancé à la main |
+| `make start-local-keep` (ou `start-prod-keep`) | nginx, `https://10.20.2.5:9021`, bundle construit dans l'image | conteneur `scolarite-backend` |
 
-Le mode « conteneurs » ne peut pas s'appeler `local` : Vite refuse ce nom, qui
-entrerait en conflit avec le suffixe `.local` des fichiers d'environnement.
+Un seul bundle sert tous les environnements : le front s'adresse à **l'origine
+qui le sert** (`window.location.origin`, dans `src/services/api.ts` et
+`src/KeycloakContext.tsx`). Vite proxifie `/api` et `/auth/` ; nginx les sert
+sous la même origine que `/`. Aucune URL n'est donc figée au build — c'est ce
+qui permet de pousser l'image nginx sur un registre et de la déployer telle
+quelle (`docs/deployements.md`, « Images et déploiement »).
 
-### 1. `development` — Vite à la main, backend dans le debugger
+### 1. Vite à la main, backend dans le debugger
 
 Le serveur Vite sert le front et reverse-proxie `/api` vers le backend lancé
 hors conteneur depuis le debugger VSCode, ainsi que `/auth` vers Keycloak.
@@ -50,7 +53,14 @@ envoyés à Keycloak annoncent ce port, donc un glissement silencieux vers 5174
 ferait rediriger Keycloak vers un serveur qui n'existe pas. Si le port est
 occupé, Vite refuse de démarrer plutôt que d'en changer.
 
-### 2. `conteneurs` — pile locale complète
+Le mode Vite choisit seulement les **cibles du proxy** (table `CIBLES_PROXY`
+de `vite.config.ts`) : `development` (défaut) joint le backend du debugger,
+`npm run dev -- --mode conteneurs` joint le backend de la pile locale en
+court-circuitant nginx, pour déboguer le front contre elle sans la
+reconstruire. Ce second mode ne peut pas s'appeler `local` : Vite refuse ce
+nom, qui entrerait en conflit avec le suffixe `.local` des fichiers d'environnement.
+
+### 2. Pile complète, bundle dans l'image nginx
 
 Le front est **construit** puis servi par nginx, qui reverse-proxie vers le
 conteneur backend. Le serveur Vite n'intervient pas. Le build est fait dans
@@ -62,59 +72,27 @@ make start-local-reset    # réinitialise la base de données
 make stop-local
 ```
 
-Pour construire le bundle seul, sans la pile : `npm run build:conteneurs`.
-
-### 3. `production`
-
-Même chaîne que `conteneurs`, avec les fichiers d'environnement de prod :
-
-```bash
-make start-prod-keep
-make start-prod-reset     # RÉINITIALISE LA BASE — confirmation demandée
-make stop-prod
-```
-
-Pour construire le bundle seul : `npm run build`.
+Pour construire le bundle seul, sans la pile : `npm run build`. La prod tire la
+même image d'un registre au lieu de la construire (`make start-prod-keep
+IMAGES_TAG=…`).
 
 ## Variables d'environnement
 
-Un fichier par mode, tous versionnés :
+Un seul fichier, `front/.env`, versionné et commun à tous les modes :
 
-| Fichier | Utilisé par |
+| Variable | Rôle |
 |---|---|
-| `.env.development` | `npm run dev` |
-| `.env.conteneurs` | `npm run build:conteneurs`, via `start-scolarite.sh local` |
-| `.env.production` | `npm run build`, via `start-scolarite.sh prod` |
+| `VITE_KEYCLOAK_REALM` | realm Keycloak (`KC_REALM` des topologies) |
+| `VITE_KEYCLOAK_CLIENT_ID` | client public du front (`KC_CLIENT_ID`) |
 
-Quatre variables sont requises, et `vite.config.ts` refuse de démarrer si l'une
-manque : `VITE_API_URL`, `VITE_KEYCLOAK_URL`, `VITE_KEYCLOAK_REALM`,
-`VITE_KEYCLOAK_CLIENT_ID`. Elles sont lues dans `src/services/api.ts` et
-`src/KeycloakContext.tsx`.
+`vite.config.ts` refuse de démarrer si l'une manque. Les anciennes
+`VITE_API_URL` et `VITE_KEYCLOAK_URL` ont disparu avec les fichiers
+`.env.<mode>` : le front ne connaît que son origine.
 
-> **`.env.production` est un gabarit.** Ses URL valent `REMPLACER.example.org`
-> et doivent être renseignées avant tout déploiement réel. La vérification des
-> variables détecte une valeur absente, pas une valeur restée à remplacer.
-
-> **Ne pas créer de fichier `.env.<mode>.local`.** Ce suffixe surcharge
-> silencieusement le fichier du mode pour toute commande dans ce mode. Un
-> ancien `.env.production.local` masquait ainsi les URL de `.env.production`
-> derrière celles des conteneurs, et le contenu de `.env.production` n'était
-> jamais utilisé.
-
-## Comment le mode est choisi
-
-`vite.config.ts` reçoit le mode et en dérive les cibles du proxy via sa table
-`CIBLES_PROXY`. En dehors du serveur de développement, la chaîne est :
-
-```
-make start-local-keep
-  └─ infra/run/start-scolarite.sh local
-       ├─ FRONT_MODE=conteneurs      (prod -> production)
-       └─ docker compose up --build
-            └─ compose.yaml : args.FRONT_MODE
-                 └─ Dockerfile : ARG FRONT_MODE
-                      └─ npm run build -- --mode "$FRONT_MODE"
-```
+> **Ne pas créer de fichier `.env.local` ni `.env.<mode>.local`.** Ces
+> suffixes surchargent silencieusement `front/.env`. Un ancien
+> `.env.production.local` masquait ainsi les URL de `.env.production`
+> derrière celles des conteneurs.
 
 Adresses fixes du réseau `scolarite-net` :
 

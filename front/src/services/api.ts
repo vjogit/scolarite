@@ -2,8 +2,11 @@ import axios from 'axios';
 import Keycloak from 'keycloak-js';
 
 
+// L'API est servie sous l'origine de la page — par nginx (/api) en conteneurs,
+// par le proxy de Vite en développement. Le bundle n'embarque donc aucune URL :
+// la même image nginx sert tous les environnements (docs/deployements.md).
 export const apiInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
+    baseURL: window.location.origin,
 });
 
 

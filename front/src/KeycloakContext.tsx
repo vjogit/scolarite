@@ -46,8 +46,10 @@ export const instantaneKeycloak = (): Keycloak | null => keycloakPret;
 export const demarrerKeycloak = (): Keycloak => {
     if (keycloakInstance) return keycloakInstance;
 
+    // Keycloak est proxifié sous l'origine de la page (/auth), par nginx comme
+    // par Vite : aucune URL dans le bundle, voir services/api.ts.
     const instance = new Keycloak({
-        url: import.meta.env.VITE_KEYCLOAK_URL,
+        url: `${window.location.origin}/auth`,
         realm: import.meta.env.VITE_KEYCLOAK_REALM,
         clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID
     });

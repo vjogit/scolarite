@@ -53,11 +53,14 @@ back/cmd/programme-import/data/
 **/*.log
 
 # ── Certificats locaux (générés par mkcert) ───────────────────────────────────
-infra/run/build/ssl/
+# Celui de nginx vit hors du dépôt, dans ${SCOLARITE_CONF_DIR}/ssl (monté dans
+# le conteneur) ; seul celui du serveur Vite reste dans l'arbre.
 front/cert/
 
 # ── Environnement / secrets ───────────────────────────────────────────────────
-.env
+# À la racine seulement : front/.env est versionné (realm et identifiant client
+# Keycloak, communs à tous les modes — aucun secret).
+/.env
 
 # Les secrets ne sont jamais versionnés ; leur LISTE l'est, dans
 # infra/env/secrets.env.example, pour qu'un oubli se voie.
@@ -74,3 +77,6 @@ infra/env/secrets-*.env
 # ── Outillage local ───────────────────────────────────────────────────────────
 # Captures et journaux déposés par le serveur MCP Playwright
 .playwright-mcp/
+
+# ── Kit de déploiement (make kit-deploiement) ─────────────────────────────────
+scolarite-kit-*.tar.gz
