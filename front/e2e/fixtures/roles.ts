@@ -4,6 +4,8 @@ interface FixturesParRole {
     pageAdmin: Page;
     pageConsultation: Page;
     pageSaisie: Page;
+    /** SYLLABUS_ECRITURE seul (lot 2 syllabus). */
+    pageSyllabus: Page;
 }
 
 /**
@@ -23,6 +25,7 @@ export const test = base.extend<FixturesParRole>({
     pageAdmin: fixtureRole('e2e/.auth/admin.json'),
     pageConsultation: fixtureRole('e2e/.auth/consultation.json'),
     pageSaisie: fixtureRole('e2e/.auth/notesEcriture.json'),
+    pageSyllabus: fixtureRole('e2e/.auth/syllabusEcriture.json'),
 });
 
 export { expect } from '@playwright/test';

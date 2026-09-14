@@ -72,6 +72,10 @@ export TF_VAR_test_notes_ecriture_user_enabled="${TEST_NOTES_ECRITURE_USER_ENABL
 export TF_VAR_test_notes_ecriture_user_username="${TEST_NOTES_ECRITURE_USER_USERNAME:-}"
 export TF_VAR_test_notes_ecriture_user_email="${TEST_NOTES_ECRITURE_USER_EMAIL:-}"
 export TF_VAR_test_notes_ecriture_user_password="${TEST_NOTES_ECRITURE_USER_PASSWORD:-}"
+export TF_VAR_test_syllabus_ecriture_user_enabled="${TEST_SYLLABUS_ECRITURE_USER_ENABLED:-false}"
+export TF_VAR_test_syllabus_ecriture_user_username="${TEST_SYLLABUS_ECRITURE_USER_USERNAME:-}"
+export TF_VAR_test_syllabus_ecriture_user_email="${TEST_SYLLABUS_ECRITURE_USER_EMAIL:-}"
+export TF_VAR_test_syllabus_ecriture_user_password="${TEST_SYLLABUS_ECRITURE_USER_PASSWORD:-}"
 
 echo "--- 🔑 Déploiement Keycloak avec Terraform (espace de travail $SCOLARITE_ENV) ---"
 

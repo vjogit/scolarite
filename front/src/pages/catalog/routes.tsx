@@ -19,6 +19,10 @@ import { CrudMatiere } from '../structure/Matiere';
 import { CrudGroupe } from '../structure/Groupe';
 import { GroupeUserPage } from '../structure/GroupeUserPage';
 import { CustomCrudPeriode } from './CustomCrudPeriode';
+import { SYLLABUS } from '../syllabus/def';
+import { ACTION_SYLLABUS } from '../syllabus/entites/syllabus';
+import { SyllabusMatiere } from '../syllabus/SyllabusMatiere';
+import { SyllabusUe } from '../syllabus/SyllabusUe';
 
 /** Le catalogue est le workflow d'édition : rien n'y est en lecture seule. */
 const EDITION: ReglagesNiveau = {
@@ -37,8 +41,15 @@ export function createCatalogHierarchyRoutes() {
             [PERIODE]: CustomCrudPeriode,
         },
         greffes: [
+            // Le syllabus (lot 2) s'ouvre depuis la ligne de l'UE et de la matière ;
+            // sous chacune, un écran unique — la fiche existe toujours, pas de cycle
+            // CRUD. L'UE garde ses actions par défaut (`CrudUe`, qui les crée au
+            // rendu avec `t`) : `ACTION_MATIERES()` appelée ici figerait son libellé
+            // dans la langue de démarrage — c'est une chaîne, pas une fermeture.
             { segment: UES, parent: PERIODE, composant: enrober(CrudUe, EDITION) },
-            { segment: MATIERE, parent: UES, composant: enrober(CrudMatiere, EDITION) },
+            { segment: MATIERE, parent: UES, composant: enrober(CrudMatiere, { ...EDITION, actionsLigne: [ACTION_SYLLABUS()] }) },
+            { segment: SYLLABUS, parent: UES, ecran: SyllabusUe },
+            { segment: SYLLABUS, parent: MATIERE, ecran: SyllabusMatiere },
             { segment: GROUPE, parent: OPTION, composant: enrober(CrudGroupe, EDITION) },
             { segment: MEMBRES, parent: GROUPE, ecran: GroupeUserPage },
         ],

@@ -111,7 +111,8 @@ jobs:
         run: |
           cp infra/env/secrets.env.example infra/env/secrets-ci.env
           for cle in POSTGRES_PASSWORD SCOLARITE_PASSWORD KC_DB_PASSWORD KEYCLOAK_ADMIN_PASSWORD \
-                     KC_BOOTSTRAP_USER_PASSWORD TEST_CONSULTATION_USER_PASSWORD TEST_NOTES_ECRITURE_USER_PASSWORD; do
+                     KC_BOOTSTRAP_USER_PASSWORD TEST_CONSULTATION_USER_PASSWORD TEST_NOTES_ECRITURE_USER_PASSWORD \
+                     TEST_SYLLABUS_ECRITURE_USER_PASSWORD; do
             sed -i "s|^$cle=$|$cle=$(openssl rand -hex 16)|" infra/env/secrets-ci.env
           done
           grep -c '=.\+' infra/env/secrets-ci.env | xargs echo "secrets renseignés :"

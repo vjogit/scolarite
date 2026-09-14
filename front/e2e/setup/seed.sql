@@ -98,6 +98,33 @@ with f as (
 )
 select 1;
 
+-- ── Syllabus (lot 2) ──────────────────────────────────────────────────────
+-- Un agent responsable (purgé par la règle sur le domaine e2e-*), la fiche de
+-- « E2E Matiere » et la description de « E2E UE1 ». La ventilation encadrée
+-- fait 15 + 4 + 1 = 20 h, exactement `matiere.heure` : l'état semé est
+-- conforme, et c'est la spec qui crée l'écart puis le résorbe. La fiche suit
+-- la matière par cascade : l'idempotence par pose est inchangée.
+with agent as (
+    insert into "user" ("firstName", "lastName", email, type_personne)
+    values ('E2E', 'Agent1', 'e2e-agent1@scolarite.local', 'AGENT')
+    returning id
+), fiche as (
+    insert into syllabus_matiere (matiere_id, contexte, objectifs, prerequis,
+                                  heures_cours_td, heures_tp, heures_controle, heures_perso, responsable_id)
+    select m.id,
+           'Les systèmes logiciels évoluent vite et reposent sur de multiples bibliothèques.',
+           'Gérer les dépendances, les risques et la maintenabilité d''un logiciel.',
+           'Savoir concevoir un logiciel.',
+           15, 4, 1, 10, agent.id
+    from matiere m, agent
+    where m.name = 'E2E Matiere'
+)
+update unite_enseignement ue
+set description = 'Concevoir et maintenir un logiciel dans la durée.',
+    responsable_id = agent.id
+from agent
+where ue.name = 'E2E UE1';
+
 -- ── Promotion vide (dialogue de suppression avec saisie — lot 4ter) ────────
 -- Sans descendance : sa suppression n'est pas bloquée par la période
 -- délibérée, contrairement à « E2E Formation » et « E2E Promotion » qui la

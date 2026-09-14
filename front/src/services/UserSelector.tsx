@@ -23,6 +23,8 @@ export interface UserOption {
     id: number;
     firstName: string;
     lastName: string;
+    /** `ELEVE` ou `AGENT`, tel que `/user/search` le renvoie ; sert au filtrage côté client. */
+    type_personne?: string;
 }
 
 /** « Nom Prénom », l'affichage de l'option comme du champ. */
@@ -30,16 +32,19 @@ function libelleOption(option: UserOption): string {
     return `${option.lastName} ${option.firstName}`;
 }
 
-// `FieldValues` porte déjà la signature d'index qu'exige react-hook-form :
-// l'étendre évite de la redéclarer en `any` pour notre compte.
-interface FormFields extends FieldValues {
-    id: number;
-    user_id: number | null | undefined;
-    firstName?: string;
-    lastName?: string;
+/** Les deux champs du formulaire où le nom de la personne choisie est recopié. */
+export interface ChampsNom<T extends FieldValues> {
+    prenom: Path<T>;
+    nom: Path<T>;
 }
 
-interface UserSelectorProps<T extends FormFields> {
+/** Les deux libellés du champ : en consultation, et en saisie (recherche). */
+export interface LibellesSelecteur {
+    champ: string;
+    rechercher: string;
+}
+
+interface UserSelectorProps<T extends FieldValues> {
     control: Control<T>;
     errors: FieldErrors<T>;
     /**
@@ -58,17 +63,45 @@ interface UserSelectorProps<T extends FormFields> {
      * navigateur.
      */
     onChoisir?: (eleve: UserOption | null) => void;
+    /**
+     * Le champ du formulaire qui reçoit l'identifiant. Par défaut `user_id`,
+     * l'élève des cinq écrans historiques ; le syllabus (lot 2) y met
+     * `responsable_id`.
+     */
+    name?: Path<T>;
+    /** Où recopier le nom de la personne choisie. Par défaut `firstName`/`lastName`. */
+    champsNom?: ChampsNom<T>;
+    /** Libellés du champ. Par défaut ceux de l'élève (`app.userSelector`). */
+    libelles?: LibellesSelecteur;
+    /**
+     * Restriction côté client des résultats de la recherche — le serveur ne
+     * filtre pas par nature de personne et coupe à 20 résultats avant ce
+     * filtre : un préfixe très porté par les élèves peut masquer un agent.
+     */
+    filtrer?: (option: UserOption) => boolean;
 }
 
-export const UserSelector = <T extends FormFields>({
+const CHAMPS_NOM_PAR_DEFAUT = { prenom: 'firstName', nom: 'lastName' } as const;
+
+function texte(valeur: unknown): string | null {
+    return typeof valeur === 'string' && valeur !== '' ? valeur : null;
+}
+
+export const UserSelector = <T extends FieldValues>({
     control,
     errors,
     setValue,
     isReadOnly = false,
     onChoisir,
+    name = 'user_id' as Path<T>,
+    champsNom = CHAMPS_NOM_PAR_DEFAUT as unknown as ChampsNom<T>,
+    libelles,
+    filtrer,
 }: UserSelectorProps<T>) => {
     const { t } = useTranslation('app');
     const idChamp = useId();
+    const libelleChamp = libelles?.champ ?? t('userSelector.champEleve');
+    const libelleRecherche = libelles?.rechercher ?? t('userSelector.rechercherEleve');
     // Le texte tapé, pour la recherche serveur seulement : le champ lui-même
     // n'est plus contrôlé (voir le commentaire du `Combobox`).
     const [recherche, setRecherche] = useState('');
@@ -89,13 +122,15 @@ export const UserSelector = <T extends FormFields>({
      * mémorisé sur ses trois valeurs : Base UI compare `value` par référence
      * pour décider de resynchroniser le texte du champ.
      */
-    const valeurs = useWatch({ control });
-    const { user_id: idEleve, firstName: prenom, lastName: nom } = valeurs;
-    const eleveChoisi = useMemo<UserOption | null>(
-        () => (typeof idEleve === 'number' && typeof prenom === 'string' && typeof nom === 'string' && prenom && nom
-            ? { id: idEleve, firstName: prenom, lastName: nom }
+    const valeurs = useWatch({ control }) as Record<string, unknown>;
+    const identifiant = valeurs[name];
+    const prenom = texte(valeurs[champsNom.prenom]);
+    const nom = texte(valeurs[champsNom.nom]);
+    const personneChoisie = useMemo<UserOption | null>(
+        () => (typeof identifiant === 'number' && prenom !== null && nom !== null
+            ? { id: identifiant, firstName: prenom, lastName: nom }
             : null),
-        [idEleve, prenom, nom],
+        [identifiant, prenom, nom],
     );
 
     useEffect(() => {
@@ -116,15 +151,23 @@ export const UserSelector = <T extends FormFields>({
         enabled: !isReadOnly,
     });
 
-    const messageErreur = errors.user_id?.message;
+    const options = useMemo(
+        () => (filtrer === undefined ? users ?? [] : (users ?? []).filter(filtrer)),
+        [users, filtrer],
+    );
+
+    // Le générique `T` fait du message un type conditionnel : on ne lit ici
+    // que la forme brute de l'erreur du champ nommé.
+    const erreurChamp = (errors as Record<string, { message?: unknown } | undefined>)[name];
+    const messageErreur = typeof erreurChamp?.message === 'string' ? erreurChamp.message : undefined;
 
     if (isReadOnly) {
         return (
             <div className="mb-4 flex flex-col gap-1.5">
-                <Label htmlFor={idChamp}>{t('userSelector.champEleve')}</Label>
+                <Label htmlFor={idChamp}>{libelleChamp}</Label>
                 <Input
                     id={idChamp}
-                    value={eleveChoisi ? libelleOption(eleveChoisi) : ''}
+                    value={personneChoisie ? libelleOption(personneChoisie) : ''}
                     disabled
                     readOnly
                 />
@@ -134,16 +177,16 @@ export const UserSelector = <T extends FormFields>({
 
     return (
         <Controller
-            name={'user_id' as Path<T>}
+            name={name}
             control={control}
             render={({ field }) => (
                 <Combobox
-                    items={users ?? []}
+                    items={options}
                     // Le filtrage est serveur : la liste reçue s'affiche telle quelle.
                     filter={null}
                     itemToStringLabel={libelleOption}
                     isItemEqualToValue={(a, b) => a.id === b.id}
-                    value={eleveChoisi}
+                    value={personneChoisie}
                     // `inputValue` volontairement non contrôlé : en mode
                     // simple, Base UI affiche le libellé de `value` au montage
                     // et le resynchronise à chaque changement de `value` —
@@ -152,15 +195,15 @@ export const UserSelector = <T extends FormFields>({
                     onInputValueChange={(valeur) => { setRecherche(valeur); }}
                     onValueChange={(newValue) => {
                         field.onChange(newValue?.id ?? null);
-                        setValue('firstName' as Path<T>, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
-                        setValue('lastName' as Path<T>, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
+                        setValue(champsNom.prenom, (newValue?.firstName ?? '') as PathValue<T, Path<T>>);
+                        setValue(champsNom.nom, (newValue?.lastName ?? '') as PathValue<T, Path<T>>);
                         onChoisir?.(newValue);
                     }}
                 >
                     <div className="mb-4 flex flex-col gap-1.5">
                         {/* Le nom accessible vient du label, comme celui que le
                             TextField MUI posait. */}
-                        <Label htmlFor={idChamp}>{t('userSelector.rechercherEleve')}</Label>
+                        <Label htmlFor={idChamp}>{libelleRecherche}</Label>
                         <ComboboxInput
                             id={idChamp}
                             aria-invalid={messageErreur ? true : undefined}
@@ -175,10 +218,7 @@ export const UserSelector = <T extends FormFields>({
                             )}
                         </ComboboxInput>
                         {messageErreur !== undefined && (
-                            // Le générique `T` transforme le type du message en
-                            // conditionnel que React n'accepte pas : c'est le seul
-                            // endroit du projet où l'assertion est vraiment nécessaire.
-                            <p className="text-sm text-destructive">{messageErreur as string}</p>
+                            <p className="text-sm text-destructive">{messageErreur}</p>
                         )}
                     </div>
                     <ComboboxContent>

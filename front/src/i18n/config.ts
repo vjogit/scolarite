@@ -16,6 +16,7 @@ import juryFr from './locales/fr/jury.json';
 import userFr from './locales/fr/user.json';
 import structureFr from './locales/fr/structure.json';
 import appFr from './locales/fr/app.json';
+import syllabusFr from './locales/fr/syllabus.json';
 import errorsEn from './locales/en/errors.json';
 import crudEn from './locales/en/crud.json';
 import validationEn from './locales/en/validation.json';
@@ -30,6 +31,7 @@ import juryEn from './locales/en/jury.json';
 import userEn from './locales/en/user.json';
 import structureEn from './locales/en/structure.json';
 import appEn from './locales/en/app.json';
+import syllabusEn from './locales/en/syllabus.json';
 
 /**
  * Ressources posées en dur (pas de backend HTTP) : l'appli est petite, le
@@ -45,13 +47,13 @@ void i18n
   .use(initReactI18next)
   .init({
     resources: {
-      fr: { errors: errorsFr, crud: crudFr, validation: validationFr, note: noteFr, corbeille: corbeilleFr, registre: registreFr, salle: salleFr, catalog: catalogFr, certification: certificationFr, programme: programmeFr, jury: juryFr, user: userFr, structure: structureFr, app: appFr },
-      en: { errors: errorsEn, crud: crudEn, validation: validationEn, note: noteEn, corbeille: corbeilleEn, registre: registreEn, salle: salleEn, catalog: catalogEn, certification: certificationEn, programme: programmeEn, jury: juryEn, user: userEn, structure: structureEn, app: appEn },
+      fr: { errors: errorsFr, crud: crudFr, validation: validationFr, note: noteFr, corbeille: corbeilleFr, registre: registreFr, salle: salleFr, catalog: catalogFr, certification: certificationFr, programme: programmeFr, jury: juryFr, user: userFr, structure: structureFr, app: appFr, syllabus: syllabusFr },
+      en: { errors: errorsEn, crud: crudEn, validation: validationEn, note: noteEn, corbeille: corbeilleEn, registre: registreEn, salle: salleEn, catalog: catalogEn, certification: certificationEn, programme: programmeEn, jury: juryEn, user: userEn, structure: structureEn, app: appEn, syllabus: syllabusEn },
     },
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'en'],
     defaultNS,
-    ns: ['errors', 'crud', 'validation', 'note', 'corbeille', 'registre', 'salle', 'catalog', 'certification', 'programme', 'jury', 'user', 'structure', 'app'],
+    ns: ['errors', 'crud', 'validation', 'note', 'corbeille', 'registre', 'salle', 'catalog', 'certification', 'programme', 'jury', 'user', 'structure', 'app', 'syllabus'],
     interpolation: {
       escapeValue: false, // React échappe déjà : pas besoin d'un second passage.
     },

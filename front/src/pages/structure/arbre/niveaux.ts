@@ -30,6 +30,7 @@ import { ACTION_UES, createPeriodeRepository, periodeEntite } from '../entites/p
 import { ACTION_MATIERES, createUeRepository, ueEntite } from '../entites/ue';
 import { createMatiereRepository, matiereEntite } from '../entites/matiere';
 import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../entites/groupe';
+import { ACTION_SYLLABUS } from '../../syllabus/entites/syllabus';
 
 /**
  * Repository débarrassé du type de son entité : tous les niveaux doivent tenir
@@ -170,7 +171,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: BookOpen,
         enfants: [{ segment: MATIERE }],
         entite: entiteUe,
-        actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t)],
+        actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t), ACTION_SYLLABUS()],
     },
     {
         segment: MATIERE,
@@ -179,7 +180,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: Text,
         enfants: [],
         entite: entiteMatiere,
-        actions: () => [],
+        // La fiche syllabus (lot 2) : le seul prolongement d'une matière.
+        actions: () => [ACTION_SYLLABUS()],
     },
     {
         // L'affectation d'élèves n'est pas un niveau de structure : elle reste

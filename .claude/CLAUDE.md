@@ -41,8 +41,8 @@ existants). Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 67 tests, dont les
-  20 captures de référence — contre la stack montée par
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 77 tests, dont les
+  22 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -225,8 +225,14 @@ existants). Pas encore en production.
   (résultats différents selon l'invocation, y compris sur du code
   strictement identique). La stack doit déjà tourner
   (`start-local-keep`) : `globalSetup.ts` échoue immédiatement sinon.
-- Trois comptes provisionnés par le seed Terraform local (mêmes variables
-  `KC_*` que le bootstrap) : ADMIN / CONSULTATION / NOTES_ECRITURE ;
+- Quatre comptes provisionnés par le seed Terraform local (mêmes variables
+  `KC_*` que le bootstrap) : ADMIN / CONSULTATION / NOTES_ECRITURE /
+  SYLLABUS_ECRITURE (le quatrième depuis le lot 2 syllabus, 14 septembre
+  2026 : `pageSyllabus` — un compte de test entre dans douze endroits à la
+  fois, `keycloak.tf`, `variables.tf`, `deploy.sh`, les deux `config-*.env`,
+  `secrets.env.example`, `README.md` d'`infra/env`, la liste des secrets
+  jetables d'`e2e.yml`, `env.ts`, `auth.setup.ts`, `roles.ts`, plus le
+  secret du poste) ;
   `storageState` par rôle capturé en setup (`fixtures/roles.ts`), **langue
   épinglée `fr`** avant capture (`i18nextLng`) — le détecteur de langue
   rendrait la suite dépendante du navigateur sinon.
@@ -242,7 +248,7 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 67
+  suite complète sur chaque push par la même cible (`make test-ihm`, 77
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -270,7 +276,7 @@ existants). Pas encore en production.
   poste dont la base porte plus que le seed, `formation-liste` échoue en
   local — c'est un écart d'état, pas de code ; la CI, base semée, tranche.
   L'image et `@playwright/test` montent ensemble, jamais l'un sans l'autre,
-  et toute montée régénère les 20 références.
+  et toute montée régénère les 22 références.
 - **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
   4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
   souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
@@ -459,8 +465,32 @@ Plan, un lot par ligne :
   `VALIDATION_ERROR`, `errors.<champ>.motif` ∈ `valeur_negative` (CHECK
   nommés), `valeur_hors_plage`, `reference_inconnue` (`responsable_id`,
   libellé « Le responsable » dans `errors.json`).
-- **Lot 2** — front : fiche syllabus de la matière et de l'UE (champs
-  partagés, textarea, `roleEcriture` = `SYLLABUS_ECRITURE`).
+- **Lot 2** — **livré le 14 septembre 2026** : front, deux écrans greffés
+  sous le workflow Structure (`catalog/routes.tsx`, `GreffeEcran`, segment
+  `syllabus` sous la matière et sous l'UE — `…/matiere/:id/syllabus`,
+  `…/ue/:id/syllabus`), atteints par l'action déclarative `ACTION_SYLLABUS`
+  depuis le menu du bandeau (`arbre/niveaux.ts`) et la ligne des listes ;
+  l'arbre ne change pas, `etatArbre` s'arrête au segment étranger. Module
+  `pages/syllabus/` : `entites/syllabus.ts` (schémas zod aux bornes du
+  serveur, appels, action), `FormulaireSyllabus.tsx` (cadre 1-1 qui reste
+  sur place après enregistrement — `Form.tsx` renvoie vers une liste que la
+  fiche n'a pas), `SyllabusMatiere.tsx`, `SyllabusUe.tsx`,
+  `useNomResponsable.ts`. Écriture sous `SYLLABUS_ECRITURE` par
+  `possedeRole`, lecture seule sinon (champs désactivés, aucun bouton
+  d'écriture). L'écart `matiere.heure` ↔ ventilation est une ligne
+  `role="status"` sous la grille horaire, vivante (`useWatch`), jamais
+  bloquante ; `matiere.heure` vient de la liste des matières de l'UE sous la
+  clé du repository (`select`), que l'arbre tient déjà — aucune requête ; la
+  seule requête ajoutée est le détail du responsable (`[USER, id]`, clé du
+  repository utilisateurs, extrait dans `pages/user/entites/user.ts`), quand
+  il est désigné. `UserSelector` généralisé sans casser ses cinq appelants :
+  `name`, `champsNom`, `libelles`, `filtrer` optionnels ; le filtre AGENT est
+  côté client sur les 20 résultats du serveur (limite consignée). Le PUT de
+  l'UE repose l'UE renvoyée sous sa clé de détail et dans la liste de la
+  période, sans invalidation. Namespace `syllabus.json` fr/en. Seed :
+  `E2E Agent1` (AGENT), fiche de « E2E Matiere » à 15 + 4 + 1 = 20 h
+  (conforme), description de « E2E UE1 ». `syllabus.spec.ts` (sept tests,
+  ordre intra-fichier documenté) et deux captures `syllabus-matiere-*`.
 - **Lot 3** — compétences : référentiel saisi depuis le document France
   Compétences (~25 compétences ; l'écran d'administration suffit
   probablement, à confirmer), liaison UE ↔ compétence + état, contrainte
@@ -576,7 +606,12 @@ directeur ci-dessus — ne pas rouvrir).
   (constaté au lot 13).
 - **`UserSelector` lit sa sélection dans le formulaire** (`useWatch`, objet
   mémorisé sur ses trois valeurs) et laisse Base UI dériver le texte du
-  champ de `value` (`inputValue` non contrôlé) — lot 14. Deux états locaux
+  champ de `value` (`inputValue` non contrôlé) — lot 14. Depuis le lot 2
+  syllabus il prend `name`, `champsNom`, `libelles` et `filtrer`, tous
+  optionnels aux défauts historiques (`user_id`, `firstName`/`lastName`,
+  libellés élève, aucun filtre) : un formulaire dont l'API ne livre que
+  l'identifiant fournit lui-même les deux champs de nom, résolus par la
+  requête de détail utilisateur avant le montage du formulaire. Deux états locaux
   recopiés du formulaire s'en désynchronisaient (champ vide en édition,
   élève fantôme après un `reset` du parent). Base UI compare `value` **par
   référence** pour resynchroniser le texte : un objet reconstruit à chaque
@@ -778,8 +813,8 @@ directeur ci-dessus — ne pas rouvrir).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (67
-  tests, les 20 captures de référence comprises, dans le conteneur de
+  intégration : ils se sautent sans base), et la suite e2e complète (77
+  tests, les 22 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,
   Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
@@ -807,6 +842,18 @@ ils survivront à celle-ci si personne ne les reprend.
   (source `htmlTag`) avant d'essayer la langue seule. Les navigateurs
   réels envoient `fr-FR,fr` et n'y tombent pas ; à corriger côté
   `i18n/config.ts` ou `index.html` dans un lot front.
+- **Les actions de ligne créées au chargement des `routes.tsx` sans `t`
+  gardent la langue de démarrage** (14 septembre 2026, lot 2 syllabus,
+  constaté au navigateur) : `catalog/routes.tsx` appelle `ACTION_GROUPES()`
+  et `ACTION_PERIODES()`, `note/routes.tsx` `ACTION_UES()` et
+  `ACTION_MATIERES()` — or ces fabriques de `structure/entites/` renvoient
+  un `libelle` **chaîne** (résolue à l'appel), pas une fermeture. Preuve :
+  interface basculée en anglais, le menu de la ligne « E2E Option » du
+  catalogue affiche « Gérer les groupes » et « Gérer les périodes ». Le lot 2
+  a évité d'étendre le défaut à l'UE (ses actions par défaut restent
+  créées au rendu dans `CrudUe`, avec `t`) ; `ACTION_SYLLABUS` est une
+  fermeture. Correction attendue : `libelle: () => …` dans les fabriques
+  `ACTION_*` de `structure/entites/`, comme `actionProgramme`.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute

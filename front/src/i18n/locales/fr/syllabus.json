@@ -1,0 +1,48 @@
+{
+  "action": "Syllabus",
+  "enregistrer": "Enregistrer",
+  "erreurChargement": "Impossible de charger le syllabus.",
+  "matiere": {
+    "titre": "Fiche syllabus",
+    "rubriques": {
+      "contexte": "Contexte et enjeux de l'enseignement",
+      "objectifs": "Objectifs pédagogiques",
+      "objectifsAide": "À la fin de cet enseignement, l'étudiant sera capable de…",
+      "prerequis": "Prérequis",
+      "activites": "Activités",
+      "activitesAide": "CM, TD, TP, projet…",
+      "evaluation": "Évaluations et retours faits aux élèves",
+      "plan_cours": "Plan de cours",
+      "ressources": "Ressources et références",
+      "dimension_socio_env": "Dimension socio-environnementale"
+    },
+    "heures": {
+      "titre": "Volumes horaires",
+      "heures_cours": "Cours",
+      "heures_cours_td": "Cours intégré (cours + TD)",
+      "heures_td": "TD",
+      "heures_tp": "TP",
+      "heures_projet": "Projet",
+      "heures_autonomie": "Autonomie encadrée",
+      "heures_controle": "Contrôles et soutenances",
+      "heures_perso": "Travail personnel",
+      "heures_persoAide": "Hors volume encadré."
+    },
+    "total": {
+      "sansStructure": "Total encadré : {{total}} h",
+      "conforme": "Total encadré : {{total}} h, conforme aux heures de la structure",
+      "ecart": "Total encadré : {{total}} h — la structure prévoit {{heure}} h"
+    },
+    "enregistre": "Fiche syllabus enregistrée."
+  },
+  "ue": {
+    "titre": "Syllabus de l'UE",
+    "champDescription": "Pourquoi cette UE ?",
+    "enregistre": "Syllabus de l'UE enregistré."
+  },
+  "responsable": {
+    "champ": "Responsable",
+    "rechercher": "Rechercher un responsable",
+    "aide": "Un agent : responsable de formation ou enseignant."
+  }
+}

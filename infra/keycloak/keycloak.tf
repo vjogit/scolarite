@@ -362,6 +362,44 @@ resource "keycloak_user_roles" "test_notes_ecriture_roles" {
   ]
 }
 
+# Quatrième compte (lot 2 syllabus) : SYLLABUS_ECRITURE seul, pour prouver que
+# le rôle lui-même ouvre la fiche — sans lui, seule ADMIN l'exercerait.
+resource "keycloak_user" "test_syllabus_ecriture" {
+  count = var.test_syllabus_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  username = var.test_syllabus_ecriture_user_username
+  enabled  = true
+  first_name     = "Test"
+  last_name      = "SyllabusEcriture"
+  email          = var.test_syllabus_ecriture_user_email
+  email_verified = true
+
+  initial_password {
+    value     = var.test_syllabus_ecriture_user_password
+    temporary = false
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.test_syllabus_ecriture_user_password != ""
+      error_message = "TEST_SYLLABUS_ECRITURE_USER_ENABLED est vrai mais TEST_SYLLABUS_ECRITURE_USER_PASSWORD est vide : renseigner le mot de passe dans infra/env/secrets-${var.environnement}.env, ou passer TEST_SYLLABUS_ECRITURE_USER_ENABLED à false dans infra/env/config-${var.environnement}.env."
+    }
+  }
+}
+
+# Rôle du compte : SYLLABUS_ECRITURE seul (composite, contient déjà CONSULTATION).
+resource "keycloak_user_roles" "test_syllabus_ecriture_roles" {
+  count = var.test_syllabus_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  user_id  = keycloak_user.test_syllabus_ecriture[0].id
+
+  role_ids = [
+    keycloak_role.syllabus_ecriture_role.id,
+  ]
+}
+
 # ==========================================================
 # 7. NOUVEAU : Client Backend (Service Account) pour gestion utilisateurs
 # ==========================================================

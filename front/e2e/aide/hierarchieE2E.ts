@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { app, crud, interpoler, libelleNiveau, note } from './i18n';
+import { app, crud, interpoler, libelleNiveau, note, syllabus } from './i18n';
 
 /**
  * Les noms de la branche dédiée posée par `e2e/setup/seed.sql` — jamais une
@@ -24,6 +24,8 @@ export const E2E = {
     eleve2: 'Eleve2 E2E',
     eleve3: 'Eleve3 E2E',
     eleve4: 'Eleve4 E2E',
+    /** L'agent responsable des fiches syllabus du seed (« Nom Prénom », l'affichage du sélecteur). */
+    agent1: 'Agent1 E2E',
 } as const;
 
 type Niveau = keyof typeof app.niveaux;
@@ -294,6 +296,39 @@ export async function allerSurOptionViaStructure(page: Page, option: string): Pr
         page, () => treeOption.click(), /\/option\/\d+$/,
         page.getByRole('heading', { name: `Option — ${option}` }),
     );
+}
+
+/**
+ * Sélectionne l'UE E2E puis sa matière depuis l'arborescence Structure, et
+ * ouvre l'écran syllabus demandé par le menu d'actions du bandeau (lot 2 :
+ * la fiche est un prolongement de la matière et de l'UE, pas un nœud de
+ * l'arbre). Aucun `goto` sur l'URL profonde : voir navigation.spec.ts.
+ */
+export async function allerAuSyllabusViaStructure(page: Page, cible: 'ue' | 'matiere'): Promise<void> {
+    await allerJusquaPeriodeViaStructure(page);
+    const treeUe = page.getByRole('treeitem', { name: `UE ${E2E.ue}`, exact: true });
+    await cliquerPuisAttendreUrl(page, () => treeUe.click(), /\/ue\/\d+$/);
+    let nomNoeud: string = E2E.ue;
+    if (cible === 'matiere') {
+        const treeMatiere = page.getByRole('treeitem', { name: `Matière ${E2E.matiere}`, exact: true });
+        await cliquerPuisAttendreUrl(page, () => treeMatiere.click(), /\/matiere\/\d+$/);
+        nomNoeud = E2E.matiere;
+    }
+    // Le bandeau promeut la première action du nœud en bouton direct
+    // (`MenuActionsLigne`) : sous la matière c'est « Syllabus » lui-même, la
+    // seule action ; sous l'UE c'est « Gérer les matières » et « Syllabus »
+    // reste dans le menu. On attend l'un ou l'autre, puis on suit.
+    const boutonDirect = page.getByRole('button', { name: syllabus.action, exact: true });
+    const boutonMenu = boutonActionsLigne(page, nomNoeud);
+    await boutonDirect.or(boutonMenu).first().waitFor();
+    if (await boutonDirect.count() > 0) {
+        await boutonDirect.click();
+    } else {
+        await boutonMenu.click();
+        await page.getByRole('menuitem', { name: syllabus.action }).click();
+    }
+    await page.waitForURL(/\/syllabus$/);
+    await page.waitForLoadState('networkidle');
 }
 
 /** Ouvre la corbeille depuis le menu latéral (lien interne, pas de rechargement). */

@@ -26,6 +26,11 @@ export const ueSchema = z.object({
     ects: z.number().min(0, { error: messageValidation('ectsDoiventEtrePositifs') }),
     academique: z.boolean(),
     periode_id: z.number(),
+    // Les deux colonnes du syllabus (lot 1) : le GET de l'UE les porte, seule
+    // la route syllabus les écrit — `UpdateUniteEnseignement` les ignore, le
+    // formulaire de structure peut donc les renvoyer sans les toucher.
+    description: z.string().nullable().optional(),
+    responsable_id: z.number().nullable().optional(),
 })
 
 export type Ue = z.infer<typeof ueSchema>;
