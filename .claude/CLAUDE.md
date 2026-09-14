@@ -39,7 +39,7 @@ Application réservée au personnel administratif. Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 65 tests, dont les
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 67 tests, dont les
   20 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
@@ -240,7 +240,7 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 65
+  suite complète sur chaque push par la même cible (`make test-ihm`, 67
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -449,6 +449,19 @@ Application réservée au personnel administratif. Pas encore en production.
   libellé « View » quand la position Contrôle (363 px) reste sur sa ligne —
   la hauteur y dépend donc de l'axe. Sous toute largeur d'usage de
   l'application ; pas de réservation de largeur pour l'absorber.
+- **Un `SidebarGroupLabel` fait déclencheur reste un bouton fantôme en mode
+  icône** (`layouts/dashboard.tsx`, `GroupeMenu`, 14 septembre 2026). shadcn
+  masque l'intitulé de groupe par `-mt-8 opacity-0` : invisible, mais un
+  bouton de 32 px remonté de 32 px, posé sur l'entrée qui le précède — un
+  clic sur « Scolarité » repliait « Admin », dont les icônes disparaissaient
+  sans rien pour les ramener. Le déclencheur est réellement masqué en mode
+  icône (`group-data-[collapsible=icon]:hidden`) et le groupe y est tenu
+  ouvert (`useSidebar`, exporté par `components/ui/sidebar-context`, pas par
+  `sidebar`) ; l'état choisi en mode large revient au retour. Playwright
+  tient un élément à `opacity: 0` pour visible : `menu-lateral.spec.ts`
+  affirme `toBeHidden()` sur le déclencheur, ce qui ne passe qu'avec
+  `hidden`. Le rail et le bouton d'en-tête portent le même nom accessible :
+  une spec vise le bouton dans `main`.
 - Le nom accessible d'un bouton icône (`Button variant="ghost"
   size="icon"`) est un `aria-label` explicite, jamais le seul `Tooltip`.
 - `chainons.ts` modélise la chaîne entité/identifiant des URL : toute
@@ -588,7 +601,7 @@ Application réservée au personnel administratif. Pas encore en production.
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (63
+  intégration : ils se sautent sans base), et la suite e2e complète (67
   tests, les 20 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,

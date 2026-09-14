@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,6 +25,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from '../components/ui/sidebar';
+import { useSidebar } from '../components/ui/sidebar-context';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../components/ui/collapsible';
 import {
   DropdownMenu,
@@ -66,6 +67,48 @@ function EntreeMenu({ entree }: { entree: NavigationItemWithRoles }) {
   );
 }
 
+/**
+ * Un groupe repliable du menu (le motif « Collapsible SidebarGroup » de
+ * shadcn) : son intitulé est le déclencheur, ouvert par défaut.
+ *
+ * En mode icône, l'intitulé ne peut pas être le déclencheur : shadcn le
+ * masque par `-mt-8 opacity-0`, un bouton invisible de 32 px remonté de 32 px
+ * — posé exactement sur l'entrée qui le précède. Un clic sur « Scolarité »
+ * tombait sur ce bouton fantôme et repliait « Admin », dont les icônes
+ * disparaissaient sans qu'aucun déclencheur visible ne les ramène (constaté
+ * au navigateur). Il est donc réellement masqué (`hidden` : ni clic, ni
+ * focus, ni arbre accessible) et le groupe est tenu ouvert tant que la
+ * sidebar est en icônes ; l'état choisi en mode large est retrouvé au
+ * retour. Sur mobile la sidebar est un panneau toujours déployé : rien à
+ * forcer.
+ */
+function GroupeMenu({ groupe }: { groupe: NavigationItemWithRoles }) {
+  const { state, isMobile } = useSidebar();
+  const [ouvert, setOuvert] = useState(true);
+  const enIcones = state === 'collapsed' && !isMobile;
+  return (
+    <Collapsible open={enIcones || ouvert} onOpenChange={setOuvert} className="group/collapsible">
+      <SidebarGroup>
+        <SidebarGroupLabel
+          render={<CollapsibleTrigger />}
+          className="w-full gap-2 group-data-[collapsible=icon]:hidden"
+        >
+          {groupe.icon}
+          <span>{groupe.title}</span>
+          <ChevronDown className="ml-auto transition-transform group-data-[open]/collapsible:rotate-180" />
+        </SidebarGroupLabel>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {groupe.children?.map(entree => <EntreeMenu key={entree.segment} entree={entree} />)}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+}
+
 function MenuLateral() {
   const { session } = useSession();
   const { t } = useTranslation('app');
@@ -84,28 +127,7 @@ function MenuLateral() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {/* Un groupe repliable par entrée à enfants (le motif « Collapsible
-            SidebarGroup » de shadcn) : son intitulé est le déclencheur, ouvert
-            par défaut. En mode icône, l'intitulé se masque comme tout
-            `SidebarGroupLabel` et les entrées restent des icônes. */}
-        {groupes.map(groupe => (
-          <Collapsible key={groupe.title} defaultOpen className="group/collapsible">
-            <SidebarGroup>
-              <SidebarGroupLabel render={<CollapsibleTrigger />} className="w-full gap-2">
-                {groupe.icon}
-                <span>{groupe.title}</span>
-                <ChevronDown className="ml-auto transition-transform group-data-[open]/collapsible:rotate-180" />
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {groupe.children?.map(entree => <EntreeMenu key={entree.segment} entree={entree} />)}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
-        ))}
+        {groupes.map(groupe => <GroupeMenu key={groupe.title} groupe={groupe} />)}
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
