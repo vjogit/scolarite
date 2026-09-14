@@ -24,6 +24,7 @@
     "champ_obligatoire": "This field is required",
     "valeur_deja_utilisee": "This value is already used",
     "valeur_negative": "The value must be positive",
+    "valeur_hors_plage": "The value exceeds what this field can hold",
     "note_max_absolu": "The grade exceeds the maximum allowed value",
     "fin_avant_debut": "The end date must be after the start date",
     "echelle_longueur": "The scale must contain 5 values",
@@ -42,7 +43,8 @@
     "matiere_id": "The subject",
     "unite_enseignement_id": "The course unit",
     "formation_id": "The program",
-    "promotion_id": "The cohort"
+    "promotion_id": "The cohort",
+    "responsable_id": "The supervisor"
   },
   "creneauDejaReserveGenerique": "This slot is already booked",
   "creneau": {

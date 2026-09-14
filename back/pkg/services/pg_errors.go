@@ -15,6 +15,7 @@ const (
 	MotifValeurDejaUtilisee  = "valeur_deja_utilisee"
 	MotifReferenceInconnue   = "reference_inconnue"
 	MotifValeurNegative      = "valeur_negative"
+	MotifValeurHorsPlage     = "valeur_hors_plage" // au-delà de ce que la colonne peut porter (NUMERIC(5,2))
 	MotifNoteHorsBareme      = "note_hors_bareme"
 	MotifNoteMaxAbsolu       = "note_max_absolu"
 	MotifFinAvantDebut       = "fin_avant_debut"

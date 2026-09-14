@@ -138,6 +138,31 @@ sql:
         emit_pointers_for_null_types: true
 
   - engine: "postgresql"
+    queries: "pkg/syllabus/queries"
+    schema: "schema.sql"
+    gen:
+      go:
+        package: "gen"
+        out: "pkg/syllabus/gen"
+        sql_package: "pgx/v5"
+
+        # Options avancées
+        emit_interface: true
+        emit_json_tags: true
+        emit_pointers_for_null_types: true
+
+        # La ventilation horaire est en NUMERIC(5,2) : sans cette surcharge,
+        # sqlc rendrait pgtype.Numeric, pénible en JSON et dans les handlers.
+        # pgx encode et lit un float64 en numeric nativement. Propre à ce
+        # package : les autres n'ont aucune colonne numeric.
+        overrides:
+          - db_type: "pg_catalog.numeric"
+            nullable: true
+            go_type:
+              type: "float64"
+              pointer: true
+
+  - engine: "postgresql"
     queries: "pkg/resultat/controle/queries"
     schema: "schema.sql"
     gen:

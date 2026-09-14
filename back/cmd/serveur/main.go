@@ -9,6 +9,7 @@ import (
 	"cyb-react/pkg/resultat"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure"
+	"cyb-react/pkg/syllabus"
 	"cyb-react/pkg/user"
 	"errors"
 	"fmt"
@@ -103,6 +104,11 @@ func main() {
 	r.Route("/api/v0/corbeille", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
 		corbeille.RouteCorbeille(r)
+	})
+
+	r.Route("/api/v0/syllabus", func(r chi.Router) {
+		r.Use(services.AuthMiddleware(&cfg.Keycloak))
+		syllabus.RouteSyllabus(r)
 	})
 
 	// Ancrage RFC 3161 périodique du registre (portage rex-imt). L'ancrage

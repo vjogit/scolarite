@@ -9,7 +9,7 @@ import (
 // écritures ciblées » : toute lecture exige RoleConsultation, chaque écriture
 // exige le rôle du domaine concerné.
 //
-// ADMIN existe côté Keycloak comme rôle composite contenant les huit rôles
+// ADMIN existe côté Keycloak comme rôle composite contenant les neuf rôles
 // ci-dessous : le jeton d'un porteur d'ADMIN expose donc chacun d'eux dans
 // realm_access.roles. C'est pourquoi le code ne teste JAMAIS ADMIN — si une
 // route semble l'exiger, c'est qu'il manque un rôle fonctionnel.
@@ -22,11 +22,15 @@ const (
 	RoleSallesEcriture        = "SALLES_ECRITURE"
 	RoleCertificationEcriture = "CERTIFICATION_ECRITURE"
 	RoleUtilisateursEcriture  = "UTILISATEURS_ECRITURE"
-	RoleAdmin                 = "ADMIN" // attribuable, jamais testé
+	RoleSyllabusEcriture      = "SYLLABUS_ECRITURE" // fiches syllabus (matière, UE) — lot 1, 14 septembre 2026
+	RoleAdmin                 = "ADMIN"             // attribuable, jamais testé
 )
 
-// RolesFonctionnels est la liste des huit rôles que le composite ADMIN
-// contient côté Keycloak. Exiger chacun d'eux (RequireAllRoles) équivaut à
+// RolesFonctionnels est la liste des neuf rôles que le composite ADMIN
+// contient côté Keycloak (infra/keycloak/keycloak.tf) — les deux listes
+// avancent ensemble, avec AssignableRoles, front/src/pages/user/def.tsx et
+// user.json : un rôle présent ici et absent du composite fermerait la
+// corbeille à tout porteur d'ADMIN. Exiger chacun d'eux (RequireAllRoles) équivaut à
 // exiger ADMIN sans jamais tester son nom — conformément au modèle ci-dessus.
 var RolesFonctionnels = []string{
 	RoleConsultation,
@@ -37,6 +41,7 @@ var RolesFonctionnels = []string{
 	RoleSallesEcriture,
 	RoleCertificationEcriture,
 	RoleUtilisateursEcriture,
+	RoleSyllabusEcriture,
 }
 
 // AssignableRoles est la liste fermée des rôles que l'application accepte
@@ -52,6 +57,7 @@ var AssignableRoles = []string{
 	RoleSallesEcriture,
 	RoleCertificationEcriture,
 	RoleUtilisateursEcriture,
+	RoleSyllabusEcriture,
 	RoleAdmin,
 }
 

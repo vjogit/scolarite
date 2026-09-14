@@ -341,16 +341,49 @@ plus un référentiel de compétences par formation. Le versionnement annuel
 du tiers (tables `*_annee`, `anneescolaire`) n'est pas repris : la
 duplication de la structure par promotion en tient lieu.
 
+**Principe directeur, tranché au lot 1 (14 septembre 2026), valable pour
+tous les lots** : les données de structure font référence — noms,
+`matiere.heure`, `matiere.coeff`, `unite_enseignement.ects`. Le syllabus se
+construit à partir d'elles et ne les duplique jamais dans ses tables ; il
+n'ajoute que du contenu (rubriques, ventilation, responsable). Toute
+incohérence entre le syllabus et la structure — au premier chef un écart
+entre `matiere.heure` et la somme des heures encadrées de la ventilation —
+est **signalée à l'affichage, jamais bloquante** : aucune contrainte
+inter-domaines en base, aucune jointure vers la structure dans les requêtes
+syllabus, aucune écriture refusée pour ce motif (un test d'intégration du
+module prouve qu'une ventilation qui diffère de `matiere.heure`
+s'enregistre). Le signalement revient à l'écran de saisie (lot 2 — la
+matière est déjà dans le contexte, invariant 2) et à la fiche PDF (lot 5).
+
 Architecture retenue :
 
 1. `syllabus_matiere`, 1-1 avec `matiere` (FK unique, `ON DELETE CASCADE`) :
-   rubriques TEXT (objectif, prérequis, plan de cours, contexte, activités,
-   évaluation, ressources de référence, dimension socio-environnementale),
-   ventilation horaire en `NUMERIC(5,2)` (cours, TD, cours-TD, TP, projet,
-   contrôle, autonomie, autre), `responsable_id` FK vers `public."user"`
-   (AGENT).
+   huit rubriques TEXT nommées sur les sections de la maquette (`contexte`,
+   `objectifs`, `prerequis`, `activites`, `evaluation`, `plan_cours`,
+   `ressources`, `dimension_socio_env` — cette dernière n'est pas sur la
+   maquette, la fiche la conditionne), ventilation horaire en huit colonnes
+   `NUMERIC(5,2)` nullables nommées sur les lignes de la maquette
+   (`heures_cours`, `heures_cours_td` = cours intégré, `heures_td`,
+   `heures_tp`, `heures_projet`, `heures_autonomie` = autonomie encadrée,
+   `heures_controle` = contrôles et soutenances, `heures_perso` = travail
+   personnel ; le volume encadré est la somme des sept premières,
+   `heures_perso` reste hors total ; le champ « autre » du tiers n'a pas de
+   colonne, l'import du lot 4 dira s'il en faut une), `responsable_id` FK
+   vers `public."user"` (AGENT) en **`ON DELETE SET NULL`** — tranché lot 1 :
+   les six FK existantes vers `"user"` cascadent parce que la ligne
+   appartient à l'élève, ici la fiche survit au départ de l'agent. Rien en
+   base n'impose `type_personne = AGENT` : c'est le sélecteur qui filtre.
+   Côté Go la ventilation est en `*float64` par une surcharge sqlc propre au
+   package (`pg_catalog.numeric` → `float64` pointeur, `back/sqlc.yaml`) ;
+   une valeur au-delà de 999,99 est refusée **avant** l'écriture (motif
+   `valeur_hors_plage`), PostgreSQL ne nommant pas la colonne d'un 22003.
 2. `unite_enseignement` : deux colonnes nullables `description` et
-   `responsable_id`.
+   `responsable_id` (FK `fk_ue_responsable`, `SET NULL`), écrites par la
+   route syllabus de l'UE seulement : `UpdateUniteEnseignement` (domaine
+   STRUCTURE) ne les nomme pas et ne peut pas les écraser, réciproquement la
+   requête syllabus ne touche ni `name`, ni `ects`, ni `academique`. Le GET
+   de l'UE (structure, `SELECT *`) porte déjà les deux champs : pas de GET
+   syllabus pour l'UE (invariant 2, le lot 2 lit le repository UE).
 3. Référentiel de compétences **par formation** — tranché, ne pas rouvrir :
    la déclaration France Compétences se fait par fiche RNCP, donc par
    formation. `bloc_competence` porte `formation_id` ; champs calqués sur le
@@ -402,9 +435,30 @@ depuis son propre dossier, ce que fera l'ajout des colonnes sur
 
 Plan, un lot par ligne :
 
-- **Lot 1** — schéma (changesets `007-syllabus`, généré sqlc committé) +
-  backend (modules sur le modèle de `structure/matiere`, `ConstraintRule`,
-  routes) + rôle `SYLLABUS_ECRITURE` partout (ci-dessous).
+- **Lot 1** — **livré le 14 septembre 2026** : schéma (changesets
+  `007-syllabus/001` et `002`, généré sqlc committé — les 17 `gen/models.go`
+  bougent, plus les deux requêtes `SELECT *` sur l'UE, celle de
+  `unite_enseignement` et celle du jury) + module `back/pkg/syllabus/`
+  (domaine propre monté sous `/api/v0/syllabus` dans `cmd/serveur`, comme
+  `certification` ou `planning` : aucun cycle avec `structure`, un préfixe
+  par rôle d'écriture) + rôle `SYLLABUS_ECRITURE` dans les cinq endroits.
+  Contrat des routes, que le lot 2 consomme :
+  `GET /api/v0/syllabus/matiere/{matiereID}` (CONSULTATION) renvoie la fiche
+  ou, jamais écrite, une fiche vide `{matiere_id, version: 0, tout à null}`
+  en 200 — la fiche « existe » toujours, pas d'acte de création ;
+  `PUT /api/v0/syllabus/matiere/{matiereID}` (SYLLABUS_ECRITURE) est un
+  **upsert** sous verrou optimiste (`INSERT … ON CONFLICT (matiere_id) DO
+  UPDATE … WHERE version = @version RETURNING *`) : 200 avec la fiche
+  écrite, 409 `OPTIMISTIC_LOCKING_FAILURE` si la version reçue n'est plus
+  celle en base — l'identifiant du chemin fait foi, celui du corps est
+  ignoré ; `PUT /api/v0/syllabus/ue/{ueID}` (SYLLABUS_ECRITURE) écrit
+  `description` et `responsable_id` sous verrou optimiste et renvoie l'UE
+  complète (pour `setQueryData` sur la clé du repository UE). Entité
+  introuvable : le code `NOT_FOUND` sur l'enveloppe 400 du projet (parité
+  avec `MatiereUse`, le front route sur le code). Erreurs de champ : 400
+  `VALIDATION_ERROR`, `errors.<champ>.motif` ∈ `valeur_negative` (CHECK
+  nommés), `valeur_hors_plage`, `reference_inconnue` (`responsable_id`,
+  libellé « Le responsable » dans `errors.json`).
 - **Lot 2** — front : fiche syllabus de la matière et de l'UE (champs
   partagés, textarea, `roleEcriture` = `SYLLABUS_ECRITURE`).
 - **Lot 3** — compétences : référentiel saisi depuis le document France
@@ -436,8 +490,9 @@ Plan, un lot par ligne :
 - les tables `utilisateur`, `role`, `session_config` et le schéma
   `syllabus2` de la base tierce ne sont **jamais** repris.
 
-**Le rôle `SYLLABUS_ECRITURE` entre au lot 1 en une seule fois, dans les
-cinq endroits qui doivent rester synchrones** : `infra/keycloak/keycloak.tf`
+**Le rôle `SYLLABUS_ECRITURE` est entré au lot 1 en une seule fois, dans les
+cinq endroits qui doivent rester synchrones** (neuvième rôle : les
+commentaires qui comptaient « huit » disent « neuf ») : `infra/keycloak/keycloak.tf`
 (rôle composite de CONSULTATION, ajouté au composite ADMIN),
 `RolesFonctionnels` **et** `AssignableRoles` de `back/pkg/services/roles.go`,
 l'énumération `Role` de `front/src/pages/user/def.tsx`, et les libellés de
@@ -447,11 +502,10 @@ un rôle ajouté en Go avant Terraform fermerait la corbeille à tout porteur
 d'ADMIN (403), et un rôle absent de `def.tsx` serait inattribuable à
 l'écran. Terraform d'abord, le seed local reprovisionné, puis le code.
 
-Points ouverts, à trancher au lot 1 : `responsable_id` en `ON DELETE SET
-NULL` (les six FK existantes vers `"user"` sont en CASCADE parce que la
-ligne appartient à l'élève ; un agent parti ne supprime pas une fiche) ;
-cohérence entre `matiere.heure` et la somme de la ventilation horaire
-(laquelle fait foi, ou contrôle d'égalité — la maquette affiche la somme).
+Les deux points ouverts du lot 0 sont **tranchés au lot 1** : `responsable_id`
+en `ON DELETE SET NULL` (point 1 de l'architecture) ; `matiere.heure` fait
+foi et l'écart avec la ventilation se signale sans bloquer (principe
+directeur ci-dessus — ne pas rouvrir).
 
 ## Pièges connus du code
 

@@ -8,7 +8,8 @@
     "PROGRAMME_ECRITURE": "Programme (écriture)",
     "SALLES_ECRITURE": "Salles (écriture)",
     "CERTIFICATION_ECRITURE": "Certifications (écriture)",
-    "UTILISATEURS_ECRITURE": "Utilisateurs (écriture)"
+    "UTILISATEURS_ECRITURE": "Utilisateurs (écriture)",
+    "SYLLABUS_ECRITURE": "Syllabus (écriture)"
   },
   "champs": {
     "prenom": "Prénom",

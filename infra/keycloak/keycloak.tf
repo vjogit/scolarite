@@ -133,7 +133,7 @@ resource "keycloak_openid_audience_protocol_mapper" "audience_mapper" {
 # CONSULTATION donne la lecture de toute l'application. Chaque rôle
 # *_ECRITURE ouvre les écritures d'un domaine et contient CONSULTATION
 # (composite) : un porteur d'un rôle d'écriture peut toujours lire ce
-# qu'il est censé modifier. ADMIN est un composite des huit rôles
+# qu'il est censé modifier. ADMIN est un composite des neuf rôles
 # fonctionnels : le jeton d'un porteur d'ADMIN expose tous ces rôles
 # dans realm_access.roles, et le code applicatif ne teste jamais ADMIN.
 # ==========================================================
@@ -192,6 +192,16 @@ resource "keycloak_role" "utilisateurs_ecriture_role" {
   composite_roles = [keycloak_role.consultation_role.id]
 }
 
+# Syllabus (lot 1, 14 septembre 2026) : neuvième rôle de domaine, même modèle.
+# Son porteur écrit n'importe quelle fiche syllabus (matière, UE) ; le
+# cloisonnement fin par formation ou par matière n'est pas dans le modèle.
+resource "keycloak_role" "syllabus_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "SYLLABUS_ECRITURE"
+  description = "Écriture : fiches syllabus des matières et des UE"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
 resource "keycloak_role" "admin_role" {
   realm_id    = keycloak_realm.cyb_scolarite.id
   name        = "ADMIN"
@@ -205,6 +215,7 @@ resource "keycloak_role" "admin_role" {
     keycloak_role.salles_ecriture_role.id,
     keycloak_role.certification_ecriture_role.id,
     keycloak_role.utilisateurs_ecriture_role.id,
+    keycloak_role.syllabus_ecriture_role.id,
   ]
 }
 

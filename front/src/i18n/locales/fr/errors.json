@@ -24,6 +24,7 @@
     "champ_obligatoire": "Ce champ est obligatoire",
     "valeur_deja_utilisee": "Cette valeur est déjà utilisée",
     "valeur_negative": "La valeur doit être positive",
+    "valeur_hors_plage": "La valeur dépasse ce que ce champ peut porter",
     "note_max_absolu": "La note dépasse la valeur maximale autorisée",
     "fin_avant_debut": "La date de fin doit être après la date de début",
     "echelle_longueur": "L'échelle doit contenir 5 valeurs",
@@ -42,7 +43,8 @@
     "matiere_id": "La matière",
     "unite_enseignement_id": "L'UE",
     "formation_id": "La formation",
-    "promotion_id": "La promotion"
+    "promotion_id": "La promotion",
+    "responsable_id": "Le responsable"
   },
   "creneauDejaReserveGenerique": "Ce créneau est déjà réservé",
   "creneau": {

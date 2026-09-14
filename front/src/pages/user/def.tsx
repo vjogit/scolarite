@@ -19,9 +19,10 @@ export const Role = {
     SALLES_ECRITURE: 'SALLES_ECRITURE',
     CERTIFICATION_ECRITURE: 'CERTIFICATION_ECRITURE',
     UTILISATEURS_ECRITURE: 'UTILISATEURS_ECRITURE',
+    SYLLABUS_ECRITURE: 'SYLLABUS_ECRITURE',
 } as const;
 
-// Les huit rôles fonctionnels que le composite ADMIN contient — miroir de
+// Les neuf rôles fonctionnels que le composite ADMIN contient — miroir de
 // services.RolesFonctionnels côté serveur. Posséder chacun d'eux équivaut à
 // posséder ADMIN sans jamais tester son nom : c'est la condition d'accès à la
 // corbeille.
@@ -34,6 +35,7 @@ export const ROLES_FONCTIONNELS: readonly string[] = [
     Role.SALLES_ECRITURE,
     Role.CERTIFICATION_ECRITURE,
     Role.UTILISATEURS_ECRITURE,
+    Role.SYLLABUS_ECRITURE,
 ];
 
 export function availableRoles(t?: TFunction<'user'>): { id: string; label: string }[] {
@@ -48,5 +50,6 @@ export function availableRoles(t?: TFunction<'user'>): { id: string; label: stri
         { id: Role.SALLES_ECRITURE, label: traduire('roles.SALLES_ECRITURE') },
         { id: Role.CERTIFICATION_ECRITURE, label: traduire('roles.CERTIFICATION_ECRITURE') },
         { id: Role.UTILISATEURS_ECRITURE, label: traduire('roles.UTILISATEURS_ECRITURE') },
+        { id: Role.SYLLABUS_ECRITURE, label: traduire('roles.SYLLABUS_ECRITURE') },
     ];
 }

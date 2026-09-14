@@ -263,6 +263,29 @@ type Salle struct {
 	Batiment  *string `json:"batiment"`
 }
 
+type SyllabusMatiere struct {
+	ID                int32          `json:"id"`
+	Version           int32          `json:"version"`
+	MatiereID         int32          `json:"matiere_id"`
+	Contexte          *string        `json:"contexte"`
+	Objectifs         *string        `json:"objectifs"`
+	Prerequis         *string        `json:"prerequis"`
+	Activites         *string        `json:"activites"`
+	Evaluation        *string        `json:"evaluation"`
+	PlanCours         *string        `json:"plan_cours"`
+	Ressources        *string        `json:"ressources"`
+	DimensionSocioEnv *string        `json:"dimension_socio_env"`
+	HeuresCours       pgtype.Numeric `json:"heures_cours"`
+	HeuresCoursTd     pgtype.Numeric `json:"heures_cours_td"`
+	HeuresTd          pgtype.Numeric `json:"heures_td"`
+	HeuresTp          pgtype.Numeric `json:"heures_tp"`
+	HeuresProjet      pgtype.Numeric `json:"heures_projet"`
+	HeuresAutonomie   pgtype.Numeric `json:"heures_autonomie"`
+	HeuresControle    pgtype.Numeric `json:"heures_controle"`
+	HeuresPerso       pgtype.Numeric `json:"heures_perso"`
+	ResponsableID     *int32         `json:"responsable_id"`
+}
+
 type Toeic struct {
 	ID          int32              `json:"id"`
 	Version     int32              `json:"version"`
@@ -274,12 +297,14 @@ type Toeic struct {
 }
 
 type UniteEnseignement struct {
-	ID         int32   `json:"id"`
-	Version    int32   `json:"version"`
-	Name       string  `json:"name"`
-	Ects       float32 `json:"ects"`
-	Academique bool    `json:"academique"`
-	PeriodeID  int32   `json:"periode_id"`
+	ID            int32   `json:"id"`
+	Version       int32   `json:"version"`
+	Name          string  `json:"name"`
+	Ects          float32 `json:"ects"`
+	Academique    bool    `json:"academique"`
+	PeriodeID     int32   `json:"periode_id"`
+	Description   *string `json:"description"`
+	ResponsableID *int32  `json:"responsable_id"`
 }
 
 type User struct {
