@@ -2,7 +2,9 @@
 
 Gestion de scolarité (formations → promotions → options → périodes → UE →
 matières → contrôles ; notes, jurys, certifications, planning, salles).
-Application réservée au personnel administratif. Pas encore en production.
+Application du personnel : administration de la scolarité, et, pour le
+syllabus, responsables de formation et enseignants (comptes AGENT
+existants). Pas encore en production.
 
 ## Stack
 
@@ -329,6 +331,127 @@ Application réservée au personnel administratif. Pas encore en production.
 - Tout défaut découvert hors périmètre : **le signaler avec preuve, ne pas
   le corriger silencieusement**. Le « Hors périmètre » d'un lot est
   contraignant.
+
+## Syllabus — chantier en cours (branche `syllabus`, lots 0 à 5)
+
+Cadré le 14 septembre 2026 (lot 0) à partir de l'analyse de la base d'une
+application tierce. Le syllabus n'est **pas un sous-arbre structurel** :
+c'est du contenu pédagogique attaché aux entités existantes (matière, UE),
+plus un référentiel de compétences par formation. Le versionnement annuel
+du tiers (tables `*_annee`, `anneescolaire`) n'est pas repris : la
+duplication de la structure par promotion en tient lieu.
+
+Architecture retenue :
+
+1. `syllabus_matiere`, 1-1 avec `matiere` (FK unique, `ON DELETE CASCADE`) :
+   rubriques TEXT (objectif, prérequis, plan de cours, contexte, activités,
+   évaluation, ressources de référence, dimension socio-environnementale),
+   ventilation horaire en `NUMERIC(5,2)` (cours, TD, cours-TD, TP, projet,
+   contrôle, autonomie, autre), `responsable_id` FK vers `public."user"`
+   (AGENT).
+2. `unite_enseignement` : deux colonnes nullables `description` et
+   `responsable_id`.
+3. Référentiel de compétences **par formation** — tranché, ne pas rouvrir :
+   la déclaration France Compétences se fait par fiche RNCP, donc par
+   formation. `bloc_competence` porte `formation_id` ; champs calqués sur le
+   document France Compétences de la formation — le bloc : libellé, code
+   nullable (les blocs du document sont numérotés, pas codés), activités
+   exercées, modalités et critères d'évaluation ; la compétence : action
+   observable (verbe), contexte (« en… »), finalités (« afin de… »).
+   `etat_competence` (référentiel d'états : enseignée, mise en œuvre,
+   évaluée) et `ue_competence` (UE ↔ compétence + état) : le rattachement se
+   fait **au niveau UE**, comme sur la fiche publiée du tiers. Une UE ne se
+   lie qu'aux compétences de sa propre formation — contrainte imposée côté
+   serveur au lot 3 (invariant 3).
+4. Rôle Keycloak `SYLLABUS_ECRITURE`, neuvième rôle de domaine sur le modèle
+   des huit existants (lecture globale, écritures ciblées). Population
+   rédactrice — tranchée, ne pas rouvrir : responsables de formation et
+   enseignants, tous déjà des comptes AGENT connus de Keycloak et de
+   `public."user"` ; aucune population à provisionner, l'attribution par
+   l'écran utilisateurs suffit. **Corollaire assumé** : comme les huit
+   autres, c'est un rôle de domaine — son porteur écrit n'importe quelle
+   fiche syllabus. Le cloisonnement fin (« sa formation », « ses matières »)
+   est une évolution possible, hors lots 0-5 ; les données nécessaires
+   existeront (`responsable_id` sur l'UE et la fiche).
+5. Import du legacy depuis un export à plat de la base tierce ; en sortie,
+   **fiche PDF** dont la cible visuelle est `docs/syllabus/fiche-maquette.html`
+   (validée au lot 0, déposée telle quelle, ne pas la retoucher) : page UE
+   (chiffres clés, « Pourquoi cette UE ? », éléments constitutifs, matrice
+   Enseignée / Mise en œuvre / Évaluée à libellés complets — pas de légende à
+   symboles), puis une page par matière ; rien de vide ne s'imprime, chaque
+   série d'heures a son total. Le responsable n'est pas rendu pour le moment
+   (la colonne existe, elle n'est pas affichée). **UE et matière
+   s'identifient par leur `name`** : les codes que la maquette montre
+   (`INFRES_9_3_DL`, `DL-1`) n'ont pas de colonne et n'en auront pas, la
+   fiche rend le nom (tranché lot 0). La génération PDF est la seule
+   dépendance nouvelle admise, validée dans son principe ; le choix de la
+   bibliothèque est une décision soumise du lot 5 (maquette HTML : voie
+   HTML→PDF pressentie).
+
+Décisions du lot 0, actées : **pas de niveau `groupematiereenseignee`** (la
+matière reste une liste plate sous l'UE, ce que la maquette rend ; un ordre
+d'affichage serait une colonne `ordre` sur `matiere`, domaine STRUCTURE,
+hors chantier) ; **dimensions ODD/ONU abandonnées** (aucun rendu, la
+rubrique socio-environnementale porte l'intention rédigée ; les liaisons
+ODD du tiers ne s'importent pas ; réversible par une table isolée) ;
+**migrations dans `infra/liquibase/releases/v0.01/007-syllabus/`** — la
+convention est un dossier numéroté par domaine dans l'unique release, sans
+jalon `tagDatabase`, et `005-corbeille` altère les tables de structure
+depuis son propre dossier, ce que fera l'ajout des colonnes sur
+`unite_enseignement`.
+
+Plan, un lot par ligne :
+
+- **Lot 1** — schéma (changesets `007-syllabus`, généré sqlc committé) +
+  backend (modules sur le modèle de `structure/matiere`, `ConstraintRule`,
+  routes) + rôle `SYLLABUS_ECRITURE` partout (ci-dessous).
+- **Lot 2** — front : fiche syllabus de la matière et de l'UE (champs
+  partagés, textarea, `roleEcriture` = `SYLLABUS_ECRITURE`).
+- **Lot 3** — compétences : référentiel saisi depuis le document France
+  Compétences (~25 compétences ; l'écran d'administration suffit
+  probablement, à confirmer), liaison UE ↔ compétence + état, contrainte
+  « même formation » côté serveur.
+- **Lot 4** — import legacy : contenu des fiches (rubriques, heures) et, en
+  appui, les liaisons UE ↔ compétences existantes, sur le modèle de
+  `structure/exchange` ; fichier de correspondance avec une colonne
+  formation par bloc (la base tierce est globale : un bloc utilisé par
+  plusieurs formations y est dupliqué, un enregistrement par formation).
+- **Lot 5** — fiche PDF sur la maquette ; bibliothèque en décision soumise.
+
+**Périmètre négatif, contraignant pour tous les lots syllabus** :
+
+- **pas de registre** : l'invariant 5 couvre notes et jurys ; les écritures
+  syllabus n'ancrent rien ;
+- **pas de corbeille** : la suppression logique couvre les quatre entités
+  structurantes ; `syllabus_matiere` suit `matiere` par cascade, le
+  référentiel suit sa formation ;
+- **pas de nouveau mécanisme de versionnement** annuel ;
+- **pas de nouvelle dépendance**, à une exception près, actée par
+  l'utilisateur : la génération PDF (lot 5, bibliothèque en décision
+  soumise). Pas d'éditeur riche : des `textarea` ;
+- **la source du référentiel compétences est le document France
+  Compétences de la formation** (fichier Excel), pas la base tierce ; celle-ci
+  ne fournit que le contenu des fiches (rubriques, heures) et, en appui, les
+  liaisons UE ↔ compétences existantes ;
+- les tables `utilisateur`, `role`, `session_config` et le schéma
+  `syllabus2` de la base tierce ne sont **jamais** repris.
+
+**Le rôle `SYLLABUS_ECRITURE` entre au lot 1 en une seule fois, dans les
+cinq endroits qui doivent rester synchrones** : `infra/keycloak/keycloak.tf`
+(rôle composite de CONSULTATION, ajouté au composite ADMIN),
+`RolesFonctionnels` **et** `AssignableRoles` de `back/pkg/services/roles.go`,
+l'énumération `Role` de `front/src/pages/user/def.tsx`, et les libellés de
+`user.json` fr et en. Jamais en partie : `RolesFonctionnels` exprime
+le composite ADMIN par `RequireAllRoles` sur les routes de la corbeille —
+un rôle ajouté en Go avant Terraform fermerait la corbeille à tout porteur
+d'ADMIN (403), et un rôle absent de `def.tsx` serait inattribuable à
+l'écran. Terraform d'abord, le seed local reprovisionné, puis le code.
+
+Points ouverts, à trancher au lot 1 : `responsable_id` en `ON DELETE SET
+NULL` (les six FK existantes vers `"user"` sont en CASCADE parce que la
+ligne appartient à l'élève ; un agent parti ne supprime pas une fiche) ;
+cohérence entre `matiere.heure` et la somme de la ventilation horaire
+(laquelle fait foi, ou contrôle d'égalité — la maquette affiche la somme).
 
 ## Pièges connus du code
 
