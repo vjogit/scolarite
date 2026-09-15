@@ -56,7 +56,10 @@ func heuresVentilation(f *gen.SyllabusMatiere) map[string]*float64 {
 	}
 }
 
-func erreursPlage(f *gen.SyllabusMatiere) map[string]services.ConstraintError {
+// ErreursPlage nomme les colonnes horaires que NUMERIC(5,2) ne peut pas
+// porter. Exportée pour l'import du legacy (lot 4), qui refuse une fiche au
+// même motif avant de l'écrire.
+func ErreursPlage(f *gen.SyllabusMatiere) map[string]services.ConstraintError {
 	errorsMap := map[string]services.ConstraintError{}
 	for champ, v := range heuresVentilation(f) {
 		if v != nil && *v > heuresMax {
@@ -98,7 +101,7 @@ func UpsertSyllabusMatiere(w http.ResponseWriter, r *http.Request) {
 	}
 	input.MatiereID = getMatiereIDFromCtx(r)
 
-	if errorsMap := erreursPlage(&input); len(errorsMap) > 0 {
+	if errorsMap := ErreursPlage(&input); len(errorsMap) > 0 {
 		services.InvalidRequestError(w, r, "erreur de validation de la fiche syllabus", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
 		return
 	}

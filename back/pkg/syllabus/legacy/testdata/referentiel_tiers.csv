@@ -1,0 +1,11 @@
+bloc_id,bloc_code,bloc_libelle,competence_id,competence_code,action_observable,contexte,finalites
+1,FIG-BC01,Analyser et résoudre des problèmes complexes,1,c1,Identifier les causes d'un problème,,
+1,FIG-BC01,Analyser et résoudre des problèmes complexes,2,c2,Modéliser un problème,,
+1,FIG-BC01,Analyser et résoudre des problèmes complexes,3,c3,Élaborer une méthode,,
+19,,Concevoir le SI,101,C1,Concevoir les services du SI,,
+19,,Concevoir le SI,102,C2,Exploiter le SI,,
+19,,Concevoir le SI,103,C3,Troisième compétence sans position,,
+19,,Concevoir le SI,104,,Compétence sans code,,
+20,,Sécuriser le SI,201,C1,Concevoir la stratégie de sécurité,,
+21,,Concevoir le SI (doublon tiers),211,C1,Concevoir les services du SI,,
+30,,Concevoir des constructions,301,C1,(éco)Concevoir,,

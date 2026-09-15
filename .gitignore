@@ -37,6 +37,10 @@ infra/data/
 
 # ── Fichiers de données ───────────────────────────────────────────────────────
 back/cmd/programme-import/data/
+# L'export du syllabus tiers et ses correspondances remplies (lot 4) : données
+# d'exploitation, jamais versionnées — la fixture réduite vit dans
+# back/pkg/syllabus/legacy/testdata/.
+back/cmd/syllabus-import/data/
 **/*.xlsx
 **/*.docx
 # Gabarits embarqués par le binaire (go:embed) : sans eux, un clone neuf ne

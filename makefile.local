@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer test-ihm captures-reference
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -42,6 +42,15 @@ fetch-freetsa-cert:
 ancrer:
 	@echo "--- ⚓ Passage d'ancrage RFC 3161 ---"
 	cd $(BACK_DIR) && go run ./cmd/ancrage ./cmd/serveur/config.yaml
+
+# ── Syllabus — import du legacy (lot 4) ───────────────────────────────────────
+# Simulation par défaut, rien n'est écrit sans --apply ; SYLLABUS_IMPORT_ARGS
+# porte les options (--dossier, --exceptions, --rapport, --apply, --force).
+# Même configuration que le serveur, résolue depuis les include ci-dessus,
+# comme `ancrer`. Mode d'emploi : docs/syllabus-import.md.
+importer-syllabus:
+	@echo "--- 📚 Import du syllabus tiers ---"
+	cd $(BACK_DIR) && go run ./cmd/syllabus-import --config ./cmd/serveur/config.yaml $(SYLLABUS_IMPORT_ARGS)
 
 # ── Suite Playwright (front/e2e) — filet de régression de l'interface ──────────
 # Présuppose une stack déjà lancée (`make start-local-keep`) : la cible ne la

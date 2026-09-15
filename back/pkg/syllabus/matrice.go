@@ -18,14 +18,17 @@ package syllabus
 // `reference_inconnue` (identifiant inconnu).
 
 import (
+	"context"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/syllabus/gen"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var matriceConstraints = map[string]services.ConstraintRule{
@@ -46,6 +49,76 @@ func FetchUeCompetences(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, lignes)
 }
 
+// ErreurCompetence est la ligne qu'un remplacement de matrice a écartée :
+// la jointure de périmètre n'a rien inséré pour cette compétence. Le motif
+// distingue la compétence inconnue de celle d'une autre formation.
+type ErreurCompetence struct {
+	CompetenceID int32
+	Motif        string
+}
+
+func (e *ErreurCompetence) Error() string {
+	return fmt.Sprintf("compétence %d écartée (%s)", e.CompetenceID, e.Motif)
+}
+
+// RemplacerMatrice est le remplacement intégral de la matrice d'une UE, hors
+// HTTP : DELETE puis INSERT … SELECT de chaque ligne dans une transaction, et
+// relecture dans l'ordre du référentiel. Une ligne non insérée annule tout et
+// revient en *ErreurCompetence (la matrice antérieure est intacte) ; une
+// contrainte nommée revient telle quelle, pour MapPgErrorToValidationErrors.
+// Le handler ReplaceUeCompetences et l'import du legacy (lot 4) passent tous
+// deux par ici : la garantie de périmètre n'a qu'une implémentation.
+func RemplacerMatrice(ctx context.Context, db *pgxpool.Pool, ueID int32, lignes []gen.UeCompetence) ([]gen.UeCompetence, error) {
+	queries := gen.New(db)
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := queries.WithTx(tx)
+
+	if err := qtx.DeleteUeCompetences(ctx, ueID); err != nil {
+		return nil, err
+	}
+	for _, ligne := range lignes {
+		inserees, err := qtx.InsertUeCompetence(ctx, gen.InsertUeCompetenceParams{
+			UeID:         ueID,
+			CompetenceID: ligne.CompetenceID,
+			Enseignee:    ligne.Enseignee,
+			MiseEnOeuvre: ligne.MiseEnOeuvre,
+			Evaluee:      ligne.Evaluee,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if inserees == 0 {
+			// Rien d'inséré : la jointure a écarté la compétence. Inconnue, ou
+			// d'une autre formation — le motif le dit, et le rollback différé
+			// rend la matrice antérieure intacte.
+			motif := services.MotifHorsFormation
+			if _, err := queries.CheckCompetenceExists(ctx, ligne.CompetenceID); errors.Is(err, pgx.ErrNoRows) {
+				motif = services.MotifReferenceInconnue
+			} else if err != nil {
+				return nil, err
+			}
+			return nil, &ErreurCompetence{CompetenceID: ligne.CompetenceID, Motif: motif}
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	relues, err := queries.FetchUeCompetences(ctx, ueID)
+	if err != nil {
+		return nil, err
+	}
+	if relues == nil {
+		relues = []gen.UeCompetence{}
+	}
+	return relues, nil
+}
+
 // ReplaceUeCompetences remplace la matrice de l'UE du chemin par les lignes
 // reçues — l'identifiant d'UE du corps est ignoré — et renvoie la matrice
 // relue, dans l'ordre du référentiel.
@@ -57,66 +130,22 @@ func ReplaceUeCompetences(w http.ResponseWriter, r *http.Request) {
 	}
 	ue := getUniteEnseignementFromCtx(r)
 	pgCtx := services.GetPgCtx(r.Context())
-	queries := gen.New(pgCtx.Db)
 
-	tx, err := pgCtx.Db.Begin(r.Context())
+	lignes, err := RemplacerMatrice(r.Context(), pgCtx.Db, ue.ID, input)
 	if err != nil {
-		services.ServerError(w, r, err)
-		return
-	}
-	defer func() { _ = tx.Rollback(r.Context()) }()
-	qtx := queries.WithTx(tx)
-
-	if err := qtx.DeleteUeCompetences(r.Context(), ue.ID); err != nil {
-		services.ServerError(w, r, err)
-		return
-	}
-	for _, ligne := range input {
-		inserees, err := qtx.InsertUeCompetence(r.Context(), gen.InsertUeCompetenceParams{
-			UeID:         ue.ID,
-			CompetenceID: ligne.CompetenceID,
-			Enseignee:    ligne.Enseignee,
-			MiseEnOeuvre: ligne.MiseEnOeuvre,
-			Evaluee:      ligne.Evaluee,
-		})
-		if err != nil {
-			errorsMap := services.MapPgErrorToValidationErrors(err, matriceConstraints)
-			if len(errorsMap) > 0 {
-				services.InvalidRequestError(w, r, "erreur de validation de la matrice de compétences", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
-				return
-			}
-			services.ServerError(w, r, err)
-			return
-		}
-		if inserees == 0 {
-			// Rien d'inséré : la jointure a écarté la compétence. Inconnue, ou
-			// d'une autre formation — le motif le dit, et le rollback différé
-			// rend la matrice antérieure intacte.
-			motif := services.MotifHorsFormation
-			if _, err := queries.CheckCompetenceExists(r.Context(), ligne.CompetenceID); errors.Is(err, pgx.ErrNoRows) {
-				motif = services.MotifReferenceInconnue
-			} else if err != nil {
-				services.ServerError(w, r, err)
-				return
-			}
+		var ecartee *ErreurCompetence
+		if errors.As(err, &ecartee) {
 			services.InvalidRequestError(w, r, "compétence hors du périmètre de l'UE", services.VALIDATION_ERROR,
-				map[string]interface{}{"errors": map[string]services.ConstraintError{"competence_id": {Motif: motif}}})
+				map[string]interface{}{"errors": map[string]services.ConstraintError{"competence_id": {Motif: ecartee.Motif}}})
 			return
 		}
-	}
-
-	if err := tx.Commit(r.Context()); err != nil {
+		errorsMap := services.MapPgErrorToValidationErrors(err, matriceConstraints)
+		if len(errorsMap) > 0 {
+			services.InvalidRequestError(w, r, "erreur de validation de la matrice de compétences", services.VALIDATION_ERROR, map[string]interface{}{"errors": errorsMap})
+			return
+		}
 		services.ServerError(w, r, err)
 		return
-	}
-
-	lignes, err := queries.FetchUeCompetences(r.Context(), ue.ID)
-	if err != nil {
-		services.ServerError(w, r, err)
-		return
-	}
-	if lignes == nil {
-		lignes = []gen.UeCompetence{}
 	}
 	slog.Debug("Matrice de compétences remplacée", "ue_id", ue.ID, "lignes", len(lignes))
 	render.JSON(w, r, lignes)

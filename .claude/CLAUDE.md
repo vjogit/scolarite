@@ -374,7 +374,9 @@ Architecture retenue :
    `heures_controle` = contrôles et soutenances, `heures_perso` = travail
    personnel ; le volume encadré est la somme des sept premières,
    `heures_perso` reste hors total ; le champ « autre » du tiers n'a pas de
-   colonne, l'import du lot 4 dira s'il en faut une), `responsable_id` FK
+   colonne — tranché au lot 4 : 76 lignes sur 1 798 le portent, en
+   fourre-tout (stages 175 h, mission 455 h), il se signale au rapport
+   d'import et ne s'importe pas), `responsable_id` FK
    vers `public."user"` (AGENT) en **`ON DELETE SET NULL`** — tranché lot 1 :
    les six FK existantes vers `"user"` cascadent parce que la ligne
    appartient à l'élève, ici la fiche survit au départ de l'agent. Rien en
@@ -542,12 +544,65 @@ Plan, un lot par ligne :
   l'arbre, « Référentiel de compétences » dans le menu du bandeau). La
   saisie du référentiel INFRES réel se fait à la main par l'écran, en
   exploitation — aucun outil d'import de référentiel, ni ici ni ailleurs.
-- **Lot 4** — import legacy : contenu des fiches (rubriques, heures) et, en
-  appui, les liaisons UE ↔ compétences existantes, sur le modèle de
-  `structure/exchange` ; fichier de correspondance avec une colonne
-  formation par bloc (la base tierce est globale : un bloc utilisé par
-  plusieurs formations y est dupliqué, un enregistrement par formation).
+- **Lot 4** — **livré le 15 septembre 2026** : import du legacy, outil
+  d'exploitation `back/cmd/syllabus-import` (mode d'emploi
+  `docs/syllabus-import.md`, cible `make importer-syllabus`, dossier
+  d'entrée `back/cmd/syllabus-import/data/` ignoré par git). Sept décisions
+  tranchées en amont, appliquées telles quelles : (1) CLI, pas d'écran ni de
+  rôle ni de spec e2e, le rapport écrit remplace la modale de rejets ;
+  (2) appariement **par nom** dans le périmètre d'une correspondance de
+  période (`correspondance_periodes.csv` : année, période, préfixe du code
+  d'UE — ce qui précède le premier `_` — → formation, promotion, option,
+  période par `name`, quatre noms ou aucun) : l'UE par exception, sinon par
+  son code tiers contre `unite_enseignement.name`, sinon par son libellé
+  unique dans la période ; la matière par exception, sinon par son libellé
+  unique dans l'UE ; **égalité après normalisation** (espaces réduits, casse
+  ignorée), jamais de distance d'édition ; `exceptions.csv`
+  (`ue_code_tiers, matiere_libelle_tiers, name_scolarite`, matière vide =
+  UE) tranche le reste ; non apparié ou ambigu → rejet, jamais de création ;
+  (3) **refus d'écraser** : fiche en version > 0, description d'UE déjà
+  remplie ou matrice déjà cochée **et différentes** de l'entrée = conflit
+  rapporté sans écriture, `--force` remplace ; identique = « inchangé »,
+  aucune écriture ; (4) **continuer et rapporter** : chaque fiche (l'upsert
+  du lot 1, version courante, responsable en place conservé), chaque
+  description (la requête syllabus de l'UE, responsable conservé) et chaque
+  matrice (`syllabus.RemplacerMatrice`, extraite du handler pour être
+  appelable hors HTTP — la garantie `hors_formation` devient un garde-fou
+  gratuit) est une écriture indépendante ; (5) rapport texte
+  `rapport-<simulation|import>-<horodatage>.txt` à côté de l'entrée :
+  totaux, importés/inchangés/rejetés par objet, rejets par cause (période
+  non mappée agrégée par clé, correspondance introuvable, UE inconnue ou
+  ambiguë, matière inconnue ou ambiguë, doublon dans `fiches.csv`, heures
+  hors plage, UE absente de `fiches.csv`, correspondance de bloc
+  introuvable, compétence hors position, bloc d'une autre formation, conflit
+  non forcé), signalements non bloquants (écart ventilation ↔
+  `matiere.heure`, heures « autre », description d'UE non uniforme,
+  liaisons contradictoires fusionnées par union, UE sans liaison) ;
+  (6) **simulation par défaut**, `--apply` écrit, `--force` n'implique pas
+  `--apply` (cumulables, un `--force` seul simule ce qu'il remplacerait) ;
+  (7) fixture réduite et anonymisée committée dans
+  `back/pkg/syllabus/legacy/testdata/` (chaque cause de rejet provoquée une
+  fois), tests unitaires de lecture et trois tests d'intégration
+  (simulation sans écriture, application puis idempotence — deux passes =
+  même état, versions comprises —, `--force`). Micro-choix : la compétence
+  se résout par la **position** lue dans le code tiers (`C5` → ordre 5,
+  `referentiel_tiers.csv` sert d'appui, jamais importé) ; un bloc laissé
+  vide dans la correspondance met ses liaisons **hors périmètre** (comptées,
+  la matrice s'écrit avec les autres), alors qu'une compétence hors position
+  ou un bloc d'une autre formation rejette **toute** la matrice de l'UE ;
+  deux lignes tiers pour la même matière d'une UE sont rejetées toutes deux
+  ; une liaison dont l'UE n'a aucune ligne de fiche est rejetée (sa période
+  est inconnue, `liaisons_ue_competence.csv` n'en porte pas) ; `0.00` du
+  tiers s'importe en 0, la cellule vide en NULL ; `socio_env` est vide sur
+  les 1 798 lignes de l'export. Aucune requête SQL nouvelle : lectures par
+  les repositories de structure (vues actives) et du syllabus, écritures par
+  les requêtes des lots 1 et 3 — pas de régénération sqlc.
 - **Lot 5** — fiche PDF sur la maquette ; bibliothèque en décision soumise.
+  En entrée, ce que le lot 4 laisse : des fiches en version ≥ 1 aux huit
+  rubriques et sept volumes (jamais `heures_perso`, jamais
+  `dimension_socio_env` depuis l'export), des descriptions d'UE, des
+  matrices ; l'écart ventilation ↔ `matiere.heure` reste à signaler sur la
+  fiche.
 
 **Périmètre négatif, contraignant pour tous les lots syllabus** :
 
