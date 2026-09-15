@@ -107,6 +107,14 @@ L'état, lui, est séparé par espace de travail Terraform (`local` / `prod`).
 Une `precondition` du module confronte `terraform.workspace` à
 `TF_VAR_environnement` et refuse l'`apply` s'ils divergent.
 
+## Le service PDF : `GOTENBERG_HOST`
+
+Adresse du conteneur `pdf-service` (Gotenberg, `infra/container/compose.yaml`)
+sur le réseau Docker, `10.20.2.7` dans les deux topologies. Le backend la lit
+dans `pdf.url` de `back/cmd/serveur/config.yaml` — hors conteneur (debugger)
+comme en conteneur, le réseau Docker est joignable depuis le poste. Port et
+délai ne varient pas : ils sont des littéraux du `config.yaml`.
+
 ## Les images applicatives : `IMAGES_MODE`, `IMAGES_REGISTRE`, `IMAGES_TAG`
 
 Trois variables de topologie disent à `start-scolarite.sh` comment obtenir les

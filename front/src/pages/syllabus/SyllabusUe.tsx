@@ -15,19 +15,22 @@ import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, FileDown } from 'lucide-react';
 
 import { Alert, AlertTitle } from '../../components/ui/alert';
+import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { ChampTexte } from '../../services/ChampTexte';
 import { UserSelector, type UserOption } from '../../services/UserSelector';
 import { useDroits } from '../../services/context/droits';
+import { messageForError } from '../../services/errorMessages';
+import { notifyError } from '../../services/notify';
 import type { RenderProps } from '../../services/crud/def';
 import { createUeRepository, type Ue } from '../structure/entites/ue';
 import { Role } from '../user/def';
 import { SYLLABUS } from './def';
 import {
-    CHAMPS_NOM_RESPONSABLE, enregistrerSyllabusUe, syllabusUeSchema, type SyllabusUeFormulaire,
+    CHAMPS_NOM_RESPONSABLE, enregistrerSyllabusUe, syllabusUeSchema, telechargerFichePdf, type SyllabusUeFormulaire,
 } from './entites/syllabus';
 import { FormulaireSyllabus } from './FormulaireSyllabus';
 import { MatriceCompetences } from './MatriceCompetences';
@@ -52,6 +55,35 @@ function ChampsUe({ control, errors, isReadOnly, getValues, setValue }: RenderPr
                 filtrer={estAgent}
             />
         </>
+    );
+}
+
+/**
+ * Le téléchargement de la fiche PDF de l'UE (lot 5) : une lecture, ouverte à
+ * CONSULTATION comme à tous les rôles ; la langue des libellés est celle de
+ * l'interface au moment du clic. Un service PDF arrêté revient en 503, routé
+ * par le message canonique de son code.
+ */
+function BoutonFichePdf({ ueId }: { ueId: string }) {
+    const { t } = useTranslation('syllabus');
+    const [enCours, setEnCours] = useState(false);
+
+    const telecharger = useCallback(async () => {
+        setEnCours(true);
+        try {
+            await telechargerFichePdf(ueId);
+        } catch (erreur: unknown) {
+            notifyError(messageForError(erreur));
+        } finally {
+            setEnCours(false);
+        }
+    }, [ueId]);
+
+    return (
+        <Button type="button" variant="outline" disabled={enCours} onClick={() => { void telecharger(); }}>
+            <FileDown />
+            {t('fiche.telecharger')}
+        </Button>
     );
 }
 
@@ -124,6 +156,7 @@ function SyllabusDeUe({ formationId, periodeId, ueId }: { formationId: string; p
             cheminRetour={pathname.replace(new RegExp(`/${SYLLABUS}$`), '')}
             render={(props) => <ChampsUe {...props} />}
             modificationsExternes={matriceModifiee}
+            actions={<BoutonFichePdf ueId={ueId} />}
             complement={(
                 <MatriceCompetences
                     formationId={formationId}

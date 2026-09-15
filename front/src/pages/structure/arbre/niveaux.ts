@@ -30,7 +30,7 @@ import { ACTION_UES, createPeriodeRepository, periodeEntite } from '../entites/p
 import { ACTION_MATIERES, createUeRepository, ueEntite } from '../entites/ue';
 import { createMatiereRepository, matiereEntite } from '../entites/matiere';
 import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../entites/groupe';
-import { ACTION_SYLLABUS } from '../../syllabus/entites/syllabus';
+import { ACTION_LIVRET, ACTION_SYLLABUS } from '../../syllabus/entites/syllabus';
 import { ACTION_REFERENTIEL } from '../../syllabus/entites/competences';
 
 /**
@@ -144,7 +144,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: BookMarked,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
-        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t)],
+        // Le livret PDF (lot 5) : une lecture, en fermeture comme ACTION_SYLLABUS.
+        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t), ACTION_LIVRET()],
     },
     {
         segment: OPTION,

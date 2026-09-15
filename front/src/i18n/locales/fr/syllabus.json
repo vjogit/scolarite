@@ -40,6 +40,12 @@
     "champDescription": "Pourquoi cette UE ?",
     "enregistre": "Syllabus de l'UE enregistré."
   },
+  "fiche": {
+    "telecharger": "Télécharger la fiche PDF"
+  },
+  "livret": {
+    "action": "Télécharger le livret PDF"
+  },
   "responsable": {
     "champ": "Responsable",
     "rechercher": "Rechercher un responsable",

@@ -39,6 +39,12 @@ type Querier interface {
 	// compétence n'y figure pas — il n'a aucune ligne à cocher.
 	FetchReferentielByFormationID(ctx context.Context, formationID int32) ([]FetchReferentielByFormationIDRow, error)
 	FetchSyllabusMatiereByMatiereID(ctx context.Context, matiereID int32) (SyllabusMatiere, error)
+	// Les fiches des matières d'une UE, pour la fiche PDF (lot 5) : les
+	// identifiants viennent du repository des matières (structure), la requête
+	// ne joint rien — une matière sans fiche n'a pas de ligne, le gabarit la
+	// rend comme une fiche vide. Ordre stable sur matiere_id, l'appelant
+	// réordonne sur celui de la structure.
+	FetchSyllabusMatieresByMatiereIDs(ctx context.Context, ids []int32) ([]SyllabusMatiere, error)
 	// La matrice de l'UE (lot 3) : les compétences que l'UE adresse, avec leurs
 	// trois axes. Lecture ordonnée par bloc puis compétence ; écriture par
 	// remplacement intégral dans une transaction (DELETE puis INSERT … SELECT),

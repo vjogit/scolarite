@@ -194,7 +194,7 @@ jobs:
         if: always()
         run: |
           mkdir -p journaux
-          for conteneur in scolarite-backend scolarite-nginx keycloak-3 postgres-16.10-alpine mailpit; do
+          for conteneur in scolarite-backend scolarite-nginx keycloak-3 postgres-16.10-alpine mailpit gotenberg; do
             docker logs "$conteneur" > "journaux/$conteneur.log" 2>&1 || true
           done
           docker ps --all > journaux/docker-ps.txt

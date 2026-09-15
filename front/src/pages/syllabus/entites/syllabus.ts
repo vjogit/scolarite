@@ -8,18 +8,21 @@
  * de l'UE renvoie l'UE complète, pour la reposer sous la clé du repository UE.
  */
 
-import { BookText } from 'lucide-react';
+import { BookText, FileDown } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { FieldValues } from 'react-hook-form';
 import { z } from 'zod';
 
 import i18n from '../../../i18n/config';
 import { apiInstance } from '../../../services/api';
-import type { ActionNavigation } from '../../../services/crud/actions';
+import type { ActionNavigation, ActionRappel } from '../../../services/crud/actions';
 import { handleAxiosError } from '../../../services/crud/def';
+import { messageForError } from '../../../services/errorMessages';
+import { notifyError } from '../../../services/notify';
+import { erreurDeTelechargement, telecharger } from '../../../services/telechargement';
 import { MATIERE } from '../../structure/def';
 import type { Ue } from '../../structure/entites/ue';
-import { ENDPOINT_SYLLABUS_MATIERE, ENDPOINT_SYLLABUS_UE, SYLLABUS } from '../def';
+import { ENDPOINT_SYLLABUS_MATIERE, ENDPOINT_SYLLABUS_PROMOTION, ENDPOINT_SYLLABUS_UE, SYLLABUS } from '../def';
 
 /** Les bornes du serveur, en miroir : CHECK ≥ 0, et 999,99 pour NUMERIC(5,2). */
 export const HEURES_MAX = 999.99;
@@ -150,5 +153,61 @@ export function ACTION_SYLLABUS(t?: TFunction<'syllabus'>): ActionNavigation<Fie
         libelle: () => traduire('action'),
         icone: BookText,
         segment: SYLLABUS,
+    };
+}
+
+/**
+ * La langue des libellés d'un document PDF (lot 5) : celle de l'interface,
+ * au moment du clic. Le serveur ne sert que fr et en ; le contenu saisi n'est
+ * jamais traduit, seuls les libellés du gabarit le sont.
+ */
+export function langueDocument(): 'fr' | 'en' {
+    return i18n.resolvedLanguage === 'en' ? 'en' : 'fr';
+}
+
+/** La fiche PDF d'une UE, remise au navigateur ; l'erreur revient routable par `messageForError`. */
+export async function telechargerFichePdf(ueId: string | number): Promise<void> {
+    try {
+        const reponse = await apiInstance.get<Blob>(`${ENDPOINT_SYLLABUS_UE}/${String(ueId)}/fiche`, {
+            params: { lang: langueDocument() },
+            responseType: 'blob',
+        });
+        telecharger(reponse, 'syllabus-ue.pdf');
+    } catch (erreur: unknown) {
+        throw await erreurDeTelechargement(erreur);
+    }
+}
+
+/** Le livret PDF d'une promotion : les fiches de toutes ses UE. */
+export async function telechargerLivretPdf(promotionId: string | number): Promise<void> {
+    try {
+        const reponse = await apiInstance.get<Blob>(`${ENDPOINT_SYLLABUS_PROMOTION}/${String(promotionId)}/livret`, {
+            params: { lang: langueDocument() },
+            responseType: 'blob',
+        });
+        telecharger(reponse, 'syllabus-livret.pdf');
+    } catch (erreur: unknown) {
+        throw await erreurDeTelechargement(erreur);
+    }
+}
+
+/**
+ * L'action de ligne qui télécharge le livret d'une promotion (lot 5). Un
+ * rappel, pas une navigation : rien ne change à l'écran, le fichier arrive.
+ * Créée au rendu par `CrudPromotion`, avec son `t` ; le libellé reste une
+ * fermeture pour l'appelant qui la créerait au chargement d'un module.
+ */
+export function ACTION_LIVRET(t?: TFunction<'syllabus'>): ActionRappel<FieldValues> {
+    const traduire = t ?? i18n.getFixedT(null, 'syllabus');
+    return {
+        id: 'livret',
+        libelle: () => traduire('livret.action'),
+        icone: FileDown,
+        onSelect: (ligne) => {
+            // La ligne est une promotion : son identifiant est le seul champ lu.
+            const id: unknown = ligne.id;
+            if (typeof id !== 'number' && typeof id !== 'string') return;
+            telechargerLivretPdf(id).catch((erreur: unknown) => { notifyError(messageForError(erreur)); });
+        },
     };
 }

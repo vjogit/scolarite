@@ -36,14 +36,14 @@ include $(CONFIG_FILE_PROD)
 include $(SECRETS_FILE_PROD)
 export
 
-.PHONY: start-prod-reset start-prod-keep restart-prod-keep restart-prod-reset reset-db-prod _purge-prod _pg-up-prod _keycloak-down-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod stop-prod clean-prod _confirm-prod
+.PHONY: start-prod-reset start-prod-keep restart-prod-keep restart-prod-reset reset-db-prod _purge-prod _pg-up-prod _pdf-up-prod _keycloak-down-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod stop-prod clean-prod _confirm-prod
 
 
 
-start-prod-reset: _confirm-prod _purge-prod _pg-up-prod _keycloak-down-prod reset-db-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod _sleep-prod
+start-prod-reset: _confirm-prod _purge-prod _pg-up-prod _pdf-up-prod _keycloak-down-prod reset-db-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod _sleep-prod
 	@echo "--- ✅ Infra prod démarrée (BD recréée) ---"
 
-start-prod-keep: _pg-up-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod
+start-prod-keep: _pg-up-prod _pdf-up-prod _keycloak-up-prod keycloak-prod liquibase-prod start-scolarite-prod
 	@echo "--- ✅ Infra prod démarrée (BD conservée) ---"
 
 restart-prod-reset: stop-prod _sleep-prod start-prod-reset
@@ -81,6 +81,12 @@ _pg-up-prod:
 
 reset-db-prod:
 	$(INFRA_DIR)/reset-db.sh $(CONFIG_FILE_PROD) $(SECRETS_FILE_PROD)
+
+# Service de conversion PDF (Gotenberg) : même image, même adresse qu'en local
+# (infra/container/compose.yaml). Voir _pdf-up dans makefile.local.
+_pdf-up-prod:
+	@echo "--- 📄 Démarrage du service PDF (Gotenberg) ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_PROD) --env-file ../../$(SECRETS_FILE_PROD) up -d --wait pdf-service
 
 _keycloak-down-prod:
 	@echo "--- 🛑 Arrêt de Keycloak ---"

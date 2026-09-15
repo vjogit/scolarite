@@ -30,7 +30,8 @@ export type ApiErrorCode =
   | 'INTERNAL_ERROR'
   | 'NO_RESULT'
   | 'PAYLOAD_TOO_LARGE'
-  | 'RATE_LIMITED';
+  | 'RATE_LIMITED'
+  | 'SERVICE_UNAVAILABLE';
 
 /** Le message générique d'un code d'erreur, dans la langue active. */
 export function errorMessage(code: ApiErrorCode): string {
@@ -42,7 +43,7 @@ const KNOWN_CODES = new Set<string>([
   'MISSING_PARAM', 'INVALID_PARAM', 'NOT_FOUND', 'BUSINESS_CONFLICT',
   'INVALID_BODY', 'INVALID_FILE', 'FILE_TOO_LARGE', 'FILE_MISSING',
   'INVALID_FILE_EXTENSION', 'INSUFFICIENT_RIGHTS', 'INTERNAL_ERROR', 'NO_RESULT',
-  'PAYLOAD_TOO_LARGE', 'RATE_LIMITED',
+  'PAYLOAD_TOO_LARGE', 'RATE_LIMITED', 'SERVICE_UNAVAILABLE',
 ]);
 
 function isApiErrorCode(value: unknown): value is ApiErrorCode {

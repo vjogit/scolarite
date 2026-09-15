@@ -16,7 +16,8 @@
     "INTERNAL_ERROR": "Une erreur interne est survenue. Veuillez réessayer ultérieurement.",
     "NO_RESULT": "Aucun résultat trouvé.",
     "PAYLOAD_TOO_LARGE": "La requête est trop volumineuse.",
-    "RATE_LIMITED": "Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer."
+    "RATE_LIMITED": "Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer.",
+    "SERVICE_UNAVAILABLE": "Un service nécessaire est indisponible. Réessayez plus tard."
   },
   "avecIncident": "{{message}} (code incident : {{incident}})",
   "motifChamp": {

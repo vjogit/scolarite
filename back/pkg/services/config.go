@@ -16,6 +16,8 @@ type Config struct {
 	Keycloak KeycloakConfig `yaml:"keycloak"`
 	Log      LogConfig      `yaml:"log"`
 	Registre RegistreConfig `yaml:"registre"`
+	// PDF : le service de conversion HTML → PDF (Gotenberg), voir pdf.go.
+	PDF PDFConfig `yaml:"pdf"`
 }
 
 // RegistreConfig porte l'étage d'ancrage externe du registre chaîné :

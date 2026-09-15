@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up _pdf-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -94,10 +94,10 @@ captures-reference:
 
 
 
-start-local-reset: _purge _pg-up _mailpit-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
+start-local-reset: _purge _pg-up _mailpit-up _pdf-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql start-scolarite _sleep
 	@echo "--- ✅ Infra locale démarrée (BD recréée) ---"
 
-start-local-keep: _pg-up _mailpit-up _keycloak-up keycloak liquibase gen_sql start-scolarite
+start-local-keep: _pg-up _mailpit-up _pdf-up _keycloak-up keycloak liquibase gen_sql start-scolarite
 	@echo "--- ✅ Infra locale démarrée (BD conservée) ---"
 
 # Espace de travail « dev » : tout ce dont le poste a besoin pour travailler
@@ -110,13 +110,13 @@ start-local-keep: _pg-up _mailpit-up _keycloak-up keycloak liquibase gen_sql sta
 #
 # start-dev conserve la base, start-dev-reset la recrée — même partage qu'entre
 # start-local-keep et start-local-reset.
-start-dev: _pg-up _mailpit-up _keycloak-up keycloak liquibase gen_sql
+start-dev: _pg-up _mailpit-up _pdf-up _keycloak-up keycloak liquibase gen_sql
 	@echo "--- ✅ Infra de développement démarrée (BD conservée) ---"
 
 # Pendant « reset » de start-dev. Reprend start-local-reset sans
 # start-scolarite, et sans le _sleep final qui n'y servait qu'à laisser les
 # conteneurs applicatifs se poser avant l'annonce de succès.
-start-dev-reset: _purge _pg-up _mailpit-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql
+start-dev-reset: _purge _pg-up _mailpit-up _pdf-up _keycloak-down reset-db _keycloak-up keycloak liquibase gen_sql
 	@echo "--- ✅ Infra de développement démarrée (BD recréée) ---"
 
 restart-local-reset: stop-local _sleep start-local-reset
@@ -160,6 +160,14 @@ reset-db:
 _mailpit-up:
 	@echo "--- 📬 Démarrage de Mailpit ---"
 	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_LOCAL) --env-file ../../$(SECRETS_FILE_LOCAL) up -d mail-service
+
+# Service de conversion PDF (Gotenberg), consommé par le backend — fiche et
+# livret syllabus, bulletins de jury à venir. `--wait` attend son healthcheck :
+# le backend ne démarre jamais devant un service PDF qui n'écoute pas encore.
+# Même cible dans makefile.prod : le service vit dans les deux mondes.
+_pdf-up:
+	@echo "--- 📄 Démarrage du service PDF (Gotenberg) ---"
+	cd $(DOCKER_DIR) && docker compose -f compose.yaml --env-file ../../$(CONFIG_FILE_LOCAL) --env-file ../../$(SECRETS_FILE_LOCAL) up -d --wait pdf-service
 
 _keycloak-down:
 	@echo "--- 🛑 Arrêt de Keycloak ---"

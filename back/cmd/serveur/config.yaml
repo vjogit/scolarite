@@ -83,6 +83,17 @@ registre:
       startTLS: ${REGISTRE_SMTP_STARTTLS}
       timeout: 10s
 
+# Service de conversion HTML → PDF (Gotenberg, conteneur pdf-service de
+# infra/container/compose.yaml) : la fiche et le livret syllabus, puis les
+# bulletins de jury. Le client vit dans back/pkg/services/pdf.go. L'adresse
+# vient de l'environnement ; le délai borne chaque conversion et reste sous le
+# writeTimeout du serveur (30 s) — mesuré au lot 5 : un livret de 9 UE en
+# moins de 2 s. L'établissement est la marque du pied de page des documents.
+pdf:
+  url: http://${GOTENBERG_HOST}:3000
+  timeout: 25s
+  etablissement: IMT Mines Alès
+
 keycloak:
   host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
   issuer: ${KC_HOSTNAME}

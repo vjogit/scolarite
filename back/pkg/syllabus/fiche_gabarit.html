@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="{{.L.Lang}}">
+<head>
+<meta charset="utf-8">
+<title>{{.Titre}}</title>
+<style>
+/* Gabarit fiche syllabus — dérivé de docs/syllabus/fiche-maquette.html (lot 0,
+   cible visuelle contractuelle). Rendu par Chromium (Gotenberg) en A4 : la
+   règle @page est la nôtre, les marges sont dans .page. */
+:root {
+  --encre: #1f2a33;
+  --secondaire: #5b6b75;
+  --accent: #0e7c86;
+  --accent-fonce: #0a5d65;
+  --trame: #eaf4f5;
+  --filet: #c9d3d8;
+  --papier: #ffffff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 10.2pt; }
+body {
+  font-family: "Source Sans 3", "Segoe UI", system-ui, -apple-system, "Liberation Sans", sans-serif;
+  color: var(--encre);
+  background: none;
+  line-height: 1.45;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.page {
+  background: var(--papier);
+  width: auto;
+  min-height: 296mm;
+  margin: 0;
+  padding: 12mm 16mm 18mm;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+}
+.page:last-child { page-break-after: auto; }
+
+.bandeau {
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+.bandeau .ue-code { color: var(--accent-fonce); font-weight: 600; font-size: .95rem; letter-spacing: .02em; }
+.bandeau h1 { font-size: 1.7rem; font-weight: 700; line-height: 1.15; }
+.bandeau h1 .matiere-sous { display: block; font-size: 1.15rem; font-weight: 600; color: var(--secondaire); margin-top: 2px; }
+.bandeau .contexte-droit { text-align: right; white-space: nowrap; color: var(--secondaire); font-size: .95rem; line-height: 1.3; }
+.bandeau .contexte-droit strong { display: block; color: var(--encre); font-size: 1.05rem; }
+
+.chiffres { display: flex; gap: 0; border: 1px solid var(--filet); border-radius: 3px; margin-bottom: 12px; }
+.chiffres > div { flex: 1; padding: 7px 12px; border-left: 1px solid var(--filet); }
+.chiffres > div:first-child { border-left: 0; }
+.chiffres .valeur { font-size: 1.25rem; font-weight: 700; }
+.chiffres .valeur small { font-size: .8rem; font-weight: 600; color: var(--secondaire); }
+.chiffres .libelle { font-size: .82rem; color: var(--secondaire); }
+
+/* Marges de section resserrées d'un cran par rapport à la maquette (16 px) :
+   les rubriques importées du tiers sont plus longues que celles de la
+   maquette, et une page pleine à une ligne près basculait sur une seconde
+   page presque vide. Une matière = une page reste vrai tant que le contenu
+   tient ; au-delà, la suite coule sur la page suivante, pied compris. */
+section { margin-bottom: 12px; }
+h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+h2 .precision { font-weight: 400; font-size: .82rem; color: var(--secondaire); }
+.texte { max-width: 78ch; }
+.texte p + p, .texte ul + p, .texte p + ul { margin-top: 6px; }
+.texte ul { margin-left: 1.2em; }
+.texte li { margin-bottom: 2px; }
+.deux-colonnes { display: grid; grid-template-columns: 1fr 64mm; gap: 20px; align-items: start; }
+.trois-rubriques { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 20px; align-items: start; }
+
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th { text-align: left; font-weight: 600; color: var(--secondaire); font-size: .85rem; padding: 4px 8px; border-bottom: 1.5px solid var(--encre); }
+td { padding: 5px 8px; border-bottom: 1px solid var(--filet); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; width: 4.5em; }
+tr.total td { border-bottom: 0; border-top: 1.5px solid var(--encre); font-weight: 700; background: var(--trame); }
+
+.matrice th.etat { text-align: center; width: 7.5em; }
+.matrice td.etat { text-align: center; }
+.matrice .bloc td { background: var(--trame); font-weight: 700; border-bottom: 1px solid var(--accent); padding-top: 6px; }
+.matrice .bloc .bloc-code { color: var(--accent-fonce); margin-right: .5em; }
+.matrice .comp-code, .comp-code { color: var(--secondaire); font-weight: 600; margin-right: .5em; }
+.pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.note-bas { font-size: .85rem; color: var(--secondaire); margin-top: 6px; max-width: 78ch; }
+.absente { color: var(--secondaire); font-style: italic; }
+
+.pied { position: absolute; left: 16mm; right: 16mm; bottom: 7mm; padding-top: 8px; border-top: 1px solid var(--filet); display: flex; justify-content: space-between; font-size: .8rem; color: var(--secondaire); }
+/* Le pied est hors du flux : sur une page pleine, il ne pousse plus le
+   contenu (ni lui-même) sur une page suivante autrement vide. Le
+   padding-bottom de .page lui réserve sa place. */
+.pied .marque { font-weight: 700; color: var(--accent-fonce); }
+
+/* Page de titre du livret */
+.titre-livret { justify-content: flex-start; }
+.titre-livret .en-tete { border-bottom: 3px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; margin-top: 40mm; }
+.titre-livret .en-tete .marque { color: var(--accent-fonce); font-weight: 700; font-size: 1.1rem; letter-spacing: .02em; }
+.titre-livret h1 { font-size: 2.2rem; font-weight: 700; line-height: 1.15; margin-top: 6px; }
+.titre-livret .sous-titre { font-size: 1.3rem; color: var(--secondaire); margin-top: 4px; }
+.sommaire h2 { margin-bottom: 8px; }
+.sommaire .option { font-weight: 700; margin-top: 10px; }
+.sommaire .periode { color: var(--accent-fonce); font-weight: 600; margin: 4px 0 2px 1em; }
+.sommaire ul { list-style: none; margin-left: 2em; }
+.sommaire li { padding: 1px 0; border-bottom: 1px dotted var(--filet); }
+
+@page { size: A4 portrait; margin: 0; }
+</style>
+</head>
+<body>
+{{- $L := .L }}
+{{- $marque := .Etablissement }}
+{{- with .Livret }}
+<div class="page titre-livret">
+  <div class="en-tete">
+    <div class="marque">{{$marque}}</div>
+    <h1>{{$L.Livret}}</h1>
+    <div class="sous-titre">{{.Formation}} · {{.Promotion}}{{if .Annees}} · {{.Annees}}{{end}}</div>
+  </div>
+  <section class="sommaire">
+    <h2>{{$L.Sommaire}}</h2>
+    {{- range .Sommaire}}
+    <div class="option">{{$L.Option}} · {{.Option}}</div>
+      {{- range .Periodes}}
+      <div class="periode">{{.Periode}}</div>
+      <ul>
+        {{- range .UEs}}
+        <li>{{.}}</li>
+        {{- end}}
+      </ul>
+      {{- end}}
+    {{- end}}
+  </section>
+  <footer class="pied">
+    <span><span class="marque">{{$marque}}</span> · {{$L.Livret}}</span>
+    <span>{{.Formation}} · {{.Promotion}}</span>
+  </footer>
+</div>
+{{- end}}
+{{- range .Fiches}}
+{{- $fiche := . }}
+<div class="page">
+  <header class="bandeau">
+    <div>
+      <div class="ue-code">{{$L.Syllabus}}</div>
+      <h1>{{.Nom}}</h1>
+    </div>
+    <div class="contexte-droit">
+      <strong>{{.Formation}}</strong>
+      {{.Periode}} · {{.Annee}}
+    </div>
+  </header>
+
+  <div class="chiffres">
+    <div><div class="valeur">{{.Ects}}</div><div class="libelle">{{$L.Ects}}</div></div>
+    <div><div class="valeur">{{.VolumeEncadre}} <small>{{$L.Heure}}</small></div><div class="libelle">{{$L.EnseignementEncadre}}</div></div>
+    <div><div class="valeur">{{.TravailPerso}} <small>{{$L.Heure}}</small></div><div class="libelle">{{$L.TravailPersonnel}}</div></div>
+    <div><div class="valeur">{{.NbEnseignements}}</div><div class="libelle">{{$L.Enseignements}}</div></div>
+  </div>
+
+  {{- if .Description}}
+  <section>
+    <h2>{{$L.PourquoiUe}}</h2>
+    <div class="texte">{{template "texte" .Description}}</div>
+  </section>
+  {{- end}}
+
+  <section>
+    <h2>{{$L.ElementsConstitutifs}}</h2>
+    <table>
+      <thead>
+        <tr><th>{{$L.Enseignement}}</th><th class="num">{{$L.Heures}}</th><th class="num">{{$L.Coeff}}</th></tr>
+      </thead>
+      <tbody>
+        {{- range .Matieres}}
+        <tr><td>{{.Nom}}</td><td class="num">{{.Heure}}</td><td class="num">{{.Coeff}}</td></tr>
+        {{- end}}
+        <tr class="total"><td>{{$L.VolumeEncadreUe}}</td><td class="num">{{.VolumeEncadre}}</td><td class="num"></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>{{$L.QuestionCompetences}}</h2>
+    {{- if .AucuneLiaison}}
+    <p class="note-bas absente">{{$L.AucuneCompetence}}</p>
+    {{- else}}
+    <table class="matrice">
+      <thead>
+        <tr>
+          <th>{{$L.Competence}}</th>
+          <th class="etat">{{$L.Enseignee}}</th>
+          <th class="etat">{{$L.MiseEnOeuvre}}</th>
+          <th class="etat">{{$L.Evaluee}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{- range .BlocsMobilises}}
+        <tr class="bloc"><td colspan="4">{{if .Code}}<span class="bloc-code">{{.Code}}</span>{{end}}{{.Libelle}}</td></tr>
+          {{- range .Competences}}
+        <tr>
+          <td><span class="comp-code">{{.Code}}</span>{{.Action}}</td>
+          <td class="etat">{{if .Enseignee}}<span class="pastille"></span>{{end}}</td>
+          <td class="etat">{{if .MiseEnOeuvre}}<span class="pastille"></span>{{end}}</td>
+          <td class="etat">{{if .Evaluee}}<span class="pastille"></span>{{end}}</td>
+        </tr>
+          {{- end}}
+        {{- end}}
+      </tbody>
+    </table>
+    {{- if .AutresBlocs}}
+    <p class="note-bas">{{$L.BlocsNonMobilises}}</p>
+    {{- end}}
+    {{- end}}
+  </section>
+
+  <footer class="pied">
+    <span><span class="marque">{{$marque}}</span> · {{$L.Syllabus}} · {{.PiedContexte}}</span>
+    <span>{{.Nom}} · {{$L.Page}} 1/{{.Pages}}</span>
+  </footer>
+</div>
+
+{{- range .PagesMatiere}}
+<div class="page">
+  <header class="bandeau">
+    <div>
+      <div class="ue-code">{{$L.Syllabus}} · {{$fiche.Nom}}</div>
+      <h1><span class="matiere-sous">{{.Nom}}</span></h1>
+    </div>
+    <div class="contexte-droit">
+      <strong>{{$fiche.Formation}}</strong>
+      {{$fiche.Periode}} · {{$fiche.Annee}}
+    </div>
+  </header>
+
+  {{- if .FicheAbsente}}
+  <p class="absente">{{$L.FicheAbsente}}</p>
+  {{- else}}
+  <div class="deux-colonnes">
+    <div>
+      {{- if .Contexte}}
+      <section>
+        <h2>{{$L.ContexteEnjeux}}</h2>
+        <div class="texte">{{template "texte" .Contexte}}</div>
+      </section>
+      {{- end}}
+      {{- if .Prerequis}}
+      <section>
+        <h2>{{$L.Prerequis}}</h2>
+        <div class="texte">{{template "texte" .Prerequis}}</div>
+      </section>
+      {{- end}}
+    </div>
+    {{- if .AHeures}}
+    <section>
+      <h2>{{$L.VolumesHoraires}}</h2>
+      <table>
+        <tbody>
+          {{- range .Heures}}
+          <tr><td>{{.Libelle}}</td><td class="num">{{.Valeur}}</td></tr>
+          {{- end}}
+          <tr class="total"><td>{{$L.Encadre}}</td><td class="num">{{.TotalEncadre}}</td></tr>
+        </tbody>
+      </table>
+      {{- if .Ecart}}
+      <p class="note-bas ecart">{{.Ecart}}</p>
+      {{- end}}
+    </section>
+    {{- end}}
+  </div>
+
+  {{- if or .Objectifs .Activites .Evaluation}}
+  <div class="trois-rubriques">
+    {{- if .Objectifs}}
+    <section>
+      <h2>{{$L.Objectifs}} <span class="precision">{{$L.ObjectifsPrecision}}</span></h2>
+      <div class="texte">{{template "texte" .Objectifs}}</div>
+    </section>
+    {{- end}}
+    {{- if .Activites}}
+    <section>
+      <h2>{{$L.Activites}} <span class="precision">{{$L.ActivitesPrecision}}</span></h2>
+      <div class="texte">{{template "texte" .Activites}}</div>
+    </section>
+    {{- end}}
+    {{- if .Evaluation}}
+    <section>
+      <h2>{{$L.Evaluation}}</h2>
+      <div class="texte">{{template "texte" .Evaluation}}</div>
+    </section>
+    {{- end}}
+  </div>
+  {{- end}}
+
+  {{- if .PlanCours}}
+  <section>
+    <h2>{{$L.PlanCours}}</h2>
+    <div class="texte">{{template "texte" .PlanCours}}</div>
+  </section>
+  {{- end}}
+  {{- if .Ressources}}
+  <section>
+    <h2>{{$L.Ressources}}</h2>
+    <div class="texte">{{template "texte" .Ressources}}</div>
+  </section>
+  {{- end}}
+  {{- if .DimensionSocioEnv}}
+  <section>
+    <h2>{{$L.DimensionSocioEnv}}</h2>
+    <div class="texte">{{template "texte" .DimensionSocioEnv}}</div>
+  </section>
+  {{- end}}
+  {{- end}}
+
+  <footer class="pied">
+    <span><span class="marque">{{$marque}}</span> · {{$L.Syllabus}} · {{$fiche.PiedContexte}}</span>
+    <span>{{$fiche.Nom}} · {{$L.Page}} {{.Numero}}/{{$fiche.Pages}}</span>
+  </footer>
+</div>
+{{- end}}
+{{- end}}
+</body>
+</html>
+{{- define "texte"}}
+{{- range .}}
+{{- if .Liste}}<ul>{{range .Lignes}}<li>{{.}}</li>{{end}}</ul>
+{{- else}}<p>{{range $i, $ligne := .Lignes}}{{if $i}}<br>{{end}}{{$ligne}}{{end}}</p>
+{{- end}}
+{{- end}}
+{{- end}}

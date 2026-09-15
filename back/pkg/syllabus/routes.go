@@ -19,9 +19,13 @@ import (
 // de l'UE — le GET de l'UE (domaine structure) porte déjà ses deux champs.
 // Le référentiel de compétences (lot 3) et la matrice de l'UE s'écrivent sous
 // le même rôle de domaine : catalogue et matrices, une seule population.
-func RouteSyllabus(r chi.Router) {
+// Les documents PDF (lot 5) — fiche de l'UE, livret de la promotion — se
+// lisent sous CONSULTATION et passent par le convertisseur reçu (nil : les
+// deux routes répondent 503).
+func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement string) {
 	lecture := services.RequireRole(services.RoleConsultation)
 	ecriture := services.RequireRole(services.RoleSyllabusEcriture)
+	documents := &documentsPDF{convertisseur: pdf, etablissement: etablissement}
 
 	r.Route("/matiere/{matiereID}", func(r chi.Router) {
 		r.With(lecture, MatiereExiste).Get("/", FetchSyllabusMatiere)
@@ -34,7 +38,15 @@ func RouteSyllabus(r chi.Router) {
 		// remplacement intégral, sans verrou.
 		r.With(lecture, UniteEnseignementUse).Get("/competences", FetchUeCompetences)
 		r.With(ecriture, UniteEnseignementUse).Put("/competences", ReplaceUeCompetences)
+		// La fiche PDF de l'UE (lot 5) : `?lang=fr|en`, défaut fr.
+		r.With(lecture, UniteEnseignementUse).Get("/fiche", documents.FichePDF)
 	})
+
+	// Le livret PDF d'une promotion (lot 5) : toutes les fiches de ses UE,
+	// dans l'ordre de la structure, derrière une page de titre. Ancré sur la
+	// promotion, qui détermine la formation — la structure est dupliquée par
+	// promotion, le livret l'est aussi.
+	r.With(lecture).Get("/promotion/{promotionID}/livret", documents.LivretPDF)
 
 	// Le référentiel de compétences d'une formation (lot 3) : deux cycles CRUD
 	// sur le modèle des entités de structure. `delete-impact` est déclaré

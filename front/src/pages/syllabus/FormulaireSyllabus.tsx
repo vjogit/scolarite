@@ -53,11 +53,16 @@ interface Props<D extends FieldValues> {
     modificationsExternes?: boolean;
     /** Ce qui s'affiche sous le formulaire, sous la même garde. */
     complement?: ReactNode;
+    /**
+     * Ce qui s'affiche à droite du titre : une action de lecture, comme le
+     * téléchargement de la fiche PDF (lot 5), visible quel que soit le rôle.
+     */
+    actions?: ReactNode;
 }
 
 export function FormulaireSyllabus<D extends FieldValues>({
     titre, schema, valeursInitiales, peutEcrire, enregistrer, messageSucces, cheminRetour, render,
-    modificationsExternes = false, complement,
+    modificationsExternes = false, complement, actions,
 }: Props<D>) {
     const { t } = useTranslation('crud');
     const { t: tSyllabus } = useTranslation('syllabus');
@@ -121,7 +126,10 @@ export function FormulaireSyllabus<D extends FieldValues>({
                     onSubmit={(event) => { void handleSubmit((valeurs) => { mutation.mutate(valeurs); })(event); }}
                     className="flex w-full max-w-[800px] flex-col gap-2.5"
                 >
-                    <h2>{titre}</h2>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2>{titre}</h2>
+                        {actions}
+                    </div>
 
                     {render({ register, control, errors, isReadOnly, getValues, setValue })}
 

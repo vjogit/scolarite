@@ -16,7 +16,8 @@
     "INTERNAL_ERROR": "An internal error occurred. Please try again later.",
     "NO_RESULT": "No result found.",
     "PAYLOAD_TOO_LARGE": "The request is too large.",
-    "RATE_LIMITED": "Too many requests in a short time. Please wait a few seconds before trying again."
+    "RATE_LIMITED": "Too many requests in a short time. Please wait a few seconds before trying again.",
+    "SERVICE_UNAVAILABLE": "A required service is unavailable. Please try again later."
   },
   "avecIncident": "{{message}} (incident code: {{incident}})",
   "motifChamp": {

@@ -59,6 +59,12 @@ func main() {
 	slog.Info("Application version: ", "version", version)
 	slog.Info("Compilation time: ", "buildTime", buildTime)
 
+	// Le service de conversion HTML → PDF (Gotenberg) : un client pour tout le
+	// serveur, partagé par les domaines qui produisent des documents (fiche
+	// syllabus aujourd'hui, bulletins de jury demain). Son indisponibilité ne
+	// concerne que ces routes : elles répondent 503, le reste tourne.
+	convertisseurPDF := services.NewConvertisseurPDF(cfg.PDF)
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger) // Log HTTP requests
@@ -108,7 +114,7 @@ func main() {
 
 	r.Route("/api/v0/syllabus", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
-		syllabus.RouteSyllabus(r)
+		syllabus.RouteSyllabus(r, convertisseurPDF, cfg.PDF.Etablissement)
 	})
 
 	// Ancrage RFC 3161 périodique du registre (portage rex-imt). L'ancrage

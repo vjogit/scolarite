@@ -52,6 +52,56 @@ func (q *Queries) FetchSyllabusMatiereByMatiereID(ctx context.Context, matiereID
 	return i, err
 }
 
+const fetchSyllabusMatieresByMatiereIDs = `-- name: FetchSyllabusMatieresByMatiereIDs :many
+SELECT id, version, matiere_id, contexte, objectifs, prerequis, activites, evaluation, plan_cours, ressources, dimension_socio_env, heures_cours, heures_cours_td, heures_td, heures_tp, heures_projet, heures_autonomie, heures_controle, heures_perso, responsable_id FROM public.syllabus_matiere WHERE matiere_id = ANY($1::int[]) ORDER BY matiere_id
+`
+
+// Les fiches des matières d'une UE, pour la fiche PDF (lot 5) : les
+// identifiants viennent du repository des matières (structure), la requête
+// ne joint rien — une matière sans fiche n'a pas de ligne, le gabarit la
+// rend comme une fiche vide. Ordre stable sur matiere_id, l'appelant
+// réordonne sur celui de la structure.
+func (q *Queries) FetchSyllabusMatieresByMatiereIDs(ctx context.Context, ids []int32) ([]SyllabusMatiere, error) {
+	rows, err := q.db.Query(ctx, fetchSyllabusMatieresByMatiereIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SyllabusMatiere
+	for rows.Next() {
+		var i SyllabusMatiere
+		if err := rows.Scan(
+			&i.ID,
+			&i.Version,
+			&i.MatiereID,
+			&i.Contexte,
+			&i.Objectifs,
+			&i.Prerequis,
+			&i.Activites,
+			&i.Evaluation,
+			&i.PlanCours,
+			&i.Ressources,
+			&i.DimensionSocioEnv,
+			&i.HeuresCours,
+			&i.HeuresCoursTd,
+			&i.HeuresTd,
+			&i.HeuresTp,
+			&i.HeuresProjet,
+			&i.HeuresAutonomie,
+			&i.HeuresControle,
+			&i.HeuresPerso,
+			&i.ResponsableID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const fetchUniteEnseignementById = `-- name: FetchUniteEnseignementById :one
 SELECT id, version, name, ects, academique, periode_id, description, responsable_id FROM public.unite_enseignement WHERE id = $1
 `

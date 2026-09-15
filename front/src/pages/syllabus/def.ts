@@ -14,6 +14,8 @@ export const COMPETENCE = 'competence';
 export const ENDPOINT_SYLLABUS = '/api/v0/syllabus';
 export const ENDPOINT_SYLLABUS_MATIERE = `${ENDPOINT_SYLLABUS}/matiere`;
 export const ENDPOINT_SYLLABUS_UE = `${ENDPOINT_SYLLABUS}/ue`;
+// Le livret PDF d'une promotion (lot 5) : toutes les fiches de ses UE.
+export const ENDPOINT_SYLLABUS_PROMOTION = `${ENDPOINT_SYLLABUS}/promotion`;
 export const ENDPOINT_BLOC = `${ENDPOINT_SYLLABUS}/${BLOC}`;
 export const ENDPOINT_COMPETENCE = `${ENDPOINT_SYLLABUS}/${COMPETENCE}`;
 // Analyse d'impact avant suppression (POST, corps { ids: [...] }) : la

@@ -40,6 +40,12 @@
     "champDescription": "Why this unit?",
     "enregistre": "Unit syllabus saved."
   },
+  "fiche": {
+    "telecharger": "Download the PDF sheet"
+  },
+  "livret": {
+    "action": "Download the PDF booklet"
+  },
   "responsable": {
     "champ": "Supervisor",
     "rechercher": "Search for a supervisor",

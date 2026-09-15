@@ -159,7 +159,8 @@ faux par défaut). Un job, un exécuteur `ubuntu-24.04`, 45 min de plafond.
    `retries: 0` est celui de `playwright.config.ts`, la CI n'y touche pas.
 9. Captures, seulement si `captures=true` au lancement manuel, jamais
    décisives (§5).
-10. **À chaque run, réussi ou non** : journaux des cinq conteneurs
+10. **À chaque run, réussi ou non** : journaux des conteneurs (six depuis
+    le lot 5 syllabus : Gotenberg s'y ajoute)
     (`docker logs`), `front/test-results/`, `front/playwright-report/` publiés
     en artefact (14 jours). Vérifié en téléchargeant l'artefact du premier
     run : les cinq journaux (backend 490 lignes en `debug`), le rapport HTML,

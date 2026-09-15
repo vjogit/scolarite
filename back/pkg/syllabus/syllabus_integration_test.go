@@ -36,7 +36,7 @@ var (
 
 func routeur() chi.Router {
 	r := chi.NewRouter()
-	r.Route("/syllabus", syllabus.RouteSyllabus)
+	r.Route("/syllabus", func(r chi.Router) { syllabus.RouteSyllabus(r, convertisseurTest(), "Établissement test") })
 	return r
 }
 
