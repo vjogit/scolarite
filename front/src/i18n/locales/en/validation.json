@@ -21,5 +21,8 @@
   "seuilsEchelleDepassentBareme": "Scale thresholds cannot exceed the grading scale",
   "emailInvalide": "Invalid email",
   "echelleFormatPaire": "Incorrect format for a pair",
-  "echelleNombreInvalideOuDecroissant": "A number is invalid, or the numbers are not decreasing"
+  "echelleNombreInvalideOuDecroissant": "A number is invalid, or the numbers are not decreasing",
+  "ordreRequis": "Order is required: an integer from 1",
+  "libelleRequis": "Label is required",
+  "actionRequise": "Action is required"
 }

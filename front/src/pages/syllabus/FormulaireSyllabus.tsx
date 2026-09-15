@@ -44,10 +44,20 @@ interface Props<D extends FieldValues> {
     /** Où mènent « Retour » et « Annuler » : le détail de l'entité porteuse. */
     cheminRetour: string;
     render: (props: RenderProps<D>) => ReactNode;
+    /**
+     * Une saisie non enregistrée hors de ce formulaire — la matrice de
+     * compétences de l'UE (lot 3), qui a son propre bouton d'enregistrement.
+     * react-router ne tient qu'un bloqueur par routeur : la garde est unique,
+     * et c'est celle-ci.
+     */
+    modificationsExternes?: boolean;
+    /** Ce qui s'affiche sous le formulaire, sous la même garde. */
+    complement?: ReactNode;
 }
 
 export function FormulaireSyllabus<D extends FieldValues>({
     titre, schema, valeursInitiales, peutEcrire, enregistrer, messageSucces, cheminRetour, render,
+    modificationsExternes = false, complement,
 }: Props<D>) {
     const { t } = useTranslation('crud');
     const { t: tSyllabus } = useTranslation('syllabus');
@@ -88,7 +98,7 @@ export function FormulaireSyllabus<D extends FieldValues>({
         },
     });
 
-    const hasUnsavedChanges = peutEcrire && Object.keys(dirtyFields).length > 0 && !mutation.isPending;
+    const hasUnsavedChanges = (peutEcrire && Object.keys(dirtyFields).length > 0 && !mutation.isPending) || modificationsExternes;
     const guard = useUnsavedChangesGuard(hasUnsavedChanges);
 
     useEffect(() => {
@@ -131,6 +141,12 @@ export function FormulaireSyllabus<D extends FieldValues>({
                     </div>
                 </form>
             </div>
+
+            {complement !== undefined && (
+                <div className="mt-8 flex justify-center">
+                    {complement}
+                </div>
+            )}
 
             <UnsavedChangesDialog
                 open={guard.isBlocked}

@@ -19,7 +19,6 @@
     "RATE_LIMITED": "Too many requests in a short time. Please wait a few seconds before trying again."
   },
   "avecIncident": "{{message}} (incident code: {{incident}})",
-
   "motifChamp": {
     "champ_obligatoire": "This field is required",
     "valeur_deja_utilisee": "This value is already used",
@@ -29,7 +28,8 @@
     "fin_avant_debut": "The end date must be after the start date",
     "echelle_longueur": "The scale must contain 5 values",
     "echelle_decroissante": "The scale must be decreasing",
-    "echelle_hors_bareme": "The scale thresholds cannot exceed the grading scale"
+    "echelle_hors_bareme": "The scale thresholds cannot exceed the grading scale",
+    "hors_formation": "This competency does not belong to the unit's program"
   },
   "noteHorsBaremeAvecMax": "The grade must be between 0 and {{max}}",
   "noteDepasseBareme": "The grade exceeds the grading scale",
@@ -44,7 +44,9 @@
     "unite_enseignement_id": "The course unit",
     "formation_id": "The program",
     "promotion_id": "The cohort",
-    "responsable_id": "The supervisor"
+    "responsable_id": "The supervisor",
+    "competence_id": "The competency",
+    "bloc_id": "The competency block"
   },
   "creneauDejaReserveGenerique": "This slot is already booked",
   "creneau": {
@@ -52,7 +54,6 @@
     "intervenants": "One or more instructors are already busy for this slot",
     "groupes": "One or more groups are already scheduled for this slot"
   },
-
   "ligneRefusee": {
     "cellule_invalide": "\"{{valeur}}\" is not a grade. Leave the cell empty if there is no grade.",
     "note_hors_bareme_avec_bareme": "The grade {{valeur}} is out of scale (between 0 and {{bareme}}).",

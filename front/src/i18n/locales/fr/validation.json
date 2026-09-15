@@ -21,5 +21,8 @@
   "seuilsEchelleDepassentBareme": "Les seuils de l'échelle ne peuvent pas dépasser le barème",
   "emailInvalide": "Email invalide",
   "echelleFormatPaire": "Format incorrect pour une paire",
-  "echelleNombreInvalideOuDecroissant": "Un nombre n'est pas valide ou les nombres ne sont pas décroissants"
+  "echelleNombreInvalideOuDecroissant": "Un nombre n'est pas valide ou les nombres ne sont pas décroissants",
+  "ordreRequis": "L'ordre est requis : un entier à partir de 1",
+  "libelleRequis": "Le libellé est requis",
+  "actionRequise": "L'action est requise"
 }

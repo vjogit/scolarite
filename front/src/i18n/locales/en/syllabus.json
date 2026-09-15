@@ -44,5 +44,53 @@
     "champ": "Supervisor",
     "rechercher": "Search for a supervisor",
     "aide": "A staff member: program manager or teacher."
+  },
+  "competences": {
+    "action": "Competency framework",
+    "bloc": {
+      "title": "Competency blocks",
+      "nom": "competency block",
+      "nomAvecArticle": "the competency block",
+      "nomPluriel": "competency blocks",
+      "gererCompetences": "Manage competencies",
+      "champOrdre": "Order",
+      "champLibelle": "Label",
+      "champCode": "Official code",
+      "champCodeAide": "RNCP code of the block, if any; the blocks of the France Compétences document are numbered, not coded.",
+      "champActivites": "Activities performed",
+      "champModalitesEvaluation": "Assessment methods and criteria",
+      "colonneOrdre": "Order",
+      "colonneCode": "Code",
+      "colonneLibelle": "Label"
+    },
+    "competence": {
+      "title": "Competencies",
+      "nom": "competency",
+      "nomAvecArticle": "the competency",
+      "nomPluriel": "competencies",
+      "champOrdre": "Order",
+      "champAction": "Observable action",
+      "champActionAide": "A verb: “Analyse risks…”",
+      "champContexte": "Context",
+      "champContexteAide": "“in…”",
+      "champFinalites": "Purposes",
+      "champFinalitesAide": "“in order to…”",
+      "colonneCode": "Code",
+      "colonneAction": "Observable action",
+      "erreurBlocIdObligatoire": "The blocId parameter is required"
+    },
+    "matrice": {
+      "titre": "Competencies developed in this unit",
+      "description": "Among the competencies targeted by the program, which ones are developed in this unit?",
+      "colonneCompetence": "Competency",
+      "enseignee": "Taught",
+      "mise_en_oeuvre": "Applied",
+      "evaluee": "Assessed",
+      "case": "{{axe}} — {{code}} {{action}}",
+      "vide": "No competency is defined for this program.",
+      "enregistrer": "Save competencies",
+      "enregistre": "Unit competencies saved.",
+      "erreurChargement": "The competencies could not be loaded."
+    }
   }
 }

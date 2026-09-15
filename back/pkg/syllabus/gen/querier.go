@@ -9,9 +9,51 @@ import (
 )
 
 type Querier interface {
+	// Impact de la suppression de blocs : ce que la cascade emporte.
+	BlocDeleteImpact(ctx context.Context, ids []int32) (BlocDeleteImpactRow, error)
+	CheckBlocExists(ctx context.Context, id int32) (int32, error)
+	CheckCompetenceExists(ctx context.Context, id int32) (int32, error)
+	// Référentiel de compétences d'une formation (lot 3) : blocs, puis compétences
+	// d'un bloc, puis le référentiel à plat pour la matrice de l'UE. Tout est
+	// trié par position (`ordre`) : le code « C{ordre} » se calcule à l'affichage.
+	// Aucune donnée de structure n'est lue au-delà de l'existence de la formation.
+	CheckFormationExists(ctx context.Context, id int32) (int32, error)
 	CheckMatiereExists(ctx context.Context, id int32) (int32, error)
+	CompetenceDeleteImpact(ctx context.Context, ids []int32) (int64, error)
+	// Écritures du référentiel (lot 3). La formation d'un bloc et le bloc d'une
+	// compétence ne se modifient pas : comme `periode_id` d'une UE, l'appartenance
+	// est fixée à la création. Verrou optimiste sur les deux entités.
+	CreateBloc(ctx context.Context, arg CreateBlocParams) (BlocCompetence, error)
+	CreateCompetence(ctx context.Context, arg CreateCompetenceParams) (Competence, error)
+	DeleteBlocs(ctx context.Context, ids []int32) error
+	DeleteCompetences(ctx context.Context, ids []int32) error
+	DeleteUeCompetences(ctx context.Context, ueID int32) error
+	FetchBlocById(ctx context.Context, id int32) (BlocCompetence, error)
+	FetchBlocNamesByIds(ctx context.Context, ids []int32) ([]FetchBlocNamesByIdsRow, error)
+	FetchBlocsByFormationID(ctx context.Context, formationID int32) ([]BlocCompetence, error)
+	FetchCompetenceById(ctx context.Context, id int32) (Competence, error)
+	FetchCompetenceNamesByIds(ctx context.Context, ids []int32) ([]FetchCompetenceNamesByIdsRow, error)
+	FetchCompetencesByBlocID(ctx context.Context, blocID int32) ([]Competence, error)
+	// Le référentiel à plat d'une formation, chaque compétence portant son bloc :
+	// c'est ce que la matrice de l'UE affiche, en une requête. Un bloc sans
+	// compétence n'y figure pas — il n'a aucune ligne à cocher.
+	FetchReferentielByFormationID(ctx context.Context, formationID int32) ([]FetchReferentielByFormationIDRow, error)
 	FetchSyllabusMatiereByMatiereID(ctx context.Context, matiereID int32) (SyllabusMatiere, error)
+	// La matrice de l'UE (lot 3) : les compétences que l'UE adresse, avec leurs
+	// trois axes. Lecture ordonnée par bloc puis compétence ; écriture par
+	// remplacement intégral dans une transaction (DELETE puis INSERT … SELECT),
+	// sans verrou — dernier écrit gagne, choix utilisateur.
+	FetchUeCompetences(ctx context.Context, ueID int32) ([]UeCompetence, error)
 	FetchUniteEnseignementById(ctx context.Context, id int32) (UniteEnseignement, error)
+	// Une compétence ne se lie à une UE que si son bloc appartient à la formation
+	// de l'UE. La chaîne réelle du schéma — UE → période → option → promotion →
+	// formation, par les vues actives (invariant 9) — est jointe ici : la
+	// requête ne peut physiquement insérer qu'une compétence de la bonne
+	// formation. Zéro ligne insérée = compétence inconnue ou hors formation ;
+	// c'est le handler qui distingue les deux et annule la transaction.
+	InsertUeCompetence(ctx context.Context, arg InsertUeCompetenceParams) (int64, error)
+	UpdateBloc(ctx context.Context, arg UpdateBlocParams) (BlocCompetence, error)
+	UpdateCompetence(ctx context.Context, arg UpdateCompetenceParams) (Competence, error)
 	// Les deux colonnes syllabus de l'UE, et rien d'autre : name, ects, academique
 	// restent à UpdateUniteEnseignement (domaine STRUCTURE), qui de son côté ne
 	// nomme pas ces colonnes. RETURNING * pour que la réponse soit l'UE complète.

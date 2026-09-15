@@ -8,6 +8,27 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BlocCompetence struct {
+	ID                  int32   `json:"id"`
+	Version             int32   `json:"version"`
+	FormationID         int32   `json:"formation_id"`
+	Ordre               int32   `json:"ordre"`
+	Libelle             string  `json:"libelle"`
+	Code                *string `json:"code"`
+	Activites           *string `json:"activites"`
+	ModalitesEvaluation *string `json:"modalites_evaluation"`
+}
+
+type Competence struct {
+	ID        int32   `json:"id"`
+	Version   int32   `json:"version"`
+	BlocID    int32   `json:"bloc_id"`
+	Ordre     int32   `json:"ordre"`
+	Action    string  `json:"action"`
+	Contexte  *string `json:"contexte"`
+	Finalites *string `json:"finalites"`
+}
+
 type Controle struct {
 	ID           int32   `json:"id"`
 	Version      int32   `json:"version"`
@@ -294,6 +315,14 @@ type Toeic struct {
 	Remarque    *string            `json:"remarque"`
 	PromotionID int32              `json:"promotion_id"`
 	UserID      int32              `json:"user_id"`
+}
+
+type UeCompetence struct {
+	UeID         int32 `json:"ue_id"`
+	CompetenceID int32 `json:"competence_id"`
+	Enseignee    bool  `json:"enseignee"`
+	MiseEnOeuvre bool  `json:"mise_en_oeuvre"`
+	Evaluee      bool  `json:"evaluee"`
 }
 
 type UniteEnseignement struct {

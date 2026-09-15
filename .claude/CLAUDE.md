@@ -41,8 +41,8 @@ existants). Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 77 tests, dont les
-  22 captures de référence — contre la stack montée par
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 85 tests, dont les
+  24 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -248,7 +248,7 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 77
+  suite complète sur chaque push par la même cible (`make test-ihm`, 85
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -276,7 +276,7 @@ existants). Pas encore en production.
   poste dont la base porte plus que le seed, `formation-liste` échoue en
   local — c'est un écart d'état, pas de code ; la CI, base semée, tranche.
   L'image et `@playwright/test` montent ensemble, jamais l'un sans l'autre,
-  et toute montée régénère les 22 références.
+  et toute montée régénère les 24 références.
 - **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
   4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
   souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
@@ -397,11 +397,30 @@ Architecture retenue :
    nullable (les blocs du document sont numérotés, pas codés), activités
    exercées, modalités et critères d'évaluation ; la compétence : action
    observable (verbe), contexte (« en… »), finalités (« afin de… »).
-   `etat_competence` (référentiel d'états : enseignée, mise en œuvre,
-   évaluée) et `ue_competence` (UE ↔ compétence + état) : le rattachement se
-   fait **au niveau UE**, comme sur la fiche publiée du tiers. Une UE ne se
-   lie qu'aux compétences de sa propre formation — contrainte imposée côté
-   serveur au lot 3 (invariant 3).
+   Le rattachement se fait **au niveau UE**, comme sur la fiche publiée du
+   tiers : `ue_competence (ue_id, competence_id, enseignee, mise_en_oeuvre,
+   evaluee)`, **trois booléens et pas de table d'états** (tranché lot 3,
+   15 septembre 2026 : la légende à sept états du tiers n'était que la
+   combinatoire de ces trois axes, la maquette les rend en trois colonnes
+   cochables) ; une ligne aux trois axes faux n'existe pas
+   (`chk_ue_competence_au_moins_un`) — la ligne absente EST l'état « non
+   adressée ». La contribution d'une UE à un bloc est **dérivée, jamais
+   stockée** (au moins une compétence du bloc marquée). L'ordre est une
+   position saisie, unique par parent (`uk_bloc_competence_ordre`,
+   `uk_competence_ordre`) ; le code affiché « C{ordre} » se calcule à
+   l'affichage, `bloc_competence.code` reste la seule colonne de code,
+   nullable, réservée à un code RNCP officiel. Écriture de la matrice par
+   **remplacement intégral sans verrou** (`PUT /ue/{ueID}/competences`,
+   DELETE + INSERT … SELECT en une transaction, dernier écrit gagne — choix
+   utilisateur ; la version de l'UE n'est pas touchée). Une UE ne se lie
+   qu'aux compétences de sa propre formation — garanti côté serveur : la
+   jointure de la chaîne UE → période → option → promotion → formation (vues
+   actives) ne peut insérer qu'une compétence de la bonne formation, une
+   ligne non insérée annule tout (motif `hors_formation` ; `reference_inconnue`
+   si l'identifiant n'existe pas). Blocs et compétences suivent leur
+   formation par cascade (la purge de la corbeille les emporte, l'impact de
+   suppression de la formation les annonce) ; le référentiel s'écrit sous
+   `SYLLABUS_ECRITURE` comme les fiches — une seule population.
 4. Rôle Keycloak `SYLLABUS_ECRITURE`, neuvième rôle de domaine sur le modèle
    des huit existants (lecture globale, écritures ciblées). Population
    rédactrice — tranchée, ne pas rouvrir : responsables de formation et
@@ -491,10 +510,38 @@ Plan, un lot par ligne :
   `E2E Agent1` (AGENT), fiche de « E2E Matiere » à 15 + 4 + 1 = 20 h
   (conforme), description de « E2E UE1 ». `syllabus.spec.ts` (sept tests,
   ordre intra-fichier documenté) et deux captures `syllabus-matiere-*`.
-- **Lot 3** — compétences : référentiel saisi depuis le document France
-  Compétences (~25 compétences ; l'écran d'administration suffit
-  probablement, à confirmer), liaison UE ↔ compétence + état, contrainte
-  « même formation » côté serveur.
+- **Lot 3** — **livré le 15 septembre 2026** : changesets `007-syllabus/003`
+  à `005` (`bloc_competence`, `competence`, `ue_competence`), généré sqlc
+  committé (les 17 `models.go`, plus `formation_impact`). Backend dans
+  `pkg/syllabus` (`referentiel.go`, `matrice.go`) sous `/api/v0/syllabus` :
+  `GET/POST /bloc` (`?formation_id=`), `GET/PUT /bloc/{id}`,
+  `DELETE /bloc/bulk`, `POST /bloc/delete-impact` ; idem `/competence`
+  (`?bloc_id=`, ou `?formation_id=` pour le référentiel à plat que la
+  matrice lit, chaque ligne portant son bloc) ;
+  `GET/PUT /ue/{ueID}/competences` (les lignes cochées, ordonnées par bloc
+  puis compétence). Lecture CONSULTATION, écriture SYLLABUS_ECRITURE. Front :
+  segments `bloc` et `competence` greffés sous la formation du workflow
+  Structure (`…/formation/:formationId/bloc`, `…/bloc/:blocId/competence`,
+  deux Crud imbriqués, `pages/syllabus/Bloc.tsx` et `Competence.tsx`,
+  actions `ACTION_REFERENTIEL` / `ACTION_COMPETENCES` créées au rendu dans
+  les écrans, en fermeture dans le bandeau) ; matrice sur l'écran syllabus
+  de l'UE (`MatriceCompetences.tsx`, sous le formulaire, **bouton
+  d'enregistrement propre** — deux écritures indépendantes — mais **garde de
+  saisie unique** : react-router ne tient qu'un `useBlocker` par routeur, le
+  dernier enregistré gagne, la matrice remonte donc son état modifié à
+  `FormulaireSyllabus` par `modificationsExternes`). Cases : contrôle local
+  `CaseMatrice` (nom accessible « Enseignée — C1 Analyser… »). Seed : blocs
+  « E2E Bloc Securiser » (C1, C2) et « E2E Bloc Concevoir » (C1) sur la
+  formation E2E, « E2E Autre Formation » (un bloc, une compétence, purgée en
+  tête — pas « E2E Formation Etrangere », dont « E2E Formation » serait le
+  préfixe), liaison pré-cochée C1 enseignée + évaluée sur « E2E UE1 ».
+  Specs : `referentiel-competences.spec.ts` (crée, vérifie, supprime — la
+  base ressort intacte) et `matrice-competences.spec.ts` (consomme le
+  seed), capture `syllabus-ue-*` ajoutée ; `formation-liste-*` et
+  `menu-actions-*` régénérées (la seconde formation entre dans la liste et
+  l'arbre, « Référentiel de compétences » dans le menu du bandeau). La
+  saisie du référentiel INFRES réel se fait à la main par l'écran, en
+  exploitation — aucun outil d'import de référentiel, ni ici ni ailleurs.
 - **Lot 4** — import legacy : contenu des fiches (rubriques, heures) et, en
   appui, les liaisons UE ↔ compétences existantes, sur le modèle de
   `structure/exchange` ; fichier de correspondance avec une colonne
@@ -813,8 +860,8 @@ directeur ci-dessus — ne pas rouvrir).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (77
-  tests, les 22 captures de référence comprises, dans le conteneur de
+  intégration : ils se sautent sans base), et la suite e2e complète (85
+  tests, les 24 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,
   Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
@@ -854,6 +901,14 @@ ils survivront à celle-ci si personne ne les reprend.
   créées au rendu dans `CrudUe`, avec `t`) ; `ACTION_SYLLABUS` est une
   fermeture. Correction attendue : `libelle: () => …` dans les fabriques
   `ACTION_*` de `structure/entites/`, comme `actionProgramme`.
+- **Les analyses d'impact de structure ne comptent pas `syllabus_matiere`**
+  (15 septembre 2026, lot 3 syllabus, constaté à la lecture :
+  `grep syllabus_matiere back/pkg/structure` est vide). Supprimer une
+  formation, une promotion, une option ou une période qui porte des fiches
+  syllabus ne l'annonce pas dans la modale ; la cascade, elle, les emporte.
+  Reliquat du lot 1. Le lot 3 a fait l'inverse pour son référentiel
+  (`FormationDeleteImpact` compte blocs, compétences et liaisons) ; les
+  fiches restent à ajouter aux quatre requêtes `*DeleteImpact`.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute

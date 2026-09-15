@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { app, crud, interpoler, libelleNiveau, note, syllabus } from './i18n';
 
 /**
@@ -26,6 +26,15 @@ export const E2E = {
     eleve4: 'Eleve4 E2E',
     /** L'agent responsable des fiches syllabus du seed (« Nom Prénom », l'affichage du sélecteur). */
     agent1: 'Agent1 E2E',
+    /** Le référentiel de compétences semé (lot 3) : deux blocs sur la formation E2E, un sur une formation étrangère. */
+    formationEtrangere: 'E2E Autre Formation',
+    bloc1: 'E2E Bloc Securiser',
+    bloc1Code: 'E2E-BC1',
+    bloc2: 'E2E Bloc Concevoir',
+    competence11: 'E2E Analyser les risques',
+    competence12: 'E2E Modeliser des solutions',
+    competence21: 'E2E Concevoir une architecture',
+    competenceEtrangere: 'E2E Competence Etrangere',
 } as const;
 
 type Niveau = keyof typeof app.niveaux;
@@ -351,8 +360,20 @@ export function carteCorbeille(page: Page, titre: string) {
         .last();
 }
 
+/**
+ * Ouvre le référentiel de compétences de la formation E2E (lot 3) depuis le
+ * menu d'actions du bandeau de la formation : la liste de ses blocs.
+ */
+export async function allerAuReferentielViaStructure(page: Page): Promise<void> {
+    await allerSurFormationViaStructure(page);
+    await boutonActionsLigne(page, E2E.formation).click();
+    await page.getByRole('menuitem', { name: syllabus.competences.action }).click();
+    await page.waitForURL(/\/bloc$/);
+    await expect(page.getByRole('heading', { name: syllabus.competences.bloc.title })).toBeVisible();
+}
+
 /** Le bouton qui ouvre le menu d'actions d'une ligne de liste CRUD — voir `MenuActionsLigne`. */
-function boutonActionsLigne(page: Page, nomLigne: string): Locator {
+export function boutonActionsLigne(page: Page, nomLigne: string): Locator {
     return page.getByRole('button', { name: interpoler(crud.actions.menuLigne, { nom: nomLigne }) });
 }
 

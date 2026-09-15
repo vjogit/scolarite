@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-competence
+      author: dev
+      comment: "Compétence d'un bloc (lot 3 syllabus), calquée sur le document France Compétences : action observable (le verbe), contexte (« en… »), finalités (« afin de… »). Position unique par bloc ; le code « C{ordre} » se calcule à l'affichage. Suit son bloc par cascade."
+      changes:
+        - createTable:
+            tableName: competence
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: bloc_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_competence_bloc
+                    referencedTableName: bloc_competence
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: ordre
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: action
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column: { name: contexte, type: TEXT }
+              - column: { name: finalites, type: TEXT }
+
+        - addUniqueConstraint:
+            constraintName: uk_competence_ordre
+            tableName: competence
+            columnNames: bloc_id, ordre
+
+        - createIndex:
+            indexName: idx_competence_bloc
+            tableName: competence
+            columns:
+              - column: { name: bloc_id }
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE competence ADD CONSTRAINT chk_competence_ordre_positive CHECK (ordre > 0);
+              ALTER TABLE competence ADD CONSTRAINT chk_competence_action_length CHECK (length(action) > 0);
+
+      rollback:
+        - dropTable:
+            tableName: competence
+            cascadeConstraints: true

@@ -19,7 +19,6 @@
     "RATE_LIMITED": "Trop de requêtes en peu de temps. Merci de patienter quelques secondes avant de réessayer."
   },
   "avecIncident": "{{message}} (code incident : {{incident}})",
-
   "motifChamp": {
     "champ_obligatoire": "Ce champ est obligatoire",
     "valeur_deja_utilisee": "Cette valeur est déjà utilisée",
@@ -29,7 +28,8 @@
     "fin_avant_debut": "La date de fin doit être après la date de début",
     "echelle_longueur": "L'échelle doit contenir 5 valeurs",
     "echelle_decroissante": "L'échelle doit être décroissante",
-    "echelle_hors_bareme": "Les seuils de l'échelle ne peuvent pas dépasser le barème"
+    "echelle_hors_bareme": "Les seuils de l'échelle ne peuvent pas dépasser le barème",
+    "hors_formation": "Cette compétence n'appartient pas à la formation de l'UE"
   },
   "noteHorsBaremeAvecMax": "La note doit être comprise entre 0 et {{max}}",
   "noteDepasseBareme": "La note dépasse le barème",
@@ -44,7 +44,9 @@
     "unite_enseignement_id": "L'UE",
     "formation_id": "La formation",
     "promotion_id": "La promotion",
-    "responsable_id": "Le responsable"
+    "responsable_id": "Le responsable",
+    "competence_id": "La compétence",
+    "bloc_id": "Le bloc de compétences"
   },
   "creneauDejaReserveGenerique": "Ce créneau est déjà réservé",
   "creneau": {
@@ -52,7 +54,6 @@
     "intervenants": "Un ou plusieurs intervenants sont déjà occupés sur ce créneau",
     "groupes": "Un ou plusieurs groupes sont déjà planifiés sur ce créneau"
   },
-
   "ligneRefusee": {
     "cellule_invalide": "« {{valeur}} » n'est pas une note. Laissez la cellule vide s'il n'y a pas de note.",
     "note_hors_bareme_avec_bareme": "La note {{valeur}} est hors barème (entre 0 et {{bareme}}).",

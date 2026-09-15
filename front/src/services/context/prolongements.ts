@@ -35,7 +35,7 @@ import {
     ENDPOINT_GROUPE, ENDPOINT_MATIERE, ENDPOINT_UES, GROUPE, MATIERE, UES,
 } from '../../pages/structure/def';
 import { ENDPOINT_USER } from '../../pages/user/def';
-import { SYLLABUS } from '../../pages/syllabus/def';
+import { BLOC, COMPETENCE, SYLLABUS } from '../../pages/syllabus/def';
 import { createGroupeRepository } from '../../pages/structure/entites/groupe';
 import { createMatiereRepository } from '../../pages/structure/entites/matiere';
 import { createUeRepository } from '../../pages/structure/entites/ue';
@@ -149,6 +149,8 @@ const SEGMENTS_PAR_WORKFLOW: Readonly<Record<string, readonly SegmentProlonge[]>
         SEGMENT_UE, SEGMENT_MATIERE, SEGMENT_GROUPE,
         { segment: MEMBRES, libelle: 'Membres' },
         { segment: SYLLABUS, libelle: 'Syllabus' },
+        { segment: BLOC, libelle: 'Blocs de compétences' },
+        { segment: COMPETENCE, libelle: 'Compétences' },
     ],
     [NOTE_WORKFLOW]: [SEGMENT_UE, SEGMENT_MATIERE, SEGMENT_CONTROLE, SEGMENT_ELEVE, SEGMENT_NOTE],
     [JURY_WORKFLOW]: [{ segment: JURY, libelle: 'Jury' }],
@@ -171,6 +173,8 @@ export function libelleSegment(segment: SegmentProlonge, t?: TFunction<'app'>): 
         case NOTE: return traduire('prolongements.notes');
         case MEMBRES: return traduire('prolongements.membres');
         case SYLLABUS: return traduire('prolongements.syllabus');
+        case BLOC: return traduire('prolongements.bloc');
+        case COMPETENCE: return traduire('prolongements.competence');
         case JURY: return traduire('prolongements.jury');
         case PROGRAMME: return traduire('prolongements.programme');
         case TOEIC: return traduire('prolongements.toeic');

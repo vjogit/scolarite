@@ -31,6 +31,7 @@ import { ACTION_MATIERES, createUeRepository, ueEntite } from '../entites/ue';
 import { createMatiereRepository, matiereEntite } from '../entites/matiere';
 import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../entites/groupe';
 import { ACTION_SYLLABUS } from '../../syllabus/entites/syllabus';
+import { ACTION_REFERENTIEL } from '../../syllabus/entites/competences';
 
 /**
  * Repository débarrassé du type de son entité : tous les niveaux doivent tenir
@@ -132,7 +133,9 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: GraduationCap,
         enfants: [{ segment: PROMOTION }],
         entite: entiteFormation,
-        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t)],
+        // Le référentiel de compétences (lot 3) : un prolongement de la
+        // formation, pas un nœud de l'arbre — libellé en fermeture.
+        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t), ACTION_REFERENTIEL()],
     },
     {
         segment: PROMOTION,

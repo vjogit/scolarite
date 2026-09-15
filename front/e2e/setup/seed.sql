@@ -26,7 +26,7 @@ begin;
 -- UE → matières → contrôles → notes ; périodes/UE → jury_result ; groupes →
 -- groupe_user) emportent tout le reste depuis la formation. Les élèves n'ont
 -- pas de lien vers la formation : purge séparée par domaine de courriel.
-delete from formation where name = 'E2E Formation';
+delete from formation where name in ('E2E Formation', 'E2E Autre Formation');
 delete from "user" where email like 'e2e-%@scolarite.local';
 
 -- ── Hiérarchie principale : Structure → Notes → Jury → Programme ──────────
@@ -124,6 +124,62 @@ set description = 'Concevoir et maintenir un logiciel dans la durée.',
     responsable_id = agent.id
 from agent
 where ue.name = 'E2E UE1';
+
+-- ── Compétences (lot 3 syllabus) ──────────────────────────────────────────
+-- Ce que la famille « matrice de l'UE » consomme, jamais ce que la famille
+-- « administration du référentiel » teste (celle-ci crée, vérifie et supprime
+-- les siens, la base ressort comme elle est entrée). Deux blocs d'ordres
+-- distincts sur « E2E Formation » — l'un à deux compétences, l'autre à une —
+-- prouvent regroupement, ordre et codes dérivés « C1/C2 » ; une formation
+-- étrangère minimale (un bloc, une compétence) prouve que la matrice de
+-- l'UE E2E ne liste que sa formation (pendant lecture de la garantie
+-- serveur) ; une liaison pré-cochée (C1 du bloc 1 : enseignée + évaluée) sert
+-- la lecture CONSULTATION sans dépendre d'une spec d'écriture. La formation
+-- étrangère est purgée en tête comme l'autre ; blocs, compétences et
+-- liaisons suivent leur formation et leur UE par cascade — idempotence par
+-- pose inchangée. « E2E Autre Formation » et non « E2E Formation Etrangere » :
+-- « E2E Formation » en serait le préfixe, et les localisateurs Playwright
+-- matchent par sous-chaîne (mode strict, précédent « E2E Promo Vide »).
+with f as (
+    select id from formation where name = 'E2E Formation'
+), b1 as (
+    insert into bloc_competence (formation_id, ordre, libelle, code, activites, modalites_evaluation)
+    select f.id, 1, 'E2E Bloc Securiser', 'E2E-BC1',
+           'Analyser les risques d''un système d''information et concevoir sa sécurisation.',
+           'Étude de cas évaluée en soutenance.'
+    from f
+    returning id
+), b2 as (
+    insert into bloc_competence (formation_id, ordre, libelle)
+    select f.id, 2, 'E2E Bloc Concevoir' from f
+    returning id
+), c11 as (
+    insert into competence (bloc_id, ordre, action, contexte, finalites)
+    select b1.id, 1, 'E2E Analyser les risques', 'en cartographiant les actifs', 'afin de prioriser les mesures'
+    from b1
+    returning id
+), c12 as (
+    insert into competence (bloc_id, ordre, action)
+    select b1.id, 2, 'E2E Modeliser des solutions' from b1
+    returning id
+), c21 as (
+    insert into competence (bloc_id, ordre, action)
+    select b2.id, 1, 'E2E Concevoir une architecture' from b2
+    returning id
+), liaison as (
+    insert into ue_competence (ue_id, competence_id, enseignee, mise_en_oeuvre, evaluee)
+    select ue.id, c11.id, true, false, true
+    from unite_enseignement ue, c11
+    where ue.name = 'E2E UE1'
+), fe as (
+    insert into formation (name) values ('E2E Autre Formation') returning id
+), be as (
+    insert into bloc_competence (formation_id, ordre, libelle)
+    select fe.id, 1, 'E2E Bloc Etranger' from fe
+    returning id
+)
+insert into competence (bloc_id, ordre, action)
+select be.id, 1, 'E2E Competence Etrangere' from be;
 
 -- ── Promotion vide (dialogue de suppression avec saisie — lot 4ter) ────────
 -- Sans descendance : sa suppression n'est pas bloquée par la période

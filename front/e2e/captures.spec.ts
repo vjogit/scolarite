@@ -132,6 +132,24 @@ for (const colorScheme of MODES) {
             });
         });
 
+        test('syllabus de l\'UE avec sa matrice de compétences (seed)', async ({ pageAdmin }) => {
+            // Lot 3 : la matrice — trois colonnes cochables regroupées par
+            // bloc, codes dérivés — sous le formulaire du syllabus de l'UE.
+            // L'état semé porte une liaison (C1 : enseignée + évaluée) ; la
+            // spec matrice-competences la relit et remet cet état.
+            await allerAuSyllabusViaStructure(pageAdmin, 'ue');
+            await expect(pageAdmin.getByRole('heading', { name: syllabus.ue.titre })).toBeVisible();
+            await expect(pageAdmin.getByLabel(syllabus.responsable.rechercher)).toHaveValue(E2E.agent1);
+            const matrice = pageAdmin.getByRole('table', { name: syllabus.competences.matrice.titre });
+            await expect(matrice).toBeVisible();
+            await matrice.scrollIntoViewIfNeeded();
+            await pageAdmin.mouse.move(0, 0);
+
+            await expect(pageAdmin).toHaveScreenshot(`syllabus-ue-${colorScheme}.png`, {
+                animations: 'disabled',
+            });
+        });
+
         test('dialogue de formulaire ouvert (délibération)', async ({ pageAdmin }) => {
             await allerJusquaPeriode(pageAdmin, 'jury');
             await pageAdmin.getByRole('button', { name: `Délibérer — ${E2E.eleve1}` }).click();

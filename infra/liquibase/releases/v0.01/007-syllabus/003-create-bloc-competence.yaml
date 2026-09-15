@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-bloc-competence
+      author: dev
+      comment: "Bloc de compétences du référentiel d'une formation (lot 3 syllabus). La déclaration France Compétences se fait par fiche RNCP, donc par formation : le bloc porte formation_id et suit sa formation par cascade (la purge de la corbeille l'emporte). Champs calqués sur le document France Compétences : libellé, code nullable (les blocs du document sont numérotés, pas codés — la colonne est réservée à un éventuel code RNCP officiel), activités exercées, modalités et critères d'évaluation. L'ordre est une position, unique par formation ; le code affiché « C{ordre} » des compétences en dérive à l'affichage, jamais stocké."
+      changes:
+        - createTable:
+            tableName: bloc_competence
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: formation_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bloc_competence_formation
+                    referencedTableName: formation
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column:
+                  name: ordre
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: libelle
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column: { name: code, type: TEXT }
+              - column: { name: activites, type: TEXT }
+              - column: { name: modalites_evaluation, type: TEXT }
+
+        - addUniqueConstraint:
+            constraintName: uk_bloc_competence_ordre
+            tableName: bloc_competence
+            columnNames: formation_id, ordre
+
+        - createIndex:
+            indexName: idx_bloc_competence_formation
+            tableName: bloc_competence
+            columns:
+              - column: { name: formation_id }
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE bloc_competence ADD CONSTRAINT chk_bloc_competence_ordre_positive CHECK (ordre > 0);
+              ALTER TABLE bloc_competence ADD CONSTRAINT chk_bloc_competence_libelle_length CHECK (length(libelle) > 0);
+
+      rollback:
+        - dropTable:
+            tableName: bloc_competence
+            cascadeConstraints: true

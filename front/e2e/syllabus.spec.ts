@@ -25,7 +25,8 @@ function champTp(page: Page) {
 }
 
 function boutonEnregistrer(page: Page) {
-    return page.getByRole('button', { name: syllabus.enregistrer });
+    // `exact` : l'écran de l'UE porte aussi « Enregistrer les compétences » (lot 3).
+    return page.getByRole('button', { name: syllabus.enregistrer, exact: true });
 }
 
 const CONFORME_20 = interpoler(syllabus.matiere.total.conforme, { total: '20' });

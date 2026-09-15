@@ -1,6 +1,7 @@
 /**
- * Le syllabus d'une UE : sa description (« Pourquoi cette UE ? ») et son
- * responsable. Greffé sous l'UE du workflow Structure, à côté du formulaire
+ * Le syllabus d'une UE : sa description (« Pourquoi cette UE ? »), son
+ * responsable, et, en dessous, la matrice des compétences qu'elle développe
+ * (lot 3, `MatriceCompetences`). Greffé sous l'UE du workflow Structure, à côté du formulaire
  * de structure (nom, ECTS, académique) et non dedans : deux domaines
  * d'écriture, deux rôles, deux écrans (invariant 3).
  *
@@ -10,7 +11,7 @@
  * période si elle est en cache ; aucune invalidation.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,7 @@ import {
     CHAMPS_NOM_RESPONSABLE, enregistrerSyllabusUe, syllabusUeSchema, type SyllabusUeFormulaire,
 } from './entites/syllabus';
 import { FormulaireSyllabus } from './FormulaireSyllabus';
+import { MatriceCompetences } from './MatriceCompetences';
 import { useNomResponsable } from './useNomResponsable';
 
 const estAgent = (option: UserOption) => option.type_personne === 'AGENT';
@@ -53,12 +55,15 @@ function ChampsUe({ control, errors, isReadOnly, getValues, setValue }: RenderPr
     );
 }
 
-function SyllabusDeUe({ periodeId, ueId }: { periodeId: string; ueId: string }) {
+function SyllabusDeUe({ formationId, periodeId, ueId }: { formationId: string; periodeId: string; ueId: string }) {
     const { t } = useTranslation('syllabus');
     const { pathname } = useLocation();
     const queryClient = useQueryClient();
     const { possedeRole } = useDroits();
     const peutEcrire = possedeRole(Role.SYLLABUS_ECRITURE);
+    // La matrice (lot 3) a son propre bouton d'enregistrement mais partage la
+    // garde de saisie du formulaire : un seul bloqueur par routeur.
+    const [matriceModifiee, setMatriceModifiee] = useState(false);
 
     const repository = useMemo(() => createUeRepository(periodeId), [periodeId]);
     const cleDetail = useMemo(() => [...repository.queryKey, ueId], [repository, ueId]);
@@ -118,15 +123,24 @@ function SyllabusDeUe({ periodeId, ueId }: { periodeId: string; ueId: string }) 
             messageSucces={t('ue.enregistre')}
             cheminRetour={pathname.replace(new RegExp(`/${SYLLABUS}$`), '')}
             render={(props) => <ChampsUe {...props} />}
+            modificationsExternes={matriceModifiee}
+            complement={(
+                <MatriceCompetences
+                    formationId={formationId}
+                    ueId={ueId}
+                    peutEcrire={peutEcrire}
+                    onModification={setMatriceModifiee}
+                />
+            )}
         />
     );
 }
 
 export function SyllabusUe() {
-    const { periodeId, ueId } = useParams();
+    const { formationId, periodeId, ueId } = useParams();
     const { t } = useTranslation('structure');
 
-    if (periodeId === undefined || ueId === undefined) return <p>{t('ue.erreurPeriodeIdObligatoire')}</p>;
+    if (formationId === undefined || periodeId === undefined || ueId === undefined) return <p>{t('ue.erreurPeriodeIdObligatoire')}</p>;
 
-    return <SyllabusDeUe key={ueId} periodeId={periodeId} ueId={ueId} />;
+    return <SyllabusDeUe key={ueId} formationId={formationId} periodeId={periodeId} ueId={ueId} />;
 }

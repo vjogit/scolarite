@@ -81,7 +81,9 @@
     "programme": "Programme",
     "toeic": "TOEIC",
     "mobiliteInternationale": "Mobilité internationale",
-    "syllabus": "Syllabus"
+    "syllabus": "Syllabus",
+    "bloc": "Blocs de compétences",
+    "competence": "Compétences"
   },
   "selecteurNiveau": {
     "sansSelection": "Choisir",
