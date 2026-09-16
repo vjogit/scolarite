@@ -1,34 +1,19 @@
-import { z } from 'zod';
 import { useController, type Control } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { createRepository, type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
+import { type CrudProps, type Datasource, type RenderProps, type ViewConfig } from '../../services/crud/def';
 import { useId, useMemo } from "react";
 import { Crud } from "../../services/crud/Crud";
 import { ChampTexte } from '../../services/ChampTexte';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Field, FieldError, FieldLabel, FieldLegend, FieldSet } from '../../components/ui/field';
-import { availableRoles, ENDPOINT_USER, Role, USER } from './def';
+import { availableRoles, Role } from './def';
+import { userRepository, userSchema, type User } from './entites/user';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useRootPath } from '../../services/crud/useRootPath';
-import { messageValidation } from '../../i18n/validation';
 
 
-const userSchema = z.object({
-    id: z.number(),
-    keycloak_id: z.string().nullish(),
-    version: z.number(),
-    firstName: z.string().optional(),
-    lastName: z.string().optional(),
-    email: z.email({ error: messageValidation('emailInvalide') }).optional().or(z.literal('')),
-    password: z.string().optional(),
-    roles: z.union([
-        z.string().transform((val) => val.split(',').map(r => r.trim()).filter(r => r !== '')),
-        z.array(z.string())
-    ]).optional(),
-});
-
-export type User = z.infer<typeof userSchema>;
+export type { User } from './entites/user';
 
 /**
  * Les rôles en cases à cocher — un groupe (`fieldset`/`legend`), pas un champ
@@ -115,12 +100,6 @@ function userViewConfig(t: TFunction<'user'>): ViewConfig<User> {
     };
 }
 
-// Partie statique : à l'extérieur du composant
-const userDatasourceBase = createRepository<User>({
-    endpoint: ENDPOINT_USER,
-    queryKey: [USER],
-    getId: (data: User) => data.id,
-})
 
 
 export function CrudUser({ mode, workflow, isAction, isTopToolbar, actionsBarreOutils }: CrudProps<User>) {
@@ -130,7 +109,7 @@ export function CrudUser({ mode, workflow, isAction, isTopToolbar, actionsBarreO
     const { t: tUser } = useTranslation('user');
 
     const datasource = useMemo((): Datasource<User> => ({
-        ...userDatasourceBase,
+        ...userRepository,
         ...userViewConfig(tUser),
         title: tCrud('entites.user.title'),
         roleEcriture: Role.UTILISATEURS_ECRITURE,

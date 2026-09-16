@@ -95,6 +95,7 @@ qui reçoit le couple de fichiers en arguments.
 | `bootstrap_user_password_temporary` | `KC_BOOTSTRAP_USER_PASSWORD_TEMPORARY` | config |
 | `test_consultation_user_*` | `TEST_CONSULTATION_USER_*` | config (mot de passe : secrets) |
 | `test_notes_ecriture_user_*` | `TEST_NOTES_ECRITURE_USER_*` | config (mot de passe : secrets) |
+| `test_syllabus_ecriture_user_*` | `TEST_SYLLABUS_ECRITURE_USER_*` | config (mot de passe : secrets) |
 | `keycloak_user` | `KEYCLOAK_ADMIN` | config |
 | `keycloak_password` | `KEYCLOAK_ADMIN_PASSWORD` | secrets |
 
@@ -105,6 +106,14 @@ la console Keycloak (le prochain `apply` écraserait).
 L'état, lui, est séparé par espace de travail Terraform (`local` / `prod`).
 Une `precondition` du module confronte `terraform.workspace` à
 `TF_VAR_environnement` et refuse l'`apply` s'ils divergent.
+
+## Le service PDF : `GOTENBERG_HOST`
+
+Adresse du conteneur `pdf-service` (Gotenberg, `infra/container/compose.yaml`)
+sur le réseau Docker, `10.20.2.7` dans les deux topologies. Le backend la lit
+dans `pdf.url` de `back/cmd/serveur/config.yaml` — hors conteneur (debugger)
+comme en conteneur, le réseau Docker est joignable depuis le poste. Port et
+délai ne varient pas : ils sont des littéraux du `config.yaml`.
 
 ## Les images applicatives : `IMAGES_MODE`, `IMAGES_REGISTRE`, `IMAGES_TAG`
 

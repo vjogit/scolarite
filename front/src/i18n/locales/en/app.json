@@ -80,7 +80,10 @@
     "jury": "Jury",
     "programme": "Schedule",
     "toeic": "TOEIC",
-    "mobiliteInternationale": "International mobility"
+    "mobiliteInternationale": "International mobility",
+    "syllabus": "Syllabus",
+    "bloc": "Competency blocks",
+    "competence": "Competencies"
   },
   "selecteurNiveau": {
     "sansSelection": "Choose",

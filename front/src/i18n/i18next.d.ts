@@ -13,6 +13,7 @@ import type jury from './locales/fr/jury.json';
 import type user from './locales/fr/user.json';
 import type structure from './locales/fr/structure.json';
 import type app from './locales/fr/app.json';
+import type syllabus from './locales/fr/syllabus.json';
 
 declare module 'i18next' {
   interface CustomTypeOptions {
@@ -32,6 +33,7 @@ declare module 'i18next' {
       user: typeof user;
       structure: typeof structure;
       app: typeof app;
+      syllabus: typeof syllabus;
     };
   }
 }

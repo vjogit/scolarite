@@ -133,7 +133,7 @@ resource "keycloak_openid_audience_protocol_mapper" "audience_mapper" {
 # CONSULTATION donne la lecture de toute l'application. Chaque rôle
 # *_ECRITURE ouvre les écritures d'un domaine et contient CONSULTATION
 # (composite) : un porteur d'un rôle d'écriture peut toujours lire ce
-# qu'il est censé modifier. ADMIN est un composite des huit rôles
+# qu'il est censé modifier. ADMIN est un composite des neuf rôles
 # fonctionnels : le jeton d'un porteur d'ADMIN expose tous ces rôles
 # dans realm_access.roles, et le code applicatif ne teste jamais ADMIN.
 # ==========================================================
@@ -192,6 +192,16 @@ resource "keycloak_role" "utilisateurs_ecriture_role" {
   composite_roles = [keycloak_role.consultation_role.id]
 }
 
+# Syllabus (lot 1, 14 septembre 2026) : neuvième rôle de domaine, même modèle.
+# Son porteur écrit n'importe quelle fiche syllabus (matière, UE) ; le
+# cloisonnement fin par formation ou par matière n'est pas dans le modèle.
+resource "keycloak_role" "syllabus_ecriture_role" {
+  realm_id    = keycloak_realm.cyb_scolarite.id
+  name        = "SYLLABUS_ECRITURE"
+  description = "Écriture : fiches syllabus des matières et des UE"
+  composite_roles = [keycloak_role.consultation_role.id]
+}
+
 resource "keycloak_role" "admin_role" {
   realm_id    = keycloak_realm.cyb_scolarite.id
   name        = "ADMIN"
@@ -205,6 +215,7 @@ resource "keycloak_role" "admin_role" {
     keycloak_role.salles_ecriture_role.id,
     keycloak_role.certification_ecriture_role.id,
     keycloak_role.utilisateurs_ecriture_role.id,
+    keycloak_role.syllabus_ecriture_role.id,
   ]
 }
 
@@ -348,6 +359,44 @@ resource "keycloak_user_roles" "test_notes_ecriture_roles" {
 
   role_ids = [
     keycloak_role.notes_ecriture_role.id,
+  ]
+}
+
+# Quatrième compte (lot 2 syllabus) : SYLLABUS_ECRITURE seul, pour prouver que
+# le rôle lui-même ouvre la fiche — sans lui, seule ADMIN l'exercerait.
+resource "keycloak_user" "test_syllabus_ecriture" {
+  count = var.test_syllabus_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  username = var.test_syllabus_ecriture_user_username
+  enabled  = true
+  first_name     = "Test"
+  last_name      = "SyllabusEcriture"
+  email          = var.test_syllabus_ecriture_user_email
+  email_verified = true
+
+  initial_password {
+    value     = var.test_syllabus_ecriture_user_password
+    temporary = false
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.test_syllabus_ecriture_user_password != ""
+      error_message = "TEST_SYLLABUS_ECRITURE_USER_ENABLED est vrai mais TEST_SYLLABUS_ECRITURE_USER_PASSWORD est vide : renseigner le mot de passe dans infra/env/secrets-${var.environnement}.env, ou passer TEST_SYLLABUS_ECRITURE_USER_ENABLED à false dans infra/env/config-${var.environnement}.env."
+    }
+  }
+}
+
+# Rôle du compte : SYLLABUS_ECRITURE seul (composite, contient déjà CONSULTATION).
+resource "keycloak_user_roles" "test_syllabus_ecriture_roles" {
+  count = var.test_syllabus_ecriture_user_enabled ? 1 : 0
+
+  realm_id = keycloak_realm.cyb_scolarite.id
+  user_id  = keycloak_user.test_syllabus_ecriture[0].id
+
+  role_ids = [
+    keycloak_role.syllabus_ecriture_role.id,
   ]
 }
 

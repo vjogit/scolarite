@@ -9,6 +9,7 @@ import { useRootPath } from '../../services/crud/useRootPath';
 import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
 import { ChampInterrupteur } from '../../services/ChampChoix';
 import { ueSchema, type Ue, createUeRepository, ACTION_MATIERES, ueEntite } from './entites/ue';
+import { ACTION_SYLLABUS } from '../syllabus/entites/syllabus';
 
 export type { Ue } from './entites/ue';
 
@@ -73,7 +74,9 @@ export function CrudUe({ mode, workflow, isAction, isReadOnly,isTopToolbar, acti
         ...ueEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_MATIERES(t)],
+        // Par défaut — le catalogue — l'UE mène à ses matières et à son
+        // syllabus (lot 2) ; les autres workflows déclarent les leurs.
+        actionsLigne: actionsLigne ?? [ACTION_MATIERES(t), ACTION_SYLLABUS()],
         isTopToolbar,
         actionsBarreOutils,
     }) : null, [periodeId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);

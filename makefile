@@ -76,6 +76,7 @@ all:
 	@echo "  make restart-local-keep  — arrêt puis start-local-keep"
 	@echo "  make stop-local          — arrêt de la pile locale"
 	@echo "  make clean-local         — arrêt et suppression des conteneurs locaux"
+	@echo "  make importer-syllabus   — import du syllabus tiers ; simulation sans SYLLABUS_IMPORT_ARGS=\"--apply\" (docs/syllabus-import.md)"
 	@echo ""
 	@echo "Espace de travail prod :"
 	@echo "  make start-prod-reset    — déploiement prod, RÉINITIALISE LA BASE (confirmation demandée)"

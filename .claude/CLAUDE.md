@@ -2,7 +2,9 @@
 
 Gestion de scolarité (formations → promotions → options → périodes → UE →
 matières → contrôles ; notes, jurys, certifications, planning, salles).
-Application réservée au personnel administratif. Pas encore en production.
+Application du personnel : administration de la scolarité, et, pour le
+syllabus, responsables de formation et enseignants (comptes AGENT
+existants). Pas encore en production.
 
 ## Stack
 
@@ -10,7 +12,18 @@ Application réservée au personnel administratif. Pas encore en production.
   (`infra/liquibase/releases/`), Keycloak (Terraform `infra/keycloak/` ;
   thème de connexion `infra/keycloak/themes/scolarite/`, CSS et scripts
   seuls sur keycloak.v2, voir « Pièges »), Docker Compose + nginx
-  (`infra/run/`), Mailpit en local.
+  (`infra/run/`), Mailpit en local, **Gotenberg** (conversion HTML → PDF,
+  `pdf-service` de `infra/container/compose.yaml`, image épinglée,
+  `10.20.2.7:3000` sur le réseau Docker, jamais publié sur l'hôte ; démarré
+  par `_pdf-up` / `_pdf-up-prod` dans les chaînes `start-*`, adresse
+  `GOTENBERG_HOST` des `config-*.env`, bloc `pdf` du `config.yaml`). **Le
+  client est mutualisé dans `services/pdf.go`** (`ConvertisseurPDF`,
+  bibliothèque standard, POST multipart, PDF entier en mémoire, jamais
+  tronqué ; défaillance → 503 `SERVICE_UNAVAILABLE`, code ajouté le 15
+  septembre 2026 dans `errors.go`, `errorMessages.ts`, `errors.json`) : la
+  fiche syllabus est son premier consommateur, **les bulletins de jury sont
+  le second prévu** — toute génération de document passe par lui, jamais par
+  un appel enfoui dans un domaine.
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
   `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`) — le
   seul système de composants ; aucun moteur CSS-in-JS. Une seule feuille de
@@ -39,8 +52,8 @@ Application réservée au personnel administratif. Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 67 tests, dont les
-  20 captures de référence — contre la stack montée par
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 88 tests, dont les
+  24 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -223,8 +236,14 @@ Application réservée au personnel administratif. Pas encore en production.
   (résultats différents selon l'invocation, y compris sur du code
   strictement identique). La stack doit déjà tourner
   (`start-local-keep`) : `globalSetup.ts` échoue immédiatement sinon.
-- Trois comptes provisionnés par le seed Terraform local (mêmes variables
-  `KC_*` que le bootstrap) : ADMIN / CONSULTATION / NOTES_ECRITURE ;
+- Quatre comptes provisionnés par le seed Terraform local (mêmes variables
+  `KC_*` que le bootstrap) : ADMIN / CONSULTATION / NOTES_ECRITURE /
+  SYLLABUS_ECRITURE (le quatrième depuis le lot 2 syllabus, 14 septembre
+  2026 : `pageSyllabus` — un compte de test entre dans douze endroits à la
+  fois, `keycloak.tf`, `variables.tf`, `deploy.sh`, les deux `config-*.env`,
+  `secrets.env.example`, `README.md` d'`infra/env`, la liste des secrets
+  jetables d'`e2e.yml`, `env.ts`, `auth.setup.ts`, `roles.ts`, plus le
+  secret du poste) ;
   `storageState` par rôle capturé en setup (`fixtures/roles.ts`), **langue
   épinglée `fr`** avant capture (`i18nextLng`) — le détecteur de langue
   rendrait la suite dépendante du navigateur sinon.
@@ -240,7 +259,7 @@ Application réservée au personnel administratif. Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 67
+  suite complète sur chaque push par la même cible (`make test-ihm`, 88
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -268,7 +287,7 @@ Application réservée au personnel administratif. Pas encore en production.
   poste dont la base porte plus que le seed, `formation-liste` échoue en
   local — c'est un écart d'état, pas de code ; la CI, base semée, tranche.
   L'image et `@playwright/test` montent ensemble, jamais l'un sans l'autre,
-  et toute montée régénère les 20 références.
+  et toute montée régénère les 24 références.
 - **Capturer un popup/dialogue OUVERT** (`captures-ouvertes.spec.ts`, lot
   4ter) a ses pièges propres, tous traités dans le fichier : **éloigner la
   souris** avant la capture (`mouse.move(0, 0)`) — le pointeur reste sur le
@@ -329,6 +348,249 @@ Application réservée au personnel administratif. Pas encore en production.
 - Tout défaut découvert hors périmètre : **le signaler avec preuve, ne pas
   le corriger silencieusement**. Le « Hors périmètre » d'un lot est
   contraignant.
+
+## Syllabus — domaine à l'état stable (chantier clos le 15 septembre 2026)
+
+Cadré le 14 septembre 2026 à partir de l'analyse de la base d'une application
+tierce, livré en cinq lots (schéma et module, écrans, référentiel de
+compétences, import du legacy, fiche PDF) sur la branche `syllabus`. Le
+syllabus n'est **pas un sous-arbre structurel** : c'est du contenu
+pédagogique attaché aux entités existantes (matière, UE), plus un référentiel
+de compétences par formation. Le versionnement annuel du tiers (tables
+`*_annee`, `anneescolaire`) n'est pas repris : la duplication de la
+structure par promotion en tient lieu — et le livret PDF se génère par
+promotion pour la même raison.
+
+**Principe directeur, valable pour tout le domaine** : les données de
+structure font référence — noms, `matiere.heure`, `matiere.coeff`,
+`unite_enseignement.ects`, la hiérarchie. Le syllabus se construit à partir
+d'elles et ne les duplique jamais dans ses tables ; il n'ajoute que du
+contenu (rubriques, ventilation, responsable, description, liaisons). Toute
+incohérence entre le syllabus et la structure — au premier chef un écart
+entre `matiere.heure` et la somme des heures encadrées de la ventilation —
+est **signalée à l'affichage, jamais bloquante** : aucune contrainte
+inter-domaines en base, aucune jointure vers la structure dans les requêtes
+syllabus (les lectures de structure passent par les repositories de
+structure), aucune écriture refusée pour ce motif. Le signalement vit à
+l'écran de saisie (ligne `role="status"` vivante) et sur la fiche PDF (ligne
+d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
+
+### Architecture
+
+1. **`syllabus_matiere`**, 1-1 avec `matiere` (FK unique, `ON DELETE
+   CASCADE`) : huit rubriques TEXT nommées sur les sections de la maquette
+   (`contexte`, `objectifs`, `prerequis`, `activites`, `evaluation`,
+   `plan_cours`, `ressources`, `dimension_socio_env`), ventilation horaire
+   en huit colonnes `NUMERIC(5,2)` nullables (`heures_cours`,
+   `heures_cours_td` = cours intégré, `heures_td`, `heures_tp`,
+   `heures_projet`, `heures_autonomie` = autonomie encadrée,
+   `heures_controle`, `heures_perso` = travail personnel ; le volume encadré
+   est la somme des sept premières, `heures_perso` reste hors total ; le
+   champ « autre » du tiers n'a pas de colonne — 76 lignes sur 1 798 le
+   portaient en fourre-tout, il se signale au rapport d'import et ne
+   s'importe pas), `responsable_id` FK vers `public."user"` (AGENT) en
+   **`ON DELETE SET NULL`** — la fiche survit au départ de l'agent, là où
+   les six FK existantes vers `"user"` cascadent parce que la ligne
+   appartient à l'élève. Rien en base n'impose `type_personne = AGENT` :
+   c'est le sélecteur qui filtre. Côté Go la ventilation est en `*float64`
+   par une surcharge sqlc propre au package (`pg_catalog.numeric`,
+   `back/sqlc.yaml`) ; une valeur au-delà de 999,99 est refusée **avant**
+   l'écriture (motif `valeur_hors_plage`), PostgreSQL ne nommant pas la
+   colonne d'un 22003. Migrations dans
+   `infra/liquibase/releases/v0.01/007-syllabus/` (dossier numéroté par
+   domaine dans l'unique release, sans jalon `tagDatabase`).
+2. **`unite_enseignement`** : deux colonnes nullables `description` et
+   `responsable_id` (FK `fk_ue_responsable`, `SET NULL`), écrites par la
+   route syllabus de l'UE seulement : `UpdateUniteEnseignement` (domaine
+   STRUCTURE) ne les nomme pas, la requête syllabus ne touche ni `name`, ni
+   `ects`, ni `academique`. Le GET de l'UE (structure, `SELECT *`) porte les
+   deux champs : pas de GET syllabus pour l'UE (invariant 2, l'écran lit le
+   repository UE).
+3. **Référentiel de compétences par formation** — tranché, ne pas rouvrir :
+   la déclaration France Compétences se fait par fiche RNCP, donc par
+   formation. `bloc_competence` porte `formation_id` ; champs calqués sur le
+   document France Compétences — bloc : libellé, code nullable (les blocs du
+   document sont numérotés, pas codés), activités, modalités d'évaluation ;
+   compétence : action observable (verbe), contexte (« en… »), finalités
+   (« afin de… »). Rattachement **au niveau UE** : `ue_competence (ue_id,
+   competence_id, enseignee, mise_en_oeuvre, evaluee)`, trois booléens et
+   pas de table d'états (la légende à sept états du tiers n'était que la
+   combinatoire de ces trois axes) ; une ligne aux trois axes faux n'existe
+   pas (`chk_ue_competence_au_moins_un`) — la ligne absente EST l'état
+   « non adressée ». La contribution d'une UE à un bloc est **dérivée,
+   jamais stockée** (au moins une compétence du bloc marquée). L'ordre est
+   une position saisie, unique par parent (`uk_bloc_competence_ordre`,
+   `uk_competence_ordre`) ; le code affiché « C{ordre} » se calcule à
+   l'affichage, `bloc_competence.code` reste réservé à un code RNCP
+   officiel. Matrice écrite par **remplacement intégral sans verrou**
+   (`PUT /ue/{ueID}/competences`, DELETE + INSERT … SELECT en une
+   transaction, dernier écrit gagne ; la version de l'UE n'est pas
+   touchée). Une UE ne se lie qu'aux compétences de sa propre formation,
+   garanti côté serveur par la jointure UE → période → option → promotion →
+   formation (vues actives) : une ligne non insérée annule tout (motif
+   `hors_formation` ; `reference_inconnue` si l'identifiant n'existe pas).
+   `RemplacerMatrice` est appelable hors HTTP (l'import s'en sert). Blocs et
+   compétences suivent leur formation par cascade (la purge de la corbeille
+   les emporte, `FormationDeleteImpact` les annonce). La saisie du
+   référentiel se fait à la main par l'écran — aucun outil d'import de
+   référentiel, la source est le document France Compétences (Excel), pas
+   la base tierce.
+4. **Rôle Keycloak `SYLLABUS_ECRITURE`**, neuvième rôle de domaine (lecture
+   globale, écritures ciblées : fiches, description d'UE, matrices,
+   référentiel — une seule population). Population rédactrice — tranchée :
+   responsables de formation et enseignants, comptes AGENT déjà connus,
+   attribués par l'écran utilisateurs. **Corollaire assumé** : rôle de
+   domaine, son porteur écrit n'importe quelle fiche ; le cloisonnement fin
+   (« sa formation », « ses matières ») est une évolution possible, les
+   données nécessaires existent (`responsable_id` sur l'UE et la fiche).
+   Le rôle vit dans **cinq endroits synchrones** : `infra/keycloak/keycloak.tf`
+   (composite de CONSULTATION, ajouté au composite ADMIN),
+   `RolesFonctionnels` **et** `AssignableRoles` de
+   `back/pkg/services/roles.go`, l'énumération `Role` de
+   `front/src/pages/user/def.tsx`, les libellés de `user.json` fr et en.
+   Jamais en partie : `RolesFonctionnels` exprime le composite ADMIN par
+   `RequireAllRoles` sur les routes de la corbeille — un rôle ajouté en Go
+   avant Terraform fermerait la corbeille à tout porteur d'ADMIN.
+5. **Module `back/pkg/syllabus/`**, domaine propre monté sous
+   `/api/v0/syllabus` (aucun cycle avec `structure`, un préfixe par rôle
+   d'écriture). Contrat : `GET /matiere/{id}` (CONSULTATION) renvoie la
+   fiche ou, jamais écrite, une fiche vide `{matiere_id, version: 0}` en
+   200 — la fiche « existe » toujours, pas d'acte de création ;
+   `PUT /matiere/{id}` (SYLLABUS_ECRITURE) est un **upsert** sous verrou
+   optimiste (409 `OPTIMISTIC_LOCKING_FAILURE` ; l'identifiant du chemin
+   fait foi) ; `PUT /ue/{id}` écrit `description` et `responsable_id` sous
+   verrou et renvoie l'UE complète (reposée sous la clé du repository UE) ;
+   `GET/POST /bloc` (`?formation_id=`), `GET/PUT/DELETE /bloc/{id}`,
+   `POST /bloc/delete-impact`, idem `/competence` (`?bloc_id=`, ou
+   `?formation_id=` pour le référentiel à plat) ; `GET/PUT
+   /ue/{id}/competences` ; **`GET /ue/{id}/fiche?lang=fr|en`** et
+   **`GET /promotion/{id}/livret?lang=fr|en`** (CONSULTATION, PDF).
+   Entité introuvable ou branche en corbeille : `NOT_FOUND` sur l'enveloppe
+   400 du projet. Erreurs de champ : 400 `VALIDATION_ERROR`, motifs
+   `valeur_negative`, `valeur_hors_plage`, `reference_inconnue`,
+   `hors_formation`, `valeur_deja_utilisee` (position prise).
+6. **Front, `pages/syllabus/`** : pas de workflow propre, des greffes sous
+   le workflow Structure (`catalog/routes.tsx`, `GreffeEcran`) — segment
+   `syllabus` sous la matière et sous l'UE (`…/matiere/:id/syllabus`,
+   `…/ue/:id/syllabus`, action déclarative `ACTION_SYLLABUS`, en fermeture),
+   segments `bloc` et `competence` sous la formation (deux Crud imbriqués,
+   actions créées au rendu). L'arbre ne change pas, `etatArbre` s'arrête au
+   segment étranger. `FormulaireSyllabus.tsx` : cadre 1-1 qui reste sur
+   place après enregistrement (`Form.tsx` renvoie vers une liste que la
+   fiche n'a pas), avec un emplacement `actions` à droite du titre (le
+   bouton de la fiche PDF). La matrice (`MatriceCompetences.tsx`) a son
+   **bouton d'enregistrement propre** mais une **garde de saisie unique**
+   (react-router ne tient qu'un `useBlocker` par routeur : elle remonte son
+   état modifié par `modificationsExternes`). Écriture par `possedeRole`,
+   lecture seule sinon. `matiere.heure` vient de la liste des matières de
+   l'UE sous la clé du repository (`select`) — aucune requête ajoutée ; la
+   seule requête ajoutée est le détail du responsable (clé `[USER, id]`).
+   `UserSelector` généralisé (`name`, `champsNom`, `libelles`, `filtrer`
+   optionnels ; filtre AGENT côté client sur les 20 résultats du serveur).
+   Namespace `syllabus.json` fr/en.
+7. **Import du legacy** : outil d'exploitation `back/cmd/syllabus-import`
+   (`make importer-syllabus`, mode d'emploi `docs/syllabus-import.md`,
+   paquet `pkg/syllabus/legacy`). CLI, pas d'écran ; appariement **par nom**
+   dans le périmètre d'une correspondance de période (année, période,
+   préfixe du code d'UE → formation, promotion, option, période), l'UE par
+   exception puis code puis libellé unique, la matière par exception puis
+   libellé unique, **égalité après normalisation** (espaces réduits, casse
+   ignorée), jamais de rapprochement flou ; non apparié ou ambigu → rejet,
+   jamais de création. **Refus d'écraser** (existant et différent = conflit
+   rapporté, `--force` remplace ; identique = inchangé) ; simulation par
+   défaut, `--apply` écrit ; chaque fiche, description et matrice est une
+   écriture indépendante par les requêtes du domaine ; rapport texte
+   horodaté à côté de l'entrée. Fixture réduite et anonymisée committée
+   dans `pkg/syllabus/legacy/testdata/` ; l'export réel déposé dans
+   `testdata/` à la racine est ignoré par git (ce dossier seulement).
+8. **Fiche et livret PDF** (`fiche.go`, `fiche_gabarit.go`,
+   `fiche_gabarit.html` embarqué ; `docs/syllabus.md`). Cible visuelle
+   contractuelle : `docs/syllabus/fiche-maquette.html` (lot 0, intouchée).
+   Page de l'UE (bandeau, chiffres clés, « Pourquoi cette UE ? », éléments
+   constitutifs, matrice) puis une page par matière. **Décisions du lot 5,
+   toutes tranchées par l'utilisateur** : (1) **Gotenberg** en service
+   conteneurisé (voir « Stack ») et client mutualisé dans
+   `services/pdf.go` — les bulletins de jury s'en serviront ; (2) fiche
+   **bilingue par ses libellés seulement** (deux jeux Go, `libellesFr` /
+   `libellesEn`), le contenu saisi rendu tel quel, `?lang=` validé, défaut
+   fr, langue dans le nom de fichier ; (3) la fiche d'une UE **et** le
+   livret d'une promotion (page de titre avec sommaire, puis les fiches
+   dans l'ordre options par nom → périodes par date de début → UE par
+   identifiant, c'est-à-dire l'ordre de saisie : aucune colonne d'ordre
+   n'existe) ; (4) une UE sans liaison affiche « Aucune compétence n'est
+   encore déclarée pour cette UE. », et par le même principe une matière
+   sans fiche « Aucune fiche syllabus n'est encore rédigée pour cet
+   enseignement. » — jamais d'absence silencieuse sur un document qui
+   circule ; (5) assertions sur le HTML du gabarit (tests Go sans base ni
+   service), PDF smoke-testé en intégration contre le service réel
+   (`%PDF`, taille plancher, type), pas de golden-file binaire, specs e2e
+   sur l'événement de téléchargement seul (`fiche-pdf.spec.ts`).
+   Rendu : la structure fait référence (heures des éléments constitutifs
+   et volume encadré = somme des `matiere.heure` ; travail personnel =
+   somme des `heures_perso`, 0 par défaut) ; rien de vide ne s'imprime ;
+   blocs mobilisés rendus entiers, pastilles sur trois colonnes, codes
+   dérivés, les autres blocs en une phrase ; responsable non rendu ; nom
+   d'établissement dans `pdf.etablissement` du `config.yaml` (la seule
+   chaîne propre à l'établissement, un endroit). Les rubriques (textarea)
+   se découpent en paragraphes (ligne vide) et listes (lignes à tiret ou
+   puce — 762 plans de cours sur 1 798 dans l'export). Le pied de page est
+   **hors du flux** (`position: absolute`) et les marges de section sont
+   resserrées d'un cran par rapport à la maquette : une page pleine à une
+   ligne près basculait sinon sur une page presque vide. **Limite
+   constatée** : « une matière = une page » tient tant que le contenu
+   tient ; au-delà, la suite coule sur la page suivante, pied compris, et
+   la numérotation « page n/N » reste logique, pas physique — sur le
+   livret INFRES de démonstration (8 UE, 20 matières, 29 pages logiques),
+   7 matières aux rubriques longues font 36 pages physiques. Volumes
+   mesurés le 15 septembre 2026 : fiche de 4 pages ≈ 65 ko en 150 ms
+   côté serveur (230 ms au clic), livret de 36 pages ≈ 266 ko en 280 ms
+   (480 ms au clic) ; le délai client de 25 s laisse deux ordres de
+   grandeur. Nom de fichier : `syllabus-ue-<slug>-<lang>.pdf`,
+   `syllabus-livret-<slug>-<lang>.pdf` (ASCII, tirets). À l'écran :
+   bouton « Télécharger la fiche PDF » à droite du titre de l'écran
+   syllabus de l'UE ; action « Télécharger le livret PDF »
+   (`ACTION_LIVRET`, un `ActionRappel`, libellé en fermeture) dans le menu
+   du bandeau du nœud promotion (`arbre/niveaux.ts`, comme
+   `ACTION_SYLLABUS`) et parmi les actions par défaut de `CrudPromotion`,
+   créées au rendu — elle apparaît donc aussi sur la liste des promotions
+   de tout workflow qui ne surcharge pas `actionsLigne` (Structure, Notes,
+   Jury, Programme ; Certification les surcharge). Sous CONSULTATION le
+   bandeau n'a que l'action directe et ce menu : sans la déclaration dans
+   `niveaux.ts`, le livret y était invisible (constaté par la spec).
+   Visibles en CONSULTATION : des lectures. Une réponse `blob` relit son
+   enveloppe d'erreur par `erreurDeTelechargement` (`telechargement.ts`),
+   sinon un 503 s'afficherait en message générique.
+
+**Périmètre négatif, contraignant** : pas de registre (l'invariant 5 couvre
+notes et jurys, les écritures syllabus n'ancrent rien) ; pas de corbeille
+(`syllabus_matiere` suit `matiere` par cascade, le référentiel suit sa
+formation) ; pas de versionnement annuel ; pas d'éditeur riche (des
+`textarea`) ; aucune langue au-delà de fr/en ; les tables `utilisateur`,
+`role`, `session_config` et le schéma `syllabus2` de la base tierce ne
+sont jamais repris ; les dimensions ODD/ONU sont abandonnées (la rubrique
+socio-environnementale porte l'intention rédigée) ; pas de niveau
+`groupematiereenseignee` (un ordre d'affichage serait une colonne `ordre`
+sur `matiere`, domaine STRUCTURE). UE et matière s'identifient par leur
+`name` : les codes que la maquette montre (`INFRES_9_3_DL`, `DL-1`) n'ont
+pas de colonne et n'en auront pas.
+
+**Seed e2e du domaine** : `E2E Agent1` (AGENT), fiche de « E2E Matiere » à
+15 + 4 + 1 = 20 h (conforme), description de « E2E UE1 », blocs « E2E Bloc
+Securiser » (C1, C2) et « E2E Bloc Concevoir » (C1) sur « E2E Formation »,
+« E2E Autre Formation » (un bloc, une compétence — pas « E2E Formation
+Etrangere », dont « E2E Formation » serait le préfixe), liaison pré-cochée
+C1 enseignée + évaluée sur « E2E UE1 ». Specs : `syllabus.spec.ts` (sept
+tests, ordre intra-fichier documenté), `referentiel-competences.spec.ts`,
+`matrice-competences.spec.ts`, `fiche-pdf.spec.ts` (trois tests) ; captures
+`syllabus-matiere-*` et `syllabus-ue-*`. Tests Go : cinq d'intégration sur
+fiche et UE, quatre sur référentiel et matrice, trois sur l'import, quatre
+sur les documents PDF (dont le 503 sur un port fermé et le NOT_FOUND d'une
+période en corbeille), plus le gabarit et le client PDF en unitaire.
+
+**Évolutions possibles, hors chantier** (aucune n'est engagée) : livret par
+période ; cloisonnement fin du rôle d'écriture ; responsable sur la fiche
+(la colonne existe) ; numérotation physique des pages du livret (en-tête ou
+pied Gotenberg, globaux au document) ; colonne `ordre` sur `matiere`.
 
 ## Pièges connus du code
 
@@ -399,7 +661,12 @@ Application réservée au personnel administratif. Pas encore en production.
   (constaté au lot 13).
 - **`UserSelector` lit sa sélection dans le formulaire** (`useWatch`, objet
   mémorisé sur ses trois valeurs) et laisse Base UI dériver le texte du
-  champ de `value` (`inputValue` non contrôlé) — lot 14. Deux états locaux
+  champ de `value` (`inputValue` non contrôlé) — lot 14. Depuis le lot 2
+  syllabus il prend `name`, `champsNom`, `libelles` et `filtrer`, tous
+  optionnels aux défauts historiques (`user_id`, `firstName`/`lastName`,
+  libellés élève, aucun filtre) : un formulaire dont l'API ne livre que
+  l'identifiant fournit lui-même les deux champs de nom, résolus par la
+  requête de détail utilisateur avant le montage du formulaire. Deux états locaux
   recopiés du formulaire s'en désynchronisaient (champ vide en édition,
   élève fantôme après un `reset` du parent). Base UI compare `value` **par
   référence** pour resynchroniser le texte : un objet reconstruit à chaque
@@ -601,8 +868,8 @@ Application réservée au personnel administratif. Pas encore en production.
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (67
-  tests, les 20 captures de référence comprises, dans le conteneur de
+  intégration : ils se sautent sans base), et la suite e2e complète (88
+  tests, les 24 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,
   Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
@@ -630,6 +897,26 @@ ils survivront à celle-ci si personne ne les reprend.
   (source `htmlTag`) avant d'essayer la langue seule. Les navigateurs
   réels envoient `fr-FR,fr` et n'y tombent pas ; à corriger côté
   `i18n/config.ts` ou `index.html` dans un lot front.
+- **Les actions de ligne créées au chargement des `routes.tsx` sans `t`
+  gardent la langue de démarrage** (14 septembre 2026, lot 2 syllabus,
+  constaté au navigateur) : `catalog/routes.tsx` appelle `ACTION_GROUPES()`
+  et `ACTION_PERIODES()`, `note/routes.tsx` `ACTION_UES()` et
+  `ACTION_MATIERES()` — or ces fabriques de `structure/entites/` renvoient
+  un `libelle` **chaîne** (résolue à l'appel), pas une fermeture. Preuve :
+  interface basculée en anglais, le menu de la ligne « E2E Option » du
+  catalogue affiche « Gérer les groupes » et « Gérer les périodes ». Le lot 2
+  a évité d'étendre le défaut à l'UE (ses actions par défaut restent
+  créées au rendu dans `CrudUe`, avec `t`) ; `ACTION_SYLLABUS` est une
+  fermeture. Correction attendue : `libelle: () => …` dans les fabriques
+  `ACTION_*` de `structure/entites/`, comme `actionProgramme`.
+- **Les analyses d'impact de structure ne comptent pas `syllabus_matiere`**
+  (15 septembre 2026, lot 3 syllabus, constaté à la lecture :
+  `grep syllabus_matiere back/pkg/structure` est vide). Supprimer une
+  formation, une promotion, une option ou une période qui porte des fiches
+  syllabus ne l'annonce pas dans la modale ; la cascade, elle, les emporte.
+  Reliquat du lot 1. Le lot 3 a fait l'inverse pour son référentiel
+  (`FormationDeleteImpact` compte blocs, compétences et liaisons) ; les
+  fiches restent à ajouter aux quatre requêtes `*DeleteImpact`.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute

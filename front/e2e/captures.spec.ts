@@ -1,8 +1,9 @@
 import { test, expect } from './fixtures/roles';
 import {
-    E2E, allerALaGrilleDeSaisie, allerAuPlanning, allerAuTOEIC, allerJusquaPeriode, attendreChargementInitial,
+    E2E, allerALaGrilleDeSaisie, allerAuPlanning, allerAuSyllabusViaStructure, allerAuTOEIC, allerJusquaPeriode,
+    attendreChargementInitial,
 } from './aide/hierarchieE2E';
-import { app, note } from './aide/i18n';
+import { app, interpoler, note, syllabus } from './aide/i18n';
 import { EN_CONTENEUR_REFERENCE, MOTIF_HORS_CONTENEUR } from './aide/conteneur';
 
 /**
@@ -108,6 +109,43 @@ for (const colorScheme of MODES) {
             await pageAdmin.mouse.move(0, 0);
 
             await expect(pageAdmin).toHaveScreenshot(`note-graphique-${colorScheme}.png`, {
+                animations: 'disabled',
+            });
+        });
+
+        test('fiche syllabus (matière, remplie par le seed)', async ({ pageAdmin }) => {
+            // Lot 2 : nouveau gabarit — grille horaire, huit textarea, ligne
+            // d'écart — qu'aucun rôle ni texte accessible ne verrait se
+            // casser. L'état semé est conforme (20 h) et aucun test ne
+            // précède ce fichier dans l'ordre alphabétique.
+            await allerAuSyllabusViaStructure(pageAdmin, 'matiere');
+            await expect(pageAdmin.getByRole('heading', { name: syllabus.matiere.titre })).toBeVisible();
+            // Le nom du responsable arrive par une seconde requête : on l'attend.
+            await expect(pageAdmin.getByLabel(syllabus.responsable.rechercher)).toHaveValue(E2E.agent1);
+            // La ventilation et son total sont l'objet de la capture : dans le
+            // cadre, pointeur écarté du champ focalisé à l'ouverture.
+            await pageAdmin.getByText(interpoler(syllabus.matiere.total.conforme, { total: '20' })).scrollIntoViewIfNeeded();
+            await pageAdmin.mouse.move(0, 0);
+
+            await expect(pageAdmin).toHaveScreenshot(`syllabus-matiere-${colorScheme}.png`, {
+                animations: 'disabled',
+            });
+        });
+
+        test('syllabus de l\'UE avec sa matrice de compétences (seed)', async ({ pageAdmin }) => {
+            // Lot 3 : la matrice — trois colonnes cochables regroupées par
+            // bloc, codes dérivés — sous le formulaire du syllabus de l'UE.
+            // L'état semé porte une liaison (C1 : enseignée + évaluée) ; la
+            // spec matrice-competences la relit et remet cet état.
+            await allerAuSyllabusViaStructure(pageAdmin, 'ue');
+            await expect(pageAdmin.getByRole('heading', { name: syllabus.ue.titre })).toBeVisible();
+            await expect(pageAdmin.getByLabel(syllabus.responsable.rechercher)).toHaveValue(E2E.agent1);
+            const matrice = pageAdmin.getByRole('table', { name: syllabus.competences.matrice.titre });
+            await expect(matrice).toBeVisible();
+            await matrice.scrollIntoViewIfNeeded();
+            await pageAdmin.mouse.move(0, 0);
+
+            await expect(pageAdmin).toHaveScreenshot(`syllabus-ue-${colorScheme}.png`, {
                 animations: 'disabled',
             });
         });

@@ -71,6 +71,24 @@ func PayloadTooLargeError(w http.ResponseWriter, r *http.Request, detail string,
 	RenderError(w, r, http.StatusRequestEntityTooLarge, PAYLOAD_TOO_LARGE, detail, extensions, "PayloadTooLargeError")
 }
 
+// ServiceUnavailableError : un service dont la route dépend (conversion PDF)
+// ne répond pas. 503 et code dédié, pour que l'écran dise « réessayez plus
+// tard » plutôt qu'« erreur interne » ; la cause part au log, comme pour un
+// 500, avec le même identifiant d'incident des deux côtés.
+func ServiceUnavailableError(w http.ResponseWriter, r *http.Request, err error) {
+	incident := incidentID()
+	slog.Error("service indisponible",
+		"incident", incident,
+		"err", err,
+		"method", r.Method,
+		"path", r.URL.Path,
+	)
+	RenderError(w, r, http.StatusServiceUnavailable, SERVICE_UNAVAILABLE,
+		"Un service nécessaire est indisponible. Réessayez plus tard.",
+		map[string]any{"instance": "/incidents/" + incident},
+		"ServiceUnavailableError")
+}
+
 // ServerError est le seul chemin vers un 500 : le client reçoit un detail
 // générique et un identifiant d'incident ; l'erreur d'origine, elle, ne quitte
 // pas le log serveur. L'identifiant figure des deux côtés — c'est lui qui rend
@@ -137,6 +155,9 @@ const (
 	// Famille : quotas réseau (lot sécurité)
 	PAYLOAD_TOO_LARGE // 15 - corps de requête au-delà de la limite globale (hors fichier, voir FILE_TOO_LARGE)
 	RATE_LIMITED      // 16 - trop de requêtes ; émis par nginx (limit_req), jamais par le backend
+
+	// Famille : service tiers (lot 5 syllabus)
+	SERVICE_UNAVAILABLE // 17 - un service dont la route dépend ne répond pas (conversion PDF) ; 503
 )
 
 // errorCodeNames mappe chaque ErrorCode vers son identifiant stable
@@ -160,6 +181,7 @@ var errorCodeNames = map[ErrorCode]string{
 	NO_RESULT:                  "NO_RESULT",
 	PAYLOAD_TOO_LARGE:          "PAYLOAD_TOO_LARGE",
 	RATE_LIMITED:               "RATE_LIMITED",
+	SERVICE_UNAVAILABLE:        "SERVICE_UNAVAILABLE",
 }
 
 // errorCodeTitles : le `title` RFC 9457, court et stable comme le veut la RFC.
@@ -182,6 +204,7 @@ var errorCodeTitles = map[ErrorCode]string{
 	NO_RESULT:                  "Aucun résultat",
 	PAYLOAD_TOO_LARGE:          "Requête trop volumineuse",
 	RATE_LIMITED:               "Trop de requêtes",
+	SERVICE_UNAVAILABLE:        "Service indisponible",
 }
 
 func (c ErrorCode) String() string {

@@ -51,6 +51,32 @@ services:
       scolarite-net:
         ipv4_address: 10.20.2.6
 
+  # Service de conversion HTML → PDF (Gotenberg), consommé par le backend pour
+  # la fiche et le livret syllabus (lot 5) et, à venir, les bulletins de jury
+  # — client dans back/pkg/services/pdf.go, adresse GOTENBERG_HOST des
+  # config-*.env. Infrastructure et non image applicative : il vit ici, avec
+  # PostgreSQL et Keycloak, et les deux makefiles (local, prod) le démarrent.
+  # Version épinglée ; Chromium seul (les routes LibreOffice sont fermées, le
+  # backend n'en a pas l'usage) et sans JavaScript : les documents envoyés sont
+  # des HTML autonomes, feuille de style en ligne, aucune ressource externe.
+  # Jamais publié sur l'hôte : seul le backend lui parle, sur le réseau Docker.
+  pdf-service:
+    container_name: gotenberg
+    image: gotenberg/gotenberg:8.37.0
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --libreoffice-disable-routes=true
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:3000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      scolarite-net:
+        ipv4_address: 10.20.2.7
+
   db:
     # Déjà épinglé. PG_CONTAINER (infra/env/config-*.env) reprend cette version
     # dans le nom du conteneur : les deux se changent ensemble.

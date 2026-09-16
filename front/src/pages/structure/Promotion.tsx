@@ -12,6 +12,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ECHELLE_KEYS } from './service';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { promotionSchema, type Promotion, createPromotionRepository, ACTION_OPTIONS, promotionEntite } from './entites/promotion';
+import { ACTION_LIVRET } from '../syllabus/entites/syllabus';
 
 export type { Promotion } from './entites/promotion';
 
@@ -129,17 +130,21 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     const rootPath = useRootPath(mode);
     const { t } = useTranslation('crud');
     const { t: tStructure } = useTranslation('structure');
+    const { t: tSyllabus } = useTranslation('syllabus');
 
+    // Actions par défaut de la ligne, créées au rendu avec `t` — jamais au
+    // chargement d'un module de routes (défaut de langue consigné). Le livret
+    // syllabus (lot 5) s'y ajoute : une lecture, sous tous les rôles.
     const datasource = useMemo((): Datasource<Promotion> | null => formationId ? ({
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId, tStructure),
         ...promotionEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t)],
+        actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t), ACTION_LIVRET(tSyllabus)],
         isTopToolbar,
         actionsBarreOutils,
-    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
+    }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure, tSyllabus]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.

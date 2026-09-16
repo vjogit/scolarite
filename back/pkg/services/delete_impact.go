@@ -67,6 +67,12 @@ var entityLabels = map[string][2]string{
 	"reservation_salle":       {"réservation de salle", "réservations de salle"},
 	"reservation_groupe":      {"affectation de groupe à un créneau", "affectations de groupes aux créneaux"},
 	"jury_result":             {"résultat de jury", "résultats de jury"},
+	// Référentiel de compétences (lot 3 syllabus) : la suppression d'un bloc
+	// emporte ses compétences et leurs liaisons aux UE ; celle d'une formation,
+	// ses blocs.
+	"bloc_competence": {"bloc de compétences", "blocs de compétences"},
+	"competence":      {"compétence", "compétences"},
+	"ue_competence":   {"liaison UE ↔ compétence", "liaisons UE ↔ compétence"},
 }
 
 // detachedLabels donne les libellés des objets qui ne sont pas supprimés mais

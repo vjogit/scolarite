@@ -21,7 +21,7 @@ func (q *Queries) CheckPeriodeExists(ctx context.Context, id int32) (int32, erro
 }
 
 const fetchUniteEnseignementById = `-- name: FetchUniteEnseignementById :one
-SELECT id, version, name, ects, academique, periode_id FROM unite_enseignement WHERE id = $1
+SELECT id, version, name, ects, academique, periode_id, description, responsable_id FROM unite_enseignement WHERE id = $1
 `
 
 func (q *Queries) FetchUniteEnseignementById(ctx context.Context, id int32) (UniteEnseignement, error) {
@@ -34,12 +34,14 @@ func (q *Queries) FetchUniteEnseignementById(ctx context.Context, id int32) (Uni
 		&i.Ects,
 		&i.Academique,
 		&i.PeriodeID,
+		&i.Description,
+		&i.ResponsableID,
 	)
 	return i, err
 }
 
 const fetchUniteEnseignementsByPeriodeID = `-- name: FetchUniteEnseignementsByPeriodeID :many
-SELECT id, version, name, ects, academique, periode_id FROM public.unite_enseignement
+SELECT id, version, name, ects, academique, periode_id, description, responsable_id FROM public.unite_enseignement
 WHERE periode_id = $1
 `
 
@@ -59,6 +61,8 @@ func (q *Queries) FetchUniteEnseignementsByPeriodeID(ctx context.Context, period
 			&i.Ects,
 			&i.Academique,
 			&i.PeriodeID,
+			&i.Description,
+			&i.ResponsableID,
 		); err != nil {
 			return nil, err
 		}

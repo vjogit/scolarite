@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-ue-competence
+      author: dev
+      comment: "Liaison UE ↔ compétence (lot 3 syllabus), au niveau UE comme sur la fiche publiée. Trois booléens et pas de table d'états : la légende à sept états du tiers n'était que la combinatoire des trois axes Enseignée / Mise en œuvre / Évaluée, que la maquette rend en trois colonnes cochables. Une ligne dont les trois axes sont faux n'existe pas (CHECK) : la ligne absente EST l'état « non adressée ». Pas de version : l'écriture est un remplacement intégral de la matrice de l'UE, dernier écrit gagne. La contrainte « même formation que l'UE » n'est pas exprimable en base (la chaîne UE → période → option → promotion → formation traverse quatre tables) : elle est garantie côté serveur dans la transaction d'écriture."
+      changes:
+        - createTable:
+            tableName: ue_competence
+            columns:
+              - column:
+                  name: ue_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: competence_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enseignee
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mise_en_oeuvre
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: evaluee
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: pk_ue_competence
+            tableName: ue_competence
+            columnNames: ue_id, competence_id
+
+        - addForeignKeyConstraint:
+            constraintName: fk_ue_competence_ue
+            baseTableName: ue_competence
+            baseColumnNames: ue_id
+            referencedTableName: unite_enseignement
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            constraintName: fk_ue_competence_competence
+            baseTableName: ue_competence
+            baseColumnNames: competence_id
+            referencedTableName: competence
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - createIndex:
+            indexName: idx_ue_competence_competence
+            tableName: ue_competence
+            columns:
+              - column: { name: competence_id }
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE ue_competence ADD CONSTRAINT chk_ue_competence_au_moins_un CHECK (enseignee OR mise_en_oeuvre OR evaluee);
+
+      rollback:
+        - dropTable:
+            tableName: ue_competence
+            cascadeConstraints: true

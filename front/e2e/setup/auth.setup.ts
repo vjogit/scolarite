@@ -7,6 +7,7 @@ const ROLES = [
     { nom: 'admin', compte: env.admin },
     { nom: 'consultation', compte: env.consultation },
     { nom: 'notesEcriture', compte: env.notesEcriture },
+    { nom: 'syllabusEcriture', compte: env.syllabusEcriture },
 ] as const;
 
 for (const { nom, compte } of ROLES) {

@@ -1,0 +1,102 @@
+{
+  "action": "Syllabus",
+  "enregistrer": "Save",
+  "erreurChargement": "The syllabus could not be loaded.",
+  "matiere": {
+    "titre": "Syllabus sheet",
+    "rubriques": {
+      "contexte": "Context and stakes of the course",
+      "objectifs": "Learning objectives",
+      "objectifsAide": "By the end of this course, the student will be able to…",
+      "prerequis": "Prerequisites",
+      "activites": "Activities",
+      "activitesAide": "Lectures, tutorials, labs, project…",
+      "evaluation": "Assessment and feedback to students",
+      "plan_cours": "Course outline",
+      "ressources": "Resources and references",
+      "dimension_socio_env": "Social and environmental dimension"
+    },
+    "heures": {
+      "titre": "Hours",
+      "heures_cours": "Lectures",
+      "heures_cours_td": "Integrated course (lectures + tutorials)",
+      "heures_td": "Tutorials",
+      "heures_tp": "Labs",
+      "heures_projet": "Project",
+      "heures_autonomie": "Supervised self-study",
+      "heures_controle": "Exams and defenses",
+      "heures_perso": "Personal work",
+      "heures_persoAide": "Not part of the supervised total."
+    },
+    "total": {
+      "sansStructure": "Supervised total: {{total}} h",
+      "conforme": "Supervised total: {{total}} h, consistent with the structure",
+      "ecart": "Supervised total: {{total}} h — the structure plans {{heure}} h"
+    },
+    "enregistre": "Syllabus sheet saved."
+  },
+  "ue": {
+    "titre": "Unit syllabus",
+    "champDescription": "Why this unit?",
+    "enregistre": "Unit syllabus saved."
+  },
+  "fiche": {
+    "telecharger": "Download the PDF sheet"
+  },
+  "livret": {
+    "action": "Download the PDF booklet"
+  },
+  "responsable": {
+    "champ": "Supervisor",
+    "rechercher": "Search for a supervisor",
+    "aide": "A staff member: program manager or teacher."
+  },
+  "competences": {
+    "action": "Competency framework",
+    "bloc": {
+      "title": "Competency blocks",
+      "nom": "competency block",
+      "nomAvecArticle": "the competency block",
+      "nomPluriel": "competency blocks",
+      "gererCompetences": "Manage competencies",
+      "champOrdre": "Order",
+      "champLibelle": "Label",
+      "champCode": "Official code",
+      "champCodeAide": "RNCP code of the block, if any; the blocks of the France Compétences document are numbered, not coded.",
+      "champActivites": "Activities performed",
+      "champModalitesEvaluation": "Assessment methods and criteria",
+      "colonneOrdre": "Order",
+      "colonneCode": "Code",
+      "colonneLibelle": "Label"
+    },
+    "competence": {
+      "title": "Competencies",
+      "nom": "competency",
+      "nomAvecArticle": "the competency",
+      "nomPluriel": "competencies",
+      "champOrdre": "Order",
+      "champAction": "Observable action",
+      "champActionAide": "A verb: “Analyse risks…”",
+      "champContexte": "Context",
+      "champContexteAide": "“in…”",
+      "champFinalites": "Purposes",
+      "champFinalitesAide": "“in order to…”",
+      "colonneCode": "Code",
+      "colonneAction": "Observable action",
+      "erreurBlocIdObligatoire": "The blocId parameter is required"
+    },
+    "matrice": {
+      "titre": "Competencies developed in this unit",
+      "description": "Among the competencies targeted by the program, which ones are developed in this unit?",
+      "colonneCompetence": "Competency",
+      "enseignee": "Taught",
+      "mise_en_oeuvre": "Applied",
+      "evaluee": "Assessed",
+      "case": "{{axe}} — {{code}} {{action}}",
+      "vide": "No competency is defined for this program.",
+      "enregistrer": "Save competencies",
+      "enregistre": "Unit competencies saved.",
+      "erreurChargement": "The competencies could not be loaded."
+    }
+  }
+}

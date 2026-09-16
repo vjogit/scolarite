@@ -190,3 +190,28 @@ variable "test_notes_ecriture_user_password" {
   default     = ""
   sensitive   = true
 }
+
+variable "test_syllabus_ecriture_user_enabled" {
+  description = "Créer le compte de test SYLLABUS_ECRITURE seul (← TEST_SYLLABUS_ECRITURE_USER_ENABLED)"
+  type        = bool
+  default     = false
+}
+
+variable "test_syllabus_ecriture_user_username" {
+  description = "Identifiant du compte de test SYLLABUS_ECRITURE (← TEST_SYLLABUS_ECRITURE_USER_USERNAME)"
+  type        = string
+  default     = ""
+}
+
+variable "test_syllabus_ecriture_user_email" {
+  description = "Courriel du compte de test SYLLABUS_ECRITURE (← TEST_SYLLABUS_ECRITURE_USER_EMAIL)"
+  type        = string
+  default     = ""
+}
+
+variable "test_syllabus_ecriture_user_password" {
+  description = "Mot de passe du compte de test SYLLABUS_ECRITURE (← TEST_SYLLABUS_ECRITURE_USER_PASSWORD)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

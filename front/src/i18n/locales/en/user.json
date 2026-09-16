@@ -8,7 +8,8 @@
     "PROGRAMME_ECRITURE": "Schedule (write)",
     "SALLES_ECRITURE": "Rooms (write)",
     "CERTIFICATION_ECRITURE": "Certifications (write)",
-    "UTILISATEURS_ECRITURE": "Users (write)"
+    "UTILISATEURS_ECRITURE": "Users (write)",
+    "SYLLABUS_ECRITURE": "Syllabus (write)"
   },
   "champs": {
     "prenom": "First name",

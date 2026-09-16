@@ -252,6 +252,21 @@ make test-ihm                                                  # la même suite 
 C'est le backend `prod` (sans Delve) qui tourne alors ; la ligne « Delve
 disponible » n'est pas affichée.
 
+### Le service de conversion PDF (Gotenberg)
+
+Un troisième conteneur d'infrastructure, à côté de PostgreSQL et Keycloak :
+`pdf-service` (`infra/container/compose.yaml`, image `gotenberg/gotenberg`
+épinglée, `10.20.2.7:3000` sur le réseau Docker, jamais publié sur l'hôte).
+Le backend lui envoie un HTML autonome et reçoit un PDF — la fiche et le
+livret syllabus aujourd'hui (`docs/syllabus.md`), les bulletins de jury
+demain ; le client est `back/pkg/services/pdf.go`. Démarré par
+`start-local-*`, `start-dev*` et `start-prod-*` (cibles `_pdf-up` /
+`_pdf-up-prod`, avec attente du *healthcheck*), arrêté et purgé avec le
+reste de la composition. Son adresse est `GOTENBERG_HOST` des
+`config-*.env` ; le port et le délai sont des littéraux du `config.yaml`.
+Rien n'est construit : c'est une image tierce, la même dans les deux
+topologies, et le kit de déploiement la porte par `infra/`.
+
 ### Le kit de déploiement
 
 Un hôte de prod n'a ni sources, ni Go, ni Node, ni mkcert : il a Docker, les

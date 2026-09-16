@@ -54,10 +54,11 @@ export interface EnvLocal {
     readonly admin: CompteTest;
     readonly consultation: CompteTest;
     readonly notesEcriture: CompteTest;
+    readonly syllabusEcriture: CompteTest;
 }
 
 /**
- * Identifiants des trois comptes de test, lus dans `infra/env/` — jamais en
+ * Identifiants des quatre comptes de test, lus dans `infra/env/` — jamais en
  * dur dans les specs. Source unique avec `infra/keycloak/keycloak.tf` : ce
  * sont les mêmes fichiers qui alimentent le module Terraform.
  */
@@ -84,6 +85,10 @@ export function chargerEnvLocal(): EnvLocal {
         notesEcriture: {
             username: requis('TEST_NOTES_ECRITURE_USER_USERNAME', config),
             password: requis('TEST_NOTES_ECRITURE_USER_PASSWORD', secrets),
+        },
+        syllabusEcriture: {
+            username: requis('TEST_SYLLABUS_ECRITURE_USER_USERNAME', config),
+            password: requis('TEST_SYLLABUS_ECRITURE_USER_PASSWORD', secrets),
         },
     };
 }

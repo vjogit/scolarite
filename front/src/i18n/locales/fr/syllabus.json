@@ -1,0 +1,102 @@
+{
+  "action": "Syllabus",
+  "enregistrer": "Enregistrer",
+  "erreurChargement": "Impossible de charger le syllabus.",
+  "matiere": {
+    "titre": "Fiche syllabus",
+    "rubriques": {
+      "contexte": "Contexte et enjeux de l'enseignement",
+      "objectifs": "Objectifs pédagogiques",
+      "objectifsAide": "À la fin de cet enseignement, l'étudiant sera capable de…",
+      "prerequis": "Prérequis",
+      "activites": "Activités",
+      "activitesAide": "CM, TD, TP, projet…",
+      "evaluation": "Évaluations et retours faits aux élèves",
+      "plan_cours": "Plan de cours",
+      "ressources": "Ressources et références",
+      "dimension_socio_env": "Dimension socio-environnementale"
+    },
+    "heures": {
+      "titre": "Volumes horaires",
+      "heures_cours": "Cours",
+      "heures_cours_td": "Cours intégré (cours + TD)",
+      "heures_td": "TD",
+      "heures_tp": "TP",
+      "heures_projet": "Projet",
+      "heures_autonomie": "Autonomie encadrée",
+      "heures_controle": "Contrôles et soutenances",
+      "heures_perso": "Travail personnel",
+      "heures_persoAide": "Hors volume encadré."
+    },
+    "total": {
+      "sansStructure": "Total encadré : {{total}} h",
+      "conforme": "Total encadré : {{total}} h, conforme aux heures de la structure",
+      "ecart": "Total encadré : {{total}} h — la structure prévoit {{heure}} h"
+    },
+    "enregistre": "Fiche syllabus enregistrée."
+  },
+  "ue": {
+    "titre": "Syllabus de l'UE",
+    "champDescription": "Pourquoi cette UE ?",
+    "enregistre": "Syllabus de l'UE enregistré."
+  },
+  "fiche": {
+    "telecharger": "Télécharger la fiche PDF"
+  },
+  "livret": {
+    "action": "Télécharger le livret PDF"
+  },
+  "responsable": {
+    "champ": "Responsable",
+    "rechercher": "Rechercher un responsable",
+    "aide": "Un agent : responsable de formation ou enseignant."
+  },
+  "competences": {
+    "action": "Référentiel de compétences",
+    "bloc": {
+      "title": "Blocs de compétences",
+      "nom": "bloc de compétences",
+      "nomAvecArticle": "le bloc de compétences",
+      "nomPluriel": "blocs de compétences",
+      "gererCompetences": "Gérer les compétences",
+      "champOrdre": "Ordre",
+      "champLibelle": "Libellé",
+      "champCode": "Code officiel",
+      "champCodeAide": "Code RNCP du bloc, s'il en a un ; les blocs du document France Compétences sont numérotés, pas codés.",
+      "champActivites": "Activités exercées",
+      "champModalitesEvaluation": "Modalités et critères d'évaluation",
+      "colonneOrdre": "Ordre",
+      "colonneCode": "Code",
+      "colonneLibelle": "Libellé"
+    },
+    "competence": {
+      "title": "Compétences",
+      "nom": "compétence",
+      "nomAvecArticle": "la compétence",
+      "nomPluriel": "compétences",
+      "champOrdre": "Ordre",
+      "champAction": "Action observable",
+      "champActionAide": "Un verbe : « Analyser les risques… »",
+      "champContexte": "Contexte",
+      "champContexteAide": "« en… »",
+      "champFinalites": "Finalités",
+      "champFinalitesAide": "« afin de… »",
+      "colonneCode": "Code",
+      "colonneAction": "Action observable",
+      "erreurBlocIdObligatoire": "Le paramètre blocId est obligatoire"
+    },
+    "matrice": {
+      "titre": "Compétences développées dans cette UE",
+      "description": "Parmi les compétences visées par la formation, lesquelles sont développées dans cette UE ?",
+      "colonneCompetence": "Compétence",
+      "enseignee": "Enseignée",
+      "mise_en_oeuvre": "Mise en œuvre",
+      "evaluee": "Évaluée",
+      "case": "{{axe}} — {{code}} {{action}}",
+      "vide": "Aucune compétence n'est définie pour cette formation.",
+      "enregistrer": "Enregistrer les compétences",
+      "enregistre": "Compétences de l'UE enregistrées.",
+      "erreurChargement": "Impossible de charger les compétences."
+    }
+  }
+}

@@ -1,0 +1,5 @@
+annee_tiers,periode_tiers,formation_prefixe_tiers,formation_name,promotion_name,option_name,periode_name,commentaire
+2025-2026,Semestre 5,FIX,formation LEGACY,Promo 1 legacy,Option 1 legacy,Periode 1 legacy,noms comparés espaces réduits et casse ignorée
+2025-2026,Semestre 6,FIX,Formation legacy,Promo 1 legacy,Option 1 legacy,Periode 2 legacy,
+2025-2026,Semestre 7,FIX,,,,,périmètre non importé
+2025-2026,Semestre 5,MAUVAIS,Nulle part,Promo 1 legacy,Option 1 legacy,Periode 1 legacy,formation inexistante

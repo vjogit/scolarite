@@ -7,6 +7,7 @@ import { Crud } from '../../services/crud/Crud';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { ChampTexte } from '../../services/ChampTexte';
 import { formationSchema, type Formation, formationRepository, ACTION_PROMOTIONS, formationEntite } from './entites/formation';
+import { ACTION_REFERENTIEL } from '../syllabus/entites/competences';
 
 export type { Formation } from './entites/formation';
 
@@ -50,6 +51,7 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
     const rootPath = useRootPath(mode);
     const { t } = useTranslation('crud');
     const { t: tStructure } = useTranslation('structure');
+    const { t: tSyllabus } = useTranslation('syllabus');
 
     const datasource = useMemo((): Datasource<Formation> => ({
         ...formationRepository,
@@ -57,10 +59,12 @@ export function CrudFormation({ mode, workflow, isAction, isTopToolbar, isReadOn
         ...formationEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS(t)],
+        // Par défaut — le catalogue — la formation mène à ses promotions et à
+        // son référentiel de compétences (lot 3), créés au rendu avec `t`.
+        actionsLigne: actionsLigne ?? [ACTION_PROMOTIONS(t), ACTION_REFERENTIEL(tSyllabus)],
         isTopToolbar,
         actionsBarreOutils,
-    }), [isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
+    }), [isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure, tSyllabus]);
 
     return (
         <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />

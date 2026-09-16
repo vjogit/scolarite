@@ -30,6 +30,8 @@ import { ACTION_UES, createPeriodeRepository, periodeEntite } from '../entites/p
 import { ACTION_MATIERES, createUeRepository, ueEntite } from '../entites/ue';
 import { createMatiereRepository, matiereEntite } from '../entites/matiere';
 import { ACTION_MEMBRES, createGroupeRepository, groupeEntite } from '../entites/groupe';
+import { ACTION_LIVRET, ACTION_SYLLABUS } from '../../syllabus/entites/syllabus';
+import { ACTION_REFERENTIEL } from '../../syllabus/entites/competences';
 
 /**
  * Repository débarrassé du type de son entité : tous les niveaux doivent tenir
@@ -131,7 +133,9 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: GraduationCap,
         enfants: [{ segment: PROMOTION }],
         entite: entiteFormation,
-        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t)],
+        // Le référentiel de compétences (lot 3) : un prolongement de la
+        // formation, pas un nœud de l'arbre — libellé en fermeture.
+        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t), ACTION_REFERENTIEL()],
     },
     {
         segment: PROMOTION,
@@ -140,7 +144,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: BookMarked,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
-        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t)],
+        // Le livret PDF (lot 5) : une lecture, en fermeture comme ACTION_SYLLABUS.
+        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t), ACTION_LIVRET()],
     },
     {
         segment: OPTION,
@@ -170,7 +175,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: BookOpen,
         enfants: [{ segment: MATIERE }],
         entite: entiteUe,
-        actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t)],
+        actions: (t) => [ACTION_MATIERES(t), actionCreer(MATIERE, matiereEntite(t), t), ACTION_SYLLABUS()],
     },
     {
         segment: MATIERE,
@@ -179,7 +184,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: Text,
         enfants: [],
         entite: entiteMatiere,
-        actions: () => [],
+        // La fiche syllabus (lot 2) : le seul prolongement d'une matière.
+        actions: () => [ACTION_SYLLABUS()],
     },
     {
         // L'affectation d'élèves n'est pas un niveau de structure : elle reste

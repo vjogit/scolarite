@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche syllabus — INFRES_9_3_DL Génie Logiciel (maquette)</title>
+<style>
+/* ==========================================================================
+   Gabarit fiche syllabus — maquette ergonomique (lot 5, voie HTML→PDF)
+   Principes :
+   1. La fiche se lit sans légende : les colonnes de la matrice de
+      compétences portent le sens, pas un code de formes.
+   2. Rien de vide ne s'imprime : rubriques et lignes d'heures absentes
+      quand elles sont vides (le gabarit final les conditionne).
+   3. Chaque série de chiffres a son total.
+   4. Une matière = une page.
+   ========================================================================== */
+
+:root {
+  --encre: #1f2a33;          /* texte principal */
+  --secondaire: #5b6b75;     /* libellés d'appui, notes */
+  --accent: #0e7c86;         /* turquoise IMT (logo de l'école) */
+  --accent-fonce: #0a5d65;
+  --trame: #eaf4f5;          /* fonds de repère très légers */
+  --filet: #c9d3d8;
+  --papier: #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 13px; }
+
+body {
+  font-family: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: var(--encre);
+  background: #dfe4e7;
+  line-height: 1.45;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ---- Feuilles A4 -------------------------------------------------------- */
+.page {
+  background: var(--papier);
+  width: 210mm;
+  min-height: 297mm;
+  margin: 10mm auto;
+  padding: 14mm 16mm 20mm;
+  box-shadow: 0 2px 14px rgba(31, 42, 51, .18);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Bandeau d'identité ------------------------------------------------- */
+.bandeau {
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+.bandeau .ue-code {
+  color: var(--accent-fonce);
+  font-weight: 600;
+  font-size: .95rem;
+  letter-spacing: .02em;
+}
+.bandeau h1 {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.bandeau h1 .matiere-sous {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--secondaire);
+  margin-top: 2px;
+}
+.bandeau .contexte-droit {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--secondaire);
+  font-size: .95rem;
+  line-height: 1.3;
+}
+.bandeau .contexte-droit strong {
+  display: block;
+  color: var(--encre);
+  font-size: 1.05rem;
+}
+
+/* ---- Rangée de chiffres clés -------------------------------------------- */
+.chiffres {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--filet);
+  border-radius: 3px;
+  margin-bottom: 16px;
+}
+.chiffres > div {
+  flex: 1;
+  padding: 7px 12px;
+  border-left: 1px solid var(--filet);
+}
+.chiffres > div:first-child { border-left: 0; }
+.chiffres .valeur { font-size: 1.25rem; font-weight: 700; }
+.chiffres .valeur small { font-size: .8rem; font-weight: 600; color: var(--secondaire); }
+.chiffres .libelle { font-size: .82rem; color: var(--secondaire); }
+
+/* ---- Sections ------------------------------------------------------------ */
+section { margin-bottom: 16px; }
+h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+h2 .precision {
+  font-weight: 400;
+  font-size: .82rem;
+  color: var(--secondaire);
+}
+.texte { max-width: 78ch; }
+.texte p + p { margin-top: 6px; }
+.texte ul { margin-left: 1.2em; }
+.texte li { margin-bottom: 2px; }
+
+.deux-colonnes {
+  display: grid;
+  grid-template-columns: 1fr 64mm;
+  gap: 20px;
+  align-items: start;
+}
+.trois-rubriques {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---- Tableaux ------------------------------------------------------------ */
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--secondaire);
+  font-size: .85rem;
+  padding: 4px 8px;
+  border-bottom: 1.5px solid var(--encre);
+}
+td { padding: 5px 8px; border-bottom: 1px solid var(--filet); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; width: 4.5em; }
+tr.total td {
+  border-bottom: 0;
+  border-top: 1.5px solid var(--encre);
+  font-weight: 700;
+  background: var(--trame);
+}
+
+/* ---- Matrice de compétences ---------------------------------------------- */
+.matrice th.etat { text-align: center; width: 7.5em; }
+.matrice td.etat { text-align: center; }
+.matrice .bloc td {
+  background: var(--trame);
+  font-weight: 700;
+  border-bottom: 1px solid var(--accent);
+  padding-top: 6px;
+}
+.matrice .bloc .bloc-code { color: var(--accent-fonce); margin-right: .5em; }
+.matrice .comp-code { color: var(--secondaire); font-weight: 600; margin-right: .5em; }
+.pastille {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.matrice .a-completer { color: var(--secondaire); font-style: italic; }
+.note-bas {
+  font-size: .85rem;
+  color: var(--secondaire);
+  margin-top: 6px;
+  max-width: 78ch;
+}
+
+/* ---- Pied de page --------------------------------------------------------- */
+.pied {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--filet);
+  display: flex;
+  justify-content: space-between;
+  font-size: .8rem;
+  color: var(--secondaire);
+}
+.pied .marque { font-weight: 700; color: var(--accent-fonce); }
+
+/* ---- Impression ----------------------------------------------------------- */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html { font-size: 10.2pt; }
+  body { background: none; }
+  .page {
+    margin: 0;
+    box-shadow: none;
+    width: auto;
+    min-height: 296mm;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= PAGE 1 — L'UE ================================= -->
+<div class="page">
+  <header class="bandeau">
+    <div>
+      <div class="ue-code">INFRES_9_3_DL</div>
+      <h1>Génie Logiciel</h1>
+    </div>
+    <div class="contexte-droit">
+      <strong>INFRES</strong>
+      Semestre 9 · 2025-2026
+    </div>
+  </header>
+
+  <div class="chiffres">
+    <div><div class="valeur">1</div><div class="libelle">ECTS</div></div>
+    <div><div class="valeur">34 <small>h</small></div><div class="libelle">enseignement encadré</div></div>
+    <div><div class="valeur">0 <small>h</small></div><div class="libelle">travail personnel</div></div>
+    <div><div class="valeur">2</div><div class="libelle">enseignements</div></div>
+  </div>
+
+  <section>
+    <h2>Pourquoi cette UE ?</h2>
+    <div class="texte">
+      <p>Ce module combinant gestion des dépendances logicielles et UX/UI design
+      permet d'aborder à la fois la robustesse technique et la qualité de
+      l'expérience utilisateur. La gestion des dépendances forme les élèves à
+      développer des applications fiables, sécurisées et maintenables, en
+      maîtrisant bibliothèques et mises à jour. L'UX/UI design complète cette
+      approche en garantissant des interfaces intuitives, accessibles et
+      attractives. Ensemble, ces cours préparent à créer des solutions à la
+      fois solides et centrées sur l'utilisateur.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Éléments constitutifs de l'UE</h2>
+    <table>
+      <thead>
+        <tr><th>Enseignement</th><th class="num">Heures</th><th class="num">Coeff.</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="comp-code">DL-1</span>Cours gestion des dépendances, risques et maintenabilité</td><td class="num">20</td><td class="num">1</td></tr>
+        <tr><td><span class="comp-code">DL-2</span>Expérience utilisateur : UX et UI design</td><td class="num">14</td><td class="num">1</td></tr>
+        <tr class="total"><td>Volume encadré de l'UE</td><td class="num">34</td><td class="num"></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Parmi les compétences visées par la formation, lesquelles sont développées dans cette UE ?</h2>
+    <table class="matrice">
+      <thead>
+        <tr>
+          <th>Compétence</th>
+          <th class="etat">Enseignée</th>
+          <th class="etat">Mise en œuvre</th>
+          <th class="etat">Évaluée</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="bloc"><td colspan="4"><span class="bloc-code">INFRES-BC1</span>Sécuriser et superviser des systèmes d'information</td></tr>
+        <tr>
+          <td><span class="comp-code">C1</span>Analyser les risques</td>
+          <td class="etat"><span class="pastille"></span></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+        <tr>
+          <td><span class="comp-code">C2</span>Modéliser et concevoir des solutions techniques</td>
+          <td class="etat"><span class="pastille"></span></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+        <tr>
+          <td><span class="comp-code">C3</span>Déployer les solutions</td>
+          <td class="etat"></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+        <tr>
+          <td><span class="comp-code">C4</span>Tester les vulnérabilités</td>
+          <td class="etat"></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+
+        <tr class="bloc"><td colspan="4"><span class="bloc-code">INFRES-BC5 · option DL</span>Concevoir, développer, intégrer et faire évoluer des applications informatiques</td></tr>
+        <tr>
+          <td><span class="comp-code">C1</span>Concevoir une architecture logicielle</td>
+          <td class="etat"><span class="pastille"></span></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+        <tr>
+          <td><span class="comp-code">C2</span>Concevoir une application IA</td>
+          <td class="etat"></td><td class="etat"></td><td class="etat"></td>
+        </tr>
+        <tr>
+          <td class="a-completer" colspan="4"><span class="comp-code">C3–C5</span>Libellés à reprendre du référentiel de la formation</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note-bas">Les autres blocs de compétences de la formation ne sont
+    pas mobilisés par cette UE. Une compétence sans marque n'est pas adressée
+    dans cette UE.</p>
+  </section>
+
+  <footer class="pied">
+    <span><span class="marque">IMT Mines Alès</span> · Syllabus formations ingénieur 2025-2026</span>
+    <span>INFRES_9_3_DL · page 1/3</span>
+  </footer>
+</div>
+
+<!-- ======================= PAGE 2 — MATIÈRE DL-1 ========================== -->
+<div class="page">
+  <header class="bandeau">
+    <div>
+      <div class="ue-code">INFRES_9_3_DL · Génie Logiciel</div>
+      <h1><span class="matiere-sous">DL-1 — Cours gestion des dépendances, risques et maintenabilité</span></h1>
+    </div>
+    <div class="contexte-droit">
+      <strong>INFRES</strong>
+      Semestre 9 · 2025-2026
+    </div>
+  </header>
+
+  <div class="deux-colonnes">
+    <div>
+      <section>
+        <h2>Contexte et enjeux de l'enseignement</h2>
+        <div class="texte">
+          <p>Ce cours s'inscrit dans un contexte où les systèmes logiciels sont
+          de plus en plus complexes, interconnectés et soumis à des évolutions
+          rapides. Les projets reposent sur de multiples bibliothèques,
+          frameworks et services tiers, dont la mauvaise gestion peut générer
+          des failles de sécurité et des incompatibilités. Les enjeux sont donc
+          de sensibiliser les élèves aux bonnes pratiques pour identifier,
+          évaluer et maîtriser les dépendances, anticiper les risques liés aux
+          mises à jour ou à l'obsolescence, et garantir la qualité du code sur
+          le long terme. Ce cours vise aussi à développer une culture de la
+          maintenabilité, essentielle pour assurer la pérennité, la sécurité et
+          l'évolutivité des solutions logicielles, tout en réduisant les coûts
+          et les risques opérationnels pour les organisations.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Prérequis</h2>
+        <div class="texte"><p>Savoir concevoir un logiciel.</p></div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Volumes horaires</h2>
+      <table>
+        <tbody>
+          <tr><td>Cours intégré (cours + TD)</td><td class="num">15</td></tr>
+          <tr><td>TP</td><td class="num">4</td></tr>
+          <tr><td>Contrôles et soutenances</td><td class="num">1</td></tr>
+          <tr class="total"><td>Encadré</td><td class="num">20</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="trois-rubriques">
+    <section>
+      <h2>Objectifs pédagogiques <span class="precision">— à la fin de cet enseignement, l'étudiant sera capable de…</span></h2>
+      <div class="texte">
+        <ul>
+          <li>Comprendre l'importance de la gestion des dépendances dans le développement logiciel.</li>
+          <li>Identifier et évaluer les risques associés aux dépendances et aux changements de code.</li>
+          <li>Appliquer les principes de la maintenabilité pour concevoir des logiciels évolutifs et faciles à maintenir.</li>
+          <li>Utiliser des outils et des techniques pour automatiser la gestion des dépendances et les tests.</li>
+          <li>Développer des compétences en analyse de code et en refactoring pour améliorer la maintenabilité.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Activités <span class="precision">— CM, TD, TP, projet…</span></h2>
+      <div class="texte"><p>Cours alternant avec des TP.</p></div>
+    </section>
+
+    <section>
+      <h2>Évaluations et retours faits aux élèves</h2>
+      <div class="texte"><p>TP noté ou bien examen écrit suivant le contexte.</p></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Plan de cours</h2>
+    <div class="texte">
+      <ul>
+        <li>Gestion des dépendances</li>
+        <li>Gestion des risques</li>
+        <li>Maintenabilité</li>
+        <li>Automatisation et bonnes pratiques</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ressources et références</h2>
+    <div class="texte"><p>Support de cours disponible sur Campus.</p></div>
+  </section>
+
+  <footer class="pied">
+    <span><span class="marque">IMT Mines Alès</span> · Syllabus formations ingénieur 2025-2026</span>
+    <span>INFRES_9_3_DL · page 2/3</span>
+  </footer>
+</div>
+
+<!-- ======================= PAGE 3 — MATIÈRE DL-2 ========================== -->
+<div class="page">
+  <header class="bandeau">
+    <div>
+      <div class="ue-code">INFRES_9_3_DL · Génie Logiciel</div>
+      <h1><span class="matiere-sous">DL-2 — Expérience utilisateur : UX et UI design</span></h1>
+    </div>
+    <div class="contexte-droit">
+      <strong>INFRES</strong>
+      Semestre 9 · 2025-2026
+    </div>
+  </header>
+
+  <div class="deux-colonnes">
+    <div>
+      <section>
+        <h2>Contexte et enjeux de l'enseignement</h2>
+        <div class="texte">
+          <p>Un cours d'UX et UI design s'inscrit dans un contexte où la
+          qualité de l'expérience utilisateur est devenue un facteur clé de
+          réussite des produits numériques. Les applications et services sont
+          en concurrence permanente et les utilisateurs attendent des
+          interfaces intuitives, accessibles et esthétiques. Les enjeux sont
+          donc de former les élèves à concevoir des parcours fluides, centrés
+          sur les besoins réels, et à maîtriser les principes visuels et
+          ergonomiques qui favorisent l'engagement et la satisfaction. Ce
+          cours met aussi en avant l'importance d'intégrer l'UX et l'UI dès la
+          phase de conception, afin de réduire les risques d'échec,
+          d'améliorer la maintenabilité et de garantir la cohérence des
+          solutions sur différents supports. Il prépare ainsi à créer des
+          produits numériques alliant efficacité, attractivité et valeur
+          ajoutée pour les utilisateurs.</p>
+        </div>
+      </section>
+      <!-- Prérequis vide : la rubrique ne s'imprime pas (principe 2). -->
+    </div>
+
+    <section>
+      <h2>Volumes horaires</h2>
+      <table>
+        <tbody>
+          <tr><td>Cours intégré (cours + TD)</td><td class="num">10</td></tr>
+          <tr><td>TP</td><td class="num">3</td></tr>
+          <tr><td>Contrôles et soutenances</td><td class="num">1</td></tr>
+          <tr class="total"><td>Encadré</td><td class="num">14</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <div class="trois-rubriques">
+    <section>
+      <h2>Objectifs pédagogiques <span class="precision">— à la fin de cet enseignement, l'étudiant sera capable de…</span></h2>
+      <div class="texte">
+        <ul>
+          <li>Comprendre les concepts clés de l'UX et du UI design.</li>
+          <li>Maîtriser les techniques de recherche utilisateur et d'analyse de données.</li>
+          <li>Concevoir des wireframes et des prototypes interactifs.</li>
+          <li>Créer des interfaces utilisateur esthétiques et fonctionnelles.</li>
+          <li>Évaluer et améliorer l'expérience utilisateur.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>Activités <span class="precision">— CM, TD, TP, projet…</span></h2>
+      <div class="texte"><p>Cours en alternance avec des TP.</p></div>
+    </section>
+
+    <section>
+      <h2>Évaluations et retours faits aux élèves</h2>
+      <div class="texte"><p>TP noté ou bien écrit en fonction du contexte.</p></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Plan de cours</h2>
+    <div class="texte">
+      <ul>
+        <li>Introduction à l'UX et au UI design</li>
+        <li>Recherche utilisateur et analyse</li>
+        <li>Conception de l'expérience utilisateur</li>
+        <li>Design de l'interface utilisateur</li>
+        <li>Évaluation et amélioration continue</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Ressources et références</h2>
+    <div class="texte"><p>Support de cours disponible sur Campus.</p></div>
+  </section>
+
+  <footer class="pied">
+    <span><span class="marque">IMT Mines Alès</span> · Syllabus formations ingénieur 2025-2026</span>
+    <span>INFRES_9_3_DL · page 3/3</span>
+  </footer>
+</div>
+
+</body>
+</html>

@@ -246,7 +246,7 @@ func (q *Queries) FetchToeicScoresByPeriodeID(ctx context.Context, periodeID int
 }
 
 const fetchUniteEnseignementsByPeriodeID = `-- name: FetchUniteEnseignementsByPeriodeID :many
-SELECT id, version, name, ects, academique, periode_id FROM public.unite_enseignement
+SELECT id, version, name, ects, academique, periode_id, description, responsable_id FROM public.unite_enseignement
 WHERE periode_id = $1 order by name
 `
 
@@ -266,6 +266,8 @@ func (q *Queries) FetchUniteEnseignementsByPeriodeID(ctx context.Context, period
 			&i.Ects,
 			&i.Academique,
 			&i.PeriodeID,
+			&i.Description,
+			&i.ResponsableID,
 		); err != nil {
 			return nil, err
 		}

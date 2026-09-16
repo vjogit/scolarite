@@ -1,0 +1,6 @@
+keep :
+ - SyllabusMatiere
+ - UniteEnseignement
+ - BlocCompetence
+ - Competence
+ - UeCompetence

@@ -1,0 +1,11 @@
+annee,ue_code,ue_libelle,bloc_id,bloc_libelle,competence_id,action_observable,etat_tiers,enseignee,mise_en_oeuvre,evaluee
+2025-2026,FIX_5_1,UE 1 legacy,19,Concevoir le SI,101,Concevoir les services du SI,enseva,1,0,1
+2025-2026,FIX_5_1,UE 1 legacy,19,Concevoir le SI,102,Exploiter le SI,meo,0,1,0
+2025-2026,FIX_5_1,UE 1 legacy,20,Sécuriser le SI,201,Concevoir la stratégie de sécurité,eva,0,0,1
+2025-2026,FIX_5_1,UE 1 legacy,1,Analyser et résoudre des problèmes complexes,3,Élaborer une méthode,ens,1,0,0
+2025-2026,FIX_5_2,Bases,19,Concevoir le SI,103,Troisième compétence sans position,ens,1,0,0
+2025-2026,FIX_5_2,Bases,19,Concevoir le SI,104,Compétence sans code,ens,1,0,0
+2025-2026,FIX_6_1,UE 6 legacy,19,Concevoir le SI,101,Concevoir les services du SI,ens,1,0,0
+2025-2026,FIX_6_1,UE 6 legacy,21,Concevoir le SI (doublon tiers),211,Concevoir les services du SI,eva,0,0,1
+2025-2026,FIX_6_2,UE 62 legacy,30,Concevoir des constructions,301,(éco)Concevoir,ens,1,0,0
+2025-2026,FIX_9_9,UE fantôme,19,Concevoir le SI,101,Concevoir les services du SI,ens,1,0,0

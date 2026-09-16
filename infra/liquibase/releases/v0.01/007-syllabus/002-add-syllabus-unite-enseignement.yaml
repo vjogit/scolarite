@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-add-syllabus-unite-enseignement
+      author: dev
+      comment: "Contenu syllabus de l'UE, porté par unite_enseignement elle-même (le précédent 005-corbeille altère aussi les tables de structure depuis son dossier) : description (« Pourquoi cette UE ? ») et responsable AGENT en ON DELETE SET NULL. Ces deux colonnes s'écrivent par la route syllabus de l'UE (rôle SYLLABUS_ECRITURE), jamais par la mise à jour de structure."
+      changes:
+        - addColumn:
+            tableName: unite_enseignement
+            columns:
+              - column: { name: description, type: TEXT }
+              - column: { name: responsable_id, type: INTEGER }
+
+        - addForeignKeyConstraint:
+            constraintName: fk_ue_responsable
+            baseTableName: unite_enseignement
+            baseColumnNames: responsable_id
+            referencedTableName: user
+            referencedColumnNames: id
+            onDelete: SET NULL
+
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: unite_enseignement
+            constraintName: fk_ue_responsable
+        - dropColumn: { tableName: unite_enseignement, columnName: responsable_id }
+        - dropColumn: { tableName: unite_enseignement, columnName: description }

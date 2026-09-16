@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-syllabus-matiere
+      author: dev
+      comment: "Fiche syllabus de la matière, 1-1 avec matiere (FK unique, suit la matière par cascade). Contenu pédagogique seulement : rubriques TEXT, ventilation horaire NUMERIC(5,2) nommée sur les lignes de la maquette (les sept premières forment le volume encadré, heures_perso reste hors total), responsable AGENT en ON DELETE SET NULL (la fiche survit au départ de l'agent). Aucune donnée de structure n'est recopiée : matiere.heure fait foi, un écart avec la ventilation se signale à l'affichage et ne se bloque jamais ici."
+      changes:
+        - createTable:
+            tableName: syllabus_matiere
+            columns:
+              - column:
+                  name: id
+                  type: SERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: matiere_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_syllabus_matiere_matiere
+                    foreignKeyName: fk_syllabus_matiere_matiere
+                    referencedTableName: matiere
+                    referencedColumnNames: id
+                    deleteCascade: true
+              - column: { name: contexte, type: TEXT }
+              - column: { name: objectifs, type: TEXT }
+              - column: { name: prerequis, type: TEXT }
+              - column: { name: activites, type: TEXT }
+              - column: { name: evaluation, type: TEXT }
+              - column: { name: plan_cours, type: TEXT }
+              - column: { name: ressources, type: TEXT }
+              - column: { name: dimension_socio_env, type: TEXT }
+              - column: { name: heures_cours, type: "NUMERIC(5,2)" }
+              - column: { name: heures_cours_td, type: "NUMERIC(5,2)" }
+              - column: { name: heures_td, type: "NUMERIC(5,2)" }
+              - column: { name: heures_tp, type: "NUMERIC(5,2)" }
+              - column: { name: heures_projet, type: "NUMERIC(5,2)" }
+              - column: { name: heures_autonomie, type: "NUMERIC(5,2)" }
+              - column: { name: heures_controle, type: "NUMERIC(5,2)" }
+              - column: { name: heures_perso, type: "NUMERIC(5,2)" }
+              - column:
+                  name: responsable_id
+                  type: INTEGER
+
+        - addForeignKeyConstraint:
+            constraintName: fk_syllabus_matiere_responsable
+            baseTableName: syllabus_matiere
+            baseColumnNames: responsable_id
+            referencedTableName: user
+            referencedColumnNames: id
+            onDelete: SET NULL
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_cours_positive CHECK (heures_cours >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_cours_td_positive CHECK (heures_cours_td >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_td_positive CHECK (heures_td >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_tp_positive CHECK (heures_tp >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_projet_positive CHECK (heures_projet >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_autonomie_positive CHECK (heures_autonomie >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_controle_positive CHECK (heures_controle >= 0);
+              ALTER TABLE syllabus_matiere ADD CONSTRAINT chk_syllabus_matiere_heures_perso_positive CHECK (heures_perso >= 0);
+
+      rollback:
+        - dropTable:
+            tableName: syllabus_matiere
+            cascadeConstraints: true
