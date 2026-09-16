@@ -2,17 +2,19 @@ import type { CrudProps, Datasource, RenderProps, ViewConfig } from '../../servi
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
+import { useQuery } from '@tanstack/react-query';
 import { Crud } from '../../services/crud/Crud';
-import { useWatch } from 'react-hook-form';
+import { useWatch, type Control } from 'react-hook-form';
 import { ChampDate } from '../../services/ChampDate';
 import { ChampNombre, ChampTexte } from '../../services/ChampTexte';
-import { ChampInterrupteur } from '../../services/ChampChoix';
+import { ChampInterrupteur, ChampSelection } from '../../services/ChampChoix';
 import { useParams } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ECHELLE_KEYS } from './service';
 import { useRootPath } from '../../services/crud/useRootPath';
 import { promotionSchema, type Promotion, createPromotionRepository, ACTION_OPTIONS, promotionEntite } from './entites/promotion';
 import { ACTION_LIVRET } from '../syllabus/entites/syllabus';
+import { ACTION_REFERENTIEL } from '../syllabus/entites/competences';
 
 export type { Promotion } from './entites/promotion';
 
@@ -27,12 +29,42 @@ function formaterEchelle(valeur: unknown): unknown {
         : valeur;
 }
 
-const PromotionFields = ({ control, isReadOnly }: RenderProps<Promotion>) => {
+/**
+ * Le gabarit de création (16 septembre 2026) : une promotion existante de la
+ * même formation, dont la structure et le contenu syllabus sont copiés par
+ * le serveur. Les promotions viennent du repository, sous sa clé — la liste
+ * d'où l'on arrive est déjà en cache (invariant 2). Rendu en création seule.
+ */
+function ChampGabarit({ control, formationId }: { control: Control<Promotion>; formationId: string }) {
+    const { t } = useTranslation('structure');
+    const repository = useMemo(() => createPromotionRepository(formationId), [formationId]);
+    const { data } = useQuery({ queryKey: repository.queryKey, queryFn: repository.fetchAll });
+    const options = useMemo(
+        () => (data ?? [])
+            .map((promotion) => ({ id: String(promotion.id), label: promotion.name }))
+            .sort((a, b) => a.label.localeCompare(b.label)),
+        [data],
+    );
+    return (
+        <ChampSelection
+            name="source_promotion_id"
+            control={control}
+            label={t('promotion.champGabarit')}
+            options={options}
+            libelleVide={t('promotion.gabaritAucun')}
+            aide={t('promotion.champGabaritAide')}
+        />
+    );
+}
+
+const PromotionFields = ({ control, isReadOnly, mode }: RenderProps<Promotion>) => {
     const matiereEliminatoire = useWatch({ control, name: 'matiere_eliminatoire' });
     const { t } = useTranslation('structure');
+    const { formationId } = useParams();
 
     return <>
         <ChampTexte name="name" control={control} label={t('promotion.champTitre')} disabled={isReadOnly} />
+        {mode === 'create' && formationId !== undefined && <ChampGabarit control={control} formationId={formationId} />}
         {/* En création, react-hook-form donne `undefined` (le champ est
             absent d'`emptyValue`) : le garde qui empêche la date du jour de
             se pré-remplir vit dans `ChampDate`, une fois pour toutes. */}
@@ -133,15 +165,16 @@ export function CrudPromotion({ mode, workflow, isAction, isReadOnly,isTopToolba
     const { t: tSyllabus } = useTranslation('syllabus');
 
     // Actions par défaut de la ligne, créées au rendu avec `t` — jamais au
-    // chargement d'un module de routes (défaut de langue consigné). Le livret
-    // syllabus (lot 5) s'y ajoute : une lecture, sous tous les rôles.
+    // chargement d'un module de routes (défaut de langue consigné). Le
+    // référentiel de compétences (lot 3, porté par la promotion) et le livret
+    // syllabus (lot 5) s'y ajoutent.
     const datasource = useMemo((): Datasource<Promotion> | null => formationId ? ({
         ...createPromotionRepository(formationId),
         ...createPromotionViewConfig(formationId, tStructure),
         ...promotionEntite(t),
         isAction,
         isReadOnly,
-        actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t), ACTION_LIVRET(tSyllabus)],
+        actionsLigne: actionsLigne ?? [ACTION_OPTIONS(t), ACTION_REFERENTIEL(tSyllabus), ACTION_LIVRET(tSyllabus)],
         isTopToolbar,
         actionsBarreOutils,
     }) : null, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure, tSyllabus]);

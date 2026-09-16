@@ -16,7 +16,8 @@ const (
 	MotifReferenceInconnue   = "reference_inconnue"
 	MotifValeurNegative      = "valeur_negative"
 	MotifValeurHorsPlage     = "valeur_hors_plage" // au-delà de ce que la colonne peut porter (NUMERIC(5,2))
-	MotifHorsFormation       = "hors_formation"    // compétence existante mais d'une autre formation que l'UE (lot 3 syllabus)
+	MotifHorsPromotion       = "hors_promotion"    // compétence existante mais d'une autre promotion que l'UE (référentiel par promotion, 16 septembre 2026)
+	MotifHorsFormation       = "hors_formation"    // promotion gabarit d'une autre formation que la promotion créée (création par gabarit)
 	MotifNoteHorsBareme      = "note_hors_bareme"
 	MotifNoteMaxAbsolu       = "note_max_absolu"
 	MotifFinAvantDebut       = "fin_avant_debut"

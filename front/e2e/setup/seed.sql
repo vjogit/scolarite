@@ -125,33 +125,38 @@ set description = 'Concevoir et maintenir un logiciel dans la durée.',
 from agent
 where ue.name = 'E2E UE1';
 
--- ── Compétences (lot 3 syllabus) ──────────────────────────────────────────
+-- ── Compétences (lot 3 syllabus, référentiel par promotion) ───────────────
 -- Ce que la famille « matrice de l'UE » consomme, jamais ce que la famille
 -- « administration du référentiel » teste (celle-ci crée, vérifie et supprime
 -- les siens, la base ressort comme elle est entrée). Deux blocs d'ordres
--- distincts sur « E2E Formation » — l'un à deux compétences, l'autre à une —
--- prouvent regroupement, ordre et codes dérivés « C1/C2 » ; une formation
--- étrangère minimale (un bloc, une compétence) prouve que la matrice de
--- l'UE E2E ne liste que sa formation (pendant lecture de la garantie
--- serveur) ; une liaison pré-cochée (C1 du bloc 1 : enseignée + évaluée) sert
--- la lecture CONSULTATION sans dépendre d'une spec d'écriture. La formation
--- étrangère est purgée en tête comme l'autre ; blocs, compétences et
--- liaisons suivent leur formation et leur UE par cascade — idempotence par
--- pose inchangée. « E2E Autre Formation » et non « E2E Formation Etrangere » :
--- « E2E Formation » en serait le préfixe, et les localisateurs Playwright
--- matchent par sous-chaîne (mode strict, précédent « E2E Promo Vide »).
-with f as (
-    select id from formation where name = 'E2E Formation'
+-- distincts sur « E2E Promotion » — l'un à deux compétences, l'autre à une —
+-- prouvent regroupement, ordre et codes dérivés « C1/C2 » ; une seconde
+-- promotion de la MÊME formation, « E2E Promo Autre » (sans descendance, un
+-- bloc, une compétence), prouve que la matrice de l'UE E2E ne liste que sa
+-- promotion — le cas fort, depuis le rattachement du référentiel à la
+-- promotion (16 septembre 2026), pendant lecture de la garantie serveur ; une
+-- liaison pré-cochée (C1 du bloc 1 : enseignée + évaluée) sert la lecture
+-- CONSULTATION sans dépendre d'une spec d'écriture. Blocs, compétences et
+-- liaisons suivent leur promotion et leur UE par cascade — idempotence par
+-- pose inchangée. « E2E Promo Autre » et non « E2E Promotion Autre » :
+-- « E2E Promotion » en serait le préfixe, et les localisateurs Playwright
+-- matchent par sous-chaîne (mode strict, précédent « E2E Promo Vide »). Ce
+-- n'est pas « E2E Promo Vide » qui porte ce bloc : celle-ci doit rester sans
+-- aucune donnée liée (dialogue de suppression avec saisie, lot 4ter).
+-- « E2E Autre Formation » reste, sans bloc : la capture `formation-liste`
+-- la montre.
+with p as (
+    select id from promotion where name = 'E2E Promotion'
 ), b1 as (
-    insert into bloc_competence (formation_id, ordre, libelle, code, activites, modalites_evaluation)
-    select f.id, 1, 'E2E Bloc Securiser', 'E2E-BC1',
+    insert into bloc_competence (promotion_id, ordre, libelle, code, activites, modalites_evaluation)
+    select p.id, 1, 'E2E Bloc Securiser', 'E2E-BC1',
            'Analyser les risques d''un système d''information et concevoir sa sécurisation.',
            'Étude de cas évaluée en soutenance.'
-    from f
+    from p
     returning id
 ), b2 as (
-    insert into bloc_competence (formation_id, ordre, libelle)
-    select f.id, 2, 'E2E Bloc Concevoir' from f
+    insert into bloc_competence (promotion_id, ordre, libelle)
+    select p.id, 2, 'E2E Bloc Concevoir' from p
     returning id
 ), c11 as (
     insert into competence (bloc_id, ordre, action, contexte, finalites)
@@ -171,15 +176,23 @@ with f as (
     select ue.id, c11.id, true, false, true
     from unite_enseignement ue, c11
     where ue.name = 'E2E UE1'
-), fe as (
-    insert into formation (name) values ('E2E Autre Formation') returning id
+), pa as (
+    insert into promotion (name, debut, fin, echelle_gpa, echelle, matiere_eliminatoire, value_matiere_eliminatoire, formation_id, bareme)
+    select 'E2E Promo Autre', '2024-09-01', '2025-08-31',
+           array[4, 3.5, 3, 2.5, 2, 0]::real[], array[16, 14, 12, 10, 8]::real[],
+           true, 6, f.id, 20
+    from formation f
+    where f.name = 'E2E Formation'
+    returning id
 ), be as (
-    insert into bloc_competence (formation_id, ordre, libelle)
-    select fe.id, 1, 'E2E Bloc Etranger' from fe
+    insert into bloc_competence (promotion_id, ordre, libelle)
+    select pa.id, 1, 'E2E Bloc Etranger' from pa
     returning id
 )
 insert into competence (bloc_id, ordre, action)
 select be.id, 1, 'E2E Competence Etrangere' from be;
+
+insert into formation (name) values ('E2E Autre Formation');
 
 -- ── Promotion vide (dialogue de suppression avec saisie — lot 4ter) ────────
 -- Sans descendance : sa suppression n'est pas bloquée par la période

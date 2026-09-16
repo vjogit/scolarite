@@ -95,7 +95,7 @@ reservation_groupe_c AS (
        OR rg.groupe_id IN (SELECT id FROM groupe_c)
 ),
 bloc_c AS (
-    SELECT b.id FROM public.bloc_competence b JOIN cible c ON b.formation_id = c.id
+    SELECT b.id FROM public.bloc_competence b JOIN promotion_c p ON b.promotion_id = p.id
 ),
 competence_c AS (
     SELECT co.id FROM public.competence co JOIN bloc_c b ON co.bloc_id = b.id
@@ -117,8 +117,8 @@ SELECT
     (SELECT count(*) FROM public.reservation_salle rs WHERE rs.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_salle_count,
     (SELECT count(*) FROM reservation_groupe_c)::bigint AS reservation_groupe_count,
     (SELECT count(*) FROM jury_c)::bigint AS jury_result_count,
-    -- Référentiel de compétences (lot 3 syllabus) : les blocs suivent la
-    -- formation par cascade, leurs compétences et les liaisons aux UE aussi.
+    -- Référentiel de compétences (lot 3 syllabus) : les blocs suivent leur
+    -- promotion par cascade, leurs compétences et les liaisons aux UE aussi.
     (SELECT count(*) FROM bloc_c)::bigint AS bloc_competence_count,
     (SELECT count(*) FROM competence_c)::bigint AS competence_count,
     (SELECT count(*) FROM public.ue_competence uc WHERE uc.competence_id IN (SELECT id FROM competence_c))::bigint AS ue_competence_count,
@@ -161,6 +161,8 @@ type FormationDeleteImpactRow struct {
 // jury_result est atteignable par periode_id ET par unite_enseignement_id :
 // un seul balayage avec OR évite de compter deux fois la même ligne.
 // idem pour reservation_groupe, atteignable par la réservation ET par le groupe.
+// Le référentiel de compétences est porté par la promotion (16 septembre
+// 2026) : la formation l'agrège par ses promotions actives.
 func (q *Queries) FormationDeleteImpact(ctx context.Context, ids []int32) (FormationDeleteImpactRow, error) {
 	row := q.db.QueryRow(ctx, formationDeleteImpact, ids)
 	var i FormationDeleteImpactRow

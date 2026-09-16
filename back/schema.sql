@@ -292,7 +292,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.bloc_competence (
     id integer NOT NULL,
     version integer DEFAULT 1 NOT NULL,
-    formation_id integer NOT NULL,
+    promotion_id integer NOT NULL,
     ordre integer NOT NULL,
     libelle text NOT NULL,
     code text,
@@ -1152,7 +1152,7 @@ ALTER TABLE ONLY public.toeic
 
 
 ALTER TABLE ONLY public.bloc_competence
-    ADD CONSTRAINT uk_bloc_competence_ordre UNIQUE (formation_id, ordre);
+    ADD CONSTRAINT uk_bloc_competence_ordre UNIQUE (promotion_id, ordre);
 
 
 
@@ -1196,7 +1196,7 @@ ALTER TABLE ONLY public."user"
 
 
 
-CREATE INDEX idx_bloc_competence_formation ON public.bloc_competence USING btree (formation_id);
+CREATE INDEX idx_bloc_competence_promotion ON public.bloc_competence USING btree (promotion_id);
 
 
 
@@ -1301,7 +1301,7 @@ CREATE TRIGGER trg_sync_reservation_horaire AFTER INSERT OR UPDATE ON public.res
 
 
 ALTER TABLE ONLY public.bloc_competence
-    ADD CONSTRAINT fk_bloc_competence_formation FOREIGN KEY (formation_id) REFERENCES public.formation(id) ON DELETE CASCADE;
+    ADD CONSTRAINT fk_bloc_competence_promotion FOREIGN KEY (promotion_id) REFERENCES public.promotion(id) ON DELETE CASCADE;
 
 
 

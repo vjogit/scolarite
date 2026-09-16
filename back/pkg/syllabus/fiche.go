@@ -4,7 +4,7 @@ package syllabus
 // données, structure d'abord — le chemin UE → période → option → promotion →
 // formation par les vues actives, les matières et leurs heures, les ECTS —,
 // syllabus ensuite — description, fiches des matières, matrice, référentiel
-// de la formation en entier —, puis rendu par le gabarit (fiche_gabarit.go)
+// de la promotion en entier —, puis rendu par le gabarit (fiche_gabarit.go)
 // et conversion par le service PDF (services/pdf.go).
 //
 // Lecture sous CONSULTATION, comme les autres lectures du domaine. La langue
@@ -175,7 +175,7 @@ func cheminDe(ctx context.Context, pool *pgxpool.Pool, ue uegen.UniteEnseignemen
 	return c, nil
 }
 
-// referentiel : le référentiel d'une formation avec l'index qui permet de
+// referentiel : le référentiel d'une promotion avec l'index qui permet de
 // poser les marques d'une UE dessus — chargé une fois par document, marqué
 // par copie pour chaque UE (les marques diffèrent).
 type referentiel struct {
@@ -185,12 +185,12 @@ type referentiel struct {
 	pos   map[int32]int           // bloc → index dans blocs
 }
 
-func chargerReferentiel(ctx context.Context, queries *gen.Queries, formationID int32) (*referentiel, error) {
-	blocs, err := queries.FetchBlocsByFormationID(ctx, formationID)
+func chargerReferentiel(ctx context.Context, queries *gen.Queries, promotionID int32) (*referentiel, error) {
+	blocs, err := queries.FetchBlocsByPromotionID(ctx, promotionID)
 	if err != nil {
 		return nil, err
 	}
-	competences, err := queries.FetchReferentielByFormationID(ctx, formationID)
+	competences, err := queries.FetchReferentielByPromotionID(ctx, promotionID)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func CollecterFiche(ctx context.Context, pool *pgxpool.Pool, ueID int32) (*Donne
 	if err != nil {
 		return nil, err
 	}
-	ref, err := chargerReferentiel(ctx, queries, c.Formation.ID)
+	ref, err := chargerReferentiel(ctx, queries, c.Promotion.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func CollecterLivret(ctx context.Context, pool *pgxpool.Pool, promotionID int32)
 	if err != nil {
 		return nil, err
 	}
-	ref, err := chargerReferentiel(ctx, queries, formation.ID)
+	ref, err := chargerReferentiel(ctx, queries, promotion.ID)
 	if err != nil {
 		return nil, err
 	}

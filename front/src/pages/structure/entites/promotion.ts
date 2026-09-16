@@ -59,6 +59,14 @@ export const promotionSchema = z.object({
     matiere_eliminatoire: z.boolean().nullable().optional(),
     value_matiere_eliminatoire: z.number().min(0, { error: messageValidation('noteDoitEtrePositive') }).nullable().optional(),
     formation_id: z.number(),
+    // Création par gabarit (16 septembre 2026) : la promotion de la même
+    // formation dont la structure et le contenu syllabus sont copiés. Le
+    // sélecteur travaille en chaînes, le serveur attend un entier ; absent ou
+    // vide = promotion vide, comme avant. Ignoré en édition.
+    source_promotion_id: z.union([
+        z.string().transform((valeur) => (valeur === '' ? null : parseInt(valeur))),
+        z.number(),
+    ]).nullable().optional(),
 }).refine((data) => data.fin > data.debut, {
     error: messageValidation('dateFinApresDebut'),
     path: ["fin"], // L'erreur sera attachée au champ 'fin'

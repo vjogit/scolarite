@@ -30,7 +30,8 @@
     "echelle_longueur": "The scale must contain 5 values",
     "echelle_decroissante": "The scale must be decreasing",
     "echelle_hors_bareme": "The scale thresholds cannot exceed the grading scale",
-    "hors_formation": "This competency does not belong to the unit's program"
+    "hors_formation": "This cohort does not belong to the same program",
+    "hors_promotion": "This competency does not belong to the unit's cohort"
   },
   "noteHorsBaremeAvecMax": "The grade must be between 0 and {{max}}",
   "noteDepasseBareme": "The grade exceeds the grading scale",

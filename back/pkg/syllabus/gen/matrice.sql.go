@@ -65,7 +65,7 @@ FROM public.unite_enseignement ue
 JOIN public.periode_active pe ON pe.id = ue.periode_id
 JOIN public.option_active o ON o.id = pe.option_id
 JOIN public.promotion_active p ON p.id = o.promotion_id
-JOIN public.bloc_competence b ON b.formation_id = p.formation_id
+JOIN public.bloc_competence b ON b.promotion_id = p.id
 JOIN public.competence c ON c.bloc_id = b.id
 WHERE ue.id = $4 AND c.id = $5
 `
@@ -78,12 +78,12 @@ type InsertUeCompetenceParams struct {
 	CompetenceID int32 `json:"competence_id"`
 }
 
-// Une compétence ne se lie à une UE que si son bloc appartient à la formation
-// de l'UE. La chaîne réelle du schéma — UE → période → option → promotion →
-// formation, par les vues actives (invariant 9) — est jointe ici : la
-// requête ne peut physiquement insérer qu'une compétence de la bonne
-// formation. Zéro ligne insérée = compétence inconnue ou hors formation ;
-// c'est le handler qui distingue les deux et annule la transaction.
+// Une compétence ne se lie à une UE que si son bloc appartient à la promotion
+// de l'UE. La chaîne réelle du schéma — UE → période → option → promotion,
+// par les vues actives (invariant 9) — est jointe ici : la requête ne peut
+// physiquement insérer qu'une compétence de la bonne promotion. Zéro ligne
+// insérée = compétence inconnue ou hors promotion ; c'est le handler qui
+// distingue les deux et annule la transaction.
 func (q *Queries) InsertUeCompetence(ctx context.Context, arg InsertUeCompetenceParams) (int64, error) {
 	result, err := q.db.Exec(ctx, insertUeCompetence,
 		arg.Enseignee,

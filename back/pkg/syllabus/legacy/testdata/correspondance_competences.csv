@@ -1,6 +1,7 @@
-bloc_id_tiers,bloc_libelle_tiers,formation_name_scolarite,bloc_ordre_scolarite,commentaire
+bloc_id_tiers,bloc_libelle_tiers,promotion_name_scolarite,bloc_ordre_scolarite,commentaire
 1,Analyser et résoudre des problèmes complexes,,,bloc transversal non repris
-19,Concevoir le SI,Formation legacy,1,
-20,Sécuriser le SI,Formation legacy,2,
-21,Concevoir le SI (doublon tiers),Formation legacy,1,même bloc que 19 : le tiers duplique ses blocs par formation
-30,Concevoir des constructions,Formation autre legacy,1,bloc d'une autre formation
+19,Concevoir le SI,Promo 1 legacy,1,
+19,Concevoir le SI,Promo 2 legacy,1,même bloc tiers pour une seconde promotion : une ligne par promotion
+20,Sécuriser le SI,promo 1 LEGACY,2,nom comparé espaces réduits et casse ignorée
+21,Concevoir le SI (doublon tiers),Promo 1 legacy,1,même bloc que 19 : le tiers duplique ses blocs par formation
+30,Concevoir des constructions,Promo 2 legacy,1,mappé pour une autre promotion que celle de l'UE FIX_6_2 : rejet

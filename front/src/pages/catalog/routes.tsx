@@ -52,10 +52,11 @@ export function createCatalogHierarchyRoutes() {
             { segment: MATIERE, parent: UES, composant: enrober(CrudMatiere, { ...EDITION, actionsLigne: [ACTION_SYLLABUS()] }) },
             { segment: SYLLABUS, parent: UES, ecran: SyllabusUe },
             { segment: SYLLABUS, parent: MATIERE, ecran: SyllabusMatiere },
-            // Le référentiel de compétences (lot 3) : deux Crud imbriqués sous la
-            // formation, sur le modèle UE → matières. Leurs actions par défaut
-            // sont créées au rendu, avec `t` (`CrudBloc`).
-            { segment: BLOC, parent: FORMATION, composant: enrober(CrudBloc, EDITION) },
+            // Le référentiel de compétences (lot 3, par promotion depuis le 16
+            // septembre 2026) : deux Crud imbriqués sous la promotion, sur le
+            // modèle UE → matières. Leurs actions par défaut sont créées au
+            // rendu, avec `t` (`CrudBloc`).
+            { segment: BLOC, parent: PROMOTION, composant: enrober(CrudBloc, EDITION) },
             { segment: COMPETENCE, parent: BLOC, composant: enrober(CrudCompetence, EDITION) },
             { segment: GROUPE, parent: OPTION, composant: enrober(CrudGroupe, EDITION) },
             { segment: MEMBRES, parent: GROUPE, ecran: GroupeUserPage },

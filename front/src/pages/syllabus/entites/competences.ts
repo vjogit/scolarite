@@ -1,15 +1,17 @@
 /**
- * Ce qu'est le référentiel de compétences d'une formation (lot 3),
- * indépendamment des écrans qui l'affichent : le bloc, la compétence, le
- * référentiel à plat que la matrice de l'UE lit, la matrice elle-même, et les
- * actions qui y mènent.
+ * Ce qu'est le référentiel de compétences d'une promotion (lot 3, rattaché à
+ * la promotion le 16 septembre 2026), indépendamment des écrans qui
+ * l'affichent : le bloc, la compétence, le référentiel à plat que la matrice
+ * de l'UE lit, la matrice elle-même, et les actions qui y mènent.
  *
- * Décisions tranchées : le référentiel est par formation (fiche RNCP) ; l'ordre
- * est une position saisie, unique par parent, et le code « C{ordre} » se
- * calcule ici, jamais stocké ; la matrice de l'UE est trois booléens par
+ * Décisions tranchées : le référentiel est par promotion — les compétences
+ * varient d'une promotion à l'autre, comme la structure est dupliquée par
+ * promotion, et la promotion précédente sert de gabarit à la suivante ;
+ * l'ordre est une position saisie, unique par parent, et le code « C{ordre} »
+ * se calcule ici, jamais stocké ; la matrice de l'UE est trois booléens par
  * compétence, écrite par remplacement intégral sans verrou — dernier écrit
  * gagne ; le serveur garantit qu'une UE ne se lie qu'aux compétences de sa
- * formation (motif `hors_formation`), l'écran ne propose que celles-là.
+ * promotion (motif `hors_promotion`), l'écran ne propose que celles-là.
  */
 
 import { ListChecks } from 'lucide-react';
@@ -22,7 +24,7 @@ import { messageValidation } from '../../../i18n/validation';
 import { apiInstance } from '../../../services/api';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import { createRepository, handleAxiosError, type DescriptionEntite } from '../../../services/crud/def';
-import { FORMATION } from '../../structure/def';
+import { PROMOTION } from '../../structure/def';
 import { Role } from '../../user/def';
 import {
     BLOC, COMPETENCE, ENDPOINT_BLOC, ENDPOINT_BLOC_DELETE_IMPACT, ENDPOINT_COMPETENCE,
@@ -43,7 +45,7 @@ const texteOptionnel = z.string().nullable();
 export const blocSchema = z.object({
     id: z.number(),
     version: z.number(),
-    formation_id: z.number(),
+    promotion_id: z.number(),
     ordre,
     libelle: z.string().min(1, { error: messageValidation('libelleRequis') }),
     code: texteOptionnel,
@@ -75,11 +77,11 @@ export function libelleBloc(bloc: { code: string | null; libelle: string }): str
     return bloc.code !== null && bloc.code.trim() !== '' ? `${bloc.code} — ${bloc.libelle}` : bloc.libelle;
 }
 
-export const createBlocRepository = (formationId: string) => createRepository<Bloc>({
+export const createBlocRepository = (promotionId: string) => createRepository<Bloc>({
     endpoint: ENDPOINT_BLOC,
     deleteImpactEndpoint: ENDPOINT_BLOC_DELETE_IMPACT,
-    queryParams: `?formation_id=${formationId}`,
-    queryKey: [SYLLABUS, BLOC, formationId],
+    queryParams: `?promotion_id=${promotionId}`,
+    queryKey: [SYLLABUS, BLOC, promotionId],
     getId: (data) => data.id,
     getName: (data) => data.libelle,
 });
@@ -118,7 +120,7 @@ export function competenceEntite(t?: TFunction<'syllabus'>): DescriptionEntite {
 }
 
 /**
- * Descente de la formation vers son référentiel. Libellé en fermeture : le
+ * Descente de la promotion vers son référentiel. Libellé en fermeture : le
  * bandeau de la structure crée ses actions au chargement du module.
  */
 export function ACTION_REFERENTIEL(t?: TFunction<'syllabus'>): ActionNavigation<FieldValues> {
@@ -171,9 +173,9 @@ export interface LiaisonCompetence {
 export const AXES = ['enseignee', 'mise_en_oeuvre', 'evaluee'] as const;
 export type Axe = typeof AXES[number];
 
-/** Clé du référentiel à plat : une collection à part, filtrée par formation. */
-export function cleReferentiel(formationId: string) {
-    return [SYLLABUS, COMPETENCE, FORMATION, formationId] as const;
+/** Clé du référentiel à plat : une collection à part, filtrée par promotion. */
+export function cleReferentiel(promotionId: string) {
+    return [SYLLABUS, COMPETENCE, PROMOTION, promotionId] as const;
 }
 
 /** Clé de la matrice d'une UE. */
@@ -181,9 +183,9 @@ export function cleMatrice(ueId: string) {
     return [SYLLABUS, 'matrice', ueId] as const;
 }
 
-export async function fetchReferentiel(formationId: string): Promise<LigneReferentiel[]> {
+export async function fetchReferentiel(promotionId: string): Promise<LigneReferentiel[]> {
     try {
-        const reponse = await apiInstance.get<LigneReferentiel[]>(`${ENDPOINT_COMPETENCE}?formation_id=${formationId}`);
+        const reponse = await apiInstance.get<LigneReferentiel[]>(`${ENDPOINT_COMPETENCE}?promotion_id=${promotionId}`);
         return reponse.data;
     } catch (erreur: unknown) {
         throw handleAxiosError(erreur);

@@ -1,12 +1,13 @@
 /**
- * Les blocs de compétences d'une formation (lot 3) : premier niveau du
- * référentiel, greffé sous la formation du workflow Structure sur le modèle
- * UE → matières. La formation est dans l'URL : le filtrage est gratuit, aucun
- * état caché (invariant 1). L'arbre ne change pas — il s'arrête au segment
- * étranger et garde la formation sélectionnée.
+ * Les blocs de compétences d'une promotion (lot 3, rattaché à la promotion le
+ * 16 septembre 2026) : premier niveau du référentiel, greffé sous la
+ * promotion du workflow Structure sur le modèle UE → matières. La promotion
+ * est dans l'URL : le filtrage est gratuit, aucun état caché (invariant 1).
+ * L'arbre ne change pas — il s'arrête au segment étranger et garde la
+ * promotion sélectionnée.
  *
  * L'ordre est saisi ; le serveur refuse une position déjà prise sur la
- * formation (`valeur_deja_utilisee` sous le champ). Le réordonnancement est
+ * promotion (`valeur_deja_utilisee` sous le champ). Le réordonnancement est
  * l'édition de l'ordre, pas un glisser-déposer.
  */
 
@@ -58,29 +59,29 @@ function blocColonnes(t: TFunction<'syllabus'>, tStructure: TFunction<'structure
     ];
 }
 
-function blocViewConfig(formationId: string, t: TFunction<'syllabus'>, tStructure: TFunction<'structure'>): ViewConfig<Bloc> {
+function blocViewConfig(promotionId: string, t: TFunction<'syllabus'>, tStructure: TFunction<'structure'>): ViewConfig<Bloc> {
     return {
         schema: blocSchema,
-        emptyValue: { id: -1, version: -1, formation_id: parseInt(formationId), code: null, activites: null, modalites_evaluation: null },
+        emptyValue: { id: -1, version: -1, promotion_id: parseInt(promotionId), code: null, activites: null, modalites_evaluation: null },
         colonnes: blocColonnes(t, tStructure),
         render: BlocFields,
     };
 }
 
 export function CrudBloc({ mode, workflow, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils }: CrudProps<Bloc>) {
-    const { formationId } = useParams();
+    const { promotionId } = useParams();
     const rootPath = useRootPath(mode);
     const { t } = useTranslation('syllabus');
     const { t: tStructure } = useTranslation('structure');
 
     const datasource = useMemo((): Datasource<Bloc> | null => {
-        if (formationId === undefined) return null;
-        const repository = createBlocRepository(formationId);
+        if (promotionId === undefined) return null;
+        const repository = createBlocRepository(promotionId);
         return {
             ...repository,
             create: (bloc) => repository.create(normaliserBloc(bloc)),
             update: (bloc) => repository.update(normaliserBloc(bloc)),
-            ...blocViewConfig(formationId, t, tStructure),
+            ...blocViewConfig(promotionId, t, tStructure),
             ...blocEntite(t),
             isAction,
             isReadOnly,
@@ -90,9 +91,9 @@ export function CrudBloc({ mode, workflow, isAction, isReadOnly, isTopToolbar, a
             isTopToolbar,
             actionsBarreOutils,
         };
-    }, [formationId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
+    }, [promotionId, isAction, isReadOnly, isTopToolbar, actionsLigne, actionsBarreOutils, t, tStructure]);
 
-    if (!datasource) return <p>{tStructure('promotion.erreurFormationIdObligatoire')}</p>;
+    if (!datasource) return <p>{t('competences.bloc.erreurPromotionIdObligatoire')}</p>;
 
     return <Crud datasource={datasource} mode={mode} workflow={workflow} rootPath={rootPath} />;
 }

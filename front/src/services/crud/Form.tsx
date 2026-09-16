@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type Datasource } from './def';
+import { type Datasource, type FormMode } from './def';
 import { fieldErrorsFor, messageForError } from '../errorMessages';
 import { notifyError, notifySuccess } from '../notify';
 import { messageCreation, messageEnregistrement } from './entityMessages';
@@ -16,7 +16,7 @@ import { UnsavedChangesDialog } from '../UnsavedChangesDialog';
 import { premierChampEnErreur, premierChampSaisissable } from './focus';
 
 
-export type FormMode = 'create' | 'show' | 'edit';
+export type { FormMode } from './def';
 
 interface Props<D extends FieldValues> {
   datasource: Datasource<D>
@@ -127,7 +127,7 @@ export function Form<D extends FieldValues>({ initialData, mode, datasource, }: 
           </h2>
 
           {/* Utilisation de la fonction/composant extraite */}
-          {datasource.render({ register, control, errors, isReadOnly, getValues, setValue })}
+          {datasource.render({ register, control, errors, isReadOnly, getValues, setValue, mode })}
 
 
           <div className="mt-4 flex justify-end gap-4">

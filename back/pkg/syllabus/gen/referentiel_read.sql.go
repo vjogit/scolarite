@@ -52,17 +52,18 @@ func (q *Queries) CheckCompetenceExists(ctx context.Context, id int32) (int32, e
 	return column_1, err
 }
 
-const checkFormationExists = `-- name: CheckFormationExists :one
+const checkPromotionExists = `-- name: CheckPromotionExists :one
 
-SELECT 1 FROM public.formation_active WHERE id = $1
+SELECT 1 FROM public.promotion_active WHERE id = $1
 `
 
-// Référentiel de compétences d'une formation (lot 3) : blocs, puis compétences
-// d'un bloc, puis le référentiel à plat pour la matrice de l'UE. Tout est
-// trié par position (`ordre`) : le code « C{ordre} » se calcule à l'affichage.
-// Aucune donnée de structure n'est lue au-delà de l'existence de la formation.
-func (q *Queries) CheckFormationExists(ctx context.Context, id int32) (int32, error) {
-	row := q.db.QueryRow(ctx, checkFormationExists, id)
+// Référentiel de compétences d'une promotion (lot 3, rattaché à la promotion
+// le 16 septembre 2026) : blocs, puis compétences d'un bloc, puis le
+// référentiel à plat pour la matrice de l'UE. Tout est trié par position
+// (`ordre`) : le code « C{ordre} » se calcule à l'affichage. Aucune donnée de
+// structure n'est lue au-delà de l'existence de la promotion (vue active).
+func (q *Queries) CheckPromotionExists(ctx context.Context, id int32) (int32, error) {
+	row := q.db.QueryRow(ctx, checkPromotionExists, id)
 	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -81,7 +82,7 @@ func (q *Queries) CompetenceDeleteImpact(ctx context.Context, ids []int32) (int6
 }
 
 const fetchBlocById = `-- name: FetchBlocById :one
-SELECT id, version, formation_id, ordre, libelle, code, activites, modalites_evaluation FROM public.bloc_competence WHERE id = $1
+SELECT id, version, promotion_id, ordre, libelle, code, activites, modalites_evaluation FROM public.bloc_competence WHERE id = $1
 `
 
 func (q *Queries) FetchBlocById(ctx context.Context, id int32) (BlocCompetence, error) {
@@ -90,7 +91,7 @@ func (q *Queries) FetchBlocById(ctx context.Context, id int32) (BlocCompetence, 
 	err := row.Scan(
 		&i.ID,
 		&i.Version,
-		&i.FormationID,
+		&i.PromotionID,
 		&i.Ordre,
 		&i.Libelle,
 		&i.Code,
@@ -129,12 +130,12 @@ func (q *Queries) FetchBlocNamesByIds(ctx context.Context, ids []int32) ([]Fetch
 	return items, nil
 }
 
-const fetchBlocsByFormationID = `-- name: FetchBlocsByFormationID :many
-SELECT id, version, formation_id, ordre, libelle, code, activites, modalites_evaluation FROM public.bloc_competence WHERE formation_id = $1 ORDER BY ordre
+const fetchBlocsByPromotionID = `-- name: FetchBlocsByPromotionID :many
+SELECT id, version, promotion_id, ordre, libelle, code, activites, modalites_evaluation FROM public.bloc_competence WHERE promotion_id = $1 ORDER BY ordre
 `
 
-func (q *Queries) FetchBlocsByFormationID(ctx context.Context, formationID int32) ([]BlocCompetence, error) {
-	rows, err := q.db.Query(ctx, fetchBlocsByFormationID, formationID)
+func (q *Queries) FetchBlocsByPromotionID(ctx context.Context, promotionID int32) ([]BlocCompetence, error) {
+	rows, err := q.db.Query(ctx, fetchBlocsByPromotionID, promotionID)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +146,7 @@ func (q *Queries) FetchBlocsByFormationID(ctx context.Context, formationID int32
 		if err := rows.Scan(
 			&i.ID,
 			&i.Version,
-			&i.FormationID,
+			&i.PromotionID,
 			&i.Ordre,
 			&i.Libelle,
 			&i.Code,
@@ -242,16 +243,16 @@ func (q *Queries) FetchCompetencesByBlocID(ctx context.Context, blocID int32) ([
 	return items, nil
 }
 
-const fetchReferentielByFormationID = `-- name: FetchReferentielByFormationID :many
+const fetchReferentielByPromotionID = `-- name: FetchReferentielByPromotionID :many
 SELECT c.id, c.version, c.bloc_id, c.ordre, c.action, c.contexte, c.finalites,
        b.ordre AS bloc_ordre, b.libelle AS bloc_libelle, b.code AS bloc_code
 FROM public.competence c
 JOIN public.bloc_competence b ON b.id = c.bloc_id
-WHERE b.formation_id = $1
+WHERE b.promotion_id = $1
 ORDER BY b.ordre, c.ordre
 `
 
-type FetchReferentielByFormationIDRow struct {
+type FetchReferentielByPromotionIDRow struct {
 	ID          int32   `json:"id"`
 	Version     int32   `json:"version"`
 	BlocID      int32   `json:"bloc_id"`
@@ -264,18 +265,18 @@ type FetchReferentielByFormationIDRow struct {
 	BlocCode    *string `json:"bloc_code"`
 }
 
-// Le référentiel à plat d'une formation, chaque compétence portant son bloc :
+// Le référentiel à plat d'une promotion, chaque compétence portant son bloc :
 // c'est ce que la matrice de l'UE affiche, en une requête. Un bloc sans
 // compétence n'y figure pas — il n'a aucune ligne à cocher.
-func (q *Queries) FetchReferentielByFormationID(ctx context.Context, formationID int32) ([]FetchReferentielByFormationIDRow, error) {
-	rows, err := q.db.Query(ctx, fetchReferentielByFormationID, formationID)
+func (q *Queries) FetchReferentielByPromotionID(ctx context.Context, promotionID int32) ([]FetchReferentielByPromotionIDRow, error) {
+	rows, err := q.db.Query(ctx, fetchReferentielByPromotionID, promotionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FetchReferentielByFormationIDRow
+	var items []FetchReferentielByPromotionIDRow
 	for rows.Next() {
-		var i FetchReferentielByFormationIDRow
+		var i FetchReferentielByPromotionIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Version,

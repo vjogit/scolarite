@@ -81,15 +81,14 @@ func seedLegacy(t *testing.T, pool *pgxpool.Pool) structureLegacy {
 	ue62 := ue(s.PeriodeAutre, "UE 62 legacy")
 	matiere(ue62, "M62", 4)
 
-	// Référentiel de « Formation legacy » : bloc 1 (C1, C2), bloc 2 (C1) ; et
-	// « Formation autre legacy » : bloc 1 (C1).
-	bloc1 := exec(`INSERT INTO bloc_competence (formation_id, ordre, libelle) VALUES ($1, 1, 'Bloc A') RETURNING id`, s.FormationID)
+	// Référentiel de « Promo 1 legacy » : bloc 1 (C1, C2), bloc 2 (C1) ; et
+	// « Promo 2 legacy », autre promotion de la même formation : bloc 1 (C1).
+	bloc1 := exec(`INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 1, 'Bloc A') RETURNING id`, s.PromotionID)
 	exec(`INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 1, 'A1') RETURNING id`, bloc1)
 	s.Bloc1C2ID = exec(`INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 2, 'A2') RETURNING id`, bloc1)
-	bloc2 := exec(`INSERT INTO bloc_competence (formation_id, ordre, libelle) VALUES ($1, 2, 'Bloc B') RETURNING id`, s.FormationID)
+	bloc2 := exec(`INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 2, 'Bloc B') RETURNING id`, s.PromotionID)
 	exec(`INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 1, 'B1') RETURNING id`, bloc2)
-	autre := exec(`INSERT INTO formation (name, version) VALUES ('Formation autre legacy', 1) RETURNING id`)
-	blocAutre := exec(`INSERT INTO bloc_competence (formation_id, ordre, libelle) VALUES ($1, 1, 'Bloc autre') RETURNING id`, autre)
+	blocAutre := exec(`INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 1, 'Bloc autre') RETURNING id`, s.PromotionVide)
 	exec(`INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 1, 'X1') RETURNING id`, blocAutre)
 
 	// Préexistant : fiche de « Matiere 2 legacy » (version 1, responsable) et
@@ -176,7 +175,7 @@ func assertRejetsAttendus(t *testing.T, r *legacy.Rapport) {
 
 	assert.Equal(t, map[legacy.Cause]int{
 		legacy.CauseCompetenceHorsPosition: 2, // FIX_5_2 : position 3 absente, compétence sans code
-		legacy.CauseBlocHorsFormation:      1, // FIX_6_2 : bloc de « Formation autre legacy »
+		legacy.CauseBlocHorsPromotion:      1, // FIX_6_2 : bloc 30 mappé pour « Promo 2 legacy » seulement
 		legacy.CauseUeAbsenteDesFiches:     1, // FIX_9_9
 		legacy.CauseConflitNonForce:        1, // FIX_6_1 : matrice préexistante différente
 	}, causes(r, legacy.ObjetMatrice))
@@ -215,7 +214,7 @@ func TestIntegration_ImportLegacy_SimulationSansEcriture(t *testing.T) {
 	assert.Equal(t, 17, r.FichesLues)
 	assert.Equal(t, 3, r.PeriodesRemplies, "S5 FIX, S6 FIX, S5 MAUVAIS")
 	assert.Equal(t, 1, r.PeriodesVides, "S7 FIX")
-	assert.Equal(t, 4, r.BlocsRemplis)
+	assert.Equal(t, 5, r.BlocsRemplis, "dont le bloc 19 mappé pour deux promotions")
 	assert.Equal(t, 2, r.Exceptions)
 
 	// Le rapport dit ce qu'une application ferait…

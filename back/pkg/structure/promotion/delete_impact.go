@@ -54,6 +54,11 @@ func DeleteImpact(w http.ResponseWriter, r *http.Request) {
 	resp.AddCascade("reservation_salle", impact.ReservationSalleCount)
 	resp.AddCascade("reservation_groupe", impact.ReservationGroupeCount)
 	resp.AddCascade("jury_result", impact.JuryResultCount)
+	// Référentiel de compétences (porté par la promotion) : blocs, compétences
+	// et liaisons aux UE suivent par cascade.
+	resp.AddCascade("bloc_competence", impact.BlocCompetenceCount)
+	resp.AddCascade("competence", impact.CompetenceCount)
+	resp.AddCascade("ue_competence", impact.UeCompetenceCount)
 
 	resp.AddDetached("reservation", impact.ReservationDetacheeCount)
 

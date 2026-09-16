@@ -11,11 +11,12 @@ package syllabus
 // l'inverse.
 //
 // Périmètre : une compétence ne se lie à l'UE que si son bloc appartient à la
-// formation de l'UE. L'INSERT … SELECT joint la chaîne réelle et ne peut
-// insérer qu'une compétence de la bonne formation ; une ligne non insérée
-// annule tout — la matrice antérieure reste intacte — et se signale au motif
-// `hors_formation` (compétence existante, autre formation) ou
-// `reference_inconnue` (identifiant inconnu).
+// promotion de l'UE (référentiel par promotion depuis le 16 septembre 2026).
+// L'INSERT … SELECT joint la chaîne réelle et ne peut insérer qu'une
+// compétence de la bonne promotion ; une ligne non insérée annule tout — la
+// matrice antérieure reste intacte — et se signale au motif `hors_promotion`
+// (compétence existante, autre promotion) ou `reference_inconnue`
+// (identifiant inconnu).
 
 import (
 	"context"
@@ -51,7 +52,7 @@ func FetchUeCompetences(w http.ResponseWriter, r *http.Request) {
 
 // ErreurCompetence est la ligne qu'un remplacement de matrice a écartée :
 // la jointure de périmètre n'a rien inséré pour cette compétence. Le motif
-// distingue la compétence inconnue de celle d'une autre formation.
+// distingue la compétence inconnue de celle d'une autre promotion.
 type ErreurCompetence struct {
 	CompetenceID int32
 	Motif        string
@@ -93,9 +94,9 @@ func RemplacerMatrice(ctx context.Context, db *pgxpool.Pool, ueID int32, lignes 
 		}
 		if inserees == 0 {
 			// Rien d'inséré : la jointure a écarté la compétence. Inconnue, ou
-			// d'une autre formation — le motif le dit, et le rollback différé
+			// d'une autre promotion — le motif le dit, et le rollback différé
 			// rend la matrice antérieure intacte.
-			motif := services.MotifHorsFormation
+			motif := services.MotifHorsPromotion
 			if _, err := queries.CheckCompetenceExists(ctx, ligne.CompetenceID); errors.Is(err, pgx.ErrNoRows) {
 				motif = services.MotifReferenceInconnue
 			} else if err != nil {

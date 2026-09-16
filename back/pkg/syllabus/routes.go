@@ -48,13 +48,13 @@ func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement s
 	// promotion, le livret l'est aussi.
 	r.With(lecture).Get("/promotion/{promotionID}/livret", documents.LivretPDF)
 
-	// Le référentiel de compétences d'une formation (lot 3) : deux cycles CRUD
+	// Le référentiel de compétences d'une promotion (lot 3) : deux cycles CRUD
 	// sur le modèle des entités de structure. `delete-impact` est déclaré
 	// avant la route paramétrée pour ne pas être capté par l'identifiant ;
 	// `DELETE /{id}` lit ses identifiants dans le corps (suppression groupée,
 	// le front appelle `…/bulk`), comme partout ailleurs.
 	r.Route("/bloc", func(r chi.Router) {
-		r.With(lecture).Get("/", FetchBlocsByFormationID)
+		r.With(lecture).Get("/", FetchBlocsByPromotionID)
 		r.With(ecriture).Post("/", CreateBloc)
 		r.With(lecture).Post("/delete-impact", BlocDeleteImpact)
 		r.Route("/{blocID}", func(r chi.Router) {
@@ -65,8 +65,8 @@ func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement s
 	})
 
 	r.Route("/competence", func(r chi.Router) {
-		// `?bloc_id=` liste les compétences d'un bloc ; `?formation_id=` rend
-		// le référentiel à plat de la formation, pour la matrice de l'UE.
+		// `?bloc_id=` liste les compétences d'un bloc ; `?promotion_id=` rend
+		// le référentiel à plat de la promotion, pour la matrice de l'UE.
 		r.With(lecture).Get("/", FetchCompetences)
 		r.With(ecriture).Post("/", CreateCompetence)
 		r.With(lecture).Post("/delete-impact", CompetenceDeleteImpact)
@@ -79,10 +79,10 @@ func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement s
 }
 
 // FetchCompetences aiguille la liste selon son filtre : par bloc (le cycle
-// CRUD) ou par formation (le référentiel à plat de la matrice).
+// CRUD) ou par promotion (le référentiel à plat de la matrice).
 func FetchCompetences(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Query().Has("formation_id") {
-		FetchReferentielByFormationID(w, r)
+	if r.URL.Query().Has("promotion_id") {
+		FetchReferentielByPromotionID(w, r)
 		return
 	}
 	FetchCompetencesByBlocID(w, r)

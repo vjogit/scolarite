@@ -7,9 +7,10 @@ import { crud, interpoler, syllabus } from './aide/i18n';
  * La matrice de compétences de l'UE (lot 3), sur l'écran syllabus de l'UE.
  *
  * Famille indépendante de l'administration du référentiel : elle consomme le
- * référentiel semé (deux blocs sur « E2E Formation », un sur une formation
- * étrangère, une liaison pré-cochée sur « E2E UE1 » — C1 du bloc 1,
- * enseignée + évaluée) sans jamais passer par les écrans d'administration.
+ * référentiel semé (deux blocs sur « E2E Promotion », un sur « E2E Promo
+ * Autre » — autre promotion de la même formation —, une liaison pré-cochée
+ * sur « E2E UE1 » — C1 du bloc 1, enseignée + évaluée) sans jamais passer
+ * par les écrans d'administration.
  * L'écriture remet l'état semé en assertion, comme la spec syllabus du lot 2.
  */
 
@@ -24,7 +25,7 @@ function boutonEnregistrer(page: Page) {
 }
 
 test.describe('Matrice de compétences de l\'UE', () => {
-    test('CONSULTATION : la liaison semée se lit, regroupée par bloc ; la formation étrangère est absente', async ({ pageConsultation }) => {
+    test('CONSULTATION : la liaison semée se lit, regroupée par bloc ; l\'autre promotion de la formation est absente', async ({ pageConsultation }) => {
         await allerAuSyllabusViaStructure(pageConsultation, 'ue');
         await expect(pageConsultation.getByRole('heading', { name: M.titre })).toBeVisible();
 
