@@ -38,9 +38,9 @@ test.describe('Navigation au clavier', () => {
         // (constaté à l'exécution — pas après une première flèche).
         await expect(menu.getByRole('menuitem', { name: crud.entites.actions.gererPromotions })).toBeFocused();
         // La flèche basse descend jusqu'au bloc destructif en queue de menu
-        // (Gérer les promotions → Créer une promotion → Référentiel de
-        // compétences, lot 3 syllabus → Supprimer).
-        await pageAdmin.keyboard.press('ArrowDown');
+        // (Gérer les promotions → Créer une promotion → Supprimer ; le
+        // référentiel de compétences est sur la promotion depuis le 16
+        // septembre 2026, plus sur la formation).
         await pageAdmin.keyboard.press('ArrowDown');
         await pageAdmin.keyboard.press('ArrowDown');
         await expect(menu.getByRole('menuitem', { name: crud.actions.supprimer })).toBeFocused();
