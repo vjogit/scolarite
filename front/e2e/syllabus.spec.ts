@@ -79,6 +79,13 @@ test.describe('Syllabus — fiche matière et syllabus de l\'UE', () => {
         // Retour à 20 h : l'écart disparaît, en assertion.
         await champTp(pageSyllabus).fill('4');
         await expect(pageSyllabus.getByText(CONFORME_20)).toBeVisible();
+        // Le toast du premier enregistrement vit 4 s (NOTIFY_SUCCESS_MS). Sur
+        // l'exécuteur GitHub, la relecture par pageAdmin prend moins que ça :
+        // le second toast cohabitait avec le premier et le localisateur strict
+        // ci-dessous en trouvait deux — cinq runs e2e rouges sur cinq, du lot 2
+        // au lot 5, alors que le poste, plus lent, passait. On attend donc sa
+        // disparition avant d'enregistrer de nouveau ; l'assertion reste stricte.
+        await expect(pageSyllabus.getByText(syllabus.matiere.enregistre)).toHaveCount(0, { timeout: 10_000 });
         await boutonEnregistrer(pageSyllabus).click();
         await expect(pageSyllabus.getByText(syllabus.matiere.enregistre)).toBeVisible();
     });
