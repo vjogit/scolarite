@@ -24,5 +24,10 @@
   "echelleNombreInvalideOuDecroissant": "Un nombre n'est pas valide ou les nombres ne sont pas décroissants",
   "ordreRequis": "L'ordre est requis : un entier à partir de 1",
   "libelleRequis": "Le libellé est requis",
-  "actionRequise": "L'action est requise"
+  "actionRequise": "L'action est requise",
+  "capaciteRequise": "La capacité est requise",
+  "coefficientRequis": "Le coefficient est requis",
+  "heuresRequises": "Les heures sont requises",
+  "ectsRequis": "Les ECTS sont requis",
+  "scoreToeicRequis": "Le score est requis"
 }

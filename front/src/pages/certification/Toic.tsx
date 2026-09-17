@@ -19,7 +19,7 @@ const toeicSchema = z.object({
     id: z.number(),
     version: z.number(),
     user_id: z.number({ error: messageValidation('selectionnerEleve') }),
-    score: z.number().min(0).max(990, { error: messageValidation('scoreToeicPlage') }),
+    score: z.number({ error: messageValidation('scoreToeicRequis') }).min(0, { error: messageValidation('scoreToeicPlage') }).max(990, { error: messageValidation('scoreToeicPlage') }),
     date_passage: z.coerce.date(),
     remarque: z.string().nullish(),
     promotion_id: z.number().optional(),

@@ -7,6 +7,7 @@ import programmeFr from '../../src/i18n/locales/fr/programme.json' with { type: 
 import structureFr from '../../src/i18n/locales/fr/structure.json' with { type: 'json' };
 import errorsFr from '../../src/i18n/locales/fr/errors.json' with { type: 'json' };
 import syllabusFr from '../../src/i18n/locales/fr/syllabus.json' with { type: 'json' };
+import validationFr from '../../src/i18n/locales/fr/validation.json' with { type: 'json' };
 
 /**
  * Substitution `{{cle}}` minimale — l'équivalent du `t()` d'i18next pour les
@@ -30,6 +31,7 @@ export const programme = programmeFr;
 export const structure = structureFr;
 export const errors = errorsFr;
 export const syllabus = syllabusFr;
+export const validation = validationFr;
 
 /**
  * Le titre de la modale de suppression d'une entité nommée — la composition

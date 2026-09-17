@@ -23,7 +23,7 @@ export const ueSchema = z.object({
     id: z.number(),
     version: z.number(),
     name: z.string().min(1, { error: messageValidation('nomRequis') }),
-    ects: z.number().min(0, { error: messageValidation('ectsDoiventEtrePositifs') }),
+    ects: z.number({ error: messageValidation('ectsRequis') }).min(0, { error: messageValidation('ectsDoiventEtrePositifs') }),
     academique: z.boolean(),
     periode_id: z.number(),
     // Les deux colonnes du syllabus (lot 1) : le GET de l'UE les porte, seule

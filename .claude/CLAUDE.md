@@ -1052,8 +1052,6 @@ ils survivront à celle-ci si personne ne les reprend.
   silencieuse, côté back. Le plus sérieux des quatre.
 - **Colonne « Rôles » vide dans la liste des utilisateurs** (lot 13) : la
   consultation montre les rôles cochés, la liste ne semble pas les recevoir.
-- **Message zod brut pour un nombre requis vidé** (lot 13) : un message
-  métier demande une `error` sur chaque schéma concerné.
 - **La grille de notes reste saisissable après délibération** (17 septembre
   2026, lot `correction-blocage-jury`, constaté à la lecture de
   `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
@@ -1119,6 +1117,13 @@ langue détectée à son code court dans `i18n/config.ts` (le détecteur rendait
 codes à deux lettres conservés partout ; prouvé par `langue-navigateur.spec.ts`
 (contexte neuf `locale: 'fr-FR'`, rouge avant, vert après — la spec tourne
 sur tout poste, Playwright fixant `navigator.languages`).
+Le neuvième — message zod brut pour un nombre requis vidé (consigné au lot
+13) — est **fermé** le 17 septembre 2026 par le même lot : les cinq champs
+numériques requis (capacité de la salle, coefficient et heures de la
+matière, ECTS de l'UE, score TOEIC) portent une `error` sur le constructeur
+`z.number`, comme `bareme` et `ordre` déjà ; cinq clés `*Requis*` dans
+`validation.json` fr et en ; prouvé par « la capacité vidée reçoit son
+message métier » de `salle.spec.ts`.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
