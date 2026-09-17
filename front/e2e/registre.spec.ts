@@ -22,9 +22,17 @@ test.describe('Registre — fumée', () => {
         // Chaque carte se résout en une alerte (succès, avertissement ou
         // erreur) — jamais un état de chargement qui reste figé — sans
         // présumer du verdict exact, qui dépend de l'état réel de la chaîne.
-        await expect(pageAdmin.getByRole('heading', { name: registre.integrite.titre })).toBeVisible();
-        await expect(pageAdmin.getByRole('heading', { name: registre.ancrage.titre })).toBeVisible();
-        await expect(pageAdmin.getByRole('heading', { name: registre.temoin.titre })).toBeVisible();
+        // Une attente PAR CARTE, pas un compte global d'alertes : l'unique
+        // échec de ce spec (lot 11, artefact perdu, jamais reproduit en
+        // cinquante runs CI) ne disait pas quelle carte manquait. La carte
+        // du témoin n'a d'alerte qu'après un dépôt : aucune ici.
+        const carte = (titre: string) => pageAdmin.locator('[data-slot="card"]', { has: pageAdmin.getByRole('heading', { name: titre }) });
+        await expect(carte(registre.integrite.titre)).toBeVisible();
+        await expect(carte(registre.ancrage.titre)).toBeVisible();
+        await expect(carte(registre.temoin.titre)).toBeVisible();
+        await expect(carte(registre.integrite.titre).getByRole('alert'), 'carte Intégrité résolue').toHaveCount(1);
+        await expect(carte(registre.ancrage.titre).getByRole('alert'), 'carte Ancrage résolue').toHaveCount(1);
+        await expect(carte(registre.temoin.titre).getByRole('alert'), 'carte Témoin sans dépôt').toHaveCount(0);
         await expect(pageAdmin.getByRole('alert')).toHaveCount(2);
 
         expect(erreursConsole).toEqual([]);

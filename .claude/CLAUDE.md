@@ -1084,14 +1084,19 @@ ils survivront à celle-ci si personne ne les reprend.
   rien tracer, contre l'invariant 5. Depuis le blocage jury, cela ne
   concerne plus que des notes hors jury délibéré ; le registre y perd
   quand même la preuve de destruction.
-- **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
-  relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
-  écrasés. **Si l'échec revient, sauver `test-results/` avant toute
-  relance.**
 
 Deux défauts plus anciens sont documentés dans « Pièges connus » et dans la
 suite e2e plutôt qu'ici, parce qu'ils piègent activement quiconque écrit du
-code : rendu figé de `BarreAxes`, rebond Keycloak sur lien profond. Le
+code : rendu figé de `BarreAxes`, et le **rebond Keycloak sur lien profond
+— réel le 17 septembre 2026**, prouvé par l'échec attendu de
+`navigation.spec.ts` (ligne 20, `test.fail`) dans le run vert de `main` du
+jour et dans trois passes locales : `redirectUri` fixé sur la racine
+(`KeycloakContext.tsx`) et `valid_redirect_uris` restreint à `/` dans
+Terraform, volontairement. Le `test.fail` garde son rôle de documentation.
+Une correction existe sans élargir les URI Keycloak — mémoriser le chemin
+visé en `sessionStorage` avant l'init et le rejouer après, une trentaine de
+lignes, le test redevenant un test qui passe — tenue hors du lot de
+nettoyage, à cadrer comme évolution du flux de connexion. Le
 troisième — la désynchronisation des variables CSS MUI quand le mode choisi
 différait de l'OS (lots 7, 8, 10) — est **fermé** par la dépose de MUI
 (lot 17, vérifié au navigateur : sombre choisi + OS clair → tout l'écran
@@ -1167,6 +1172,17 @@ d'utilisateurs disent leur intention par `context.WithoutCancel(ctx)` — un
 navigateur parti ne doit pas laisser de compte Keycloak orphelin. Restent
 légitimes : `cmd/*`, le scheduler du registre, `db.go`, la construction de
 `AuthMiddleware`, les fixtures de test.
+Le douzième — `registre.spec.ts` intermittent (un échec au lot 11, artefact
+perdu) — est **fermé** le 17 septembre 2026 par le même lot, sans cause
+prouvée et sans cache-misère : **aucun échec en cinquante runs CI** depuis
+le 4 septembre (tous les rouges e2e sont le test d'écart syllabus des lots 2
+à 5, une fois `clavier.spec.ts`, et l'échec attendu de navigation), trois
+passes locales vertes. Hypothèse consignée, non prouvée : `toHaveCount(2)`
+sur les alertes de la page sous le délai d'assertion par défaut de 5 s, la
+carte Intégrité recalculant toute la chaîne — la famille « sous charge » du
+lot 7. La spec attend désormais **par carte** (une alerte pour Intégrité et
+Ancrage, aucune pour Témoin, le message d'échec nomme la carte) ; ni
+`retry`, ni délai gonflé. Si un échec revient, l'artefact CI tranche.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
