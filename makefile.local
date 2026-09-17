@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up _pdf-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up _pdf-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference test-integration
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -74,6 +74,23 @@ importer-syllabus:
 # ce fragment et transmis au conteneur — front/e2e/setup/env.ts les résout,
 # avec les fichiers du poste en repli pour un `npx playwright test` direct.
 #
+# Tests Go d'intégration, contre la stack locale déjà montée (PostgreSQL,
+# Keycloak, Mailpit — start-local-keep). La base scolarite_tu est RECRÉÉE
+# depuis back/schema.sql à chaque appel : elle ne survit à aucune
+# réinstallation du poste et aucun autre script ne la produit. TEST_DB_URL et
+# le secret Keycloak (exporté avec le fichier de secrets) disent aux gardes
+# des tests que l'infrastructure est attendue : injoignable, ils échouent au
+# lieu de se sauter (back/pkg/services/test_helpers.go). `-p 1` : tous les
+# paquets partagent la même base. GO_TEST_ARGS : options de go test (la CI
+# passe -v pour compter les tests exécutés). Depuis le 17 septembre 2026, le
+# job e2e de la CI lance cette cible contre la stack qu'il vient de monter.
+test-integration:
+	@echo "--- 🧪 Base scolarite_tu recréée depuis back/schema.sql ---"
+	docker exec $(PG_CONTAINER) psql -U $(POSTGRES_USER) -v ON_ERROR_STOP=1 -q -c "DROP DATABASE IF EXISTS scolarite_tu;" -c "CREATE DATABASE scolarite_tu;"
+	docker exec -i $(PG_CONTAINER) psql -U $(POSTGRES_USER) -d scolarite_tu -v ON_ERROR_STOP=1 -q < $(BACK_DIR)/schema.sql
+	@echo "--- 🧪 Tests Go d'intégration (-p 1, base partagée) : go test -p 1 -count=1 $(GO_TEST_ARGS) ./pkg/... ---"
+	@cd $(BACK_DIR) && TEST_DB_URL="host=$(POSTGRES_HOST) port=$(POSTGRES_PORT) user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=scolarite_tu sslmode=disable" go test -p 1 -count=1 $(GO_TEST_ARGS) ./pkg/...
+
 # PLAYWRIGHT_ARGS : options passées telles quelles à Playwright — un fichier
 # de spec, `--grep`… Vide par défaut : la suite entière, captures comprises,
 # ce que la CI lance (voir .github/workflows/e2e.yml).

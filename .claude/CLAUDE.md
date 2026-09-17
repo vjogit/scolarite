@@ -49,7 +49,9 @@ existants). Pas encore en production.
     ni dans `package.json`. L'historique de la migration est dans
     `docs/migration-shadcn/`, un document par lot. Ne pas le dupliquer ici.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
-  (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
+  (`t.Skip` explicite sans `TEST_DB_URL`, échec avec — `make
+  test-integration` recrée `scolarite_tu` depuis `schema.sql`, voir
+  « Dette ») ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
   généré sqlc à jour) et `e2e.yml` (la suite complète, captures de référence
@@ -1039,12 +1041,22 @@ est un acte de création, pas un lien vivant).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (captures
-  de référence comprises, dans le conteneur de
-  référence) contre la stack complète. **Non couvert** : les tests Go
-  d'intégration (`t.Skip` sans PostgreSQL,
-  Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
-  `govulncheck`, `npm audit --omit=dev`, Dependabot, protection de branche.
+  intégration : ils se sautent sans base), la suite e2e complète (captures
+  de référence comprises, dans le conteneur de référence) contre la stack
+  complète, et, **depuis le 17 septembre 2026** (lot `nettoyage-registre`),
+  **les tests Go d'intégration contre cette même stack** : le job e2e
+  appelle `make test-integration`, qui recrée `scolarite_tu` depuis
+  `back/schema.sql` et lance `go test -p 1 ./pkg/...` avec `TEST_DB_URL`
+  (303 tests, 30 s sur le poste) — le résumé du run compte passés, échoués
+  et sautés. **Deux régimes des gardes d'intégration**
+  (`services/test_helpers.go`) : `go test` nu, sans `TEST_DB_URL` ni
+  `KC_BACKEND_CLIENT_SECRET`, se saute quand l'infrastructure manque
+  (`verification.yml`, poste sans stack) ; l'une ou l'autre variable posée
+  dit l'intention, et une base ou un Keycloak injoignable est un **échec**,
+  plus jamais un vert qui ne teste rien. Reste sauté explicitement :
+  `TestJury` (`JURY_TEST_PERIODE_ID`, un test ad hoc sur une période
+  réelle). **Non couvert** : `govulncheck`, `npm audit --omit=dev`,
+  Dependabot, protection de branche.
   `programme-import/pkg/extraction` échoue sur fixture absente : rejoué en
   étape non bloquante, annotation d'avertissement à chaque run.
 ### Défauts constatés, non corrigés

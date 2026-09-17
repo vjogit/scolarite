@@ -27,23 +27,37 @@ func IntegrationDBURL(defaut string) string {
 // GetIntegrationDBPool initialise une connexion à la base de données pour les tests d'intégration.
 // Elle gère la configuration (via variable d'environnement ou défaut), la connexion,
 // et le nettoyage (fermeture) via t.Cleanup.
+//
+// Deux régimes, tranchés le 17 septembre 2026 (lot nettoyage-registre) : un
+// `go test` nu, sans TEST_DB_URL, se saute quand la base manque — c'est le
+// régime de verification.yml et d'un poste sans stack. TEST_DB_URL posé dit
+// l'intention de tester pour de vrai (`make test-integration`, le job e2e) :
+// une base injoignable est alors un ÉCHEC, plus jamais un vert qui ne teste
+// rien — c'est ce qui a laissé toute la suite d'intégration hors CI jusqu'ici.
 func GetIntegrationDBPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 
 	// 1. Récupération de la configuration (Env var ou défaut Docker)
+	explicite := os.Getenv("TEST_DB_URL") != ""
 	connString := IntegrationDBURL("host=localhost port=5432 user=postgres password=root dbname=scolarite_tu sslmode=disable")
+	injoignable := func(format string, err error) {
+		if explicite {
+			t.Fatalf("TEST_DB_URL est posé, la base doit répondre : "+format, err)
+		}
+		t.Skipf("Skipping integration test: "+format, err)
+	}
 
 	// 2. Connexion
 	pool, err := pgxpool.New(context.Background(), connString)
 	if err != nil {
-		t.Skipf("Skipping integration test: impossible de se connecter à la DB (%v)", err)
+		injoignable("impossible de se connecter à la DB (%v)", err)
 		return nil
 	}
 
 	// 3. Vérification (Ping) et Nettoyage automatique
 	if err := pool.Ping(context.Background()); err != nil {
 		pool.Close()
-		t.Skipf("Skipping integration test: DB non accessible (%v)", err)
+		injoignable("DB non accessible (%v)", err)
 		return nil
 	}
 
@@ -92,9 +106,11 @@ func GetIntegrationKeycloakConfig(t *testing.T) *KeycloakConfig {
 		Backend_client_secret: secret,
 	}
 
+	// Même règle que GetIntegrationDBPool : le secret présent dit l'intention
+	// de tester contre Keycloak — injoignable, c'est un échec, pas un saut.
 	client := gocloak.NewClient(cfg.Host)
 	if _, err := client.LoginClient(context.Background(), cfg.Backend_client_id, cfg.Backend_client_secret, strings.TrimPrefix(cfg.Realm, "realms/")); err != nil {
-		t.Skipf("Skipping integration test: Keycloak non accessible (%v)", err)
+		t.Fatalf("KC_BACKEND_CLIENT_SECRET est posé, Keycloak doit répondre (%s) : %v", cfg.Host, err)
 		return nil
 	}
 

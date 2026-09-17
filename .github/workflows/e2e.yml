@@ -159,6 +159,25 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           docker logs scolarite-backend 2>&1 | grep -i "version" | head -n 2
 
+      # ── Tests Go d'intégration, contre la même stack ─────────────────────
+      # Ils se sautaient sans base, Keycloak ni Mailpit et n'étaient couverts
+      # nulle part (docs/ci.md « non couvert », jusqu'au 17 septembre 2026).
+      # La cible recrée scolarite_tu depuis back/schema.sql et pose
+      # TEST_DB_URL : une base injoignable est un échec, plus un saut. Le
+      # résumé compte les tests passés, échoués et sautés — un « ok » sans
+      # test exécuté se verrait.
+      - name: Tests Go d'intégration (make test-integration)
+        run: |
+          set -o pipefail
+          debut=$SECONDS
+          statut=0
+          make $FICHIERS_ENV test-integration GO_TEST_ARGS=-v 2>&1 | tee /tmp/integration.txt || statut=$?
+          passes=$(grep -ac -- '--- PASS' /tmp/integration.txt || true)
+          echecs=$(grep -ac -- '--- FAIL' /tmp/integration.txt || true)
+          sauts=$(grep -ac -- '--- SKIP' /tmp/integration.txt || true)
+          echo "- tests Go d'intégration : $((SECONDS - debut)) s, code de sortie $statut — $passes passés, $echecs échoués, $sauts sautés" >> "$GITHUB_STEP_SUMMARY"
+          exit $statut
+
       # node_modules du poste… de l'exécuteur : le conteneur de référence
       # monte le dépôt tel quel et n'apporte que le navigateur (à la version
       # de @playwright/test). Aucun `playwright install` ici — ce serait un
