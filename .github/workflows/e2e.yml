@@ -21,7 +21,7 @@
 # La suite tourne dans le CONTENEUR DE RÉFÉRENCE (front/e2e/conteneur/ :
 # image officielle Playwright épinglée par empreinte, Ubuntu 24.04 comme cet
 # exécuteur), par la même cible make que sur un poste. C'est ce qui rend les
-# 20 captures de référence DÉCISIVES ici : mêmes polices, même Chromium, même
+# captures de référence DÉCISIVES ici : mêmes polices, même Chromium, même
 # antialiasing que là où elles ont été régénérées (make captures-reference,
 # arbitrage du 4 septembre 2026). La comparaison est stricte — aucun seuil de
 # tolérance ; un pixel qui change fait échouer le job, et le diff est publié
@@ -55,7 +55,7 @@ env:
 
 jobs:
   e2e:
-    name: Suite Playwright (63 tests, captures de référence comprises)
+    name: Suite Playwright, captures de référence comprises
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -179,14 +179,14 @@ jobs:
 
       # ── La suite ─────────────────────────────────────────────────────────
       # Par la cible du makefile, comme sur le poste, sans restriction : les
-      # 43 tests fonctionnels ET les 20 captures de référence, toutes
+      # tests fonctionnels ET les captures de référence, toutes
       # décisives — comparaison stricte, sans seuil.
       - name: Suite complète (make test-ihm, dans le conteneur de référence)
         run: |
           debut=$SECONDS
           statut=0
           make $FICHIERS_ENV test-ihm || statut=$?
-          echo "- suite complète (63 tests, captures comprises) : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
+          echo "- suite complète (captures comprises) : $((SECONDS - debut)) s, code de sortie $statut" >> "$GITHUB_STEP_SUMMARY"
           exit $statut
 
       # ── Artefacts, à chaque exécution ────────────────────────────────────

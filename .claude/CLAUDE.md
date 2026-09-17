@@ -52,8 +52,8 @@ existants). Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 95 tests, dont les
-  24 captures de référence — contre la stack montée par
+  généré sqlc à jour) et `e2e.yml` (la suite complète, captures de référence
+  comprises, contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -318,8 +318,8 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 95
-  tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
+  suite complète sur chaque push par la même cible (`make test-ihm`, captures
+  comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
   relance** (consigne `registre.spec.ts`).
@@ -1032,8 +1032,8 @@ est un acte de création, pas un lien vivant).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (95
-  tests, les 24 captures de référence comprises, dans le conteneur de
+  intégration : ils se sautent sans base), et la suite e2e complète (captures
+  de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,
   Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
