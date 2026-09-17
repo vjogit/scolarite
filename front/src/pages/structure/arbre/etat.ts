@@ -54,7 +54,7 @@ export interface EtatArbre {
      * le bandeau ajoute, c'est *de qui*. C'est ce qui rend le parent évident
      * pendant une création. `null` à la racine, où il n'y a pas de nœud.
      */
-    readonly titre: { readonly libelle: string; readonly nomme: ObjetNomme } | null;
+    readonly titre: { readonly niveau: NiveauArbre; readonly nomme: ObjetNomme } | null;
 }
 
 /** L'identifiant du parent dans la chaîne ; la racine n'en a pas. */
@@ -98,7 +98,7 @@ export function etatArbre(pathname: string, prefixe: string, t?: TFunction<'crud
             racine,
             retour: niveauParent === null ? racine : cheminParent,
         };
-        titre = { libelle: niveau.libelle, nomme: { entite, identifiant: chainon.identifiant } };
+        titre = { niveau, nomme: { entite, identifiant: chainon.identifiant } };
 
         cheminParent = chemin;
         niveauParent = niveau;

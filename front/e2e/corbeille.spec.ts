@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures/roles';
+import { errors, interpoler } from './aide/i18n';
 import {
     E2E, allerALaCorbeille, allerALaGrilleDeSaisie, allerSurOptionViaStructure, carteCorbeille,
 } from './aide/hierarchieE2E';
@@ -11,7 +12,8 @@ test.describe('Suppression et corbeille', () => {
 
         const dialogue = pageAdmin.getByRole('dialog', { name: `Supprimer l'option « ${E2E.optionDeliberee} » ?` });
         await expect(dialogue).toBeVisible();
-        await expect(dialogue.getByRole('alert')).toContainText('jury délibéré');
+        // Le blocage est rédigé par le front depuis la raison et le compte du serveur.
+        await expect(dialogue.getByRole('alert')).toContainText(interpoler(errors.blocage.jury_delibere_one, { count: '1' }));
         await expect(dialogue.getByRole('button', { name: 'Supprimer' })).toBeDisabled();
     });
 

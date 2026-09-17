@@ -15,15 +15,10 @@ import { Label } from '../../components/ui/label';
 import { Spinner } from '../../components/ui/spinner';
 import { fetchCorbeille, purgerOperation, restaurerOperation, type OperationCorbeille } from './service';
 import { CORBEILLE } from './def';
-import type { DeleteImpactEntry } from '../../services/crud/def';
-import { blockingMessageFor, messageForError } from '../../services/errorMessages';
+import { libelleImpact } from '../../services/crud/impact';
+import { blockingMessageFor, messageBlocage, messageForError } from '../../services/errorMessages';
 import { notifyError, notifySuccess } from '../../services/notify';
 import { formatNombre } from '../../services/format';
-
-/** « 3 promotions », « 1 847 notes » — même règle que la modale de suppression. */
-function formatEntry(entry: DeleteImpactEntry): string {
-    return `${formatNombre.format(entry.count)} ${entry.label}`;
-}
 
 /** Énumération : « a, b et c » (le séparateur final vient du namespace `corbeille`). */
 function joinEnumeration(parts: string[], t: TFunction<'corbeille'>): string {
@@ -72,6 +67,7 @@ function PurgeDialog({
     enCours: boolean;
 }) {
     const { t } = useTranslation('corbeille');
+    const { t: tCrud } = useTranslation('crud');
     const [saisie, setSaisie] = useState('');
     const saisieRef = useRef<HTMLInputElement>(null);
     const idSaisie = useId();
@@ -104,7 +100,7 @@ function PurgeDialog({
                         <Alert variant="warning">
                             <TriangleAlert />
                             <AlertDescription>
-                                {t('contientPrefixe')}<strong>{joinEnumeration(operation.cascade.map(formatEntry), t)}</strong>.
+                                {t('contientPrefixe')}<strong>{joinEnumeration(operation.cascade.map((entry) => libelleImpact(entry, tCrud)), t)}</strong>.
                             </AlertDescription>
                         </Alert>
                     )}
@@ -158,6 +154,7 @@ function RestoreDialog({
     enCours: boolean;
 }) {
     const { t } = useTranslation('corbeille');
+    const { t: tCrud } = useTranslation('crud');
     // Parité avec l'`autoFocus` que portait « Annuler » : l'action par défaut
     // est celle qui ne fait rien.
     const annulerRef = useRef<HTMLButtonElement>(null);
@@ -171,7 +168,7 @@ function RestoreDialog({
                     <DialogDescription>
                         {t('restaurationTout')}
                         {operation && operation.cascade.length > 0
-                            ? t('restaurationToutSuffixe', { liste: joinEnumeration(operation.cascade.map(formatEntry), t) })
+                            ? t('restaurationToutSuffixe', { liste: joinEnumeration(operation.cascade.map((entry) => libelleImpact(entry, tCrud)), t) })
                             : '.'}
                     </DialogDescription>
                 </DialogHeader>
@@ -195,6 +192,7 @@ function RestoreDialog({
 export function CorbeillePage() {
     const queryClient = useQueryClient();
     const { t } = useTranslation('corbeille');
+    const { t: tCrud } = useTranslation('crud');
 
     const [aRestaurer, setARestaurer] = useState<OperationCorbeille | null>(null);
     const [aPurger, setAPurger] = useState<OperationCorbeille | null>(null);
@@ -284,7 +282,7 @@ export function CorbeillePage() {
                         <CardContent className="flex flex-col gap-2">
                             {op.cascade.length > 0 ? (
                                 <p className="m-0 text-sm">
-                                    {t('contientPrefixe')}{joinEnumeration(op.cascade.map(formatEntry), t)}.
+                                    {t('contientPrefixe')}{joinEnumeration(op.cascade.map((entry) => libelleImpact(entry, tCrud)), t)}.
                                 </p>
                             ) : (
                                 <p className="m-0 text-sm">{t('aucuneDonneeLiee')}</p>
@@ -294,7 +292,7 @@ export function CorbeillePage() {
                                     <CircleAlert />
                                     <AlertDescription className="flex flex-col gap-1">
                                         {op.blocking.map((blocage) => (
-                                            <span key={blocage.reason}>{blocage.message}</span>
+                                            <span key={blocage.reason}>{messageBlocage(blocage)}</span>
                                         ))}
                                     </AlertDescription>
                                 </Alert>

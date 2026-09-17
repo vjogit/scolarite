@@ -60,14 +60,10 @@ func TestIntegration_FormationDeleteImpact(t *testing.T) {
 	assert.Empty(t, resp.Detached)
 	assert.Empty(t, resp.Blocking)
 
-	// Le libellé est accordé en nombre.
+	// Le serveur ne compose aucun libellé (lot correction-langue) : une entrée
+	// est une clé stable et un compte, le front traduit et accorde.
 	for _, entry := range resp.Cascade {
-		if entry.Entity == "unite_enseignement" {
-			assert.Equal(t, "unité d'enseignement", entry.Label)
-		}
-		if entry.Entity == "note" {
-			assert.Equal(t, "notes", entry.Label)
-		}
+		assert.NotEmpty(t, entry.Entity)
 	}
 
 	// La suppression réelle retire bien tout ce qui a été annoncé. Elle est
@@ -101,7 +97,7 @@ func TestIntegration_FormationDeleteImpact_BloqueParJury(t *testing.T) {
 	resp := services.DecodeDeleteImpact(t, rec)
 	require.Len(t, resp.Blocking, 1)
 	assert.Equal(t, services.ReasonJuryDelibere, resp.Blocking[0].Reason)
-	assert.Contains(t, resp.Blocking[0].Message, "jury délibéré")
+	assert.Equal(t, int64(1), resp.Blocking[0].Count, "le nombre de périodes délibérées accorde le message côté front")
 	assert.Equal(t, int64(1), services.CascadeCounts(resp)["jury_result"])
 
 	// Le blocage est imposé côté serveur, pas seulement affiché.

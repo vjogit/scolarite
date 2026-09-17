@@ -180,7 +180,38 @@ existants). Pas encore en production.
   Corollaire : tout libellé évalué au chargement d'un module (les
   `actionsLigne` des `routes.tsx`, figées dans le routeur) se déclare en
   fermeture `libelle: () => traduire(...)`, jamais en chaîne — une chaîne y
-  fige la langue de démarrage et ignore la bascule fr/en.
+  fige la langue de démarrage et ignore la bascule fr/en. Depuis le 17
+  septembre 2026 (lot `correction-langue`), **toutes** les fabriques
+  `ACTION_*` de `structure/entites/` et `actionNotes`/`actionControles` de
+  `note/routes.tsx` rendent une fermeture, qu'on les appelle avec ou sans
+  `t` ; et les libellés de niveau de l'arbre (`libelle`, `libellePluriel`,
+  `categorie` de `arbre/niveaux.ts`) sont des fonctions de `t` sur
+  `crud.json` (`arbre.niveaux.*`, `arbre.niveauxPluriel.*`,
+  `arbre.categories.*`) — `NIVEAUX` est construit au chargement du module,
+  des chaînes y restaient françaises en anglais (nœuds, dossiers « Périodes »
+  et « Groupes », titre du bandeau).
+- **Aucun texte d'interface n'est composé côté serveur : le serveur livre des
+  clés et des données, le front traduit** (17 septembre 2026, lot
+  `correction-langue`). Une analyse d'impact (`…/delete-impact`, cartes et
+  modale de la corbeille) est une liste de `{entity, count}` et de
+  `{reason, count}` ; un 409 métier porte `reason` et ce qui l'accorde
+  (`count` pour `jury_delibere`, `parents: [{type, name}]` pour
+  `parent_en_corbeille`), jamais une phrase — son `detail` n'est qu'un repli
+  technique qu'aucun écran n'affiche. Les mots vivent dans `crud.json` (bloc
+  `impact`, une clé par nature avec les pluriels i18next `_one`/`_other` et le
+  formateur `{{count, number}}` de la langue active ; `impact.detache.*` pour
+  les objets détachés) et dans `errors.json` (bloc `blocage`, une clé par
+  raison), par `libelleImpact`/`libelleDetache` (`services/crud/impact.ts`,
+  natures dérivées du JSON français) et `messageBlocage`
+  (`services/errorMessages.ts`, aussi derrière `blockingMessageFor`). Une clé
+  que le serveur enverrait sans traduction s'affiche **brute**, jamais
+  remplacée par un texte serveur : ajouter une nature dans `AddCascade` ou une
+  raison dans un `ConflictError`, c'est ajouter la clé dans les deux JSON. Deux
+  exceptions assumées : la fiche et le livret PDF (des documents, libellés Go
+  bilingues) et le `detail` d'`INVALID_FILE` (`fileMessageFor`, phrase sûre du
+  fichier refusé). Les tests Go d'impact affirment `Entity`, `Count`,
+  `Reason`, jamais une phrase ; une spec importe ses libellés des JSON
+  (`ligneImpact`/`nomImpact` d'`e2e/aide/i18n.ts`, jamais en clair).
 - **Commits en français**, une ligne qui raconte l'intention, pas la
   mécanique.
 - **Définitions d'entités** dans `pages/*/entites/*.ts` ; actions de ligne
@@ -1002,33 +1033,23 @@ ils survivront à celle-ci si personne ne les reprend.
   métier demande une `error` sur chaque schéma concerné.
 - **Un navigateur qui n'annonce que `fr-FR` fait démarrer l'application en
   anglais** (5 septembre 2026, constaté dans le conteneur de référence
-  avec `locale: 'fr-FR'`) : `fr-FR` n'est pas dans `supportedLngs`, et le
-  détecteur i18next retombe sur le `lang="en"` de `front/index.html`
-  (source `htmlTag`) avant d'essayer la langue seule. Les navigateurs
-  réels envoient `fr-FR,fr` et n'y tombent pas ; à corriger côté
-  `i18n/config.ts` ou `index.html` dans un lot front.
-- **Les actions de ligne créées au chargement des `routes.tsx` sans `t`
-  gardent la langue de démarrage** (14 septembre 2026, lot 2 syllabus,
-  constaté au navigateur) : `catalog/routes.tsx` appelle `ACTION_GROUPES()`
-  et `ACTION_PERIODES()`, `note/routes.tsx` `ACTION_UES()` et
-  `ACTION_MATIERES()` — or ces fabriques de `structure/entites/` renvoient
-  un `libelle` **chaîne** (résolue à l'appel), pas une fermeture. Preuve :
-  interface basculée en anglais, le menu de la ligne « E2E Option » du
-  catalogue affiche « Gérer les groupes » et « Gérer les périodes ». Le lot 2
-  a évité d'étendre le défaut à l'UE (ses actions par défaut restent
-  créées au rendu dans `CrudUe`, avec `t`) ; `ACTION_SYLLABUS` est une
-  fermeture. Correction attendue : `libelle: () => …` dans les fabriques
-  `ACTION_*` de `structure/entites/`, comme `actionProgramme`.
-- **Les lignes de cascade de la modale de suppression sont en français
-  quelle que soit la langue de l'interface** (17 septembre 2026, lot
-  `correction-impacts`, constaté à la lecture puis au navigateur) : le
-  serveur compose le libellé accordé (`entityLabels`,
-  `services/delete_impact.go`) et `formatEntry` (`DeleteConfirmDialog.tsx`,
-  `Corbeille.tsx`) l'imprime tel quel ; aucune clé `entity` n'est traduite
-  côté front. En anglais, la modale dit « "X" contains **3 promotions et
-  12 notes** ». Correction attendue : traduire par la clé `entity` dans le
-  front (modale et cartes de la corbeille), et ne plus envoyer `label` que
-  comme repli — un mécanisme nouveau pour les vingt entités, pas une ligne.
+  avec `locale: 'fr-FR'` ; rejoué le 17 septembre 2026, lot
+  `correction-langue`, `navigator.languages = ["fr-FR"]` → onglets anglais).
+  **Diagnostic posé** : le détecteur renvoie `['fr-FR', 'en']` — le
+  navigateur, puis `htmlTag` sur le `lang="en"` de `front/index.html` — et
+  i18next fait d'abord une passe d'**égalité stricte** sur toute la liste
+  contre `supportedLngs: ['fr', 'en']` : `fr-FR` échoue, `en` réussit, et la
+  seconde passe, qui aurait réduit `fr-FR` à `fr`, n'est jamais atteinte.
+  C'est le choix de la langue de départ, pas un texte qui ignore la langue
+  active : autre mécanisme que le lot `correction-langue`, donc laissé ici.
+  **Correctif identifié** : `detection: { convertDetectedLanguage: (l) =>
+  l.split('-')[0] }` dans `i18n/config.ts` (option de
+  `i18next-browser-languagedetector` 8.2, installée) — une ligne, qui garde
+  des codes à deux lettres partout (`i18nextLng`, `langue.js` du thème
+  Keycloak, pont zod). `<html lang="fr">` ne ferait que déplacer le biais
+  vers un navigateur `en-US` seul. À livrer avec une spec `locale: 'fr-FR'`
+  dans le conteneur de référence. Les navigateurs réels envoient `fr-FR,fr`
+  et n'y tombent pas.
 - **Supprimer une UE n'est pas bloqué par un jury délibéré** (17 septembre
   2026, même lot, constaté à la lecture) : `fk_jury_result_ue` est
   `ON DELETE CASCADE` et `DeleteUniteEnseignement` ne vérifie rien, quand
@@ -1053,6 +1074,20 @@ Le quatrième — les libellés et annonces des axes de notes en français en
 dur (`axes.ts`, lot 16) — est **fermé** le 5 septembre 2026 : fermetures
 `() => traduire(...)` sur `note.json` (bloc `axes`), vérifié au navigateur
 dans les deux langues, bascule en place comprise.
+Le cinquième et le sixième — les actions de ligne des `routes.tsx` figées
+dans la langue de démarrage (A2, consigné au lot 2 syllabus) et les lignes de
+cascade et messages de blocage composés en français par le serveur (consigné
+au lot A1) — sont **fermés** le 17 septembre 2026 par le lot
+`correction-langue` : fermetures dans toutes les fabriques `ACTION_*` et
+dans `note/routes.tsx`, libellés de l'arbre en fonctions de `t`, contrat
+d'impact structuré et traduit par le front (voir « Conventions »), les trois
+autres 409 à texte serveur (`parent_en_corbeille`, `homonyme_actif`,
+`note_sur_eleve_non_evalue`) passés au même régime. Vérifié au navigateur
+dans les deux langues, bascule en cours de session comprise : liste des
+options du catalogue, listes des périodes, UE et matières de Notes, arbre
+(nœuds, dossiers, titre du bandeau), modale d'impact d'« E2E Option »,
+blocage de l'option délibérée, suppression d'un bloc du référentiel, cartes
+et modale de purge de la corbeille.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

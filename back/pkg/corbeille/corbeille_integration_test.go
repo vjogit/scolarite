@@ -232,8 +232,10 @@ func TestIntegration_Corbeille_PropagéNonRestaurableSeul(t *testing.T) {
 	rec := httptest.NewRecorder()
 	corbeilleRouter().ServeHTTP(rec, newRequest(t, pool, http.MethodPost, "/"+itoa(op1)+"/restaurer"))
 	require.Equal(t, http.StatusConflict, rec.Code, rec.Body.String())
-	assert.Contains(t, rec.Body.String(), "restaurez d'abord")
 	assert.Contains(t, rec.Body.String(), "parent_en_corbeille")
+	// Le parent refusé part structuré (type de racine, nom) : le front rédige.
+	assert.Contains(t, rec.Body.String(), `"parents":[{"name":"`)
+	assert.Contains(t, rec.Body.String(), `"type":"formation"`)
 
 	// La formation restaurée, la promotion redevient restaurable — et sa
 	// restauration ne concerne qu'elle : l'opération de la formation n'avait

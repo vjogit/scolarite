@@ -61,17 +61,25 @@ export interface DeleteImpactItem {
     name: string;
 }
 
-/** Décompte de descendants pour une entité, libellé déjà accordé en nombre. */
+/**
+ * Décompte de descendants pour une entité : la clé stable (nom de table) et
+ * le compte. Le serveur ne compose aucun libellé, c'est `libelleImpact`
+ * (`services/crud/impact.ts`) qui traduit et accorde (bloc `impact` de
+ * `crud.json`).
+ */
 export interface DeleteImpactEntry {
     entity: string;
-    label: string;
     count: number;
 }
 
-/** Raison métier interdisant la suppression. */
+/**
+ * Raison métier interdisant la suppression : un code et le nombre qui
+ * l'accorde (pour `jury_delibere`, les périodes délibérées). Rédigée par
+ * `messageBlocage` (`services/errorMessages.ts`, bloc `blocage` d'`errors.json`).
+ */
 export interface DeleteImpactBlocking {
     reason: string;
-    message: string;
+    count: number;
 }
 
 /** Réponse de l'endpoint d'analyse d'impact (POST .../delete-impact). */

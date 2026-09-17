@@ -47,7 +47,7 @@ export const createPeriodeRepository = (optionId: string) => {
 export function ACTION_UES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'ues',
-        libelle: tCrud(t)('entites.actions.gererUe', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererUe', { ns: 'crud' }),
         icone: List,
         segment: UES,
     };

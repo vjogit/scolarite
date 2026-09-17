@@ -17,20 +17,16 @@ import {
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Spinner } from '../../components/ui/spinner';
-import type { DeleteImpact, DeleteImpactEntry, EntiteCrud } from './def';
-import { messageForError } from '../errorMessages';
+import type { DeleteImpact, EntiteCrud } from './def';
+import { messageBlocage, messageForError } from '../errorMessages';
 import { formatNombre } from '../format';
+import { libelleDetache, libelleImpact } from './impact';
 
 /** Au-delà de ce nombre de descendants, la saisie de confirmation est exigée. */
 const SEUIL_CONFIRMATION = 100;
 
 /** Nombre d'objets nommés avant le repli sur « et N autres ». */
 const MAX_NOMS_AFFICHES = 5;
-
-/** « 3 promotions », « 1 847 notes ». */
-function formatEntry(entry: DeleteImpactEntry): string {
-    return `${formatNombre.format(entry.count)} ${entry.label}`;
-}
 
 /** Énumération : « a, b et c » (le séparateur final vient du namespace `crud`). */
 function joinEnumeration(parts: string[], t: TFunction<'crud'>): string {
@@ -221,7 +217,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                         {objets.length === 1
                                             ? t('deleteDialog.cascadeUnContient', { nom: noms[0] ?? '' })
                                             : t('deleteDialog.cascadeSelectionContient')}
-                                        <strong>{joinEnumeration(impact.cascade.map(formatEntry), t)}</strong>.{' '}
+                                        <strong>{joinEnumeration(impact.cascade.map((entry) => libelleImpact(entry, t)), t)}</strong>.{' '}
                                         {entite.suppressionEnCorbeille
                                             ? t('deleteDialog.cascadeCorbeille')
                                             : t('deleteDialog.cascadeDefinitive')}
@@ -240,7 +236,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                                 <Alert variant="info">
                                     <Info />
                                     <AlertDescription>
-                                        {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map(formatEntry), t) })}
+                                        {t('deleteDialog.detache', { liste: joinEnumeration(impact.detached.map((entry) => libelleDetache(entry, t)), t) })}
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -252,7 +248,7 @@ export function DeleteConfirmDialog<D extends FieldValues>({
                             <CircleAlert />
                             <AlertDescription className="flex flex-col gap-1">
                                 {blocages.map((blocage) => (
-                                    <span key={blocage.reason}>{blocage.message}</span>
+                                    <span key={blocage.reason}>{messageBlocage(blocage)}</span>
                                 ))}
                             </AlertDescription>
                         </Alert>

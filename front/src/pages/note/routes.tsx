@@ -67,7 +67,9 @@ const NOTES_SAISIES: ReglagesNiveau = {
 function actionNotes(): ActionNavigation<FieldValues> {
     return {
         id: 'notes',
-        libelle: i18n.t('routes.gererLesNotes', { ns: 'note' }),
+        // Fermeture : l'action est créée au chargement du module, une chaîne
+        // y gèlerait la langue de démarrage (défaut A2, lot correction-langue).
+        libelle: () => i18n.t('routes.gererLesNotes', { ns: 'note' }),
         icone: ClipboardCheck,
         segment: NOTE,
         directe: true,
@@ -78,7 +80,7 @@ function actionNotes(): ActionNavigation<FieldValues> {
 function actionControles(): ActionNavigation<FieldValues> {
     return {
         id: 'controles',
-        libelle: i18n.t('routes.gererLesControles', { ns: 'note' }),
+        libelle: () => i18n.t('routes.gererLesControles', { ns: 'note' }),
         icone: List,
         segment: CONTROLE,
     };

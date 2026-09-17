@@ -133,8 +133,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if nbPeriodesDeliberees > 0 {
-		services.ConflictError(w, r, services.JuryDelibereMessage(nbPeriodesDeliberees), services.BUSINESS_CONFLICT,
-			map[string]interface{}{"reason": services.ReasonJuryDelibere})
+		services.ConflictJuryDelibere(w, r, nbPeriodesDeliberees)
 		return
 	}
 

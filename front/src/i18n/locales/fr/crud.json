@@ -111,6 +111,53 @@
     "et": "et"
   },
 
+  "impact": {
+    "promotion_one": "{{count, number}} promotion",
+    "promotion_other": "{{count, number}} promotions",
+    "toeic_one": "{{count, number}} résultat TOEIC",
+    "toeic_other": "{{count, number}} résultats TOEIC",
+    "mobilite_internationale_one": "{{count, number}} mobilité internationale",
+    "mobilite_internationale_other": "{{count, number}} mobilités internationales",
+    "option_one": "{{count, number}} option",
+    "option_other": "{{count, number}} options",
+    "groupe_one": "{{count, number}} groupe",
+    "groupe_other": "{{count, number}} groupes",
+    "groupe_user_one": "{{count, number}} affectation d'élève à un groupe",
+    "groupe_user_other": "{{count, number}} affectations d'élèves aux groupes",
+    "periode_one": "{{count, number}} période",
+    "periode_other": "{{count, number}} périodes",
+    "unite_enseignement_one": "{{count, number}} unité d'enseignement",
+    "unite_enseignement_other": "{{count, number}} unités d'enseignement",
+    "matiere_one": "{{count, number}} matière",
+    "matiere_other": "{{count, number}} matières",
+    "controle_one": "{{count, number}} contrôle",
+    "controle_other": "{{count, number}} contrôles",
+    "note_one": "{{count, number}} note",
+    "note_other": "{{count, number}} notes",
+    "reservation_one": "{{count, number}} réservation",
+    "reservation_other": "{{count, number}} réservations",
+    "reservation_intervenant_one": "{{count, number}} affectation d'intervenant",
+    "reservation_intervenant_other": "{{count, number}} affectations d'intervenants",
+    "reservation_salle_one": "{{count, number}} réservation de salle",
+    "reservation_salle_other": "{{count, number}} réservations de salle",
+    "reservation_groupe_one": "{{count, number}} affectation de groupe à un créneau",
+    "reservation_groupe_other": "{{count, number}} affectations de groupes aux créneaux",
+    "jury_result_one": "{{count, number}} résultat de jury",
+    "jury_result_other": "{{count, number}} résultats de jury",
+    "bloc_competence_one": "{{count, number}} bloc de compétences",
+    "bloc_competence_other": "{{count, number}} blocs de compétences",
+    "competence_one": "{{count, number}} compétence",
+    "competence_other": "{{count, number}} compétences",
+    "ue_competence_one": "{{count, number}} liaison UE ↔ compétence",
+    "ue_competence_other": "{{count, number}} liaisons UE ↔ compétence",
+    "syllabus_matiere_one": "{{count, number}} fiche syllabus",
+    "syllabus_matiere_other": "{{count, number}} fiches syllabus",
+    "detache": {
+      "reservation_one": "{{count, number}} réservation détachée de sa matière",
+      "reservation_other": "{{count, number}} réservations détachées de leur matière"
+    }
+  },
+
   "entites": {
     "formation": {
       "title": "Formations",
@@ -214,7 +261,28 @@
   },
   "arbre": {
     "chargementImpossible": "Chargement impossible.",
-    "ariaLabel": "Arborescence de la structure"
+    "ariaLabel": "Arborescence de la structure",
+    "niveaux": {
+      "formation": "Formation",
+      "promotion": "Promotion",
+      "option": "Option",
+      "periode": "Période",
+      "ue": "UE",
+      "matiere": "Matière",
+      "groupe": "Groupe"
+    },
+    "niveauxPluriel": {
+      "formation": "Formations",
+      "promotion": "Promotions",
+      "option": "Options",
+      "periode": "Périodes",
+      "ue": "UE",
+      "matiere": "Matières",
+      "groupe": "Groupes"
+    },
+    "categories": {
+      "groupes": "Groupes"
+    }
   },
   "erreurRecuperation": "Erreur lors de la récupération.",
   "donneesIntrouvables": "Données introuvables."
