@@ -7,10 +7,12 @@ import i18n from '../i18n/config';
  * Le serveur émet des codes — `code` pour la famille, des motifs en
  * snake_case pour les champs et les lignes d'import — et ce module possède
  * tous les mots (namespace i18next `errors`). Aucun texte destiné à l'écran
- * ne vient du serveur, à deux exceptions assumées : le `detail` (phrase sûre
- * rédigée côté serveur, jamais un message technique) et le `detail`
- * PostgreSQL des conflits de créneau, que le planning analyse pour retrouver
- * les bornes.
+ * ne vient du serveur — un conflit métier arrive comme une raison et ses
+ * données (`reason`, `count`, `parents`…), rédigées ici par `messageBlocage`
+ * (lot correction-langue, 17 septembre 2026). Deux exceptions assumées : le
+ * `detail` d'`INVALID_FILE` (phrase sûre du fichier refusé, `fileMessageFor`)
+ * et le `detail` PostgreSQL des conflits de créneau, que le planning analyse
+ * pour retrouver les bornes.
  */
 
 export type ApiErrorCode =
@@ -236,15 +238,59 @@ export function messageForError(err: unknown): string {
   return incident ? i18n.t('avecIncident', { ns: 'errors', message, incident }) : message;
 }
 
+const RACINES_CORBEILLE = ['formation', 'promotion', 'option', 'periode'] as const;
+type RacineCorbeille = typeof RACINES_CORBEILLE[number];
+function estRacineCorbeille(type: unknown): type is RacineCorbeille {
+  return typeof type === 'string' && (RACINES_CORBEILLE as readonly string[]).includes(type);
+}
+
+/** « Formation « X », Option « Y » » — les parents à restaurer d'abord. */
+function libelleParents(parents: unknown): string {
+  if (!Array.isArray(parents)) return '';
+  const noms: string[] = [];
+  for (const brut of parents as unknown[]) {
+    if (typeof brut !== 'object' || brut === null) continue;
+    const { type, name } = brut as Record<string, unknown>;
+    if (!estRacineCorbeille(type) || typeof name !== 'string') continue;
+    noms.push(`${i18n.t(`racines.${type}`, { ns: 'corbeille' })} « ${name} »`);
+  }
+  return noms.join(', ');
+}
+
+/**
+ * Le message d'une raison de blocage métier, dans la langue active — celle
+ * d'une analyse d'impact (`blocking[]`) comme celle d'un 409 BUSINESS_CONFLICT.
+ * Le serveur ne rédige rien : il livre la raison et ce qui l'accorde. Une
+ * raison nouvelle côté serveur s'ajoute au bloc `blocage` d'`errors.json`,
+ * sinon elle s'affiche brute — visible, jamais remplacée par un texte serveur.
+ */
+export function messageBlocage(blocage: { reason: string; count?: number; parents?: unknown }): string {
+  switch (blocage.reason) {
+    case 'jury_delibere':
+      return i18n.t('blocage.jury_delibere', { ns: 'errors', count: blocage.count ?? 1 });
+    case 'parent_en_corbeille':
+      return i18n.t('blocage.parent_en_corbeille', { ns: 'errors', parents: libelleParents(blocage.parents) });
+    case 'homonyme_actif':
+      return i18n.t('blocage.homonyme_actif', { ns: 'errors' });
+    case 'note_sur_eleve_non_evalue':
+      return i18n.t('blocage.note_sur_eleve_non_evalue', { ns: 'errors' });
+    default:
+      return blocage.reason;
+  }
+}
+
 // Message précis d'un conflit métier : le serveur renvoie l'extension `reason`
-// et un `detail` déjà rédigé (ex. période avec jury délibéré). Le libellé
-// générique de BUSINESS_CONFLICT parle de créneaux, il serait trompeur ici.
+// et ses données ; le libellé générique de BUSINESS_CONFLICT parle de
+// créneaux, il serait trompeur ici.
 function blockingMessageFromPayload(payload: unknown): string | null {
   if (codeFromPayload(payload) !== 'BUSINESS_CONFLICT') return null;
   const p = payload as Record<string, unknown>;
   if (typeof p.reason !== 'string') return null;
-  const detail = p.detail;
-  return typeof detail === 'string' && detail.length > 0 ? detail : null;
+  return messageBlocage({
+    reason: p.reason,
+    count: typeof p.count === 'number' ? p.count : undefined,
+    parents: p.parents,
+  });
 }
 
 export function blockingMessageFor(err: unknown): string | null {

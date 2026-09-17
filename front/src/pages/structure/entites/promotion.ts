@@ -106,7 +106,7 @@ export const createPromotionRepository = (formationId: string) => {
 export function ACTION_OPTIONS(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'options',
-        libelle: tCrud(t)('entites.actions.gererOptions', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererOptions', { ns: 'crud' }),
         icone: List,
         segment: OPTION,
     };

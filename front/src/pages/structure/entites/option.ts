@@ -43,7 +43,7 @@ export const createOptionRepository = (promotionId: string) => {
 export function ACTION_GROUPES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'groupes',
-        libelle: tCrud(t)('entites.actions.gererGroupes', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererGroupes', { ns: 'crud' }),
         icone: Users,
         segment: GROUPE,
     };
@@ -53,7 +53,7 @@ export function ACTION_GROUPES(t?: TFunction<'crud'>): ActionNavigation<FieldVal
 export function ACTION_PERIODES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'periodes',
-        libelle: tCrud(t)('entites.actions.gererPeriodes', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererPeriodes', { ns: 'crud' }),
         icone: List,
         segment: PERIODE,
     };

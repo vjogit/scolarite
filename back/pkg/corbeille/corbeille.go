@@ -34,14 +34,6 @@ const (
 	RacinePeriode   = "periode"
 )
 
-// libellesRacine accorde chaque type de racine pour les messages d'erreur.
-var libellesRacine = map[string]string{
-	RacineFormation: "la formation",
-	RacinePromotion: "la promotion",
-	RacineOption:    "l'option",
-	RacinePeriode:   "la période",
-}
-
 // remplacé par une var car les tests unitaires surchargent la méthode.
 var getQueriesFromCtx = func(r *http.Request) *gen.Queries {
 	pgCtx := services.GetPgCtx(r.Context())
@@ -168,7 +160,7 @@ func impactVersReponse(impact gen.PurgeImpactRow) *services.DeleteImpactResponse
 	resp.AddCascade("ue_competence", impact.UeCompetenceCount)
 	resp.AddDetached("reservation", impact.ReservationDetacheeCount)
 	if impact.JuryPeriodeCount > 0 {
-		resp.AddBlocking(services.ReasonJuryDelibere, services.JuryDelibereMessage(impact.JuryPeriodeCount))
+		resp.AddBlocking(services.ReasonJuryDelibere, impact.JuryPeriodeCount)
 	}
 	return resp
 }
@@ -282,13 +274,19 @@ func Restaurer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(parents) > 0 {
+		// Les parents partent structurés (type de racine + nom) : c'est le
+		// front qui rédige « restaurez d'abord Formation « X » »
+		// (`blocage.parent_en_corbeille`, errors.json) ; le detail n'est qu'un
+		// repli technique.
 		noms := make([]string, 0, len(parents))
+		parentsRefuses := make([]map[string]string, 0, len(parents))
 		for _, p := range parents {
-			noms = append(noms, fmt.Sprintf("%s « %s »", libellesRacine[p.ParentType], p.ParentName))
+			noms = append(noms, p.ParentType+" « "+p.ParentName+" »")
+			parentsRefuses = append(parentsRefuses, map[string]string{"type": p.ParentType, "name": p.ParentName})
 		}
 		services.ConflictError(w, r,
-			"Restauration impossible : restaurez d'abord "+strings.Join(noms, ", ")+".",
-			services.BUSINESS_CONFLICT, map[string]interface{}{"reason": "parent_en_corbeille"})
+			"Restauration refusée : parent(s) en corbeille — "+strings.Join(noms, ", ")+".",
+			services.BUSINESS_CONFLICT, map[string]interface{}{"reason": "parent_en_corbeille", "parents": parentsRefuses})
 		return
 	}
 
@@ -315,7 +313,7 @@ func Restaurer(w http.ResponseWriter, r *http.Request) {
 			// rien n'est restauré, l'utilisateur doit d'abord traiter le
 			// doublon.
 			services.ConflictError(w, r,
-				"Restauration impossible : un objet actif porte déjà l'un des noms à restaurer. Renommez-le ou supprimez-le d'abord.",
+				"Restauration refusée : homonyme actif.",
 				services.BUSINESS_CONFLICT, map[string]interface{}{"reason": "homonyme_actif"})
 			return
 		}
@@ -371,8 +369,7 @@ func Purger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if impact.JuryPeriodeCount > 0 {
-		services.ConflictError(w, r, services.JuryDelibereMessage(impact.JuryPeriodeCount), services.BUSINESS_CONFLICT,
-			map[string]interface{}{"reason": services.ReasonJuryDelibere})
+		services.ConflictJuryDelibere(w, r, impact.JuryPeriodeCount)
 		return
 	}
 

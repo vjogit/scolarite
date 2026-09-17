@@ -42,7 +42,7 @@ export const createGroupeRepository = (optionId: string) =>
 export function ACTION_MEMBRES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'membres',
-        libelle: tCrud(t)('entites.actions.gererMembres', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererMembres', { ns: 'crud' }),
         icone: Users,
         segment: 'user',
     };

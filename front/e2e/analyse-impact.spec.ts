@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/roles';
 import {
     E2E, allerJusquaPeriodeViaStructure, allerSurOptionViaStructure, boutonActionsLigne, cliquerPuisAttendreUrl,
 } from './aide/hierarchieE2E';
-import { crud, titreSuppression } from './aide/i18n';
+import { crud, ligneImpact, nomImpact, titreSuppression } from './aide/i18n';
 
 /**
  * Correction A1 (17 septembre 2026) : les analyses d'impact de suppression
@@ -11,19 +11,18 @@ import { crud, titreSuppression } from './aide/i18n';
  * compétences d'une UE — et l'UE comme la matière ont désormais leur propre
  * analyse (suppression physique : « Tout sera définitivement supprimé »).
  *
- * Les lignes de cascade sont les libellés FRANÇAIS que le serveur compose
- * (`entityLabels`, back/pkg/services/delete_impact.go) : ils n'existent dans
- * aucun JSON de `locales/`, d'où les chaînes en clair ci-dessous — comme
- * « jury délibéré » dans corbeille.spec.ts. La modale n'est pas bilingue sur
- * ces lignes (défaut consigné dans CLAUDE.md).
+ * Les lignes de cascade sont traduites par le front depuis la clé stable que
+ * le serveur livre (`entity` + `count`, lot correction-langue du 17 septembre
+ * 2026) : leurs libellés viennent du bloc `impact` de crud.json, par
+ * `ligneImpact`, jamais en clair.
  *
  * État semé : « E2E UE1 » porte une liaison (C1) et sa matière « E2E Matiere »
  * une fiche ; « E2E UE Deliberee » n'a ni matière, ni fiche, ni liaison.
  * Aucune écriture : chaque dialogue est refermé par « Annuler ».
  */
 
-const FICHE = '1 fiche syllabus';
-const LIAISON = '1 liaison UE ↔ compétence';
+const FICHE = ligneImpact('syllabus_matiere', 1);
+const LIAISON = ligneImpact('ue_competence', 1);
 
 /** Ouvre le dialogue de suppression du nœud courant du bandeau, par son menu d'actions. */
 async function ouvrirSuppression(page: Page, nomNoeud: string, nomAvecArticle: string) {
@@ -57,7 +56,7 @@ test.describe('Analyse d\'impact — données syllabus', () => {
         await allerSurUeViaStructure(pageAdmin, E2E.option, E2E.periode, E2E.ue);
         const dialogue = await ouvrirSuppression(pageAdmin, E2E.ue, crud.entites.ue.nomAvecArticle);
         const alerte = dialogue.getByRole('alert').first();
-        await expect(alerte).toContainText(`1 ${crud.entites.matiere.nom}`);
+        await expect(alerte).toContainText(ligneImpact('matiere', 1));
         await expect(alerte).toContainText(FICHE);
         await expect(alerte).toContainText(LIAISON);
         await expect(alerte).toContainText(crud.deleteDialog.cascadeDefinitive);
@@ -72,8 +71,9 @@ test.describe('Analyse d\'impact — données syllabus', () => {
         const dialogue = await ouvrirSuppression(pageAdmin, E2E.matiere, crud.entites.matiere.nomAvecArticle);
         const alerte = dialogue.getByRole('alert').first();
         await expect(alerte).toContainText(FICHE);
-        await expect(alerte).toContainText(`2 ${crud.entites.controle.nomPluriel}`);
-        await expect(alerte).not.toContainText('liaison');
+        await expect(alerte).toContainText(ligneImpact('controle', 2));
+        await expect(alerte).not.toContainText(nomImpact('ue_competence', 1));
+        await expect(alerte).not.toContainText(nomImpact('ue_competence', 2));
         await expect(alerte).toContainText(crud.deleteDialog.cascadeDefinitive);
         await dialogue.getByRole('button', { name: crud.deleteDialog.annuler }).click();
         await expect(dialogue).toHaveCount(0);
@@ -82,8 +82,10 @@ test.describe('Analyse d\'impact — données syllabus', () => {
     test('UE sans donnée syllabus : aucune ligne fiche ni liaison', async ({ pageAdmin }) => {
         await allerSurUeViaStructure(pageAdmin, E2E.optionDeliberee, 'E2E Periode Deliberee', 'E2E UE Deliberee');
         const dialogue = await ouvrirSuppression(pageAdmin, 'E2E UE Deliberee', crud.entites.ue.nomAvecArticle);
-        await expect(dialogue).not.toContainText('fiche syllabus');
-        await expect(dialogue).not.toContainText('liaison');
+        for (const nombre of [1, 2]) {
+            await expect(dialogue).not.toContainText(nomImpact('syllabus_matiere', nombre));
+            await expect(dialogue).not.toContainText(nomImpact('ue_competence', nombre));
+        }
         await dialogue.getByRole('button', { name: crud.deleteDialog.annuler }).click();
         await expect(dialogue).toHaveCount(0);
     });

@@ -300,15 +300,17 @@ function NoeudCategorie({ chemin, enfant, identifiantParent }: {
     identifiantParent: string;
 }) {
     const { deplies } = useContexteArbre();
+    const { t } = useTranslation('crud');
     const niveau = niveauArbre(enfant.segment);
     if (niveau === undefined) return null;
     const deplie = deplies.has(chemin);
+    const nomDossier = enfant.categorie?.(t) ?? niveau.libellePluriel(t);
 
     return (
         <LigneArbre
             chemin={chemin}
-            ariaLabel={enfant.categorie ?? niveau.libellePluriel}
-            etiquette={<Etiquette icone={Folder} texte={enfant.categorie ?? niveau.libellePluriel} />}
+            ariaLabel={nomDossier}
+            etiquette={<Etiquette icone={Folder} texte={nomDossier} />}
             depliable
             deplie={deplie}
             enfants={
@@ -359,6 +361,7 @@ function NoeudEntite({ chemin, niveau, noeud, premier }: {
     premier?: boolean;
 }) {
     const { deplies } = useContexteArbre();
+    const { t } = useTranslation('crud');
     const deplie = deplies.has(chemin);
 
     return (
@@ -367,7 +370,7 @@ function NoeudEntite({ chemin, niveau, noeud, premier }: {
             premier={premier}
             // Hors contexte visuel, le nom seul ne dit pas de quoi il est le
             // nom : le niveau le précède, comme dans le fil de contexte.
-            ariaLabel={`${niveau.libelle} ${noeud.nom}`}
+            ariaLabel={`${niveau.libelle(t)} ${noeud.nom}`}
             etiquette={<Etiquette icone={niveau.icone} texte={noeud.nom} />}
             // Une feuille n'est pas dépliable du tout : ni chevron, ni
             // aria-expanded — le `role="group"` vide que rendait MUI en moins.

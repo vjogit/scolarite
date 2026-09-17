@@ -103,6 +103,53 @@
     "et": "and"
   },
 
+  "impact": {
+    "promotion_one": "{{count, number}} cohort",
+    "promotion_other": "{{count, number}} cohorts",
+    "toeic_one": "{{count, number}} TOEIC result",
+    "toeic_other": "{{count, number}} TOEIC results",
+    "mobilite_internationale_one": "{{count, number}} mobility placement",
+    "mobilite_internationale_other": "{{count, number}} mobility placements",
+    "option_one": "{{count, number}} option",
+    "option_other": "{{count, number}} options",
+    "groupe_one": "{{count, number}} group",
+    "groupe_other": "{{count, number}} groups",
+    "groupe_user_one": "{{count, number}} student group assignment",
+    "groupe_user_other": "{{count, number}} student group assignments",
+    "periode_one": "{{count, number}} period",
+    "periode_other": "{{count, number}} periods",
+    "unite_enseignement_one": "{{count, number}} course unit",
+    "unite_enseignement_other": "{{count, number}} course units",
+    "matiere_one": "{{count, number}} subject",
+    "matiere_other": "{{count, number}} subjects",
+    "controle_one": "{{count, number}} assessment",
+    "controle_other": "{{count, number}} assessments",
+    "note_one": "{{count, number}} grade",
+    "note_other": "{{count, number}} grades",
+    "reservation_one": "{{count, number}} booking",
+    "reservation_other": "{{count, number}} bookings",
+    "reservation_intervenant_one": "{{count, number}} instructor assignment",
+    "reservation_intervenant_other": "{{count, number}} instructor assignments",
+    "reservation_salle_one": "{{count, number}} room booking",
+    "reservation_salle_other": "{{count, number}} room bookings",
+    "reservation_groupe_one": "{{count, number}} group slot assignment",
+    "reservation_groupe_other": "{{count, number}} group slot assignments",
+    "jury_result_one": "{{count, number}} jury result",
+    "jury_result_other": "{{count, number}} jury results",
+    "bloc_competence_one": "{{count, number}} competency block",
+    "bloc_competence_other": "{{count, number}} competency blocks",
+    "competence_one": "{{count, number}} competency",
+    "competence_other": "{{count, number}} competencies",
+    "ue_competence_one": "{{count, number}} course unit ↔ competency link",
+    "ue_competence_other": "{{count, number}} course unit ↔ competency links",
+    "syllabus_matiere_one": "{{count, number}} syllabus sheet",
+    "syllabus_matiere_other": "{{count, number}} syllabus sheets",
+    "detache": {
+      "reservation_one": "{{count, number}} booking detached from its subject",
+      "reservation_other": "{{count, number}} bookings detached from their subject"
+    }
+  },
+
   "entites": {
     "formation": {
       "title": "Training programs",
@@ -206,7 +253,28 @@
   },
   "arbre": {
     "chargementImpossible": "Could not load.",
-    "ariaLabel": "Structure tree"
+    "ariaLabel": "Structure tree",
+    "niveaux": {
+      "formation": "Program",
+      "promotion": "Cohort",
+      "option": "Option",
+      "periode": "Period",
+      "ue": "Course unit",
+      "matiere": "Subject",
+      "groupe": "Group"
+    },
+    "niveauxPluriel": {
+      "formation": "Programs",
+      "promotion": "Cohorts",
+      "option": "Options",
+      "periode": "Periods",
+      "ue": "Course units",
+      "matiere": "Subjects",
+      "groupe": "Groups"
+    },
+    "categories": {
+      "groupes": "Groups"
+    }
   },
   "erreurRecuperation": "Error while retrieving data.",
   "donneesIntrouvables": "Data not found."

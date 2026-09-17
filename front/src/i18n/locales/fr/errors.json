@@ -20,6 +20,13 @@
     "SERVICE_UNAVAILABLE": "Un service nécessaire est indisponible. Réessayez plus tard."
   },
   "avecIncident": "{{message}} (code incident : {{incident}})",
+  "blocage": {
+    "jury_delibere_one": "Suppression impossible : {{count}} période a un jury délibéré.",
+    "jury_delibere_other": "Suppression impossible : {{count}} périodes ont un jury délibéré.",
+    "parent_en_corbeille": "Restauration impossible : restaurez d'abord {{parents}}.",
+    "homonyme_actif": "Restauration impossible : un objet actif porte déjà l'un des noms à restaurer. Renommez-le ou supprimez-le d'abord.",
+    "note_sur_eleve_non_evalue": "Aucune note n'a été importée."
+  },
   "motifChamp": {
     "champ_obligatoire": "Ce champ est obligatoire",
     "valeur_deja_utilisee": "Cette valeur est déjà utilisée",

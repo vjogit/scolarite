@@ -35,11 +35,18 @@ export const formationRepository = createRepository<Formation>({
 });
 
 
-/** Descente vers les promotions de la formation. */
+/**
+ * Descente vers les promotions de la formation.
+ *
+ * Libellé en fermeture, comme toute fabrique `ACTION_*` : appelée sans `t` au
+ * chargement d'un `routes.tsx` (actions figées dans le routeur), une chaîne y
+ * gèlerait la langue de démarrage — le défaut A2, constaté au lot 2 syllabus
+ * et fermé le 17 septembre 2026 (lot correction-langue).
+ */
 export function ACTION_PROMOTIONS(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'promotions',
-        libelle: tCrud(t)('entites.actions.gererPromotions', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererPromotions', { ns: 'crud' }),
         icone: List,
         segment: PROMOTION,
     };

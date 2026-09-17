@@ -1,6 +1,9 @@
 package services
 
-import "strconv"
+import (
+	"net/http"
+	"strconv"
+)
 
 // Types de réponse partagés par les endpoints d'analyse d'impact de suppression
 // (POST .../delete-impact). Ils décrivent, avant toute suppression, ce qui sera
@@ -14,18 +17,26 @@ type DeleteImpactItem struct {
 }
 
 // DeleteImpactEntry est un décompte de descendants pour une entité donnée.
-// Entity est l'identifiant technique (nom de table), Label le libellé français
-// déjà accordé en nombre.
+// Entity est la clé stable (nom de table) que le front traduit et accorde en
+// nombre (bloc `impact` de crud.json, fr et en) : le serveur ne compose aucun
+// libellé — convention du 17 septembre 2026, lot correction-langue. Une clé
+// nouvelle ici s'ajoute dans les deux JSON, sinon l'écran affiche la clé brute.
+// Clés servies : promotion, toeic, mobilite_internationale, option, groupe,
+// groupe_user, periode, unite_enseignement, matiere, controle, note,
+// reservation, reservation_intervenant, reservation_salle, reservation_groupe,
+// jury_result, bloc_competence, competence, ue_competence, syllabus_matiere
+// (cascade) ; reservation (détaché, clé `impact.detache.reservation`).
 type DeleteImpactEntry struct {
 	Entity string `json:"entity"`
-	Label  string `json:"label"`
 	Count  int64  `json:"count"`
 }
 
-// DeleteImpactBlocking décrit une raison métier interdisant la suppression.
+// DeleteImpactBlocking décrit une raison métier interdisant la suppression :
+// un code (`blocage.<reason>` d'errors.json) et le nombre qui l'accorde —
+// pour jury_delibere, le nombre de périodes délibérées.
 type DeleteImpactBlocking struct {
-	Reason  string `json:"reason"`
-	Message string `json:"message"`
+	Reason string `json:"reason"`
+	Count  int64  `json:"count"`
 }
 
 // DeleteImpactResponse est le corps renvoyé par les endpoints delete-impact.
@@ -47,60 +58,13 @@ func NewDeleteImpactResponse() *DeleteImpactResponse {
 	}
 }
 
-// entityLabels donne, pour chaque entité supprimable en cascade, son libellé
-// français au singulier puis au pluriel. Centralisé ici pour que les quatre
-// endpoints delete-impact parlent le même vocabulaire.
-var entityLabels = map[string][2]string{
-	"promotion":               {"promotion", "promotions"},
-	"toeic":                   {"résultat TOEIC", "résultats TOEIC"},
-	"mobilite_internationale": {"mobilité internationale", "mobilités internationales"},
-	"option":                  {"option", "options"},
-	"groupe":                  {"groupe", "groupes"},
-	"groupe_user":             {"affectation d'élève à un groupe", "affectations d'élèves aux groupes"},
-	"periode":                 {"période", "périodes"},
-	"unite_enseignement":      {"unité d'enseignement", "unités d'enseignement"},
-	"matiere":                 {"matière", "matières"},
-	"controle":                {"contrôle", "contrôles"},
-	"note":                    {"note", "notes"},
-	"reservation":             {"réservation", "réservations"},
-	"reservation_intervenant": {"affectation d'intervenant", "affectations d'intervenants"},
-	"reservation_salle":       {"réservation de salle", "réservations de salle"},
-	"reservation_groupe":      {"affectation de groupe à un créneau", "affectations de groupes aux créneaux"},
-	"jury_result":             {"résultat de jury", "résultats de jury"},
-	// Référentiel de compétences (lot 3 syllabus) : la suppression d'un bloc
-	// emporte ses compétences et leurs liaisons aux UE ; celle d'une promotion,
-	// ses blocs. Une liaison tombe aussi avec son UE (correction A1, 17
-	// septembre 2026), et la fiche syllabus avec sa matière.
-	"bloc_competence":  {"bloc de compétences", "blocs de compétences"},
-	"competence":       {"compétence", "compétences"},
-	"ue_competence":    {"liaison UE ↔ compétence", "liaisons UE ↔ compétence"},
-	"syllabus_matiere": {"fiche syllabus", "fiches syllabus"},
-}
-
-// detachedLabels donne les libellés des objets qui ne sont pas supprimés mais
-// dont la référence est mise à NULL (ON DELETE SET NULL).
-var detachedLabels = map[string][2]string{
-	"reservation": {"réservation détachée de sa matière", "réservations détachées de leur matière"},
-}
-
-func labelFor(labels map[string][2]string, entity string, count int64) string {
-	if l, ok := labels[entity]; ok {
-		return Pluralize(count, l[0], l[1])
-	}
-	return entity
-}
-
 // AddCascade ajoute un décompte de suppression en cascade, uniquement s'il est
 // strictement positif. L'ordre des appels porte la hiérarchie.
 func (r *DeleteImpactResponse) AddCascade(entity string, count int64) {
 	if count <= 0 {
 		return
 	}
-	r.Cascade = append(r.Cascade, DeleteImpactEntry{
-		Entity: entity,
-		Label:  labelFor(entityLabels, entity, count),
-		Count:  count,
-	})
+	r.Cascade = append(r.Cascade, DeleteImpactEntry{Entity: entity, Count: count})
 }
 
 // AddDetached ajoute un décompte d'objets qui ne sont pas supprimés mais dont
@@ -109,34 +73,23 @@ func (r *DeleteImpactResponse) AddDetached(entity string, count int64) {
 	if count <= 0 {
 		return
 	}
-	r.Detached = append(r.Detached, DeleteImpactEntry{
-		Entity: entity,
-		Label:  labelFor(detachedLabels, entity, count),
-		Count:  count,
-	})
+	r.Detached = append(r.Detached, DeleteImpactEntry{Entity: entity, Count: count})
 }
 
-// AddBlocking ajoute une raison de blocage.
-func (r *DeleteImpactResponse) AddBlocking(reason, message string) {
-	r.Blocking = append(r.Blocking, DeleteImpactBlocking{Reason: reason, Message: message})
-}
-
-// Pluralize choisit le libellé accordé au nombre (0 et 1 au singulier).
-func Pluralize(count int64, singulier, pluriel string) string {
-	if count > 1 || count < -1 {
-		return pluriel
-	}
-	return singulier
+// AddBlocking ajoute une raison de blocage, accordée par son nombre.
+func (r *DeleteImpactResponse) AddBlocking(reason string, count int64) {
+	r.Blocking = append(r.Blocking, DeleteImpactBlocking{Reason: reason, Count: count})
 }
 
 // ReasonJuryDelibere est le code de blocage renvoyé lorsqu'au moins une période
 // concernée possède des résultats de jury (délibération déjà passée).
 const ReasonJuryDelibere = "jury_delibere"
 
-// JuryDelibereMessage construit le message de blocage associé.
-func JuryDelibereMessage(nbPeriodes int64) string {
-	if nbPeriodes > 1 {
-		return "Suppression impossible : " + strconv.FormatInt(nbPeriodes, 10) + " périodes ont un jury délibéré."
-	}
-	return "Suppression impossible : 1 période a un jury délibéré."
+// ConflictJuryDelibere refuse une suppression ou une purge en 409 : la raison
+// et le nombre de périodes délibérées partent en extensions, c'est le front
+// qui rédige (`blocage.jury_delibere`, errors.json). Le `detail` n'est qu'un
+// repli technique pour un client qui ne connaît pas la raison.
+func ConflictJuryDelibere(w http.ResponseWriter, r *http.Request, nbPeriodes int64) {
+	ConflictError(w, r, "Suppression refusée : "+strconv.FormatInt(nbPeriodes, 10)+" période(s) à jury délibéré.",
+		BUSINESS_CONFLICT, map[string]any{"reason": ReasonJuryDelibere, "count": nbPeriodes})
 }

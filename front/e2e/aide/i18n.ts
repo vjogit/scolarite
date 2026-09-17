@@ -39,6 +39,23 @@ export function titreSuppression(nomAvecArticle: string, nom: string): string {
     return interpoler(crud.deleteDialog.titreUn, { libelle: `${nomAvecArticle} `, nom });
 }
 
+/**
+ * Une ligne d'impact de suppression telle que la modale l'écrit : la clé
+ * `impact.<nature>` de crud.json accordée au nombre (`_one` pour 1, `_other`
+ * au-delà), le nombre formaté comme le fait i18next en français.
+ */
+export function ligneImpact(nature: string, nombre: number): string {
+    const cle = `${nature}_${nombre === 1 ? 'one' : 'other'}` as keyof typeof crud.impact;
+    const gabarit = crud.impact[cle];
+    if (typeof gabarit !== 'string') throw new Error(`clé d'impact inconnue : ${cle}`);
+    return gabarit.replaceAll('{{count, number}}', new Intl.NumberFormat('fr').format(nombre));
+}
+
+/** Le nom seul d'une ligne d'impact (« liaison UE ↔ compétence »), pour affirmer une absence quel que soit le nombre. */
+export function nomImpact(nature: string, nombre: number): string {
+    return ligneImpact(nature, nombre).replace(/^[\d\u202f\u00a0 ]+/, '');
+}
+
 /** Le libellé d'un niveau du fil de contexte, sélectionné ou non. */
 export function libelleNiveau(niveau: keyof typeof appFr.niveaux, nom: string): string {
     return interpoler(app.selecteurNiveau.ariaLabelNiveau, { libelle: app.niveaux[niveau], nom });

@@ -257,11 +257,11 @@ export function StructureLayout() {
                             de quoi. */}
                         <h6 className="m-0 min-w-0 flex-1 truncate text-base font-normal leading-7">
                             {etat.titre === null || nom === null
-                                ? etat.titre?.libelle ?? ''
-                                : `${etat.titre.libelle} — ${nom}`}
+                                ? etat.titre?.niveau.libelle(t) ?? ''
+                                : `${etat.titre.niveau.libelle(t)} — ${nom}`}
                         </h6>
                         {etat.cible !== null && (
-                            <ActionsNoeud cible={etat.cible} nom={nom ?? etat.cible.niveau.libelle} />
+                            <ActionsNoeud cible={etat.cible} nom={nom ?? etat.cible.niveau.libelle(t)} />
                         )}
                     </div>
 

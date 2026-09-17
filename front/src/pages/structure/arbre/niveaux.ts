@@ -20,7 +20,7 @@ import { BookMarked, BookOpen, CalendarRange, GraduationCap, Split, SquarePlus, 
 
 import type { ActionLigne, ActionNavigation, IconeAction } from '../../../services/crud/actions';
 import type { DescriptionEntite, EntiteCrud, Repository } from '../../../services/crud/def';
-import { libelleCreation } from '../../../services/crud/entityMessages';
+import { libelleCreation, tCrud } from '../../../services/crud/entityMessages';
 
 import { FORMATION, GROUPE, MATIERE, OPTION, PERIODE, PROMOTION, UES } from '../def';
 import { ACTION_PROMOTIONS, formationEntite, formationRepository } from '../entites/formation';
@@ -81,18 +81,28 @@ function actionCreer(segment: string, enfant: DescriptionEntite, t?: TFunction<'
 export interface EnfantArbre {
     readonly segment: string;
     /**
-     * Rendu comme un dossier nommé plutôt qu'en fratrie directe. Les groupes
+     * Rendu comme un dossier nommé plutôt qu'en fratrie directe — le nom du
+     * dossier, dans la langue active (fonction et non chaîne, comme
+     * `libelle`). Les groupes
      * sont la seule branche annexe de la hiérarchie : sous une option ils
      * cohabitent avec les périodes, et sans dossier les deux collections
      * seraient indiscernables.
      */
-    readonly categorie?: string;
+    readonly categorie?: (t?: TFunction<'crud'>) => string;
 }
 
 export interface NiveauArbre {
     readonly segment: string;
-    readonly libelle: string;
-    readonly libellePluriel: string;
+    /**
+     * Le nom du niveau (« Matière ») et son pluriel (« Matières »), dans la
+     * langue active : nom accessible des nœuds, dossiers de l'arbre, titre du
+     * bandeau. Fonctions et non chaînes — `NIVEAUX` est construit au
+     * chargement du module, des chaînes y resteraient françaises quelle que
+     * soit la langue (constaté au lot correction-langue, 17 septembre 2026).
+     * Clés `arbre.niveaux.*` et `arbre.niveauxPluriel.*` de `crud.json`.
+     */
+    readonly libelle: (t?: TFunction<'crud'>) => string;
+    readonly libellePluriel: (t?: TFunction<'crud'>) => string;
     readonly icone: IconeAction;
     readonly enfants: readonly EnfantArbre[];
     /**
@@ -128,8 +138,8 @@ const entiteGroupe = (optionId: string, t?: TFunction<'crud'>) => entite(createG
 const NIVEAUX: readonly NiveauArbre[] = [
     {
         segment: FORMATION,
-        libelle: 'Formation',
-        libellePluriel: 'Formations',
+        libelle: (t) => tCrud(t)('arbre.niveaux.formation'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.formation'),
         icone: GraduationCap,
         enfants: [{ segment: PROMOTION }],
         entite: entiteFormation,
@@ -137,8 +147,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
     },
     {
         segment: PROMOTION,
-        libelle: 'Promotion',
-        libellePluriel: 'Promotions',
+        libelle: (t) => tCrud(t)('arbre.niveaux.promotion'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.promotion'),
         icone: BookMarked,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
@@ -149,10 +159,10 @@ const NIVEAUX: readonly NiveauArbre[] = [
     },
     {
         segment: OPTION,
-        libelle: 'Option',
-        libellePluriel: 'Options',
+        libelle: (t) => tCrud(t)('arbre.niveaux.option'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.option'),
         icone: Split,
-        enfants: [{ segment: PERIODE }, { segment: GROUPE, categorie: 'Groupes' }],
+        enfants: [{ segment: PERIODE }, { segment: GROUPE, categorie: (t) => tCrud(t)('arbre.categories.groupes') }],
         entite: entiteOption,
         actions: (t) => [
             ACTION_PERIODES(t), actionCreer(PERIODE, periodeEntite(t), t),
@@ -161,8 +171,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
     },
     {
         segment: PERIODE,
-        libelle: 'Période',
-        libellePluriel: 'Périodes',
+        libelle: (t) => tCrud(t)('arbre.niveaux.periode'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.periode'),
         icone: CalendarRange,
         enfants: [{ segment: UES }],
         entite: entitePeriode,
@@ -170,8 +180,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
     },
     {
         segment: UES,
-        libelle: 'UE',
-        libellePluriel: 'UE',
+        libelle: (t) => tCrud(t)('arbre.niveaux.ue'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.ue'),
         icone: BookOpen,
         enfants: [{ segment: MATIERE }],
         entite: entiteUe,
@@ -179,8 +189,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
     },
     {
         segment: MATIERE,
-        libelle: 'Matière',
-        libellePluriel: 'Matières',
+        libelle: (t) => tCrud(t)('arbre.niveaux.matiere'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.matiere'),
         icone: Text,
         enfants: [],
         entite: entiteMatiere,
@@ -191,8 +201,8 @@ const NIVEAUX: readonly NiveauArbre[] = [
         // L'affectation d'élèves n'est pas un niveau de structure : elle reste
         // un écran, atteint depuis le bandeau, et le groupe est une feuille.
         segment: GROUPE,
-        libelle: 'Groupe',
-        libellePluriel: 'Groupes',
+        libelle: (t) => tCrud(t)('arbre.niveaux.groupe'),
+        libellePluriel: (t) => tCrud(t)('arbre.niveauxPluriel.groupe'),
         icone: Users,
         enfants: [],
         entite: entiteGroupe,

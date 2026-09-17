@@ -408,7 +408,7 @@ func refuserFiche(w http.ResponseWriter, r *http.Request, anomalies []anomalieFi
 		// — serait faux, et c'est précisément celui qu'on lirait si les lignes
 		// transportées ici n'arrivaient pas jusqu'à l'écran.
 		extensions["reason"] = services.MotifNoteSurNonEvalue
-		services.ConflictError(w, r, "Aucune note n'a été importée.", services.BUSINESS_CONFLICT, extensions)
+		services.ConflictError(w, r, "Import refusé : note sur un élève non évalué.", services.BUSINESS_CONFLICT, extensions)
 		return
 	}
 

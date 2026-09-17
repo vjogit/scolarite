@@ -63,7 +63,7 @@ func DeleteImpact(w http.ResponseWriter, r *http.Request) {
 	resp.AddDetached("reservation", impact.ReservationDetacheeCount)
 
 	if impact.JuryPeriodeCount > 0 {
-		resp.AddBlocking(services.ReasonJuryDelibere, services.JuryDelibereMessage(impact.JuryPeriodeCount))
+		resp.AddBlocking(services.ReasonJuryDelibere, impact.JuryPeriodeCount)
 	}
 
 	render.JSON(w, r, resp)

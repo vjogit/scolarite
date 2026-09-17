@@ -50,7 +50,7 @@ export const createUeRepository = (periodeId: string) => {
 export function ACTION_MATIERES(t?: TFunction<'crud'>): ActionNavigation<FieldValues> {
     return {
         id: 'matieres',
-        libelle: tCrud(t)('entites.actions.gererMatieres', { ns: 'crud' }),
+        libelle: () => tCrud(t)('entites.actions.gererMatieres', { ns: 'crud' }),
         icone: List,
         segment: MATIERE,
     };
