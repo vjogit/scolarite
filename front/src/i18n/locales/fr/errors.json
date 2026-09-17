@@ -30,7 +30,8 @@
     "echelle_longueur": "L'échelle doit contenir 5 valeurs",
     "echelle_decroissante": "L'échelle doit être décroissante",
     "echelle_hors_bareme": "Les seuils de l'échelle ne peuvent pas dépasser le barème",
-    "hors_formation": "Cette compétence n'appartient pas à la formation de l'UE"
+    "hors_formation": "Cette promotion n'appartient pas à la même formation",
+    "hors_promotion": "Cette compétence n'appartient pas à la promotion de l'UE"
   },
   "noteHorsBaremeAvecMax": "La note doit être comprise entre 0 et {{max}}",
   "noteDepasseBareme": "La note dépasse le barème",

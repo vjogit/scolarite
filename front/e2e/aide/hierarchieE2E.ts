@@ -26,7 +26,12 @@ export const E2E = {
     eleve4: 'Eleve4 E2E',
     /** L'agent responsable des fiches syllabus du seed (« Nom Prénom », l'affichage du sélecteur). */
     agent1: 'Agent1 E2E',
-    /** Le référentiel de compétences semé (lot 3) : deux blocs sur la formation E2E, un sur une formation étrangère. */
+    /**
+     * Le référentiel de compétences semé (lot 3, par promotion) : deux blocs
+     * sur « E2E Promotion », un sur « E2E Promo Autre » — autre promotion de
+     * la même formation, sans descendance.
+     */
+    promotionAutre: 'E2E Promo Autre',
     formationEtrangere: 'E2E Autre Formation',
     bloc1: 'E2E Bloc Securiser',
     bloc1Code: 'E2E-BC1',
@@ -361,12 +366,13 @@ export function carteCorbeille(page: Page, titre: string) {
 }
 
 /**
- * Ouvre le référentiel de compétences de la formation E2E (lot 3) depuis le
- * menu d'actions du bandeau de la formation : la liste de ses blocs.
+ * Ouvre le référentiel de compétences d'une promotion (lot 3, porté par la
+ * promotion depuis le 16 septembre 2026) depuis le menu d'actions du bandeau
+ * de la promotion : la liste de ses blocs. Par défaut « E2E Promotion ».
  */
-export async function allerAuReferentielViaStructure(page: Page): Promise<void> {
-    await allerSurFormationViaStructure(page);
-    await boutonActionsLigne(page, E2E.formation).click();
+export async function allerAuReferentielViaStructure(page: Page, promotion: string = E2E.promotion): Promise<void> {
+    await allerSurPromotionViaStructure(page, promotion);
+    await boutonActionsLigne(page, promotion).click();
     await page.getByRole('menuitem', { name: syllabus.competences.action }).click();
     await page.waitForURL(/\/bloc$/);
     await expect(page.getByRole('heading', { name: syllabus.competences.bloc.title })).toBeVisible();

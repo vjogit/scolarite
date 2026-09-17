@@ -36,6 +36,14 @@ reservation_groupe_c AS (
     SELECT rg.reservation_id FROM public.reservation_groupe rg
     WHERE rg.reservation_id IN (SELECT id FROM reservation_c)
        OR rg.groupe_id IN (SELECT id FROM groupe_c)
+),
+-- Référentiel de compétences (lot 3 syllabus, porté par la promotion depuis
+-- le 16 septembre 2026) : blocs, compétences et liaisons suivent par cascade.
+bloc_c AS (
+    SELECT b.id FROM public.bloc_competence b JOIN promotion_c p ON b.promotion_id = p.id
+),
+competence_c AS (
+    SELECT co.id FROM public.competence co JOIN bloc_c b ON co.bloc_id = b.id
 )
 SELECT
     (SELECT count(*) FROM public.toeic t WHERE t.promotion_id IN (SELECT id FROM promotion_c))::bigint AS toeic_count,
@@ -53,6 +61,9 @@ SELECT
     (SELECT count(*) FROM public.reservation_salle rs WHERE rs.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_salle_count,
     (SELECT count(*) FROM reservation_groupe_c)::bigint AS reservation_groupe_count,
     (SELECT count(*) FROM jury_c)::bigint AS jury_result_count,
+    (SELECT count(*) FROM bloc_c)::bigint AS bloc_competence_count,
+    (SELECT count(*) FROM competence_c)::bigint AS competence_count,
+    (SELECT count(*) FROM public.ue_competence uc WHERE uc.competence_id IN (SELECT id FROM competence_c))::bigint AS ue_competence_count,
     (SELECT count(*) FROM periode_c pe
         WHERE EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id))::bigint AS jury_periode_count,
     (SELECT count(*) FROM public.reservation r

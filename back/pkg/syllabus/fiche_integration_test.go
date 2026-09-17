@@ -78,7 +78,7 @@ func TestIntegration_FichePDF_Smoke(t *testing.T) {
 	_, err := pool.Exec(ctx, `INSERT INTO syllabus_matiere (matiere_id, contexte, heures_cours_td, heures_tp) VALUES ($1, 'Contexte de test', 15, 4)`, fixture.MatiereID)
 	require.NoError(t, err)
 	var blocID, competenceID int32
-	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO bloc_competence (formation_id, ordre, libelle) VALUES ($1, 1, 'Bloc pdf') RETURNING id`, fixture.FormationID).Scan(&blocID))
+	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 1, 'Bloc pdf') RETURNING id`, fixture.PromotionID).Scan(&blocID))
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 1, 'Analyser pdf') RETURNING id`, blocID).Scan(&competenceID))
 	_, err = pool.Exec(ctx, `INSERT INTO ue_competence (ue_id, competence_id, enseignee) VALUES ($1, $2, true)`, fixture.UeID, competenceID)
 	require.NoError(t, err)

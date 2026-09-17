@@ -24,7 +24,7 @@ func TestLireDossier_Fixture(t *testing.T) {
 	require.Len(t, e.Liaisons, 10)
 	assert.Len(t, e.Referentiel, 10)
 	assert.Len(t, e.Periodes, 4)
-	assert.Len(t, e.Blocs, 5)
+	assert.Len(t, e.Blocs, 6, "le bloc 19 occupe une ligne par promotion")
 	assert.Len(t, e.Exceptions, 2)
 
 	// Rubriques multilignes conservées, numéros de ligne tels qu'un éditeur
@@ -56,7 +56,8 @@ func TestLireDossier_Fixture(t *testing.T) {
 	assert.False(t, e.Periodes[2].Remplie)
 	assert.Equal(t, legacy.ClePeriode{Annee: "2025-2026", Periode: "Semestre 7", Prefixe: "FIX"}, e.Periodes[2].Cle())
 	assert.False(t, e.Blocs[0].Remplie)
-	assert.Equal(t, int32(2), e.Blocs[2].Ordre)
+	assert.Equal(t, "Promo 2 legacy", e.Blocs[2].Promotion, "second mappage du bloc 19")
+	assert.Equal(t, int32(2), e.Blocs[3].Ordre)
 	assert.Equal(t, "UE 5 legacy", e.Exceptions[1].Name)
 	assert.Equal(t, "", e.Exceptions[1].MatiereLibelle, "matière vide = exception d'UE")
 }

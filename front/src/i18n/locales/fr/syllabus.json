@@ -67,7 +67,8 @@
       "champModalitesEvaluation": "Modalités et critères d'évaluation",
       "colonneOrdre": "Ordre",
       "colonneCode": "Code",
-      "colonneLibelle": "Libellé"
+      "colonneLibelle": "Libellé",
+      "erreurPromotionIdObligatoire": "Le paramètre promotionId est obligatoire"
     },
     "competence": {
       "title": "Compétences",
@@ -87,13 +88,13 @@
     },
     "matrice": {
       "titre": "Compétences développées dans cette UE",
-      "description": "Parmi les compétences visées par la formation, lesquelles sont développées dans cette UE ?",
+      "description": "Parmi les compétences visées par la promotion, lesquelles sont développées dans cette UE ?",
       "colonneCompetence": "Compétence",
       "enseignee": "Enseignée",
       "mise_en_oeuvre": "Mise en œuvre",
       "evaluee": "Évaluée",
       "case": "{{axe}} — {{code}} {{action}}",
-      "vide": "Aucune compétence n'est définie pour cette formation.",
+      "vide": "Aucune compétence n'est définie pour cette promotion.",
       "enregistrer": "Enregistrer les compétences",
       "enregistre": "Compétences de l'UE enregistrées.",
       "erreurChargement": "Impossible de charger les compétences."

@@ -37,6 +37,9 @@ export interface CrudProps<D extends FieldValues> {
     actionsBarreOutils?: (props: ActionsBarreOutilsProps<D>) => ReactNode
 }
 
+/** Les trois modes du formulaire CRUD ; `Form.tsx` les rend. */
+export type FormMode = 'create' | 'show' | 'edit';
+
 export interface RenderProps<D extends FieldValues> {
     register: UseFormRegister<D>
     control: Control<D>
@@ -44,6 +47,12 @@ export interface RenderProps<D extends FieldValues> {
     isReadOnly: boolean
     getValues: UseFormGetValues<D>
     setValue: UseFormSetValue<D>
+    /**
+     * Le mode du formulaire, pour un champ qui n'existe qu'en création — le
+     * gabarit d'une promotion (16 septembre 2026). Optionnel : un écran qui
+     * monte ses champs hors du socle (FormulaireSyllabus) ne le renseigne pas.
+     */
+    mode?: FormMode
 }
 
 /** Objet directement visé par une suppression. */

@@ -67,6 +67,8 @@ func chercher(noms []string, cible string) (int, appariement) {
 type cible struct {
 	FormationID   int32
 	FormationName string
+	PromotionID   int32
+	PromotionName string
 	PeriodeID     int32
 	Chemin        string // « Formation › Promotion › Option › Période », pour le rapport
 	UEs           []uegen.UniteEnseignement
@@ -76,17 +78,21 @@ type cible struct {
 // blocCible est un bloc scolarite résolu depuis une correspondance : ses
 // compétences par position.
 type blocCible struct {
-	FormationID   int32
-	FormationName string
+	PromotionID   int32
+	PromotionName string
 	Bloc          gen.BlocCompetence
 	Competences   map[int32]gen.Competence // par ordre
 }
 
 // resolveur tient les lectures de structure et de référentiel, sans écriture.
+// Les promotions actives sont chargées une fois, toutes formations confondues :
+// leur nom est unique parmi les actives (uk_promotion_name_active), la
+// correspondance des blocs le désigne seul.
 type resolveur struct {
 	ctx        context.Context
 	pool       *pgxpool.Pool
 	formations []formationgen.FormationActive
+	promotions []promotiongen.PromotionActive
 }
 
 func nouveauResolveur(ctx context.Context, pool *pgxpool.Pool) (*resolveur, error) {
@@ -94,7 +100,28 @@ func nouveauResolveur(ctx context.Context, pool *pgxpool.Pool) (*resolveur, erro
 	if err != nil {
 		return nil, fmt.Errorf("lecture des formations : %w", err)
 	}
-	return &resolveur{ctx: ctx, pool: pool, formations: formations}, nil
+	r := &resolveur{ctx: ctx, pool: pool, formations: formations}
+	for _, f := range formations {
+		promotions, err := promotiongen.New(pool).FetchPromotionsByFormationID(ctx, f.ID)
+		if err != nil {
+			return nil, fmt.Errorf("lecture des promotions : %w", err)
+		}
+		r.promotions = append(r.promotions, promotions...)
+	}
+	return r, nil
+}
+
+// promotion résout une promotion par son nom, parmi toutes les actives.
+func (r *resolveur) promotion(nom string) (promotiongen.PromotionActive, error) {
+	noms := make([]string, len(r.promotions))
+	for i, p := range r.promotions {
+		noms[i] = p.Name
+	}
+	i, etat := chercher(noms, nom)
+	if etat != trouve {
+		return promotiongen.PromotionActive{}, niveau("promotion", nom, etat)
+	}
+	return r.promotions[i], nil
 }
 
 // erreurCorrespondance : un des quatre noms du chemin n'existe pas, ou existe
@@ -168,6 +195,8 @@ func (r *resolveur) periode(c CorrespondancePeriode) (*cible, error) {
 	t := &cible{
 		FormationID:   f.ID,
 		FormationName: f.Name,
+		PromotionID:   promotions[ip].ID,
+		PromotionName: promotions[ip].Name,
 		PeriodeID:     periodes[ipe].ID,
 		Chemin:        fmt.Sprintf("%s › %s › %s › %s", f.Name, promotions[ip].Name, options[io].Name, periodes[ipe].Name),
 		Matieres:      map[int32][]matieregen.Matiere{},
@@ -183,15 +212,15 @@ func (r *resolveur) periode(c CorrespondancePeriode) (*cible, error) {
 	return t, nil
 }
 
-// bloc résout une correspondance de bloc : la formation par nom, le bloc par
+// bloc résout une correspondance de bloc : la promotion par nom, le bloc par
 // ordre dans son référentiel, ses compétences par ordre.
 func (r *resolveur) bloc(c CorrespondanceBloc) (*blocCible, error) {
-	f, err := r.formation(c.Formation)
+	p, err := r.promotion(c.Promotion)
 	if err != nil {
 		return nil, err
 	}
 	queries := gen.New(r.pool)
-	blocs, err := queries.FetchBlocsByFormationID(r.ctx, f.ID)
+	blocs, err := queries.FetchBlocsByPromotionID(r.ctx, p.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -203,13 +232,13 @@ func (r *resolveur) bloc(c CorrespondanceBloc) (*blocCible, error) {
 		if err != nil {
 			return nil, err
 		}
-		t := &blocCible{FormationID: f.ID, FormationName: f.Name, Bloc: b, Competences: map[int32]gen.Competence{}}
+		t := &blocCible{PromotionID: p.ID, PromotionName: p.Name, Bloc: b, Competences: map[int32]gen.Competence{}}
 		for _, cp := range competences {
 			t.Competences[cp.Ordre] = cp
 		}
 		return t, nil
 	}
-	return nil, &erreurCorrespondance{fmt.Sprintf("formation « %s » : aucun bloc en position %d dans son référentiel", f.Name, c.Ordre)}
+	return nil, &erreurCorrespondance{fmt.Sprintf("promotion « %s » : aucun bloc en position %d dans son référentiel", p.Name, c.Ordre)}
 }
 
 // ue cherche l'UE d'un groupe tiers dans la période cible : exception, puis

@@ -1,9 +1,9 @@
 package syllabus
 
-// Le référentiel de compétences d'une formation (lot 3) : blocs, puis
-// compétences d'un bloc. Deux cycles CRUD sur le modèle d'`unite_enseignement`
+// Le référentiel de compétences d'une promotion (lot 3, rattaché à la
+// promotion le 16 septembre 2026) : blocs, puis compétences d'un bloc. Deux cycles CRUD sur le modèle d'`unite_enseignement`
 // — liste filtrée par le parent, création, lecture, mise à jour sous verrou
-// optimiste, suppression groupée avec analyse d'impact. La formation d'un bloc
+// optimiste, suppression groupée avec analyse d'impact. La promotion d'un bloc
 // et le bloc d'une compétence sont fixés à la création, jamais réécrits.
 //
 // L'ordre est une position : unique par parent, saisi, et le code « C{ordre} »
@@ -26,7 +26,7 @@ import (
 )
 
 var referentielConstraints = map[string]services.ConstraintRule{
-	"fk_bloc_competence_formation":       {Field: "formation_id", Motif: services.MotifReferenceInconnue},
+	"fk_bloc_competence_promotion":       {Field: "promotion_id", Motif: services.MotifReferenceInconnue},
 	"uk_bloc_competence_ordre":           {Field: "ordre", Motif: services.MotifValeurDejaUtilisee},
 	"chk_bloc_competence_ordre_positive": {Field: "ordre", Motif: services.MotifValeurNegative},
 	"chk_bloc_competence_libelle_length": {Field: "libelle", Motif: services.MotifChampObligatoire},
@@ -58,7 +58,7 @@ func repondreEcriture(w http.ResponseWriter, r *http.Request, err error, detail 
 	services.ServerError(w, r, err)
 }
 
-// parentID lit et vérifie le paramètre de filtrage d'une liste (`formation_id`,
+// parentID lit et vérifie le paramètre de filtrage d'une liste (`promotion_id`,
 // `bloc_id`) ; `existe` dit si le parent est connu. Faux si une réponse a été émise.
 func parentID(w http.ResponseWriter, r *http.Request, nom string, libelle string, existe func(context.Context, int32) error) (int32, bool) {
 	brut := r.URL.Query().Get(nom)
@@ -84,16 +84,16 @@ func parentID(w http.ResponseWriter, r *http.Request, nom string, libelle string
 
 // ── Blocs ────────────────────────────────────────────────────────────────
 
-func FetchBlocsByFormationID(w http.ResponseWriter, r *http.Request) {
+func FetchBlocsByPromotionID(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
-	formationID, ok := parentID(w, r, "formation_id", "Formation", func(ctx context.Context, id int32) error {
-		_, err := queries.CheckFormationExists(ctx, id)
+	promotionID, ok := parentID(w, r, "promotion_id", "Promotion", func(ctx context.Context, id int32) error {
+		_, err := queries.CheckPromotionExists(ctx, id)
 		return err
 	})
 	if !ok {
 		return
 	}
-	blocs, err := queries.FetchBlocsByFormationID(r.Context(), formationID)
+	blocs, err := queries.FetchBlocsByPromotionID(r.Context(), promotionID)
 	if err != nil {
 		services.ServerError(w, r, err)
 		return
@@ -115,7 +115,7 @@ func CreateBloc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	bloc, err := getQueriesFromCtx(r).CreateBloc(r.Context(), gen.CreateBlocParams{
-		FormationID:         input.FormationID,
+		PromotionID:         input.PromotionID,
 		Ordre:               input.Ordre,
 		Libelle:             input.Libelle,
 		Code:                input.Code,
@@ -219,24 +219,24 @@ func FetchCompetencesByBlocID(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, competences)
 }
 
-// FetchReferentielByFormationID rend le référentiel de la formation à plat,
+// FetchReferentielByPromotionID rend le référentiel de la promotion à plat,
 // chaque compétence portant son bloc : la lecture de la matrice de l'UE.
-func FetchReferentielByFormationID(w http.ResponseWriter, r *http.Request) {
+func FetchReferentielByPromotionID(w http.ResponseWriter, r *http.Request) {
 	queries := getQueriesFromCtx(r)
-	formationID, ok := parentID(w, r, "formation_id", "Formation", func(ctx context.Context, id int32) error {
-		_, err := queries.CheckFormationExists(ctx, id)
+	promotionID, ok := parentID(w, r, "promotion_id", "Promotion", func(ctx context.Context, id int32) error {
+		_, err := queries.CheckPromotionExists(ctx, id)
 		return err
 	})
 	if !ok {
 		return
 	}
-	lignes, err := queries.FetchReferentielByFormationID(r.Context(), formationID)
+	lignes, err := queries.FetchReferentielByPromotionID(r.Context(), promotionID)
 	if err != nil {
 		services.ServerError(w, r, err)
 		return
 	}
 	if lignes == nil {
-		lignes = []gen.FetchReferentielByFormationIDRow{}
+		lignes = []gen.FetchReferentielByPromotionIDRow{}
 	}
 	render.JSON(w, r, lignes)
 }

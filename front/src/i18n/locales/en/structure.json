@@ -19,6 +19,9 @@
   },
   "promotion": {
     "champTitre": "Cohort title",
+    "champGabarit": "Create from cohort",
+    "champGabaritAide": "The structure (tracks, terms with their dates, units, subjects) and the syllabus content (sheets, competency framework, matrices) of that cohort are copied. No students, grades, juries or schedule.",
+    "gabaritAucun": "None: empty cohort",
     "champEchelleGpa": "GPA scale",
     "champEchelle": "Scale",
     "champBareme": "Grading scale",

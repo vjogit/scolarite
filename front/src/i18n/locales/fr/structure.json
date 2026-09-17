@@ -19,6 +19,9 @@
   },
   "promotion": {
     "champTitre": "Titre de la promotion",
+    "champGabarit": "Créer à partir de la promotion",
+    "champGabaritAide": "La structure (options, périodes avec leurs dates, UE, matières) et le contenu syllabus (fiches, référentiel de compétences, matrices) de cette promotion sont copiés. Ni élèves, ni notes, ni jurys, ni planning.",
+    "gabaritAucun": "Aucune : promotion vide",
     "champEchelleGpa": "Échelle GPA",
     "champEchelle": "Échelle",
     "champBareme": "Barème",

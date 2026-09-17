@@ -1,10 +1,10 @@
--- Écritures du référentiel (lot 3). La formation d'un bloc et le bloc d'une
+-- Écritures du référentiel (lot 3). La promotion d'un bloc et le bloc d'une
 -- compétence ne se modifient pas : comme `periode_id` d'une UE, l'appartenance
 -- est fixée à la création. Verrou optimiste sur les deux entités.
 
 -- name: CreateBloc :one
-INSERT INTO bloc_competence (formation_id, ordre, libelle, code, activites, modalites_evaluation)
-VALUES (@formation_id, @ordre, @libelle, @code, @activites, @modalites_evaluation)
+INSERT INTO bloc_competence (promotion_id, ordre, libelle, code, activites, modalites_evaluation)
+VALUES (@promotion_id, @ordre, @libelle, @code, @activites, @modalites_evaluation)
 RETURNING *;
 
 -- name: UpdateBloc :one

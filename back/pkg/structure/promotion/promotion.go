@@ -38,16 +38,22 @@ var promotionConstraints = map[string]services.ConstraintRule{
 	},
 }
 
+// CreationPromotion est le corps du POST : la promotion, plus, optionnellement,
+// la promotion de la même formation qui lui sert de gabarit (voir copie.go).
+type CreationPromotion struct {
+	gen.PromotionActive
+	SourcePromotionID *int32 `json:"source_promotion_id,omitempty"`
+}
+
 func CreatePromotion(w http.ResponseWriter, r *http.Request) {
-	var input gen.PromotionActive
+	var input CreationPromotion
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
 		return
 	}
 
 	queries := getQueriesFromCtx(r)
-
-	id, err := queries.CreatePromotion(r.Context(), gen.CreatePromotionParams{
+	params := gen.CreatePromotionParams{
 		Name:                     input.Name,
 		Debut:                    input.Debut,
 		Fin:                      input.Fin,
@@ -57,8 +63,22 @@ func CreatePromotion(w http.ResponseWriter, r *http.Request) {
 		Bareme:                   input.Bareme,
 		MatiereEliminatoire:      input.MatiereEliminatoire,
 		ValueMatiereEliminatoire: input.ValueMatiereEliminatoire,
-	})
+	}
+
+	var id int32
+	var err error
+	if input.SourcePromotionID == nil {
+		id, err = queries.CreatePromotion(r.Context(), params)
+	} else {
+		id, err = creerParGabarit(r, queries, params, *input.SourcePromotionID)
+	}
 	if err != nil {
+		var refus *erreurGabarit
+		if errors.As(err, &refus) {
+			services.InvalidRequestError(w, r, "promotion gabarit refusée", services.VALIDATION_ERROR,
+				map[string]interface{}{"errors": map[string]services.ConstraintError{"source_promotion_id": {Motif: refus.Motif}}})
+			return
+		}
 		errorsMap := services.MapPgErrorToValidationErrors(err, promotionConstraints)
 
 		if len(errorsMap) > 0 {
@@ -71,12 +91,56 @@ func CreatePromotion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Debug("Promotion créée", "id", id)
+	slog.Debug("Promotion créée", "id", id, "gabarit", input.SourcePromotionID)
 
 	input.ID = id
 	input.Version = 1
 	render.Status(r, http.StatusCreated)
-	render.JSON(w, r, input)
+	render.JSON(w, r, input.PromotionActive)
+}
+
+// erreurGabarit : la promotion gabarit ne peut pas servir — inconnue ou en
+// corbeille (reference_inconnue), ou d'une autre formation (hors_formation).
+type erreurGabarit struct{ Motif string }
+
+func (e *erreurGabarit) Error() string { return "promotion gabarit refusée : " + e.Motif }
+
+// creerParGabarit crée la promotion puis y recopie le contenu de la source,
+// dans une seule transaction. La source est vérifiée avant toute écriture :
+// active, et de la formation de la promotion créée — la copie entre
+// formations n'existe pas.
+func creerParGabarit(r *http.Request, queries *gen.Queries, params gen.CreatePromotionParams, sourceID int32) (int32, error) {
+	ctx := r.Context()
+	source, err := queries.FetchPromotionById(ctx, sourceID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, &erreurGabarit{Motif: services.MotifReferenceInconnue}
+		}
+		return 0, err
+	}
+	if source.FormationID != params.FormationID {
+		return 0, &erreurGabarit{Motif: services.MotifHorsFormation}
+	}
+
+	db := services.GetPgCtx(ctx).Db
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	qtx := queries.WithTx(tx)
+
+	id, err := qtx.CreatePromotion(ctx, params)
+	if err != nil {
+		return 0, err
+	}
+	if err := copierDepuis(ctx, qtx, sourceID, id); err != nil {
+		return 0, fmt.Errorf("création de la promotion %d par gabarit %d : %w", id, sourceID, err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func FetchPromotion(w http.ResponseWriter, r *http.Request) {

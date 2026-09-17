@@ -1,13 +1,14 @@
--- Référentiel de compétences d'une formation (lot 3) : blocs, puis compétences
--- d'un bloc, puis le référentiel à plat pour la matrice de l'UE. Tout est
--- trié par position (`ordre`) : le code « C{ordre} » se calcule à l'affichage.
--- Aucune donnée de structure n'est lue au-delà de l'existence de la formation.
+-- Référentiel de compétences d'une promotion (lot 3, rattaché à la promotion
+-- le 16 septembre 2026) : blocs, puis compétences d'un bloc, puis le
+-- référentiel à plat pour la matrice de l'UE. Tout est trié par position
+-- (`ordre`) : le code « C{ordre} » se calcule à l'affichage. Aucune donnée de
+-- structure n'est lue au-delà de l'existence de la promotion (vue active).
 
--- name: CheckFormationExists :one
-SELECT 1 FROM public.formation_active WHERE id = @id;
+-- name: CheckPromotionExists :one
+SELECT 1 FROM public.promotion_active WHERE id = @id;
 
--- name: FetchBlocsByFormationID :many
-SELECT * FROM public.bloc_competence WHERE formation_id = @formation_id ORDER BY ordre;
+-- name: FetchBlocsByPromotionID :many
+SELECT * FROM public.bloc_competence WHERE promotion_id = @promotion_id ORDER BY ordre;
 
 -- name: FetchBlocById :one
 SELECT * FROM public.bloc_competence WHERE id = @id;
@@ -42,13 +43,13 @@ SELECT id, action AS name FROM public.competence WHERE id = ANY(@ids::int[]) ORD
 SELECT
     (SELECT count(*) FROM public.ue_competence uc WHERE uc.competence_id = ANY(@ids::int[]))::bigint AS ue_competence_count;
 
--- Le référentiel à plat d'une formation, chaque compétence portant son bloc :
+-- Le référentiel à plat d'une promotion, chaque compétence portant son bloc :
 -- c'est ce que la matrice de l'UE affiche, en une requête. Un bloc sans
 -- compétence n'y figure pas — il n'a aucune ligne à cocher.
--- name: FetchReferentielByFormationID :many
+-- name: FetchReferentielByPromotionID :many
 SELECT c.id, c.version, c.bloc_id, c.ordre, c.action, c.contexte, c.finalites,
        b.ordre AS bloc_ordre, b.libelle AS bloc_libelle, b.code AS bloc_code
 FROM public.competence c
 JOIN public.bloc_competence b ON b.id = c.bloc_id
-WHERE b.formation_id = @formation_id
+WHERE b.promotion_id = @promotion_id
 ORDER BY b.ordre, c.ordre;

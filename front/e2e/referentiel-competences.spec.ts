@@ -6,8 +6,9 @@ import syllabusEn from '../src/i18n/locales/en/syllabus.json' with { type: 'json
 import appEn from '../src/i18n/locales/en/app.json' with { type: 'json' };
 
 /**
- * L'administration du référentiel de compétences (lot 3) : deux Crud
- * imbriqués sous la formation — blocs, puis compétences d'un bloc.
+ * L'administration du référentiel de compétences (lot 3, porté par la
+ * promotion depuis le 16 septembre 2026) : deux Crud imbriqués sous la
+ * promotion — blocs, puis compétences d'un bloc.
  *
  * Famille indépendante de la matrice de l'UE : elle ne consomme rien du seed
  * (les deux blocs semés servent la famille « matrice », `matrice-competences.spec.ts`,
@@ -50,7 +51,7 @@ test.describe('Référentiel de compétences — administration', () => {
         await creerBloc(pageSyllabus, '12', BLOC_B);
         await creerBloc(pageSyllabus, '11', BLOC_A);
 
-        // Une position déjà prise sur la formation est refusée par le serveur,
+        // Une position déjà prise sur la promotion est refusée par le serveur,
         // sur le champ « Ordre » — zod ne peut pas le savoir.
         await pageSyllabus.getByRole('button', { name: CREER_BLOC }).first().click();
         await pageSyllabus.getByLabel(syllabus.competences.bloc.champOrdre).fill('11');

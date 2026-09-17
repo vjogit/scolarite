@@ -11,13 +11,13 @@ import (
 
 const createBloc = `-- name: CreateBloc :one
 
-INSERT INTO bloc_competence (formation_id, ordre, libelle, code, activites, modalites_evaluation)
+INSERT INTO bloc_competence (promotion_id, ordre, libelle, code, activites, modalites_evaluation)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, version, formation_id, ordre, libelle, code, activites, modalites_evaluation
+RETURNING id, version, promotion_id, ordre, libelle, code, activites, modalites_evaluation
 `
 
 type CreateBlocParams struct {
-	FormationID         int32   `json:"formation_id"`
+	PromotionID         int32   `json:"promotion_id"`
 	Ordre               int32   `json:"ordre"`
 	Libelle             string  `json:"libelle"`
 	Code                *string `json:"code"`
@@ -25,12 +25,12 @@ type CreateBlocParams struct {
 	ModalitesEvaluation *string `json:"modalites_evaluation"`
 }
 
-// Écritures du référentiel (lot 3). La formation d'un bloc et le bloc d'une
+// Écritures du référentiel (lot 3). La promotion d'un bloc et le bloc d'une
 // compétence ne se modifient pas : comme `periode_id` d'une UE, l'appartenance
 // est fixée à la création. Verrou optimiste sur les deux entités.
 func (q *Queries) CreateBloc(ctx context.Context, arg CreateBlocParams) (BlocCompetence, error) {
 	row := q.db.QueryRow(ctx, createBloc,
-		arg.FormationID,
+		arg.PromotionID,
 		arg.Ordre,
 		arg.Libelle,
 		arg.Code,
@@ -41,7 +41,7 @@ func (q *Queries) CreateBloc(ctx context.Context, arg CreateBlocParams) (BlocCom
 	err := row.Scan(
 		&i.ID,
 		&i.Version,
-		&i.FormationID,
+		&i.PromotionID,
 		&i.Ordre,
 		&i.Libelle,
 		&i.Code,
@@ -109,7 +109,7 @@ UPDATE bloc_competence
 SET ordre = $1, libelle = $2, code = $3, activites = $4,
     modalites_evaluation = $5, version = version + 1
 WHERE id = $6 AND version = $7
-RETURNING id, version, formation_id, ordre, libelle, code, activites, modalites_evaluation
+RETURNING id, version, promotion_id, ordre, libelle, code, activites, modalites_evaluation
 `
 
 type UpdateBlocParams struct {
@@ -136,7 +136,7 @@ func (q *Queries) UpdateBloc(ctx context.Context, arg UpdateBlocParams) (BlocCom
 	err := row.Scan(
 		&i.ID,
 		&i.Version,
-		&i.FormationID,
+		&i.PromotionID,
 		&i.Ordre,
 		&i.Libelle,
 		&i.Code,

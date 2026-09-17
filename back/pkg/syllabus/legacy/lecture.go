@@ -135,13 +135,16 @@ func (c ClePeriode) String() string {
 	return fmt.Sprintf("%s / %s / %s", c.Annee, c.Periode, c.Prefixe)
 }
 
-// CorrespondanceBloc : bloc tiers → (formation scolarite, ordre du bloc dans
-// son référentiel). Vide = liaisons de ce bloc hors périmètre.
+// CorrespondanceBloc : bloc tiers → (promotion scolarite, ordre du bloc dans
+// le référentiel de cette promotion). Le référentiel étant par promotion
+// (16 septembre 2026), un bloc du tiers utilisé par plusieurs promotions
+// occupe une ligne par promotion ; une ligne vide = liaisons de ce bloc hors
+// périmètre.
 type CorrespondanceBloc struct {
 	Ligne     int
 	BlocID    string
 	Libelle   string
-	Formation string
+	Promotion string
 	Ordre     int32
 	Remplie   bool
 }
@@ -426,7 +429,7 @@ func lireCorrespondancePeriodes(chemin string) ([]CorrespondancePeriode, error) 
 }
 
 func lireCorrespondanceBlocs(chemin string) ([]CorrespondanceBloc, error) {
-	lignes, err := lireCSV(chemin, "bloc_id_tiers", "bloc_libelle_tiers", "formation_name_scolarite", "bloc_ordre_scolarite")
+	lignes, err := lireCSV(chemin, "bloc_id_tiers", "bloc_libelle_tiers", "promotion_name_scolarite", "bloc_ordre_scolarite")
 	if err != nil {
 		return nil, err
 	}
@@ -438,12 +441,12 @@ func lireCorrespondanceBlocs(chemin string) ([]CorrespondanceBloc, error) {
 			Ligne:     l.ligne,
 			BlocID:    strings.TrimSpace(l.val("bloc_id_tiers")),
 			Libelle:   strings.TrimSpace(l.val("bloc_libelle_tiers")),
-			Formation: strings.TrimSpace(l.val("formation_name_scolarite")),
+			Promotion: strings.TrimSpace(l.val("promotion_name_scolarite")),
 		}
 		ordre := strings.TrimSpace(l.val("bloc_ordre_scolarite"))
 		switch {
-		case c.Formation == "" && ordre == "":
-		case c.Formation != "" && ordre != "":
+		case c.Promotion == "" && ordre == "":
+		case c.Promotion != "" && ordre != "":
 			n, err := strconv.Atoi(ordre)
 			if err != nil || n <= 0 {
 				return nil, fmt.Errorf("%s ligne %d : ordre « %s » invalide (entier positif attendu)", nom, l.ligne, ordre)
@@ -451,12 +454,15 @@ func lireCorrespondanceBlocs(chemin string) ([]CorrespondanceBloc, error) {
 			c.Ordre = int32(n)
 			c.Remplie = true
 		default:
-			return nil, fmt.Errorf("%s ligne %d : correspondance incomplète — remplir formation et ordre, ou aucun des deux", nom, l.ligne)
+			return nil, fmt.Errorf("%s ligne %d : correspondance incomplète — remplir promotion et ordre, ou aucun des deux", nom, l.ligne)
 		}
-		if precedente, ok := vus[c.BlocID]; ok {
-			return nil, fmt.Errorf("%s ligne %d : le bloc %s est déjà à la ligne %d", nom, l.ligne, c.BlocID, precedente)
+		// Unicité par (bloc tiers, promotion) : un même bloc revient une fois
+		// par promotion, jamais deux fois pour la même.
+		cle := c.BlocID + "\x00" + Normaliser(c.Promotion)
+		if precedente, ok := vus[cle]; ok {
+			return nil, fmt.Errorf("%s ligne %d : le bloc %s est déjà à la ligne %d pour la promotion « %s »", nom, l.ligne, c.BlocID, precedente, c.Promotion)
 		}
-		vus[c.BlocID] = l.ligne
+		vus[cle] = l.ligne
 		corr = append(corr, c)
 	}
 	return corr, nil

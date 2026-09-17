@@ -13,14 +13,15 @@ type Querier interface {
 	BlocDeleteImpact(ctx context.Context, ids []int32) (BlocDeleteImpactRow, error)
 	CheckBlocExists(ctx context.Context, id int32) (int32, error)
 	CheckCompetenceExists(ctx context.Context, id int32) (int32, error)
-	// Référentiel de compétences d'une formation (lot 3) : blocs, puis compétences
-	// d'un bloc, puis le référentiel à plat pour la matrice de l'UE. Tout est
-	// trié par position (`ordre`) : le code « C{ordre} » se calcule à l'affichage.
-	// Aucune donnée de structure n'est lue au-delà de l'existence de la formation.
-	CheckFormationExists(ctx context.Context, id int32) (int32, error)
 	CheckMatiereExists(ctx context.Context, id int32) (int32, error)
+	// Référentiel de compétences d'une promotion (lot 3, rattaché à la promotion
+	// le 16 septembre 2026) : blocs, puis compétences d'un bloc, puis le
+	// référentiel à plat pour la matrice de l'UE. Tout est trié par position
+	// (`ordre`) : le code « C{ordre} » se calcule à l'affichage. Aucune donnée de
+	// structure n'est lue au-delà de l'existence de la promotion (vue active).
+	CheckPromotionExists(ctx context.Context, id int32) (int32, error)
 	CompetenceDeleteImpact(ctx context.Context, ids []int32) (int64, error)
-	// Écritures du référentiel (lot 3). La formation d'un bloc et le bloc d'une
+	// Écritures du référentiel (lot 3). La promotion d'un bloc et le bloc d'une
 	// compétence ne se modifient pas : comme `periode_id` d'une UE, l'appartenance
 	// est fixée à la création. Verrou optimiste sur les deux entités.
 	CreateBloc(ctx context.Context, arg CreateBlocParams) (BlocCompetence, error)
@@ -30,14 +31,14 @@ type Querier interface {
 	DeleteUeCompetences(ctx context.Context, ueID int32) error
 	FetchBlocById(ctx context.Context, id int32) (BlocCompetence, error)
 	FetchBlocNamesByIds(ctx context.Context, ids []int32) ([]FetchBlocNamesByIdsRow, error)
-	FetchBlocsByFormationID(ctx context.Context, formationID int32) ([]BlocCompetence, error)
+	FetchBlocsByPromotionID(ctx context.Context, promotionID int32) ([]BlocCompetence, error)
 	FetchCompetenceById(ctx context.Context, id int32) (Competence, error)
 	FetchCompetenceNamesByIds(ctx context.Context, ids []int32) ([]FetchCompetenceNamesByIdsRow, error)
 	FetchCompetencesByBlocID(ctx context.Context, blocID int32) ([]Competence, error)
-	// Le référentiel à plat d'une formation, chaque compétence portant son bloc :
+	// Le référentiel à plat d'une promotion, chaque compétence portant son bloc :
 	// c'est ce que la matrice de l'UE affiche, en une requête. Un bloc sans
 	// compétence n'y figure pas — il n'a aucune ligne à cocher.
-	FetchReferentielByFormationID(ctx context.Context, formationID int32) ([]FetchReferentielByFormationIDRow, error)
+	FetchReferentielByPromotionID(ctx context.Context, promotionID int32) ([]FetchReferentielByPromotionIDRow, error)
 	FetchSyllabusMatiereByMatiereID(ctx context.Context, matiereID int32) (SyllabusMatiere, error)
 	// Les fiches des matières d'une UE, pour la fiche PDF (lot 5) : les
 	// identifiants viennent du repository des matières (structure), la requête
@@ -51,12 +52,12 @@ type Querier interface {
 	// sans verrou — dernier écrit gagne, choix utilisateur.
 	FetchUeCompetences(ctx context.Context, ueID int32) ([]UeCompetence, error)
 	FetchUniteEnseignementById(ctx context.Context, id int32) (UniteEnseignement, error)
-	// Une compétence ne se lie à une UE que si son bloc appartient à la formation
-	// de l'UE. La chaîne réelle du schéma — UE → période → option → promotion →
-	// formation, par les vues actives (invariant 9) — est jointe ici : la
-	// requête ne peut physiquement insérer qu'une compétence de la bonne
-	// formation. Zéro ligne insérée = compétence inconnue ou hors formation ;
-	// c'est le handler qui distingue les deux et annule la transaction.
+	// Une compétence ne se lie à une UE que si son bloc appartient à la promotion
+	// de l'UE. La chaîne réelle du schéma — UE → période → option → promotion,
+	// par les vues actives (invariant 9) — est jointe ici : la requête ne peut
+	// physiquement insérer qu'une compétence de la bonne promotion. Zéro ligne
+	// insérée = compétence inconnue ou hors promotion ; c'est le handler qui
+	// distingue les deux et annule la transaction.
 	InsertUeCompetence(ctx context.Context, arg InsertUeCompetenceParams) (int64, error)
 	UpdateBloc(ctx context.Context, arg UpdateBlocParams) (BlocCompetence, error)
 	UpdateCompetence(ctx context.Context, arg UpdateCompetenceParams) (Competence, error)

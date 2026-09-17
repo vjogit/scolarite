@@ -1,10 +1,10 @@
 /**
  * La matrice de compétences d'une UE (lot 3) : parmi les compétences visées
- * par la formation, lesquelles cette UE enseigne, met en œuvre, évalue — trois
+ * par la promotion, lesquelles cette UE enseigne, met en œuvre, évalue — trois
  * colonnes cochables, regroupées par bloc, codes dérivés de la position, comme
  * la maquette de la fiche les rend.
  *
- * Deux lectures : le référentiel à plat de la formation (celle de l'URL,
+ * Deux lectures : le référentiel à plat de la promotion (celle de l'URL,
  * invariant 1) et la matrice de l'UE. Une écriture : le remplacement intégral,
  * sans verrou — dernier écrit gagne, choix utilisateur — sous un bouton
  * propre, distinct de celui du syllabus de l'UE (deux écritures indépendantes ;
@@ -131,7 +131,7 @@ function FormulaireMatrice({ ueId, referentiel, liaisons, peutEcrire, onModifica
             notifySuccess(t('competences.matrice.enregistre'));
         },
         onError: (error) => {
-            // Le refus porte sur `competence_id` (hors formation, inconnue) :
+            // Le refus porte sur `competence_id` (hors promotion, inconnue) :
             // aucun champ nommé à l'écran, le message va à la notification.
             const champs = fieldErrorsFor(error);
             notifyError(champs?.competence_id ?? messageForError(error));
@@ -219,19 +219,19 @@ function FragmentBloc({ libelle, competences, control, disabled }: {
 }
 
 interface Props {
-    formationId: string;
+    promotionId: string;
     ueId: string;
     peutEcrire: boolean;
     /** L'état modifié de la matrice, pour la garde unique de l'écran. */
     onModification: (modifie: boolean) => void;
 }
 
-export function MatriceCompetences({ formationId, ueId, peutEcrire, onModification }: Props) {
+export function MatriceCompetences({ promotionId, ueId, peutEcrire, onModification }: Props) {
     const { t } = useTranslation('syllabus');
 
     const referentiel = useQuery({
-        queryKey: cleReferentiel(formationId),
-        queryFn: () => fetchReferentiel(formationId),
+        queryKey: cleReferentiel(promotionId),
+        queryFn: () => fetchReferentiel(promotionId),
     });
     const matrice = useQuery({
         queryKey: cleMatrice(ueId),

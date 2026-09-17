@@ -52,7 +52,7 @@ existants). Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 88 tests, dont les
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 91 tests, dont les
   24 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
@@ -198,7 +198,12 @@ existants). Pas encore en production.
   (jusque-là `.gitignore` l'excluait et un clone neuf ne compilait pas, lot
   CI). La CI (`verification.yml`) régénère hors ligne depuis `schema.sql`
   et **échoue si le résultat diffère du commit**. Changesets Liquibase avec
-  `id`, `author`, `comment` **et `rollback`**.
+  `id`, `author`, `comment` **et `rollback`**. **Tant qu'aucun déploiement
+  n'existe, un changeset se réécrit en place** (précédent : `003-create-bloc-
+  competence`, `formation_id` → `promotion_id` le 16 septembre 2026, bases
+  locales recréées par `start-local-reset`, `scolarite_tu` refaite depuis
+  `schema.sql`) ; **au premier déploiement réel, les changesets deviennent
+  immuables** et toute évolution passe par de nouveaux changesets.
 - Pas de nouvelle dépendance sans validation explicite de l'utilisateur.
 - `npm run build`, `npm run lint`, build Go et `go test` au vert avant de
   conclure.
@@ -259,7 +264,7 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 88
+  suite complète sur chaque push par la même cible (`make test-ihm`, 91
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -349,7 +354,7 @@ existants). Pas encore en production.
   le corriger silencieusement**. Le « Hors périmètre » d'un lot est
   contraignant.
 
-## Syllabus — domaine à l'état stable (chantier clos le 15 septembre 2026)
+## Syllabus — domaine à l'état stable (chantier clos le 15 septembre 2026, référentiel rattaché à la promotion le 16)
 
 Cadré le 14 septembre 2026 à partir de l'analyse de la base d'une application
 tierce, livré en cinq lots (schéma et module, écrans, référentiel de
@@ -360,6 +365,13 @@ de compétences par formation. Le versionnement annuel du tiers (tables
 `*_annee`, `anneescolaire`) n'est pas repris : la duplication de la
 structure par promotion en tient lieu — et le livret PDF se génère par
 promotion pour la même raison.
+
+**Principe du nom stable** (16 septembre 2026, dit par l'utilisateur) : *le
+nom d'une UE ou d'une matière ne change pas d'une année à l'autre — un
+changement de nom signifie un nouveau cours.* Le nom est l'identité stable à
+travers les promotions ; c'est ce qui fonde l'appariement par nom de l'import
+et la comparabilité entre promotions, et ce que la création par gabarit
+recopie tel quel.
 
 **Principe directeur, valable pour tout le domaine** : les données de
 structure font référence — noms, `matiere.heure`, `matiere.coeff`,
@@ -406,9 +418,15 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    `ects`, ni `academique`. Le GET de l'UE (structure, `SELECT *`) porte les
    deux champs : pas de GET syllabus pour l'UE (invariant 2, l'écran lit le
    repository UE).
-3. **Référentiel de compétences par formation** — tranché, ne pas rouvrir :
-   la déclaration France Compétences se fait par fiche RNCP, donc par
-   formation. `bloc_competence` porte `formation_id` ; champs calqués sur le
+3. **Référentiel de compétences par promotion** — tranché le 16 septembre
+   2026, **remplace la décision du lot 0 « par formation »** (la déclaration
+   France Compétences se fait par fiche RNCP, mais les compétences varient
+   d'une promotion à l'autre, INFRES18 ≠ INFRES19 ; c'est l'alignement sur le
+   reste du modèle — structure dupliquée par promotion, livret par promotion,
+   versionnement annuel du tiers — et la garantie de périmètre en sort
+   renforcée : une UE ne se lie qu'aux compétences de SA promotion). Voir
+   « Compétences par promotion et création par gabarit » ci-dessous.
+   `bloc_competence` porte `promotion_id` ; champs calqués sur le
    document France Compétences — bloc : libellé, code nullable (les blocs du
    document sont numérotés, pas codés), activités, modalités d'évaluation ;
    compétence : action observable (verbe), contexte (« en… »), finalités
@@ -419,22 +437,23 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    pas (`chk_ue_competence_au_moins_un`) — la ligne absente EST l'état
    « non adressée ». La contribution d'une UE à un bloc est **dérivée,
    jamais stockée** (au moins une compétence du bloc marquée). L'ordre est
-   une position saisie, unique par parent (`uk_bloc_competence_ordre`,
-   `uk_competence_ordre`) ; le code affiché « C{ordre} » se calcule à
+   une position saisie, unique par parent (`uk_bloc_competence_ordre` sur
+   `(promotion_id, ordre)`, `uk_competence_ordre`) ; le code affiché « C{ordre} » se calcule à
    l'affichage, `bloc_competence.code` reste réservé à un code RNCP
    officiel. Matrice écrite par **remplacement intégral sans verrou**
    (`PUT /ue/{ueID}/competences`, DELETE + INSERT … SELECT en une
    transaction, dernier écrit gagne ; la version de l'UE n'est pas
-   touchée). Une UE ne se lie qu'aux compétences de sa propre formation,
-   garanti côté serveur par la jointure UE → période → option → promotion →
-   formation (vues actives) : une ligne non insérée annule tout (motif
-   `hors_formation` ; `reference_inconnue` si l'identifiant n'existe pas).
+   touchée). Une UE ne se lie qu'aux compétences de sa propre promotion,
+   garanti côté serveur par la jointure UE → période → option → promotion
+   (vues actives) : une ligne non insérée annule tout (motif
+   `hors_promotion` ; `reference_inconnue` si l'identifiant n'existe pas).
    `RemplacerMatrice` est appelable hors HTTP (l'import s'en sert). Blocs et
-   compétences suivent leur formation par cascade (la purge de la corbeille
-   les emporte, `FormationDeleteImpact` les annonce). La saisie du
-   référentiel se fait à la main par l'écran — aucun outil d'import de
-   référentiel, la source est le document France Compétences (Excel), pas
-   la base tierce.
+   compétences suivent leur promotion par cascade (la purge de la corbeille
+   les emporte ; `PromotionDeleteImpact` les annonce, `FormationDeleteImpact`
+   les agrège par ses promotions actives). La saisie du référentiel se fait
+   à la main par l'écran, ou par copie du gabarit à la création d'une
+   promotion — aucun outil d'import de référentiel, la source est le
+   document France Compétences (Excel), pas la base tierce.
 4. **Rôle Keycloak `SYLLABUS_ECRITURE`**, neuvième rôle de domaine (lecture
    globale, écritures ciblées : fiches, description d'UE, matrices,
    référentiel — une seule population). Population rédactrice — tranchée :
@@ -460,22 +479,24 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    optimiste (409 `OPTIMISTIC_LOCKING_FAILURE` ; l'identifiant du chemin
    fait foi) ; `PUT /ue/{id}` écrit `description` et `responsable_id` sous
    verrou et renvoie l'UE complète (reposée sous la clé du repository UE) ;
-   `GET/POST /bloc` (`?formation_id=`), `GET/PUT/DELETE /bloc/{id}`,
+   `GET/POST /bloc` (`?promotion_id=`), `GET/PUT/DELETE /bloc/{id}`,
    `POST /bloc/delete-impact`, idem `/competence` (`?bloc_id=`, ou
-   `?formation_id=` pour le référentiel à plat) ; `GET/PUT
+   `?promotion_id=` pour le référentiel à plat) ; `GET/PUT
    /ue/{id}/competences` ; **`GET /ue/{id}/fiche?lang=fr|en`** et
    **`GET /promotion/{id}/livret?lang=fr|en`** (CONSULTATION, PDF).
    Entité introuvable ou branche en corbeille : `NOT_FOUND` sur l'enveloppe
    400 du projet. Erreurs de champ : 400 `VALIDATION_ERROR`, motifs
    `valeur_negative`, `valeur_hors_plage`, `reference_inconnue`,
-   `hors_formation`, `valeur_deja_utilisee` (position prise).
+   `hors_promotion`, `valeur_deja_utilisee` (position prise).
 6. **Front, `pages/syllabus/`** : pas de workflow propre, des greffes sous
    le workflow Structure (`catalog/routes.tsx`, `GreffeEcran`) — segment
    `syllabus` sous la matière et sous l'UE (`…/matiere/:id/syllabus`,
    `…/ue/:id/syllabus`, action déclarative `ACTION_SYLLABUS`, en fermeture),
-   segments `bloc` et `competence` sous la formation (deux Crud imbriqués,
-   actions créées au rendu). L'arbre ne change pas, `etatArbre` s'arrête au
-   segment étranger. `FormulaireSyllabus.tsx` : cadre 1-1 qui reste sur
+   segments `bloc` et `competence` sous la promotion
+   (`…/promotion/:promotionId/bloc`, `ACTION_REFERENTIEL` sur la ligne
+   promotion à côté d'`ACTION_LIVRET`, dans `CrudPromotion` et
+   `niveaux.ts` ; deux Crud imbriqués, actions créées au rendu). L'arbre ne
+   change pas, `etatArbre` s'arrête au segment étranger. `FormulaireSyllabus.tsx` : cadre 1-1 qui reste sur
    place après enregistrement (`Form.tsx` renvoie vers une liste que la
    fiche n'a pas), avec un emplacement `actions` à droite du titre (le
    bouton de la fiche PDF). La matrice (`MatriceCompetences.tsx`) a son
@@ -492,7 +513,13 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    (`make importer-syllabus`, mode d'emploi `docs/syllabus-import.md`,
    paquet `pkg/syllabus/legacy`). CLI, pas d'écran ; appariement **par nom**
    dans le périmètre d'une correspondance de période (année, période,
-   préfixe du code d'UE → formation, promotion, option, période), l'UE par
+   préfixe du code d'UE → formation, promotion, option, période) ; le bloc
+   par (bloc tiers, promotion de l'UE) — gabarit à colonne
+   `promotion_name_scolarite`, une ligne par promotion pour un bloc du
+   tiers utilisé par plusieurs, unicité par couple ; un bloc mappé pour
+   d'autres promotions seulement rejette la matrice (« bloc d'une autre
+   promotion que l'UE », promotions mappées à l'appui), un bloc sans ligne
+   remplie reste hors périmètre —, l'UE par
    exception puis code puis libellé unique, la matière par exception puis
    libellé unique, **égalité après normalisation** (espaces réduits, casse
    ignorée), jamais de rapprochement flou ; non apparié ou ambigu → rejet,
@@ -561,6 +588,54 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    enveloppe d'erreur par `erreurDeTelechargement` (`telechargement.ts`),
    sinon un 503 s'afficherait en message générique.
 
+### Compétences par promotion et création par gabarit (16 septembre 2026)
+
+Lot `competences-promotion`, deux changements tranchés par l'utilisateur :
+
+- **Le référentiel est rattaché à la promotion** (voir point 3). Le
+  changeset 003 de `007-syllabus` a été réécrit en place (aucun déploiement
+  n'existait) : `promotion_id`, `fk_bloc_competence_promotion`,
+  `idx_bloc_competence_promotion`, `uk_bloc_competence_ordre (promotion_id,
+  ordre)`. Le motif de périmètre de la matrice est **`hors_promotion`** ;
+  `hors_formation` subsiste avec un autre sens (ci-dessous).
+- **La promotion précédente sert de gabarit à la suivante.** Le formulaire de
+  création de promotion porte un sélecteur optionnel « Créer à partir de la
+  promotion » (`ChampSelection`, options lues sous la clé du repository des
+  promotions de la formation — aucune requête ajoutée ; rendu en création
+  seule grâce à la prop optionnelle **`mode`** ajoutée à `RenderProps`, la
+  seule adaptation du socle Crud). Le corps du POST porte
+  `source_promotion_id` (`CreationPromotion` côté Go, `PromotionActive`
+  embarquée) ; le serveur (`structure/promotion/copie.go`, requêtes
+  `promotion_copie.sql`) vérifie la source **avant toute écriture** — active,
+  et de la même formation : `reference_inconnue` (inconnue ou en corbeille),
+  **`hors_formation`** (autre formation ; la copie entre formations n'existe
+  pas) sur le champ `source_promotion_id` — puis crée la promotion et copie
+  dans **une seule transaction**, ligne à ligne par `INSERT … SELECT … WHERE
+  id = @source RETURNING id` (colonnes listées une fois en SQL, re-mappage
+  des identifiants en Go, référentiel d'abord parce que les liaisons en ont
+  besoin, lectures par les vues actives). Sans source : promotion vide, comme
+  avant.
+- **Périmètre exact de la copie, tranché** : `option` (nom) ; `periode`
+  (nom, **dates telles quelles** — à corriger à l'écran, un décalage
+  automatique serait faux une année sur deux) ; `unite_enseignement` (nom,
+  ECTS, académique, **description et responsable**) ; `matiere` (nom, heure,
+  coeff, couleur) ; `syllabus_matiere` (huit rubriques, huit heures,
+  **responsable**, version remise à 1) ; `bloc_competence`, `competence`
+  (tout, ordres compris) ; `ue_competence` (les trois axes, re-mappés).
+  **Jamais** : groupes, contrôles, notes, jurys, réservations,
+  certifications — tout ce qui appartient aux élèves ou à l'année. Le
+  responsable est copié (décision 4 : l'enseignant reconduit est le cas
+  majoritaire, la colonne reste en `SET NULL`).
+- **Rôle : l'opération entière sous STRUCTURE_ECRITURE**, exception assumée
+  au rôle SYLLABUS_ECRITURE (décision 5) : l'acte est « créer une
+  promotion », le contenu syllabus copié a déjà été rédigé sur le gabarit par
+  un porteur du rôle ; scinder en deux gestes sous deux rôles laisserait un
+  état intermédiaire (structure sans référentiel) que rien ne signalerait.
+- **Ce que la copie n'est pas** : un lien vivant. Aucune synchronisation
+  entre promotions ; modifier l'une ne touche pas l'autre (prouvé par le
+  test d'intégration `copie_integration_test.go`, photo table à table de la
+  source avant et après).
+
 **Périmètre négatif, contraignant** : pas de registre (l'invariant 5 couvre
 notes et jurys, les écritures syllabus n'ancrent rien) ; pas de corbeille
 (`syllabus_matiere` suit `matiere` par cascade, le référentiel suit sa
@@ -576,21 +651,30 @@ pas de colonne et n'en auront pas.
 
 **Seed e2e du domaine** : `E2E Agent1` (AGENT), fiche de « E2E Matiere » à
 15 + 4 + 1 = 20 h (conforme), description de « E2E UE1 », blocs « E2E Bloc
-Securiser » (C1, C2) et « E2E Bloc Concevoir » (C1) sur « E2E Formation »,
-« E2E Autre Formation » (un bloc, une compétence — pas « E2E Formation
-Etrangere », dont « E2E Formation » serait le préfixe), liaison pré-cochée
-C1 enseignée + évaluée sur « E2E UE1 ». Specs : `syllabus.spec.ts` (sept
-tests, ordre intra-fichier documenté), `referentiel-competences.spec.ts`,
-`matrice-competences.spec.ts`, `fiche-pdf.spec.ts` (trois tests) ; captures
-`syllabus-matiere-*` et `syllabus-ue-*`. Tests Go : cinq d'intégration sur
-fiche et UE, quatre sur référentiel et matrice, trois sur l'import, quatre
-sur les documents PDF (dont le 503 sur un port fermé et le NOT_FOUND d'une
-période en corbeille), plus le gabarit et le client PDF en unitaire.
+Securiser » (C1, C2) et « E2E Bloc Concevoir » (C1) sur « E2E Promotion »,
+« E2E Promo Autre » (autre promotion de « E2E Formation », sans descendance,
+un bloc, une compétence — le cas fort ; pas « E2E Promotion Autre », dont
+« E2E Promotion » serait le préfixe ; pas « E2E Promo Vide », qui doit rester
+sans aucune donnée liée pour le dialogue de suppression avec saisie),
+« E2E Autre Formation » conservée sans bloc (capture `formation-liste`),
+liaison pré-cochée C1 enseignée + évaluée sur « E2E UE1 ». Specs :
+`syllabus.spec.ts` (sept tests, ordre intra-fichier documenté),
+`referentiel-competences.spec.ts`, `matrice-competences.spec.ts`,
+`fiche-pdf.spec.ts` (trois tests), `promotion-gabarit.spec.ts` (avec et sans
+gabarit, CONSULTATION ; chaque test crée sa promotion puis la met en
+corbeille) ; captures `syllabus-matiere-*` et `syllabus-ue-*`. Tests Go :
+cinq d'intégration sur fiche et UE, quatre sur référentiel et matrice, un
+sur la création par gabarit (copie table à table, indépendance, refus,
+promotion vide), trois sur l'import, quatre sur les documents PDF (dont le
+503 sur un port fermé et le NOT_FOUND d'une période en corbeille), plus le
+gabarit et le client PDF en unitaire.
 
 **Évolutions possibles, hors chantier** (aucune n'est engagée) : livret par
 période ; cloisonnement fin du rôle d'écriture ; responsable sur la fiche
 (la colonne existe) ; numérotation physique des pages du livret (en-tête ou
-pied Gotenberg, globaux au document) ; colonne `ordre` sur `matiere`.
+pied Gotenberg, globaux au document) ; colonne `ordre` sur `matiere` ; copie
+entre formations différentes ; synchronisation entre promotions (la copie
+est un acte de création, pas un lien vivant).
 
 ## Pièges connus du code
 
@@ -868,7 +952,7 @@ pied Gotenberg, globaux au document) ; colonne `ordre` sur `matiere`.
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (88
+  intégration : ils se sautent sans base), et la suite e2e complète (91
   tests, les 24 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,

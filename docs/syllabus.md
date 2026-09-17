@@ -2,7 +2,7 @@
 
 Le domaine syllabus attache du contenu pédagogique aux entités de structure
 — la fiche d'une matière, la description et la matrice de compétences d'une
-UE, le référentiel de compétences d'une formation — et en produit deux
+UE, le référentiel de compétences d'une promotion — et en produit deux
 documents : la **fiche d'une UE** et le **livret d'une promotion**. Ce
 document dit comment ils se génèrent et s'exploitent ; l'import du contenu
 tiers a son propre mode d'emploi (`docs/syllabus-import.md`), les décisions
@@ -47,7 +47,9 @@ Quatre règles, héritées de la maquette et des lots précédents :
 Le **livret** enchaîne les fiches de toutes les UE d'une promotion — options
 par nom, périodes par date de début, UE dans l'ordre de saisie — derrière une
 page de titre (formation, promotion, années, sommaire). Il se génère par
-promotion parce que la structure est dupliquée par promotion.
+promotion parce que la structure est dupliquée par promotion — et, depuis le
+16 septembre 2026, le référentiel de compétences l'est aussi : la matrice
+d'une fiche se lit sur le référentiel de la promotion de l'UE.
 
 ## 2. Deux langues
 

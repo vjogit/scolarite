@@ -10,12 +10,49 @@ import (
 
 type Querier interface {
 	CheckFormationExists(ctx context.Context, id int32) (int32, error)
+	CopierBloc(ctx context.Context, arg CopierBlocParams) (int32, error)
+	CopierCompetence(ctx context.Context, arg CopierCompetenceParams) (int32, error)
+	CopierMatiere(ctx context.Context, arg CopierMatiereParams) (int32, error)
+	CopierOption(ctx context.Context, arg CopierOptionParams) (int32, error)
+	CopierPeriode(ctx context.Context, arg CopierPeriodeParams) (int32, error)
+	// La fiche syllabus de la matière, si elle existe (0 ou 1 ligne) : rubriques,
+	// ventilation et responsable, en version 1 sur la copie.
+	CopierSyllabusMatiere(ctx context.Context, arg CopierSyllabusMatiereParams) (int64, error)
+	CopierUeCompetence(ctx context.Context, arg CopierUeCompetenceParams) error
+	// Les deux colonnes syllabus de l'UE (description, responsable) suivent :
+	// la reconduction d'une année à l'autre est le geste réel des rédacteurs.
+	CopierUniteEnseignement(ctx context.Context, arg CopierUniteEnseignementParams) (int32, error)
 	CountPromotionJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error)
 	CreatePromotion(ctx context.Context, arg CreatePromotionParams) (int32, error)
+	FetchBlocIdsByPromotionID(ctx context.Context, promotionID int32) ([]int32, error)
+	FetchCompetenceIdsByBlocID(ctx context.Context, blocID int32) ([]int32, error)
+	FetchMatiereIdsByUeID(ctx context.Context, ueID int32) ([]int32, error)
+	// Création d'une promotion par gabarit (16 septembre 2026) : la promotion
+	// précédente sert de modèle à la suivante. Le serveur copie, dans une seule
+	// transaction et dans l'ordre parent → enfant, la structure (options,
+	// périodes avec leurs dates, UE, matières) et le contenu syllabus qui s'y
+	// attache (description et responsable de l'UE, fiches des matières, blocs,
+	// compétences, liaisons UE ↔ compétence). Jamais ce qui appartient aux
+	// élèves ou à l'année : groupes, contrôles, notes, jurys, réservations,
+	// certifications.
+	//
+	// Chaque table se copie ligne à ligne par INSERT … SELECT … WHERE id =
+	// @source : les colonnes sont listées une fois, ici ; le re-mappage des
+	// identifiants (ancien parent → nouveau parent) vit dans le Go qui enchaîne
+	// ces requêtes. Les lectures passent par les vues actives (invariant 9) :
+	// une branche en corbeille ne se copie pas.
+	FetchOptionIdsByPromotionID(ctx context.Context, promotionID int32) ([]int32, error)
+	FetchPeriodeIdsByOptionID(ctx context.Context, optionID int32) ([]int32, error)
 	FetchPromotionById(ctx context.Context, id int32) (PromotionActive, error)
 	FetchPromotionNamesByIds(ctx context.Context, ids []int32) ([]FetchPromotionNamesByIdsRow, error)
 	FetchPromotionsByFormationID(ctx context.Context, formationID int32) ([]PromotionActive, error)
+	// Les liaisons de l'UE source, à reposer sur la nouvelle UE et les nouvelles
+	// compétences : les deux côtés sont re-mappés par l'appelant.
+	FetchUeCompetencesByUeID(ctx context.Context, ueID int32) ([]FetchUeCompetencesByUeIDRow, error)
+	FetchUeIdsByPeriodeID(ctx context.Context, periodeID int32) ([]int32, error)
 	// Analyse d'impact d'une suppression en masse de promotions.
+	// Référentiel de compétences (lot 3 syllabus, porté par la promotion depuis
+	// le 16 septembre 2026) : blocs, compétences et liaisons suivent par cascade.
 	PromotionDeleteImpact(ctx context.Context, ids []int32) (PromotionDeleteImpactRow, error)
 	UpdatePromotion(ctx context.Context, arg UpdatePromotionParams) (int32, error)
 }

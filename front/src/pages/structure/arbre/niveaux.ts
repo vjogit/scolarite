@@ -133,9 +133,7 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: GraduationCap,
         enfants: [{ segment: PROMOTION }],
         entite: entiteFormation,
-        // Le référentiel de compétences (lot 3) : un prolongement de la
-        // formation, pas un nœud de l'arbre — libellé en fermeture.
-        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t), ACTION_REFERENTIEL()],
+        actions: (t) => [ACTION_PROMOTIONS(t), actionCreer(PROMOTION, promotionEntite(t), t)],
     },
     {
         segment: PROMOTION,
@@ -144,8 +142,10 @@ const NIVEAUX: readonly NiveauArbre[] = [
         icone: BookMarked,
         enfants: [{ segment: OPTION }],
         entite: entitePromotion,
-        // Le livret PDF (lot 5) : une lecture, en fermeture comme ACTION_SYLLABUS.
-        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t), ACTION_LIVRET()],
+        // Le référentiel de compétences (lot 3, porté par la promotion depuis
+        // le 16 septembre 2026) et le livret PDF (lot 5) : des prolongements
+        // de la promotion, pas des nœuds de l'arbre — libellés en fermeture.
+        actions: (t) => [ACTION_OPTIONS(t), actionCreer(OPTION, optionEntite(t), t), ACTION_REFERENTIEL(), ACTION_LIVRET()],
     },
     {
         segment: OPTION,

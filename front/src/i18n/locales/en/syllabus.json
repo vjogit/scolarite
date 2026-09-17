@@ -67,7 +67,8 @@
       "champModalitesEvaluation": "Assessment methods and criteria",
       "colonneOrdre": "Order",
       "colonneCode": "Code",
-      "colonneLibelle": "Label"
+      "colonneLibelle": "Label",
+      "erreurPromotionIdObligatoire": "The promotionId parameter is required"
     },
     "competence": {
       "title": "Competencies",
@@ -87,13 +88,13 @@
     },
     "matrice": {
       "titre": "Competencies developed in this unit",
-      "description": "Among the competencies targeted by the program, which ones are developed in this unit?",
+      "description": "Among the competencies targeted by the cohort, which ones are developed in this unit?",
       "colonneCompetence": "Competency",
       "enseignee": "Taught",
       "mise_en_oeuvre": "Applied",
       "evaluee": "Assessed",
       "case": "{{axe}} — {{code}} {{action}}",
-      "vide": "No competency is defined for this program.",
+      "vide": "No competency is defined for this cohort.",
       "enregistrer": "Save competencies",
       "enregistre": "Unit competencies saved.",
       "erreurChargement": "The competencies could not be loaded."

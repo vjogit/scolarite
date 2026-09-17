@@ -2,7 +2,7 @@ databaseChangeLog:
   - changeSet:
       id: 003-create-bloc-competence
       author: dev
-      comment: "Bloc de compétences du référentiel d'une formation (lot 3 syllabus). La déclaration France Compétences se fait par fiche RNCP, donc par formation : le bloc porte formation_id et suit sa formation par cascade (la purge de la corbeille l'emporte). Champs calqués sur le document France Compétences : libellé, code nullable (les blocs du document sont numérotés, pas codés — la colonne est réservée à un éventuel code RNCP officiel), activités exercées, modalités et critères d'évaluation. L'ordre est une position, unique par formation ; le code affiché « C{ordre} » des compétences en dérive à l'affichage, jamais stocké."
+      comment: "Bloc de compétences du référentiel d'une promotion (lot 3 syllabus, rattaché à la promotion au lot compétences-promotion du 16 septembre 2026 — changeset réécrit en place, aucun déploiement n'existait). Les compétences varient d'une promotion à l'autre (INFRES18 ≠ INFRES19), comme la structure est dupliquée par promotion : le bloc porte promotion_id et suit sa promotion par cascade (la purge de la corbeille l'emporte). Champs calqués sur le document France Compétences : libellé, code nullable (les blocs du document sont numérotés, pas codés — la colonne est réservée à un éventuel code RNCP officiel), activités exercées, modalités et critères d'évaluation. L'ordre est une position, unique par promotion ; le code affiché « C{ordre} » des compétences en dérive à l'affichage, jamais stocké."
       changes:
         - createTable:
             tableName: bloc_competence
@@ -20,12 +20,12 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: formation_id
+                  name: promotion_id
                   type: INTEGER
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_bloc_competence_formation
-                    referencedTableName: formation
+                    foreignKeyName: fk_bloc_competence_promotion
+                    referencedTableName: promotion
                     referencedColumnNames: id
                     deleteCascade: true
               - column:
@@ -45,13 +45,13 @@ databaseChangeLog:
         - addUniqueConstraint:
             constraintName: uk_bloc_competence_ordre
             tableName: bloc_competence
-            columnNames: formation_id, ordre
+            columnNames: promotion_id, ordre
 
         - createIndex:
-            indexName: idx_bloc_competence_formation
+            indexName: idx_bloc_competence_promotion
             tableName: bloc_competence
             columns:
-              - column: { name: formation_id }
+              - column: { name: promotion_id }
 
         - sql:
             dbms: postgresql

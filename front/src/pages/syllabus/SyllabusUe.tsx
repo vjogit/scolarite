@@ -87,7 +87,7 @@ function BoutonFichePdf({ ueId }: { ueId: string }) {
     );
 }
 
-function SyllabusDeUe({ formationId, periodeId, ueId }: { formationId: string; periodeId: string; ueId: string }) {
+function SyllabusDeUe({ promotionId, periodeId, ueId }: { promotionId: string; periodeId: string; ueId: string }) {
     const { t } = useTranslation('syllabus');
     const { pathname } = useLocation();
     const queryClient = useQueryClient();
@@ -159,7 +159,7 @@ function SyllabusDeUe({ formationId, periodeId, ueId }: { formationId: string; p
             actions={<BoutonFichePdf ueId={ueId} />}
             complement={(
                 <MatriceCompetences
-                    formationId={formationId}
+                    promotionId={promotionId}
                     ueId={ueId}
                     peutEcrire={peutEcrire}
                     onModification={setMatriceModifiee}
@@ -170,10 +170,10 @@ function SyllabusDeUe({ formationId, periodeId, ueId }: { formationId: string; p
 }
 
 export function SyllabusUe() {
-    const { formationId, periodeId, ueId } = useParams();
+    const { promotionId, periodeId, ueId } = useParams();
     const { t } = useTranslation('structure');
 
-    if (formationId === undefined || periodeId === undefined || ueId === undefined) return <p>{t('ue.erreurPeriodeIdObligatoire')}</p>;
+    if (promotionId === undefined || periodeId === undefined || ueId === undefined) return <p>{t('ue.erreurPeriodeIdObligatoire')}</p>;
 
-    return <SyllabusDeUe key={ueId} formationId={formationId} periodeId={periodeId} ueId={ueId} />;
+    return <SyllabusDeUe key={ueId} promotionId={promotionId} periodeId={periodeId} ueId={ueId} />;
 }

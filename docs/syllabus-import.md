@@ -19,9 +19,12 @@ lot 3) ; écrire quoi que ce soit sans `--apply`.
   la base avec la configuration du serveur, comme `make ancrer`.
 - La structure cible est saisie : les périodes, UE et matières que
   l'import doit remplir existent déjà, avec leurs noms définitifs.
-- Le référentiel de compétences de chaque formation concernée est saisi
+- Le référentiel de compétences de chaque **promotion** concernée est saisi
   (blocs et compétences, dans l'ordre du document France Compétences) : la
-  matrice ne se lie qu'à des compétences existantes.
+  matrice ne se lie qu'à des compétences existantes, et seulement à celles
+  de la promotion de l'UE (le référentiel est porté par la promotion depuis
+  le 16 septembre 2026 ; la promotion précédente peut servir de gabarit à la
+  suivante, référentiel compris, à la création).
 - Le dossier d'entrée est `back/cmd/syllabus-import/data/` (ignoré par git,
   comme `programme-import/data/`), ou tout dossier passé par `--dossier`.
 
@@ -33,7 +36,7 @@ lot 3) ; écrire quoi que ce soit sans `--apply`.
 | `liaisons_ue_competence.csv` | Les liaisons actives, en trois booléens (export). |
 | `referentiel_tiers.csv` | Le référentiel du tiers (export). Lu pour résoudre la **position** d'une compétence dans son bloc (`C5` → 5) ; jamais importé. |
 | `correspondance_periodes.csv` (ou `_gabarit.csv`) | **À remplir.** (année, période, préfixe) du tiers → formation, promotion, option, période de l'application, par nom. |
-| `correspondance_competences.csv` (ou `_gabarit.csv`) | **À remplir.** Bloc du tiers → formation et position du bloc dans le référentiel saisi. |
+| `correspondance_competences.csv` (ou `_gabarit.csv`) | **À remplir.** Bloc du tiers → promotion et position du bloc dans le référentiel saisi de cette promotion, une ligne par promotion. |
 | `exceptions.csv` | Optionnel. Appariements forcés d'UE ou de matières. |
 
 Les correspondances se lisent d'abord sous leur nom sans `_gabarit`, puis
@@ -52,13 +55,27 @@ comparés espaces réduits et casse ignorée.
 
 ### Remplir `correspondance_competences.csv`
 
-Pour chaque bloc du tiers : `formation_name_scolarite` et
-`bloc_ordre_scolarite` (la position du bloc dans le référentiel saisi,
-celle qui donne son code affiché), ou rien. Un bloc laissé vide met ses
-liaisons **hors périmètre** : elles sont comptées, la matrice de l'UE
-s'écrit avec les autres. La base tierce duplique un bloc par formation qui
-l'utilise : plusieurs lignes du gabarit peuvent viser le même bloc
-scolarite.
+Pour chaque bloc du tiers : `promotion_name_scolarite` et
+`bloc_ordre_scolarite` (la position du bloc dans le référentiel saisi de
+cette promotion, celle qui donne son code affiché), ou rien. **Un bloc du
+tiers utilisé par plusieurs promotions occupe une ligne par promotion**
+(même `bloc_id_tiers`, promotions différentes) : le référentiel est porté
+par la promotion, et la correspondance se cherche par le bloc tiers **et**
+la promotion de l'UE de chaque liaison. Un bloc sans aucune ligne remplie
+met ses liaisons **hors périmètre** : elles sont comptées, la matrice de
+l'UE s'écrit avec les autres. Un bloc mappé pour d'autres promotions
+seulement rejette la matrice de l'UE (« bloc d'une autre promotion que
+l'UE », avec les promotions mappées) : c'est une ligne qui manque, ou une
+liaison du tiers hors de son périmètre — la simulation le dit avant
+`--apply`. La base tierce duplique un bloc par formation qui l'utilise :
+plusieurs lignes du gabarit peuvent viser le même bloc scolarite.
+
+```csv
+bloc_id_tiers,bloc_libelle_tiers,promotion_name_scolarite,bloc_ordre_scolarite,commentaire
+19,Concevoir et maintenir le SI,INFRES18,1,
+19,Concevoir et maintenir le SI,INFRES19,1,même bloc tiers pour la promotion suivante
+1,Analyser et résoudre des problèmes complexes,,,bloc transversal non repris
+```
 
 La compétence se résout ensuite par **position** : le `Cn` de son code dans
 `referentiel_tiers.csv` doit exister dans le bloc scolarite désigné. Sans
@@ -135,8 +152,9 @@ ses totaux et son chemin.
   - *UE absente de fiches.csv* — une liaison dont l'UE n'a aucune ligne de
     fiche : sa période n'est pas connue, la matrice ne peut pas se résoudre ;
   - *correspondance de bloc introuvable*, *compétence hors position*,
-    *bloc d'une autre formation que l'UE* — la matrice entière de l'UE est
-    rejetée, rien n'est écrit pour elle ;
+    *bloc d'une autre promotion que l'UE* (mappé pour d'autres promotions,
+    pas pour celle de l'UE) — la matrice entière de l'UE est rejetée, rien
+    n'est écrit pour elle ;
   - *conflit non forcé* — fiche déjà écrite (version > 0), description déjà
     remplie ou matrice déjà cochée, **et différente** de l'entrée ; `--force`
     remplace. Identique = inchangé, pas un conflit.
@@ -173,7 +191,8 @@ par l'import, `--force` compris.
 ## 6. Tests
 
 `back/pkg/syllabus/legacy/testdata/` porte une fixture réduite et anonymisée
-(deux périodes, une formation, chaque cause de rejet provoquée une fois),
+(deux périodes, une formation à deux promotions, chaque cause de rejet
+provoquée une fois),
 lue par les tests unitaires (sans base) et d'intégration (nominal,
 simulation sans écriture, idempotence, `--force`). Lancement :
 

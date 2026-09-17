@@ -22,6 +22,8 @@ type Querier interface {
 	// jury_result est atteignable par periode_id ET par unite_enseignement_id :
 	// un seul balayage avec OR évite de compter deux fois la même ligne.
 	// idem pour reservation_groupe, atteignable par la réservation ET par le groupe.
+	// Le référentiel de compétences est porté par la promotion (16 septembre
+	// 2026) : la formation l'agrège par ses promotions actives.
 	FormationDeleteImpact(ctx context.Context, ids []int32) (FormationDeleteImpactRow, error)
 	UpdateFormation(ctx context.Context, arg UpdateFormationParams) (int32, error)
 }

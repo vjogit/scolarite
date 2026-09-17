@@ -2,7 +2,7 @@ databaseChangeLog:
   - changeSet:
       id: 005-create-ue-competence
       author: dev
-      comment: "Liaison UE ↔ compétence (lot 3 syllabus), au niveau UE comme sur la fiche publiée. Trois booléens et pas de table d'états : la légende à sept états du tiers n'était que la combinatoire des trois axes Enseignée / Mise en œuvre / Évaluée, que la maquette rend en trois colonnes cochables. Une ligne dont les trois axes sont faux n'existe pas (CHECK) : la ligne absente EST l'état « non adressée ». Pas de version : l'écriture est un remplacement intégral de la matrice de l'UE, dernier écrit gagne. La contrainte « même formation que l'UE » n'est pas exprimable en base (la chaîne UE → période → option → promotion → formation traverse quatre tables) : elle est garantie côté serveur dans la transaction d'écriture."
+      comment: "Liaison UE ↔ compétence (lot 3 syllabus), au niveau UE comme sur la fiche publiée. Trois booléens et pas de table d'états : la légende à sept états du tiers n'était que la combinatoire des trois axes Enseignée / Mise en œuvre / Évaluée, que la maquette rend en trois colonnes cochables. Une ligne dont les trois axes sont faux n'existe pas (CHECK) : la ligne absente EST l'état « non adressée ». Pas de version : l'écriture est un remplacement intégral de la matrice de l'UE, dernier écrit gagne. La contrainte « même promotion que l'UE » n'est pas exprimable en base (la chaîne UE → période → option → promotion traverse trois tables) : elle est garantie côté serveur dans la transaction d'écriture."
       changes:
         - createTable:
             tableName: ue_competence

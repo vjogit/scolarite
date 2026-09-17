@@ -69,6 +69,38 @@ type corrBloc struct {
 	err   error
 }
 
+// corrBlocs indexe les correspondances de blocs par bloc tiers, puis par
+// promotion scolarite (nom normalisé) : une liaison se résout par le bloc
+// tiers ET la promotion de l'UE. `lignes` garde toutes les lignes lues, pour
+// dire, quand celle de la promotion manque, pour quelles promotions le bloc
+// est mappé.
+type corrBlocs struct {
+	parPromotion map[string]map[string]*corrBloc
+	lignes       map[string][]*corrBloc
+}
+
+// pour rend la correspondance remplie d'un bloc tiers pour une promotion ;
+// `mappe` dit si le bloc a au moins une ligne remplie (sinon, hors périmètre).
+func (cb *corrBlocs) pour(blocID string, promotionName string) (entree *corrBloc, mappe bool) {
+	if e, ok := cb.parPromotion[blocID][Normaliser(promotionName)]; ok {
+		return e, true
+	}
+	return nil, len(cb.parPromotion[blocID]) > 0
+}
+
+// promotionsMappees liste, pour le rapport, les promotions pour lesquelles un
+// bloc tiers est mappé.
+func (cb *corrBlocs) promotionsMappees(blocID string) []string {
+	var noms []string
+	for _, e := range cb.lignes[blocID] {
+		if e.corr.Remplie {
+			noms = append(noms, e.corr.Promotion)
+		}
+	}
+	sort.Strings(noms)
+	return noms
+}
+
 // Importer joue une passe complète sur l'entrée et rend son rapport. Une
 // erreur n'est rendue que pour ce qui empêche la passe elle-même (base
 // injoignable) ; tout le reste est dans le rapport.
@@ -106,7 +138,7 @@ func Importer(ctx context.Context, pool *pgxpool.Pool, e *Entree, opts Options) 
 		}
 		periodes[c.Cle()] = cp
 	}
-	blocs := map[string]*corrBloc{}
+	blocs := &corrBlocs{parPromotion: map[string]map[string]*corrBloc{}, lignes: map[string][]*corrBloc{}}
 	for _, c := range e.Blocs {
 		cb := &corrBloc{corr: c}
 		if c.Remplie {
@@ -116,10 +148,14 @@ func Importer(ctx context.Context, pool *pgxpool.Pool, e *Entree, opts Options) 
 			if cb.err != nil && !errors.As(cb.err, &ec) {
 				return nil, fmt.Errorf("correspondance de bloc ligne %d : %w", c.Ligne, cb.err)
 			}
+			if blocs.parPromotion[c.BlocID] == nil {
+				blocs.parPromotion[c.BlocID] = map[string]*corrBloc{}
+			}
+			blocs.parPromotion[c.BlocID][Normaliser(c.Promotion)] = cb
 		} else {
 			r.BlocsVides++
 		}
-		blocs[c.BlocID] = cb
+		blocs.lignes[c.BlocID] = append(blocs.lignes[c.BlocID], cb)
 	}
 	excUE := map[string]string{}
 	excMatiere := map[string]string{}
@@ -447,7 +483,7 @@ type ligneMatrice struct {
 	flags      [3]bool
 }
 
-func (r *Rapport) matrices(ctx context.Context, pool *pgxpool.Pool, queries *gen.Queries, e *Entree, groupes map[cleUE]*groupeUE, blocs map[string]*corrBloc, opts Options) {
+func (r *Rapport) matrices(ctx context.Context, pool *pgxpool.Pool, queries *gen.Queries, e *Entree, groupes map[cleUE]*groupeUE, blocs *corrBlocs, opts Options) {
 	parUE := map[cleUE][]LigneLiaison{}
 	var ordre []cleUE
 	for _, l := range e.Liaisons {
@@ -486,9 +522,19 @@ func (r *Rapport) matrices(ctx context.Context, pool *pgxpool.Pool, queries *gen
 		cibleMatrice := map[int32]*ligneMatrice{}
 		rejets := 0
 		for _, l := range liaisons {
-			cb, ok := blocs[l.BlocID]
-			if !ok || !cb.corr.Remplie {
+			// La correspondance se cherche par le bloc tiers et la promotion
+			// de l'UE : sans aucune ligne remplie, le bloc est hors périmètre ;
+			// mappé pour d'autres promotions seulement, c'est une ligne qui
+			// manque — rejet, avec les promotions mappées pour le dire.
+			cb, mappe := blocs.pour(l.BlocID, g.cible.PromotionName)
+			if !mappe {
 				r.HorsPerimetre++
+				continue
+			}
+			if cb == nil {
+				r.lister(ObjetMatrice, CauseBlocHorsPromotion, l.Ligne, cle,
+					fmt.Sprintf("bloc tiers %s mappé pour « %s », l'UE est dans « %s »", l.BlocID, strings.Join(blocs.promotionsMappees(l.BlocID), " », « "), g.cible.PromotionName))
+				rejets++
 				continue
 			}
 			detailBloc := fmt.Sprintf("bloc tiers %s (« %s »)", l.BlocID, cb.corr.Libelle)
@@ -506,13 +552,15 @@ func (r *Rapport) matrices(ctx context.Context, pool *pgxpool.Pool, queries *gen
 			cp, ok := cb.cible.Competences[comp.Position]
 			if !ok {
 				r.lister(ObjetMatrice, CauseCompetenceHorsPosition, l.Ligne, cle,
-					fmt.Sprintf("%s → bloc %d de « %s » : aucune compétence en position %d (code tiers %s)", detailBloc, cb.cible.Bloc.Ordre, cb.cible.FormationName, comp.Position, comp.Code))
+					fmt.Sprintf("%s → bloc %d de « %s » : aucune compétence en position %d (code tiers %s)", detailBloc, cb.cible.Bloc.Ordre, cb.cible.PromotionName, comp.Position, comp.Code))
 				rejets++
 				continue
 			}
-			if cb.cible.FormationID != g.cible.FormationID {
-				r.lister(ObjetMatrice, CauseBlocHorsFormation, l.Ligne, cle,
-					fmt.Sprintf("%s → « %s », l'UE est dans « %s »", detailBloc, cb.cible.FormationName, g.cible.FormationName))
+			if cb.cible.PromotionID != g.cible.PromotionID {
+				// Par construction la promotion est celle de l'UE ; la garde
+				// reste, comme celle du serveur (hors_promotion) derrière elle.
+				r.lister(ObjetMatrice, CauseBlocHorsPromotion, l.Ligne, cle,
+					fmt.Sprintf("%s → « %s », l'UE est dans « %s »", detailBloc, cb.cible.PromotionName, g.cible.PromotionName))
 				rejets++
 				continue
 			}
@@ -558,8 +606,8 @@ func (r *Rapport) matrices(ctx context.Context, pool *pgxpool.Pool, queries *gen
 				if _, err := syllabus.RemplacerMatrice(ctx, pool, g.ue.ID, lignes); err != nil {
 					var ecartee *syllabus.ErreurCompetence
 					cause := CauseErreurEcriture
-					if errors.As(err, &ecartee) && ecartee.Motif == services.MotifHorsFormation {
-						cause = CauseBlocHorsFormation
+					if errors.As(err, &ecartee) && ecartee.Motif == services.MotifHorsPromotion {
+						cause = CauseBlocHorsPromotion
 					}
 					r.rejeter(ObjetMatrice, cause, premiere, cle, decrireErreur(err))
 					continue

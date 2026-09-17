@@ -30,7 +30,7 @@ const (
 	CauseUeAbsenteDesFiches         Cause = "UE absente de fiches.csv (période indéterminable)"
 	CauseCorrespondanceBlocInvalide Cause = "correspondance de bloc introuvable"
 	CauseCompetenceHorsPosition     Cause = "compétence hors position"
-	CauseBlocHorsFormation          Cause = "bloc d'une autre formation que l'UE"
+	CauseBlocHorsPromotion          Cause = "bloc d'une autre promotion que l'UE"
 	CauseErreurEcriture             Cause = "erreur d'écriture"
 )
 
@@ -39,7 +39,7 @@ var ordreCauses = []Cause{
 	CausePeriodeNonMappee, CauseCorrespondanceIntrouvable, CauseUeInconnue, CauseUeAmbigue,
 	CauseMatiereInconnue, CauseMatiereAmbigue, CauseDoublonTiers, CauseValeurHorsPlage,
 	CauseUeAbsenteDesFiches, CauseCorrespondanceBlocInvalide, CauseCompetenceHorsPosition,
-	CauseBlocHorsFormation, CauseConflitNonForce, CauseErreurEcriture,
+	CauseBlocHorsPromotion, CauseConflitNonForce, CauseErreurEcriture,
 }
 
 // Objet d'un rejet ou d'un signalement.

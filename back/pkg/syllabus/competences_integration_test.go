@@ -7,8 +7,9 @@ package syllabus_test
 // Ils documentent les décisions tranchées : trois booléens et pas de table
 // d'états (la ligne absente est « non adressée »), remplacement intégral sans
 // verrou (dernier écrit gagne), et périmètre garanti côté serveur — une
-// compétence d'une autre formation annule tout le remplacement, la matrice
-// antérieure reste intacte.
+// compétence d'une autre promotion, fût-elle de la même formation, annule
+// tout le remplacement, la matrice antérieure reste intacte (référentiel par
+// promotion depuis le 16 septembre 2026).
 
 import (
 	"context"
@@ -19,6 +20,7 @@ import (
 
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/formation"
+	"cyb-react/pkg/structure/promotion"
 	"cyb-react/pkg/syllabus/gen"
 
 	"github.com/go-chi/chi/v5"
@@ -29,10 +31,10 @@ import (
 
 // creerBloc et creerCompetence passent par les routes : ce sont les écritures
 // que l'écran d'administration fera.
-func creerBloc(t *testing.T, pool *pgxpool.Pool, formationID int32, ordre int32, libelle string) gen.BlocCompetence {
+func creerBloc(t *testing.T, pool *pgxpool.Pool, promotionID int32, ordre int32, libelle string) gen.BlocCompetence {
 	t.Helper()
 	rec := appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{
-		FormationID: formationID, Ordre: ordre, Libelle: libelle,
+		PromotionID: promotionID, Ordre: ordre, Libelle: libelle,
 	})
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	return decoder[gen.BlocCompetence](t, rec)
@@ -47,13 +49,6 @@ func creerCompetence(t *testing.T, pool *pgxpool.Pool, blocID int32, ordre int32
 	return decoder[gen.Competence](t, rec)
 }
 
-func creerFormation(t *testing.T, pool *pgxpool.Pool, nom string) int32 {
-	t.Helper()
-	var id int32
-	require.NoError(t, pool.QueryRow(context.Background(), `INSERT INTO formation (name, version) VALUES ($1, 1) RETURNING id`, nom).Scan(&id))
-	return id
-}
-
 func lireMatrice(t *testing.T, pool *pgxpool.Pool, ueID int32) []gen.UeCompetence {
 	t.Helper()
 	rec := appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/ue/%d/competences", ueID), nil)
@@ -65,55 +60,57 @@ func TestIntegration_Competences_Referentiel(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "cmp1")
 
-	// Formation inconnue ou absente du filtre.
-	rec := appeler(t, pool, rolesLecture, http.MethodGet, "/syllabus/bloc?formation_id=987654", nil)
+	// Promotion inconnue ou absente du filtre.
+	rec := appeler(t, pool, rolesLecture, http.MethodGet, "/syllabus/bloc?promotion_id=987654", nil)
 	assertIntrouvable(t, rec)
 	rec = appeler(t, pool, rolesLecture, http.MethodGet, "/syllabus/bloc", nil)
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, "MISSING_PARAM", decoder[probleme](t, rec).Code)
 
 	// Liste vide : [] et non null.
-	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/bloc?formation_id=%d", fixture.FormationID), nil)
+	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/bloc?promotion_id=%d", fixture.PromotionID), nil)
 	require.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "[]\n", rec.Body.String())
 
 	// Deux blocs créés dans le désordre : la liste les rend par ordre.
-	bloc2 := creerBloc(t, pool, fixture.FormationID, 2, "Concevoir des applications")
-	bloc1 := creerBloc(t, pool, fixture.FormationID, 1, "Sécuriser des systèmes")
+	bloc2 := creerBloc(t, pool, fixture.PromotionID, 2, "Concevoir des applications")
+	bloc1 := creerBloc(t, pool, fixture.PromotionID, 1, "Sécuriser des systèmes")
 	assert.Equal(t, int32(1), bloc1.Version)
 	assert.Nil(t, bloc1.Code)
-	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/bloc?formation_id=%d", fixture.FormationID), nil)
+	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/bloc?promotion_id=%d", fixture.PromotionID), nil)
 	blocs := decoder[[]gen.BlocCompetence](t, rec)
 	require.Len(t, blocs, 2)
 	assert.Equal(t, []int32{bloc1.ID, bloc2.ID}, []int32{blocs[0].ID, blocs[1].ID})
 
-	// Ordre déjà pris sur la formation : refus ciblé sur `ordre`.
-	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{FormationID: fixture.FormationID, Ordre: 1, Libelle: "Doublon"})
+	// Ordre déjà pris sur la promotion : refus ciblé sur `ordre`. La même
+	// position reste libre sur une autre promotion de la formation.
+	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{PromotionID: fixture.PromotionID, Ordre: 1, Libelle: "Doublon"})
 	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
 	p := decoder[probleme](t, rec)
 	assert.Equal(t, "VALIDATION_ERROR", p.Code)
 	assert.Equal(t, services.MotifValeurDejaUtilisee, p.Errors["ordre"].Motif)
+	creerBloc(t, pool, fixture.PromotionVide, 1, "Même position, autre promotion")
 
-	// Libellé vide, ordre nul, formation inconnue : chaque contrainte nommée a son champ.
-	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{FormationID: fixture.FormationID, Ordre: 3, Libelle: ""})
+	// Libellé vide, ordre nul, promotion inconnue : chaque contrainte nommée a son champ.
+	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{PromotionID: fixture.PromotionID, Ordre: 3, Libelle: ""})
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, services.MotifChampObligatoire, decoder[probleme](t, rec).Errors["libelle"].Motif)
-	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{FormationID: fixture.FormationID, Ordre: 0, Libelle: "x"})
+	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{PromotionID: fixture.PromotionID, Ordre: 0, Libelle: "x"})
 	require.Equal(t, http.StatusBadRequest, rec.Code)
 	assert.Equal(t, services.MotifValeurNegative, decoder[probleme](t, rec).Errors["ordre"].Motif)
-	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{FormationID: 987654, Ordre: 1, Libelle: "x"})
+	rec = appeler(t, pool, rolesEcriture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{PromotionID: 987654, Ordre: 1, Libelle: "x"})
 	require.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Equal(t, services.MotifReferenceInconnue, decoder[probleme](t, rec).Errors["formation_id"].Motif)
+	assert.Equal(t, services.MotifReferenceInconnue, decoder[probleme](t, rec).Errors["promotion_id"].Motif)
 
-	// Mise à jour sous verrou : la formation ne se réécrit pas, la version avance.
+	// Mise à jour sous verrou : la promotion ne se réécrit pas, la version avance.
 	bloc1.Libelle = "Sécuriser et superviser des systèmes"
 	bloc1.Code = str("INFRES-BC1")
-	bloc1.FormationID = 987654
+	bloc1.PromotionID = 987654
 	rec = appeler(t, pool, rolesEcriture, http.MethodPut, fmt.Sprintf("/syllabus/bloc/%d", bloc1.ID), bloc1)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	maj := decoder[gen.BlocCompetence](t, rec)
 	assert.Equal(t, int32(2), maj.Version)
-	assert.Equal(t, fixture.FormationID, maj.FormationID)
+	assert.Equal(t, fixture.PromotionID, maj.PromotionID)
 	assert.Equal(t, "INFRES-BC1", *maj.Code)
 	rec = appeler(t, pool, rolesEcriture, http.MethodPut, fmt.Sprintf("/syllabus/bloc/%d", bloc1.ID), bloc1) // version 1, périmée
 	require.Equal(t, http.StatusConflict, rec.Code)
@@ -136,19 +133,19 @@ func TestIntegration_Competences_Referentiel(t *testing.T) {
 	rec = appeler(t, pool, rolesLecture, http.MethodGet, "/syllabus/competence?bloc_id=987654", nil)
 	assertIntrouvable(t, rec)
 
-	// Le référentiel à plat de la formation : bloc 1 (deux compétences) puis
+	// Le référentiel à plat de la promotion : bloc 1 (deux compétences) puis
 	// bloc 2 (aucune, donc absent), chaque ligne portant son bloc.
 	c3 := creerCompetence(t, pool, bloc2.ID, 1, "Concevoir une architecture")
-	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/competence?formation_id=%d", fixture.FormationID), nil)
+	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/competence?promotion_id=%d", fixture.PromotionID), nil)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
-	referentiel := decoder[[]gen.FetchReferentielByFormationIDRow](t, rec)
+	referentiel := decoder[[]gen.FetchReferentielByPromotionIDRow](t, rec)
 	require.Len(t, referentiel, 3)
 	assert.Equal(t, []int32{c1.ID, c2.ID, c3.ID}, []int32{referentiel[0].ID, referentiel[1].ID, referentiel[2].ID})
 	assert.Equal(t, "Sécuriser et superviser des systèmes", referentiel[0].BlocLibelle)
 	assert.Equal(t, int32(2), referentiel[2].BlocOrdre)
 
 	// Rôles : CONSULTATION lit, n'écrit pas ; STRUCTURE_ECRITURE non plus.
-	rec = appeler(t, pool, rolesLecture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{FormationID: fixture.FormationID, Ordre: 9, Libelle: "x"})
+	rec = appeler(t, pool, rolesLecture, http.MethodPost, "/syllabus/bloc", gen.BlocCompetence{PromotionID: fixture.PromotionID, Ordre: 9, Libelle: "x"})
 	assert.Equal(t, http.StatusForbidden, rec.Code)
 	rec = appeler(t, pool, []string{services.RoleConsultation, services.RoleStructureEcriture}, http.MethodDelete, "/syllabus/bloc/bulk", BulkIDs{IDs: []int32{bloc1.ID}})
 	assert.Equal(t, http.StatusForbidden, rec.Code)
@@ -167,8 +164,8 @@ type BulkIDs struct {
 func TestIntegration_Competences_Matrice(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "cmp2")
-	bloc1 := creerBloc(t, pool, fixture.FormationID, 1, "Bloc 1")
-	bloc2 := creerBloc(t, pool, fixture.FormationID, 2, "Bloc 2")
+	bloc1 := creerBloc(t, pool, fixture.PromotionID, 1, "Bloc 1")
+	bloc2 := creerBloc(t, pool, fixture.PromotionID, 2, "Bloc 2")
 	c11 := creerCompetence(t, pool, bloc1.ID, 1, "C1 du bloc 1")
 	c12 := creerCompetence(t, pool, bloc1.ID, 2, "C2 du bloc 1")
 	c21 := creerCompetence(t, pool, bloc2.ID, 1, "C1 du bloc 2")
@@ -238,14 +235,15 @@ func TestIntegration_Competences_Matrice(t *testing.T) {
 func TestIntegration_Competences_Perimetre(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "cmp3")
-	bloc := creerBloc(t, pool, fixture.FormationID, 1, "Bloc de la formation")
-	c1 := creerCompetence(t, pool, bloc.ID, 1, "Compétence de la formation")
-	c2 := creerCompetence(t, pool, bloc.ID, 2, "Autre compétence de la formation")
+	bloc := creerBloc(t, pool, fixture.PromotionID, 1, "Bloc de la promotion")
+	c1 := creerCompetence(t, pool, bloc.ID, 1, "Compétence de la promotion")
+	c2 := creerCompetence(t, pool, bloc.ID, 2, "Autre compétence de la promotion")
 
-	// Une seconde formation, avec son propre référentiel.
-	etrangere := creerFormation(t, pool, "Formation étrangère cmp3")
-	blocEtranger := creerBloc(t, pool, etrangere, 1, "Bloc étranger")
-	cEtrangere := creerCompetence(t, pool, blocEtranger.ID, 1, "Compétence étrangère")
+	// Une seconde promotion de la MÊME formation, avec son propre référentiel :
+	// le cas fort — la garantie tient au niveau de la promotion, pas de la
+	// formation.
+	blocEtranger := creerBloc(t, pool, fixture.PromotionVide, 1, "Bloc de l'autre promotion")
+	cEtrangere := creerCompetence(t, pool, blocEtranger.ID, 1, "Compétence de l'autre promotion")
 
 	chemin := fmt.Sprintf("/syllabus/ue/%d/competences", fixture.UeID)
 	rec := appeler(t, pool, rolesEcriture, http.MethodPut, chemin, []gen.UeCompetence{{CompetenceID: c1.ID, Enseignee: true}})
@@ -253,7 +251,7 @@ func TestIntegration_Competences_Perimetre(t *testing.T) {
 	avant := lireMatrice(t, pool, fixture.UeID)
 	require.Len(t, avant, 1)
 
-	// Compétence existante, autre formation : refus au motif hors_formation,
+	// Compétence existante, autre promotion : refus au motif hors_promotion,
 	// et la matrice antérieure est intacte — y compris la ligne valide qui
 	// précédait la fautive dans l'envoi (rollback complet).
 	rec = appeler(t, pool, rolesEcriture, http.MethodPut, chemin, []gen.UeCompetence{
@@ -263,7 +261,7 @@ func TestIntegration_Competences_Perimetre(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
 	p := decoder[probleme](t, rec)
 	assert.Equal(t, "VALIDATION_ERROR", p.Code)
-	assert.Equal(t, services.MotifHorsFormation, p.Errors["competence_id"].Motif)
+	assert.Equal(t, services.MotifHorsPromotion, p.Errors["competence_id"].Motif)
 	assert.Equal(t, avant, lireMatrice(t, pool, fixture.UeID), "la matrice antérieure reste intacte après rollback")
 
 	// Identifiant inconnu : reference_inconnue, distinct du périmètre.
@@ -272,10 +270,10 @@ func TestIntegration_Competences_Perimetre(t *testing.T) {
 	assert.Equal(t, services.MotifReferenceInconnue, decoder[probleme](t, rec).Errors["competence_id"].Motif)
 	assert.Equal(t, avant, lireMatrice(t, pool, fixture.UeID))
 
-	// Le référentiel à plat ne mélange pas les formations.
-	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/competence?formation_id=%d", fixture.FormationID), nil)
+	// Le référentiel à plat ne mélange pas les promotions.
+	rec = appeler(t, pool, rolesLecture, http.MethodGet, fmt.Sprintf("/syllabus/competence?promotion_id=%d", fixture.PromotionID), nil)
 	require.Equal(t, http.StatusOK, rec.Code)
-	for _, ligne := range decoder[[]gen.FetchReferentielByFormationIDRow](t, rec) {
+	for _, ligne := range decoder[[]gen.FetchReferentielByPromotionIDRow](t, rec) {
 		assert.NotEqual(t, cEtrangere.ID, ligne.ID)
 	}
 }
@@ -283,7 +281,7 @@ func TestIntegration_Competences_Perimetre(t *testing.T) {
 func TestIntegration_Competences_Suppression(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "cmp4")
-	bloc := creerBloc(t, pool, fixture.FormationID, 1, "Bloc à supprimer")
+	bloc := creerBloc(t, pool, fixture.PromotionID, 1, "Bloc à supprimer")
 	c1 := creerCompetence(t, pool, bloc.ID, 1, "C1")
 	c2 := creerCompetence(t, pool, bloc.ID, 2, "C2")
 	chemin := fmt.Sprintf("/syllabus/ue/%d/competences", fixture.UeID)
@@ -310,7 +308,17 @@ func TestIntegration_Competences_Suppression(t *testing.T) {
 	assert.Equal(t, "C1", impact.Items[0].Name)
 	assert.Equal(t, int64(1), services.CascadeCounts(impact)["ue_competence"])
 
-	// La formation annonce aussi son référentiel dans sa propre analyse d'impact.
+	// La promotion annonce son référentiel dans sa propre analyse d'impact,
+	// et la formation l'agrège par ses promotions.
+	rp := chi.NewRouter()
+	rp.Route("/promotion", promotion.RoutePromotion)
+	recPromotion := httptest.NewRecorder()
+	rp.ServeHTTP(recPromotion, requete(t, pool, rolesLecture, http.MethodPost, "/promotion/delete-impact", BulkIDs{IDs: []int32{fixture.PromotionID}}))
+	require.Equal(t, http.StatusOK, recPromotion.Code, recPromotion.Body.String())
+	countsPromotion := services.CascadeCounts(decoder[services.DeleteImpactResponse](t, recPromotion))
+	assert.Equal(t, int64(1), countsPromotion["bloc_competence"])
+	assert.Equal(t, int64(2), countsPromotion["competence"])
+	assert.Equal(t, int64(2), countsPromotion["ue_competence"])
 	r := chi.NewRouter()
 	r.Route("/formation", formation.RouteFormation)
 	recFormation := httptest.NewRecorder()
@@ -339,7 +347,7 @@ func TestIntegration_Competences_Suppression(t *testing.T) {
 	assertIntrouvable(t, rec)
 
 	// Suppression de l'UE : ses liaisons suivent (CASCADE) sans toucher au référentiel.
-	bloc = creerBloc(t, pool, fixture.FormationID, 1, "Bloc qui reste")
+	bloc = creerBloc(t, pool, fixture.PromotionID, 1, "Bloc qui reste")
 	c1 = creerCompetence(t, pool, bloc.ID, 1, "C1")
 	rec = appeler(t, pool, rolesEcriture, http.MethodPut, chemin, []gen.UeCompetence{{CompetenceID: c1.ID, Enseignee: true}})
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())

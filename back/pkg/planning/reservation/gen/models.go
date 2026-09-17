@@ -11,7 +11,7 @@ import (
 type BlocCompetence struct {
 	ID                  int32   `json:"id"`
 	Version             int32   `json:"version"`
-	FormationID         int32   `json:"formation_id"`
+	PromotionID         int32   `json:"promotion_id"`
 	Ordre               int32   `json:"ordre"`
 	Libelle             string  `json:"libelle"`
 	Code                *string `json:"code"`
