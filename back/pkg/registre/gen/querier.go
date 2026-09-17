@@ -65,7 +65,10 @@ type Querier interface {
 	// descente structurelle que PurgeImpact (corbeille), depuis les racines de
 	// l'opération jusqu'aux contrôles. La descente est structurelle et non par
 	// delete_op_id : la cascade physique emporte aussi les sous-arbres mis en
-	// corbeille par une opération distincte.
+	// corbeille par une opération distincte. Depuis le 17 septembre 2026, les
+	// racines 'unite_enseignement', 'matiere' et 'controle' entrent par le même
+	// chemin : les DELETE physiques de ces trois entités tracent ce qu'ils
+	// emportent (TracerSuppressionEnCascade), avec la même descente.
 	ListNotesToPurge(ctx context.Context, arg ListNotesToPurgeParams) ([]ListNotesToPurgeRow, error)
 }
 

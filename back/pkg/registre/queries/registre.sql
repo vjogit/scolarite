@@ -134,7 +134,10 @@ ORDER BY jr.unite_enseignement_id;
 -- descente structurelle que PurgeImpact (corbeille), depuis les racines de
 -- l'opération jusqu'aux contrôles. La descente est structurelle et non par
 -- delete_op_id : la cascade physique emporte aussi les sous-arbres mis en
--- corbeille par une opération distincte.
+-- corbeille par une opération distincte. Depuis le 17 septembre 2026, les
+-- racines 'unite_enseignement', 'matiere' et 'controle' entrent par le même
+-- chemin : les DELETE physiques de ces trois entités tracent ce qu'ils
+-- emportent (TracerSuppressionEnCascade), avec la même descente.
 WITH promotion_c AS (
     SELECT p.id FROM public.promotion p
     WHERE (@racine_type::text = 'formation' AND p.formation_id = ANY(@ids::int[]))
@@ -151,13 +154,19 @@ periode_c AS (
        OR (@racine_type::text = 'periode' AND pe.id = ANY(@ids::int[]))
 ),
 ue_c AS (
-    SELECT ue.id FROM public.unite_enseignement ue WHERE ue.periode_id IN (SELECT id FROM periode_c)
+    SELECT ue.id FROM public.unite_enseignement ue
+    WHERE ue.periode_id IN (SELECT id FROM periode_c)
+       OR (@racine_type::text = 'unite_enseignement' AND ue.id = ANY(@ids::int[]))
 ),
 matiere_c AS (
-    SELECT m.id FROM public.matiere m WHERE m.unite_enseignement_id IN (SELECT id FROM ue_c)
+    SELECT m.id FROM public.matiere m
+    WHERE m.unite_enseignement_id IN (SELECT id FROM ue_c)
+       OR (@racine_type::text = 'matiere' AND m.id = ANY(@ids::int[]))
 ),
 controle_c AS (
-    SELECT ct.id FROM public.controle ct WHERE ct.matiere_id IN (SELECT id FROM matiere_c)
+    SELECT ct.id FROM public.controle ct
+    WHERE ct.matiere_id IN (SELECT id FROM matiere_c)
+       OR (@racine_type::text = 'controle' AND ct.id = ANY(@ids::int[]))
 )
 SELECT n.id, n.note, n.remarque, n.user_id, n.controle_id, n.is_validated, n.not_evaluated
 FROM public.note n

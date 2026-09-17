@@ -109,7 +109,15 @@ existants). Pas encore en production.
    fonctionnel manquant.
 5. **Le registre observe, il ne gouverne pas.** Chaque écriture de note/jury
    laisse un maillon (`pkg/registre`) **dans la même transaction** ; un échec
-   d'ancrage TSA ou de témoin ne bloque jamais une écriture métier.
+   d'ancrage TSA ou de témoin ne bloque jamais une écriture métier. **Une
+   suppression en cascade aussi** (17 septembre 2026) : les DELETE physiques
+   d'UE, de matière et de contrôle ouvrent une transaction et posent un
+   maillon `note.delete` par note emportée avant le DELETE
+   (`registre.TracerSuppressionEnCascade`, même descente structurelle que la
+   purge — `ListNotesToPurge` accepte les racines `unite_enseignement`,
+   `matiere`, `controle`), comme `DELETE /note` et la purge de la corbeille
+   le faisaient déjà. Un `TestIntegration_Delete_TraceLesNotesEmportees`
+   par handler, chaîne vérifiée après coup.
 6. **Format canonique du registre : gelé.** Ordre et champs inaltérables ;
    jamais de texte libre ni de donnée nominative dans un maillon (la
    remarque entre par `HashRemarque`). Seuls seq + hash + date sortent vers
@@ -1083,14 +1091,6 @@ Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
 apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
 ils survivront à celle-ci si personne ne les reprend.
 
-- **Supprimer une UE, une matière ou un contrôle emporte des notes sans
-  maillon de registre** (17 septembre 2026, même lot, constaté à la
-  lecture) : `TracerSuppressionNotes` n'est appelé que par `DELETE /note`,
-  `TracerPurgeNotes` par la purge de la corbeille ; les trois DELETE
-  physiques (`ue.go`, `matiere.go`, `controle.go`) cascadent `note` sans
-  rien tracer, contre l'invariant 5. Depuis le blocage jury, cela ne
-  concerne plus que des notes hors jury délibéré ; le registre y perd
-  quand même la preuve de destruction.
 
 Deux défauts plus anciens sont documentés dans « Pièges connus » et dans la
 suite e2e plutôt qu'ici, parce qu'ils piègent activement quiconque écrit du
@@ -1194,6 +1194,9 @@ Le treizième — la grille de notes restait saisissable après délibération
 (consigné au lot `correction-blocage-jury`) — est **fermé** le 17 septembre
 2026, tranché par l'utilisateur : la grille se bloque tant que la
 délibération n'est pas annulée (invariant 9, dernier paragraphe).
+Le quatorzième — supprimer une UE, une matière ou un contrôle emportait des
+notes sans maillon de registre (même lot) — est **fermé** le 17 septembre
+2026 : les trois handlers tracent dans leur transaction (invariant 5).
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

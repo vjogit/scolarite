@@ -632,13 +632,19 @@ periode_c AS (
        OR ($1::text = 'periode' AND pe.id = ANY($2::int[]))
 ),
 ue_c AS (
-    SELECT ue.id FROM public.unite_enseignement ue WHERE ue.periode_id IN (SELECT id FROM periode_c)
+    SELECT ue.id FROM public.unite_enseignement ue
+    WHERE ue.periode_id IN (SELECT id FROM periode_c)
+       OR ($1::text = 'unite_enseignement' AND ue.id = ANY($2::int[]))
 ),
 matiere_c AS (
-    SELECT m.id FROM public.matiere m WHERE m.unite_enseignement_id IN (SELECT id FROM ue_c)
+    SELECT m.id FROM public.matiere m
+    WHERE m.unite_enseignement_id IN (SELECT id FROM ue_c)
+       OR ($1::text = 'matiere' AND m.id = ANY($2::int[]))
 ),
 controle_c AS (
-    SELECT ct.id FROM public.controle ct WHERE ct.matiere_id IN (SELECT id FROM matiere_c)
+    SELECT ct.id FROM public.controle ct
+    WHERE ct.matiere_id IN (SELECT id FROM matiere_c)
+       OR ($1::text = 'controle' AND ct.id = ANY($2::int[]))
 )
 SELECT n.id, n.note, n.remarque, n.user_id, n.controle_id, n.is_validated, n.not_evaluated
 FROM public.note n
@@ -665,7 +671,10 @@ type ListNotesToPurgeRow struct {
 // descente structurelle que PurgeImpact (corbeille), depuis les racines de
 // l'opération jusqu'aux contrôles. La descente est structurelle et non par
 // delete_op_id : la cascade physique emporte aussi les sous-arbres mis en
-// corbeille par une opération distincte.
+// corbeille par une opération distincte. Depuis le 17 septembre 2026, les
+// racines 'unite_enseignement', 'matiere' et 'controle' entrent par le même
+// chemin : les DELETE physiques de ces trois entités tracent ce qu'ils
+// emportent (TracerSuppressionEnCascade), avec la même descente.
 func (q *Queries) ListNotesToPurge(ctx context.Context, arg ListNotesToPurgeParams) ([]ListNotesToPurgeRow, error) {
 	rows, err := q.db.Query(ctx, listNotesToPurge, arg.RacineType, arg.Ids)
 	if err != nil {
