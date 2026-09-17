@@ -3,7 +3,7 @@ import { test, expect } from './fixtures/roles';
 import {
     E2E, allerJusquaPeriodeViaStructure, allerSurOptionViaStructure, boutonActionsLigne, cliquerPuisAttendreUrl,
 } from './aide/hierarchieE2E';
-import { crud, ligneImpact, nomImpact, titreSuppression } from './aide/i18n';
+import { crud, errors, interpoler, ligneImpact, nomImpact, titreSuppression } from './aide/i18n';
 
 /**
  * Correction A1 (17 septembre 2026) : les analyses d'impact de suppression
@@ -17,7 +17,10 @@ import { crud, ligneImpact, nomImpact, titreSuppression } from './aide/i18n';
  * `ligneImpact`, jamais en clair.
  *
  * État semé : « E2E UE1 » porte une liaison (C1) et sa matière « E2E Matiere »
- * une fiche ; « E2E UE Deliberee » n'a ni matière, ni fiche, ni liaison.
+ * une fiche ; « E2E UE Deliberee » n'a ni matière, ni fiche, ni liaison — mais
+ * sa période est délibérée : depuis le lot correction-blocage-jury (17
+ * septembre 2026), sa modale est à l'état bloqué, comme celle de la période
+ * (même raison, même message, rédigé par le front depuis `reason` + `count`).
  * Aucune écriture : chaque dialogue est refermé par « Annuler ».
  */
 
@@ -86,6 +89,18 @@ test.describe('Analyse d\'impact — données syllabus', () => {
             await expect(dialogue).not.toContainText(nomImpact('syllabus_matiere', nombre));
             await expect(dialogue).not.toContainText(nomImpact('ue_competence', nombre));
         }
+        await dialogue.getByRole('button', { name: crud.deleteDialog.annuler }).click();
+        await expect(dialogue).toHaveCount(0);
+    });
+});
+
+test.describe('Blocage — jury délibéré', () => {
+    test('UE sous jury délibéré : la modale refuse, comme pour la période', async ({ pageAdmin }) => {
+        await allerSurUeViaStructure(pageAdmin, E2E.optionDeliberee, 'E2E Periode Deliberee', 'E2E UE Deliberee');
+        const dialogue = await ouvrirSuppression(pageAdmin, 'E2E UE Deliberee', crud.entites.ue.nomAvecArticle);
+        // Le refus est rédigé par le front depuis la raison et le compte du serveur, dans sa propre alerte.
+        await expect(dialogue.getByRole('alert').filter({ hasText: interpoler(errors.blocage.jury_delibere_one, { count: '1' }) })).toBeVisible();
+        await expect(dialogue.getByRole('button', { name: crud.deleteDialog.supprimer })).toBeDisabled();
         await dialogue.getByRole('button', { name: crud.deleteDialog.annuler }).click();
         await expect(dialogue).toHaveCount(0);
     });

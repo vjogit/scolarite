@@ -9,21 +9,6 @@ import (
 	"context"
 )
 
-const countPromotionJuryDeliberePeriodes = `-- name: CountPromotionJuryDeliberePeriodes :one
-SELECT count(*)::bigint FROM public.periode_active pe
-WHERE pe.option_id IN (
-        SELECT o.id FROM public.option_active o WHERE o.promotion_id = ANY($1::int[])
-    )
-  AND EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id)
-`
-
-func (q *Queries) CountPromotionJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error) {
-	row := q.db.QueryRow(ctx, countPromotionJuryDeliberePeriodes, ids)
-	var column_1 int64
-	err := row.Scan(&column_1)
-	return column_1, err
-}
-
 const fetchPromotionNamesByIds = `-- name: FetchPromotionNamesByIds :many
 SELECT id, name FROM public.promotion_active WHERE id = ANY($1::int[]) ORDER BY id
 `

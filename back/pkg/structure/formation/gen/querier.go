@@ -9,7 +9,6 @@ import (
 )
 
 type Querier interface {
-	CountFormationJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error)
 	CreateFormation(ctx context.Context, name string) (int32, error)
 	// Lectures sur formation_active : une formation en corbeille n'existe plus
 	// pour l'application, seul le module corbeille voit la table nue.

@@ -10,7 +10,6 @@ import (
 
 type Querier interface {
 	CheckOptionExists(ctx context.Context, id int32) (int32, error)
-	CountPeriodeJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error)
 	CreatePeriode(ctx context.Context, arg CreatePeriodeParams) (int32, error)
 	FetchPeriodeById(ctx context.Context, id int32) (PeriodeActive, error)
 	FetchPeriodeNamesByIds(ctx context.Context, ids []int32) ([]FetchPeriodeNamesByIdsRow, error)

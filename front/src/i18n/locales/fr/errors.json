@@ -21,8 +21,8 @@
   },
   "avecIncident": "{{message}} (code incident : {{incident}})",
   "blocage": {
-    "jury_delibere_one": "Suppression impossible : {{count}} période a un jury délibéré.",
-    "jury_delibere_other": "Suppression impossible : {{count}} périodes ont un jury délibéré.",
+    "jury_delibere_one": "Suppression impossible : {{count}} période concernée a un jury délibéré.",
+    "jury_delibere_other": "Suppression impossible : {{count}} périodes concernées ont un jury délibéré.",
     "parent_en_corbeille": "Restauration impossible : restaurez d'abord {{parents}}.",
     "homonyme_actif": "Restauration impossible : un objet actif porte déjà l'un des noms à restaurer. Renommez-le ou supprimez-le d'abord.",
     "note_sur_eleve_non_evalue": "Aucune note n'a été importée."

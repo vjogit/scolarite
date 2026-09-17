@@ -2,6 +2,7 @@ package option
 
 import (
 	"cyb-react/pkg/corbeille"
+	"cyb-react/pkg/resultat/jury"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/option/gen"
 	"errors"
@@ -156,17 +157,9 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	queries := getQueriesFromCtx(r)
-
-	// Blocage métier : une période déjà délibérée (résultats dans jury_result)
-	// ne doit jamais être détruite, y compris via la cascade d'un parent.
-	nbPeriodesDeliberees, err := queries.CountOptionJuryDeliberePeriodes(r.Context(), input.IDs)
-	if err != nil {
-		services.ServerError(w, r, fmt.Errorf("suppression : contrôle du jury impossible (ids %v): %w", input.IDs, err))
-		return
-	}
-	if nbPeriodesDeliberees > 0 {
-		services.ConflictJuryDelibere(w, r, nbPeriodesDeliberees)
+	// Blocage métier : un jury délibéré bloque toute suppression qui le vide,
+	// quel que soit le point d'entrée — contrôle unique du domaine jury.
+	if jury.RefuserSiJuryDelibere(w, r, jury.PerimetreOption, input.IDs) {
 		return
 	}
 

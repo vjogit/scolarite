@@ -6,7 +6,8 @@ SELECT id, name FROM public.unite_enseignement WHERE id = ANY(@ids::int[]) ORDER
 -- sans rien compter). Suppression physique, pas de corbeille : même descente
 -- que PeriodeDeleteImpact à partir de l'UE. Les résultats de jury rattachés à
 -- l'UE tombent par cascade (fk_jury_result_ue) et sont comptés comme tels ;
--- rien ne bloque, le DELETE ne bloque pas non plus.
+-- le blocage n'est pas calculé ici : le handler appelle le contrôle unique du
+-- domaine jury (CountPeriodesDeliberees), celui que le DELETE fait respecter.
 -- name: UeDeleteImpact :one
 WITH ue_c AS (
     SELECT id FROM public.unite_enseignement WHERE id = ANY(@ids::int[])

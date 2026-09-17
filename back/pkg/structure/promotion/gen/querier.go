@@ -22,7 +22,6 @@ type Querier interface {
 	// Les deux colonnes syllabus de l'UE (description, responsable) suivent :
 	// la reconduction d'une année à l'autre est le geste réel des rédacteurs.
 	CopierUniteEnseignement(ctx context.Context, arg CopierUniteEnseignementParams) (int32, error)
-	CountPromotionJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error)
 	CreatePromotion(ctx context.Context, arg CreatePromotionParams) (int32, error)
 	FetchBlocIdsByPromotionID(ctx context.Context, promotionID int32) ([]int32, error)
 	FetchCompetenceIdsByBlocID(ctx context.Context, blocID int32) ([]int32, error)

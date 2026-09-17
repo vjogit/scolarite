@@ -82,13 +82,16 @@ func (r *DeleteImpactResponse) AddBlocking(reason string, count int64) {
 }
 
 // ReasonJuryDelibere est le code de blocage renvoyé lorsqu'au moins une période
-// concernée possède des résultats de jury (délibération déjà passée).
+// que la suppression atteindrait — directement ou par cascade, depuis un
+// ancêtre comme depuis une UE, une matière ou un contrôle — possède des
+// résultats de jury (délibération déjà passée). La définition vit en un seul
+// endroit, `jury.CountPeriodesDeliberees` (lot correction-blocage-jury).
 const ReasonJuryDelibere = "jury_delibere"
 
 // ConflictJuryDelibere refuse une suppression ou une purge en 409 : la raison
-// et le nombre de périodes délibérées partent en extensions, c'est le front
-// qui rédige (`blocage.jury_delibere`, errors.json). Le `detail` n'est qu'un
-// repli technique pour un client qui ne connaît pas la raison.
+// et le nombre de périodes délibérées touchées partent en extensions, c'est le
+// front qui rédige (`blocage.jury_delibere`, errors.json). Le `detail` n'est
+// qu'un repli technique pour un client qui ne connaît pas la raison.
 func ConflictJuryDelibere(w http.ResponseWriter, r *http.Request, nbPeriodes int64) {
 	ConflictError(w, r, "Suppression refusée : "+strconv.FormatInt(nbPeriodes, 10)+" période(s) à jury délibéré.",
 		BUSINESS_CONFLICT, map[string]any{"reason": ReasonJuryDelibere, "count": nbPeriodes})
