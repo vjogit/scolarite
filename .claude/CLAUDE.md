@@ -122,7 +122,30 @@ existants). Pas encore en production.
    d'écriture à l'écran. Le seul axe de saisie est le contrôle (la grille).
 9. **Suppression logique** des quatre entités structurantes (formation,
    promotion, option, période) via la corbeille ; les lectures passent par
-   les vues actives. Blocage « période délibérée » côté serveur (409).
+   les vues actives. **Un jury délibéré bloque toute suppression qui le
+   vide, quel que soit le point d'entrée** (17 septembre 2026, lot
+   `correction-blocage-jury`) : formation, promotion, option, période, UE,
+   matière, contrôle, unitaire comme en masse, et la purge de la corbeille.
+   Une seule définition, `jury.CountPeriodesDeliberees`
+   (`back/pkg/resultat/jury/blocage.go`, requête sqlc `jury_blocage.sql`) :
+   les périodes **actives** portant au moins un `jury_result` que la
+   cascade atteindrait, remontées depuis les ancêtres ou descendues depuis
+   UE/matière/contrôle — le domaine qui possède `jury_result` porte le
+   contrôle, les sept handlers `Delete` l'appellent par
+   `jury.RefuserSiJuryDelibere` avant toute écriture, et les analyses
+   d'impact de l'UE et de la matière l'appellent pour annoncer le même
+   refus (les quatre autres et la purge le calculent dans leur requête
+   d'impact, même définition). 409 `BUSINESS_CONFLICT`, `reason:
+   jury_delibere`, `count` = périodes délibérées touchées, quel que soit
+   le point d'entrée (le message le dit ainsi : « n période(s)
+   concernée(s) a/ont un jury délibéré »). En masse : **tout ou rien**.
+   Jamais un contrôle recopié par entité (les quatre requêtes
+   `Count*JuryDeliberePeriodes` ont été retirées). Le geste de correction
+   légitime est l'annulation de la délibération (maillon `jury.cancel`).
+   Hors règle, assumé : l'effacement d'un élève (RGPD, tracé `note.erase` /
+   `jury.erase`) et la saisie de notes en grille après délibération (une
+   question d'écriture, pas de suppression — constat consigné dans
+   « Défauts constatés »).
 10. **Rien en dur qui diffère entre environnements.** Toute valeur
     local/prod passe par `config.yaml` typé (`services/config.go`) +
     `infra/env/`. Le spécifique-développement est marqué comme tel (Mailpit,
@@ -715,8 +738,8 @@ analyse** (`POST /ue/delete-impact`, `POST /matiere/delete-impact`,
 CONSULTATION, `deleteImpactEndpoint` sur `ue.ts` et `matiere.ts`) :
 suppression physique, « Tout sera définitivement supprimé », matières,
 contrôles, notes, résultats de jury de l'UE en cascade, réservations
-détachées de la matière ; aucune raison de blocage (voir « Défauts
-constatés »). Une ligne à zéro n'apparaît jamais (`AddCascade`) ; la
+détachées de la matière ; blocage `jury_delibere` par le contrôle unique du
+domaine jury (invariant 9), le même que leur DELETE fait respecter. Une ligne à zéro n'apparaît jamais (`AddCascade`) ; la
 description d'une UE est une colonne de l'entité et ne se compte pas. Les
 tests d'impact posent `SeedSyllabusFixture` **par-dessus**
 `SeedStructureFixture` (fiche sur M1, bloc et compétence sur P1, liaison
@@ -1050,14 +1073,22 @@ ils survivront à celle-ci si personne ne les reprend.
   vers un navigateur `en-US` seul. À livrer avec une spec `locale: 'fr-FR'`
   dans le conteneur de référence. Les navigateurs réels envoient `fr-FR,fr`
   et n'y tombent pas.
-- **Supprimer une UE n'est pas bloqué par un jury délibéré** (17 septembre
-  2026, même lot, constaté à la lecture) : `fk_jury_result_ue` est
-  `ON DELETE CASCADE` et `DeleteUniteEnseignement` ne vérifie rien, quand
-  période, option, promotion et formation refusent en 409
-  (`jury_delibere`). L'analyse d'impact de l'UE (nouvelle) compte les
-  résultats de jury en cascade, honnêtement, sans les retenir — le DELETE ne
-  les retient pas non plus. Correction attendue : le même blocage que la
-  période, dans le handler et dans l'analyse.
+- **La grille de notes reste saisissable après délibération** (17 septembre
+  2026, lot `correction-blocage-jury`, constaté à la lecture de
+  `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
+  cellule, ne consultent `jury_result`). `jury_result` est le relevé figé,
+  les bulletins se régénèrent depuis les notes : une note modifiée après
+  délibération change un document remis. Question d'écriture, pas de
+  suppression en cascade — hors du lot de blocage ; à trancher (bloquer, ou
+  tenir la grille pour libre tant que la délibération n'est pas annulée).
+- **Supprimer une UE, une matière ou un contrôle emporte des notes sans
+  maillon de registre** (17 septembre 2026, même lot, constaté à la
+  lecture) : `TracerSuppressionNotes` n'est appelé que par `DELETE /note`,
+  `TracerPurgeNotes` par la purge de la corbeille ; les trois DELETE
+  physiques (`ue.go`, `matiere.go`, `controle.go`) cascadent `note` sans
+  rien tracer, contre l'invariant 5. Depuis le blocage jury, cela ne
+  concerne plus que des notes hors jury délibéré ; le registre y perd
+  quand même la preuve de destruction.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute
@@ -1088,6 +1119,16 @@ options du catalogue, listes des périodes, UE et matières de Notes, arbre
 (nœuds, dossiers, titre du bandeau), modale d'impact d'« E2E Option »,
 blocage de l'option délibérée, suppression d'un bloc du référentiel, cartes
 et modale de purge de la corbeille.
+Le septième — supprimer une UE n'était pas bloqué par un jury délibéré
+(consigné au lot A1) — est **fermé** le 17 septembre 2026 par le lot
+`correction-blocage-jury` (invariant 9) : contrôle unique du domaine jury
+appelé par les sept handlers de suppression, UE, matière et contrôle
+compris, impacts de l'UE et de la matière alignés ; prouvé par les tests
+d'intégration `TestIntegration_CountPeriodesDeliberees_ToutPerimetre`,
+`UeDelete_JuryDelibere_Renvoie409`, `MatiereDelete_JuryDelibere_Renvoie409`,
+`ControleDelete_JuryDelibere_Renvoie409`, la spec « Blocage — jury
+délibéré » d'`analyse-impact.spec.ts`, et au navigateur dans les deux
+langues.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

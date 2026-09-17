@@ -262,3 +262,22 @@ func AssertTablesVides(t *testing.T, pool *pgxpool.Pool, tables ...string) {
 		}
 	}
 }
+
+// DecodeConflitBlocage lit un 409 BUSINESS_CONFLICT et rend sa raison et son
+// compte, tels que le front les reçoit (`reason`, `count`) — jamais le
+// `detail`, qui n'est qu'un repli technique.
+func DecodeConflitBlocage(t *testing.T, rec *httptest.ResponseRecorder) (string, int64) {
+	t.Helper()
+	var body struct {
+		Code   string `json:"code"`
+		Reason string `json:"reason"`
+		Count  int64  `json:"count"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("réponse illisible (%s) : %v", rec.Body.String(), err)
+	}
+	if body.Code != "BUSINESS_CONFLICT" {
+		t.Fatalf("code attendu BUSINESS_CONFLICT, reçu %q (%s)", body.Code, rec.Body.String())
+	}
+	return body.Reason, body.Count
+}

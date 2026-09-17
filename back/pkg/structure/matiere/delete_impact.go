@@ -1,6 +1,7 @@
 package matiere
 
 import (
+	"cyb-react/pkg/resultat/jury"
 	"cyb-react/pkg/services"
 	"fmt"
 	"net/http"
@@ -44,6 +45,17 @@ func DeleteImpact(w http.ResponseWriter, r *http.Request) {
 	resp.AddCascade("note", impact.NoteCount)
 
 	resp.AddDetached("reservation", impact.ReservationDetacheeCount)
+
+	// Blocage : le même contrôle que le DELETE, pour que la modale annonce
+	// exactement ce que le serveur fera respecter (lot correction-blocage-jury).
+	nbPeriodesDeliberees, err := jury.CountPeriodesDeliberees(r.Context(), services.GetPgCtx(r.Context()).Db, jury.PerimetreMatiere, input.IDs)
+	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("impact de suppression : contrôle du jury impossible (ids %v): %w", input.IDs, err))
+		return
+	}
+	if nbPeriodesDeliberees > 0 {
+		resp.AddBlocking(services.ReasonJuryDelibere, nbPeriodesDeliberees)
+	}
 
 	render.JSON(w, r, resp)
 }

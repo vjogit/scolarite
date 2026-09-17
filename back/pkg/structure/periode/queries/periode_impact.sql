@@ -42,8 +42,3 @@ SELECT
     (SELECT count(*) FROM public.reservation r
         WHERE r.matiere_id IN (SELECT id FROM matiere_c)
           AND NOT EXISTS (SELECT 1 FROM reservation_c rc WHERE rc.id = r.id))::bigint AS reservation_detachee_count;
-
--- name: CountPeriodeJuryDeliberePeriodes :one
-SELECT count(*)::bigint FROM public.periode_active pe
-WHERE pe.id = ANY(@ids::int[])
-  AND EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id);

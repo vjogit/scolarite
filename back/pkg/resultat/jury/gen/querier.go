@@ -9,6 +9,15 @@ import (
 )
 
 type Querier interface {
+	// Périodes délibérées qu'une suppression atteindrait — l'unique définition
+	// de « couvert par un jury délibéré » (lot correction-blocage-jury, 17
+	// septembre 2026) : une période active portant au moins un résultat de jury.
+	// Le périmètre nomme le type des identifiants fournis ; la requête remonte
+	// (option, promotion, formation) ou descend (UE, matière, contrôle) jusqu'aux
+	// périodes actives que la cascade toucherait, par les vues actives comme les
+	// analyses d'impact. Compte = périodes distinctes, c'est ce que le message
+	// `blocage.jury_delibere` annonce, quel que soit le point d'entrée.
+	CountPeriodesDeliberees(ctx context.Context, arg CountPeriodesDelibereesParams) (int64, error)
 	// Annule la délibération d'un élève pour une période (permet corrections après jury).
 	DeleteJuryResultByUserPeriode(ctx context.Context, arg DeleteJuryResultByUserPeriodeParams) error
 	// Retourne tous les résultats délibérés pour une période (pour savoir qui a été statué).

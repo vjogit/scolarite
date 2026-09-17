@@ -75,7 +75,8 @@ type UeDeleteImpactRow struct {
 // sans rien compter). Suppression physique, pas de corbeille : même descente
 // que PeriodeDeleteImpact à partir de l'UE. Les résultats de jury rattachés à
 // l'UE tombent par cascade (fk_jury_result_ue) et sont comptés comme tels ;
-// rien ne bloque, le DELETE ne bloque pas non plus.
+// le blocage n'est pas calculé ici : le handler appelle le contrôle unique du
+// domaine jury (CountPeriodesDeliberees), celui que le DELETE fait respecter.
 func (q *Queries) UeDeleteImpact(ctx context.Context, ids []int32) (UeDeleteImpactRow, error) {
 	row := q.db.QueryRow(ctx, ueDeleteImpact, ids)
 	var i UeDeleteImpactRow

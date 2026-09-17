@@ -10,7 +10,6 @@ import (
 
 type Querier interface {
 	CheckPromotionExists(ctx context.Context, id int32) (int32, error)
-	CountOptionJuryDeliberePeriodes(ctx context.Context, ids []int32) (int64, error)
 	CreateOption(ctx context.Context, arg CreateOptionParams) (int32, error)
 	FetchOptionById(ctx context.Context, id int32) (OptionActive, error)
 	FetchOptionNamesByIds(ctx context.Context, ids []int32) ([]FetchOptionNamesByIdsRow, error)

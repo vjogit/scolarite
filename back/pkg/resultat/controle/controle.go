@@ -2,6 +2,7 @@ package controle
 
 import (
 	"cyb-react/pkg/resultat/controle/gen"
+	"cyb-react/pkg/resultat/jury"
 	"cyb-react/pkg/services"
 	"errors"
 	"log/slog"
@@ -150,6 +151,12 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	var input BulkDeleteRequest
 	if err := render.DecodeJSON(r.Body, &input); err != nil {
 		services.InvalidRequestError(w, r, "corps de requête illisible", services.INVALID_BODY, nil)
+		return
+	}
+
+	// Blocage métier : un jury délibéré bloque toute suppression qui le vide,
+	// quel que soit le point d'entrée — contrôle unique du domaine jury.
+	if jury.RefuserSiJuryDelibere(w, r, jury.PerimetreControle, input.IDs) {
 		return
 	}
 
