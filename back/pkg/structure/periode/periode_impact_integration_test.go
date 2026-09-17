@@ -14,6 +14,7 @@ import (
 func TestIntegration_PeriodeDeleteImpact(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "per")
+	services.SeedSyllabusFixture(t, pool, fixture)
 
 	req := services.NewBulkIDsRequest(t, pool, http.MethodPost, "/delete-impact", []int32{fixture.PeriodeID})
 	rec := httptest.NewRecorder()
@@ -28,6 +29,9 @@ func TestIntegration_PeriodeDeleteImpact(t *testing.T) {
 	counts := services.CascadeCounts(resp)
 	assert.Equal(t, int64(1), counts["unite_enseignement"])
 	assert.Equal(t, int64(1), counts["matiere"])
+	assert.Equal(t, int64(1), counts["syllabus_matiere"], "la fiche de M1 suit sa matière")
+	assert.Equal(t, int64(1), counts["ue_competence"], "la liaison de U1 suit son UE")
+	assert.NotContains(t, counts, "bloc_competence", "le référentiel appartient à la promotion, pas à la période")
 	assert.Equal(t, int64(2), counts["controle"])
 	assert.Equal(t, int64(3), counts["note"])
 	assert.Equal(t, int64(1), counts["reservation"], "seule la réservation de cette période est supprimée")

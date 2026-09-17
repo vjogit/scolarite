@@ -20,6 +20,10 @@ func RouteUniteEnseignement(r chi.Router) {
 		CreateUniteEnseignement(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule malgré le POST, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {ueID}.
+	r.With(lecture).Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{ueID}", func(r chi.Router) {
 		r.With(lecture, UniteEnseignementUse).Get("/", FetchUniteEnseignement)
 		r.With(ecriture, UniteEnseignementUse).Put("/", Update)

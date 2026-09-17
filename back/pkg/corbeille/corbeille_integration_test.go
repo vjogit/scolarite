@@ -113,6 +113,7 @@ func TestIntegration_Corbeille_SuppressionPropagee(t *testing.T) {
 func TestIntegration_Corbeille_ListeRacinesSeules(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "cbl")
+	services.SeedSyllabusFixture(t, pool, fixture)
 	ctx := context.Background()
 
 	_, err := corbeille.MettreEnCorbeille(ctx, pool, corbeille.RacineOption,
@@ -142,8 +143,37 @@ func TestIntegration_Corbeille_ListeRacinesSeules(t *testing.T) {
 	assert.Equal(t, int64(2), counts["controle"])
 	assert.Equal(t, int64(3), counts["note"])
 	assert.Equal(t, int64(1), counts["groupe"])
+	// Syllabus (correction A1) : la purge d'une option emporte la fiche de M1
+	// et la liaison de U1 ; le référentiel, porté par la promotion, reste.
+	assert.Equal(t, int64(1), counts["syllabus_matiere"])
+	assert.Equal(t, int64(1), counts["ue_competence"])
+	assert.NotContains(t, counts, "bloc_competence")
 	assert.NotContains(t, counts, "option", "la racine est nommée dans items, pas comptée en cascade")
 	assert.Empty(t, op.Blocking)
+}
+
+func TestIntegration_Corbeille_ListeCompteLeReferentielDeLaPromotion(t *testing.T) {
+	pool := services.GetIntegrationDBPool(t)
+	fixture := services.SeedStructureFixture(t, pool, "cbr")
+	services.SeedSyllabusFixture(t, pool, fixture)
+	ctx := context.Background()
+
+	// La promotion P1 porte le référentiel (1 bloc, 1 compétence) et sa
+	// liaison est atteignable par la compétence ET par l'UE : une seule ligne.
+	_, err := corbeille.MettreEnCorbeille(ctx, pool, corbeille.RacinePromotion,
+		[]int32{fixture.PromotionID}, "kc-cbr1")
+	require.NoError(t, err)
+
+	ops := listerCorbeille(t, pool)
+	require.Len(t, ops, 1)
+	counts := map[string]int64{}
+	for _, entry := range ops[0].Cascade {
+		counts[entry.Entity] = entry.Count
+	}
+	assert.Equal(t, int64(1), counts["syllabus_matiere"])
+	assert.Equal(t, int64(1), counts["bloc_competence"])
+	assert.Equal(t, int64(1), counts["competence"])
+	assert.Equal(t, int64(1), counts["ue_competence"])
 }
 
 func TestIntegration_Corbeille_Restauration(t *testing.T) {

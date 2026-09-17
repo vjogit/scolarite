@@ -52,7 +52,7 @@ existants). Pas encore en production.
   (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 91 tests, dont les
+  généré sqlc à jour) et `e2e.yml` (la suite complète — 95 tests, dont les
   24 captures de référence — contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
@@ -264,7 +264,7 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 91
+  suite complète sur chaque push par la même cible (`make test-ihm`, 95
   tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
@@ -450,7 +450,8 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    `RemplacerMatrice` est appelable hors HTTP (l'import s'en sert). Blocs et
    compétences suivent leur promotion par cascade (la purge de la corbeille
    les emporte ; `PromotionDeleteImpact` les annonce, `FormationDeleteImpact`
-   les agrège par ses promotions actives). La saisie du référentiel se fait
+   les agrège par ses promotions actives, `PurgeImpact` de la corbeille
+   aussi depuis la correction A1). Voir « Analyses d'impact » ci-dessous. La saisie du référentiel se fait
    à la main par l'écran, ou par copie du gabarit à la création d'une
    promotion — aucun outil d'import de référentiel, la source est le
    document France Compétences (Excel), pas la base tierce.
@@ -668,6 +669,31 @@ sur la création par gabarit (copie table à table, indépendance, refus,
 promotion vide), trois sur l'import, quatre sur les documents PDF (dont le
 503 sur un port fermé et le NOT_FOUND d'une période en corbeille), plus le
 gabarit et le client PDF en unitaire.
+
+**Analyses d'impact et syllabus** (correction A1, 17 septembre 2026, lot
+`correction-impacts`) : toute analyse d'impact de suppression compte ce que
+la cascade emporte en données syllabus — `syllabus_matiere` (« fiche
+syllabus », par les matières du sous-arbre) et `ue_competence` (« liaison
+UE ↔ compétence », par les UE du sous-arbre pour période et option ; par
+les compétences de la promotion pour promotion et formation, jamais les deux
+— une UE ne se lie qu'aux compétences de SA promotion, les compter par les
+deux chemins doublerait la ligne). La corbeille (`PurgeImpact`, cartes et
+modale de purge) compte les mêmes lignes, référentiel compris, par un seul
+balayage avec `OR` (comme `jury_c`). **L'UE et la matière ont leur propre
+analyse** (`POST /ue/delete-impact`, `POST /matiere/delete-impact`,
+CONSULTATION, `deleteImpactEndpoint` sur `ue.ts` et `matiere.ts`) :
+suppression physique, « Tout sera définitivement supprimé », matières,
+contrôles, notes, résultats de jury de l'UE en cascade, réservations
+détachées de la matière ; aucune raison de blocage (voir « Défauts
+constatés »). Une ligne à zéro n'apparaît jamais (`AddCascade`) ; la
+description d'une UE est une colonne de l'entité et ne se compte pas. Les
+tests d'impact posent `SeedSyllabusFixture` **par-dessus**
+`SeedStructureFixture` (fiche sur M1, bloc et compétence sur P1, liaison
+U1 ↔ K1) : la fixture de structure reste sans donnée syllabus, les tests du
+domaine et celui de la copie de promotion le supposent. Spec
+`analyse-impact.spec.ts` (quatre tests, aucune écriture) ; capture
+`dialogue-suppression-simple` régénérée (« E2E Option » porte une fiche et
+une liaison).
 
 **Évolutions possibles, hors chantier** (aucune n'est engagée) : livret par
 période ; cloisonnement fin du rôle d'écriture ; responsable sur la fiche
@@ -952,7 +978,7 @@ est un acte de création, pas un lien vivant).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (91
+  intégration : ils se sautent sans base), et la suite e2e complète (95
   tests, les 24 captures de référence comprises, dans le conteneur de
   référence) contre la stack complète. **Non couvert** : les tests Go
   d'intégration (`t.Skip` sans PostgreSQL,
@@ -993,14 +1019,24 @@ ils survivront à celle-ci si personne ne les reprend.
   créées au rendu dans `CrudUe`, avec `t`) ; `ACTION_SYLLABUS` est une
   fermeture. Correction attendue : `libelle: () => …` dans les fabriques
   `ACTION_*` de `structure/entites/`, comme `actionProgramme`.
-- **Les analyses d'impact de structure ne comptent pas `syllabus_matiere`**
-  (15 septembre 2026, lot 3 syllabus, constaté à la lecture :
-  `grep syllabus_matiere back/pkg/structure` est vide). Supprimer une
-  formation, une promotion, une option ou une période qui porte des fiches
-  syllabus ne l'annonce pas dans la modale ; la cascade, elle, les emporte.
-  Reliquat du lot 1. Le lot 3 a fait l'inverse pour son référentiel
-  (`FormationDeleteImpact` compte blocs, compétences et liaisons) ; les
-  fiches restent à ajouter aux quatre requêtes `*DeleteImpact`.
+- **Les lignes de cascade de la modale de suppression sont en français
+  quelle que soit la langue de l'interface** (17 septembre 2026, lot
+  `correction-impacts`, constaté à la lecture puis au navigateur) : le
+  serveur compose le libellé accordé (`entityLabels`,
+  `services/delete_impact.go`) et `formatEntry` (`DeleteConfirmDialog.tsx`,
+  `Corbeille.tsx`) l'imprime tel quel ; aucune clé `entity` n'est traduite
+  côté front. En anglais, la modale dit « "X" contains **3 promotions et
+  12 notes** ». Correction attendue : traduire par la clé `entity` dans le
+  front (modale et cartes de la corbeille), et ne plus envoyer `label` que
+  comme repli — un mécanisme nouveau pour les vingt entités, pas une ligne.
+- **Supprimer une UE n'est pas bloqué par un jury délibéré** (17 septembre
+  2026, même lot, constaté à la lecture) : `fk_jury_result_ue` est
+  `ON DELETE CASCADE` et `DeleteUniteEnseignement` ne vérifie rien, quand
+  période, option, promotion et formation refusent en 409
+  (`jury_delibere`). L'analyse d'impact de l'UE (nouvelle) compte les
+  résultats de jury en cascade, honnêtement, sans les retenir — le DELETE ne
+  les retient pas non plus. Correction attendue : le même blocage que la
+  période, dans le handler et dans l'analyse.
 - **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
   relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
   écrasés. **Si l'échec revient, sauver `test-results/` avant toute

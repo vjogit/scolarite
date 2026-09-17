@@ -8,7 +8,7 @@
  */
 
 import type { TFunction } from 'i18next';
-import { ENDPOINT_MATIERE, MATIERE, STRUCTURE } from '../def';
+import { ENDPOINT_MATIERE, ENDPOINT_MATIERE_DELETE_IMPACT, MATIERE, STRUCTURE } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
 import { tCrud } from '../../../services/crud/entityMessages';
@@ -31,6 +31,7 @@ export type Matiere = z.infer<typeof matiereSchema>;
 export const createMatiereRepository = (ueId: string) => {
     return createRepository<Matiere>({
         endpoint: ENDPOINT_MATIERE,
+        deleteImpactEndpoint: ENDPOINT_MATIERE_DELETE_IMPACT,
         queryParams: `?unite_enseignement_id=${ueId}`,
         queryKey: [STRUCTURE, MATIERE, ueId],
         getId: (data: Matiere) => data.id,

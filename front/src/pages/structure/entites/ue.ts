@@ -12,7 +12,7 @@ import { List } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ActionNavigation } from '../../../services/crud/actions';
 import type { FieldValues } from 'react-hook-form';
-import { ENDPOINT_UES, MATIERE, STRUCTURE, UES } from '../def';
+import { ENDPOINT_UES, ENDPOINT_UES_DELETE_IMPACT, MATIERE, STRUCTURE, UES } from '../def';
 import { Role } from '../../user/def';
 import { createRepository, type DescriptionEntite } from '../../../services/crud/def';
 import { tCrud } from '../../../services/crud/entityMessages';
@@ -39,6 +39,7 @@ export type Ue = z.infer<typeof ueSchema>;
 export const createUeRepository = (periodeId: string) => {
     return createRepository<Ue>({
         endpoint: ENDPOINT_UES,
+        deleteImpactEndpoint: ENDPOINT_UES_DELETE_IMPACT,
         queryParams: `?periode_id=${periodeId}`,
         queryKey: [STRUCTURE, UES, periodeId],
         getId: (data: Ue) => data.id,
