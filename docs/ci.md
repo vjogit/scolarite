@@ -358,7 +358,7 @@ Couvert, sur chaque push et chaque pull request :
   2026 (§10) : décisives, dans le conteneur de référence.
 - ~~**Les tests Go d'intégration**~~ Couverts depuis le 17 septembre 2026
   (§11) : le job e2e les lance contre sa stack par `make test-integration`.
-- **`programme-import/pkg/extraction`** : rejoué, jamais décisif.
+- ~~**`programme-import/pkg/extraction`**~~ Décisif depuis le 17 septembre 2026 (§12) : fixtures dans `testdata/`.
 - **`govulncheck`, `npm audit --omit=dev`, Dependabot, protection de
   branche** : listés dans la dette de CLAUDE.md, hors de ce lot.
 - **Le bundle du front est unique** (aucune URL figée, `front/.env` commun) :
@@ -384,8 +384,8 @@ Couvert, sur chaque push et chaque pull request :
   remplacer par une fixture synthétique — à décider avant d'ouvrir les tests
   d'intégration en CI. **Tranché le 4 septembre 2026 : ajouté**, et toute
   fixture de `testdata/` avec lui.
-- **`test_salle.csv` / `test_prof.csv`** (programme-import) : absents
-  partout, défaut signalé depuis le lot 5, intact.
+- ~~**`test_salle.csv` / `test_prof.csv`**~~ (programme-import) : fermé le
+  17 septembre 2026, §12.
 - **`makefile.prod`** n'a pas reçu le passage explicite de `CONFIG_FILE` /
   `SECRETS_FILE` à `start-scolarite.sh` : le script garde son repli par nom
   d'espace de travail, la prod fonctionne comme avant. À aligner le jour où
@@ -540,4 +540,23 @@ Dans `e2e.yml`, l'étape « Tests Go d'intégration » vient après la preuve qu
 la stack répond et avant la suite Playwright ; le résumé du run compte les
 `--- PASS`, `--- FAIL` et `--- SKIP` de la sortie `-v`, pour qu'un « ok » sans
 test exécuté se voie. `set -o pipefail` : le `tee` ne masque pas l'échec.
+
+## 12. `programme-import/pkg/extraction` : des fixtures commitées, des tests qui affirment (17 septembre 2026, lot nettoyage-registre)
+
+Le rouge permanent du §9 avait une seule cause : `pull_test.go` lisait cinq
+CSV (`test_salle.csv`, `test_prof.csv`, `test_cours.csv`, `test_promo.csv`,
+`test_resa.csv`) que le dépôt n'a jamais portés — aucune trace dans
+l'historique git —, n'affirmait rien (il imprimait un compte) et sortait par
+`log.Fatal`, ce qui tuait le binaire de test au premier fichier absent.
+Tranché avec l'utilisateur, entre committer une fixture utile et retirer le
+test : **committer**. Les exports réels existent sur le poste ; cinq lignes
+par flux en sont extraites dans `testdata/` (personnes anonymisées : noms et
+courriels remplacés ; salles, promotions et cours ne sont pas nominatifs),
+choisies pour se répondre d'un flux à l'autre et pour couvrir les valeurs
+vides, les accents et les parenthèses. Les tests affirment le compte, un
+objet entier par flux, la normalisation propre au flux des professeurs
+(espaces retirés, capitalisation, courriel en minuscules) et le contrat de
+`getItems` (arrêt à `EOT`, autres types ignorés). `verification.yml` lance
+`go test ./...` sans exception ; les deux étapes « défaut connu » sont
+retirées.
 

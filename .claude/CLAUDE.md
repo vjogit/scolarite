@@ -271,9 +271,11 @@ existants). Pas encore en production.
   **Les fixtures de `testdata/` sont suivies** par git, quel que soit leur
   format (`.gitignore` : `!**/testdata/**`, tranché le 4 septembre 2026) —
   `pkg/structure/exchange/testdata/programme.xlsx`, que le test
-  d'intégration d'import exige, en est le précédent ; un test ne doit jamais
-  dépendre d'un fichier que le dépôt ne porte pas (les CSV manquants de
-  `programme-import` restent le contre-exemple, voir « Dette »).
+  d'intégration d'import exige, en est le précédent, et
+  `cmd/programme-import/pkg/extraction/testdata/` (cinq extraits anonymisés
+  des exports du planning tiers, 17 septembre 2026) le second ; un test ne
+  doit jamais dépendre d'un fichier que le dépôt ne porte pas (les CSV
+  manquants de `programme-import` en étaient le contre-exemple, fermé).
 
 ## Suite e2e (front/e2e) — le filet de régression
 
@@ -1057,8 +1059,9 @@ est un acte de création, pas un lien vivant).
   `TestJury` (`JURY_TEST_PERIODE_ID`, un test ad hoc sur une période
   réelle). **Non couvert** : `govulncheck`, `npm audit --omit=dev`,
   Dependabot, protection de branche.
-  `programme-import/pkg/extraction` échoue sur fixture absente : rejoué en
-  étape non bloquante, annotation d'avertissement à chaque run.
+  `programme-import/pkg/extraction` lit ses fixtures dans `testdata/`
+  depuis le 17 septembre 2026 (`docs/ci.md` §12) : `verification.yml` lance
+  `go test ./...` sans exception.
 ### Défauts constatés, non corrigés
 
 Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
