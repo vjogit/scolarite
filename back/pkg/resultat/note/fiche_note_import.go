@@ -142,6 +142,10 @@ func ImportFiche(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if refuserSaisieSiJuryDelibere(w, r, []int32{controleID}) {
+		return
+	}
+
 	queries := getQueriesFromCtx(r)
 
 	// Barème lu une seule fois pour tout le fichier : la borne est ensuite

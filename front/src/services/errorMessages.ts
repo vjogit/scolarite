@@ -232,6 +232,11 @@ export function incidentFor(err: unknown): string | null {
 }
 
 export function messageForError(err: unknown): string {
+  // Un 409 métier qui porte sa raison se rédige par elle (messageBlocage) :
+  // le libellé générique de BUSINESS_CONFLICT parle de créneaux, il serait
+  // trompeur pour une note refusée sous jury délibéré, par exemple.
+  const precis = blockingMessageFor(err);
+  if (precis !== null) return precis;
   const code = codeFor(err);
   const message = code ? errorMessage(code) : errorMessage('NO_INFORMATION');
   const incident = incidentFor(err);
@@ -268,6 +273,8 @@ export function messageBlocage(blocage: { reason: string; count?: number; parent
   switch (blocage.reason) {
     case 'jury_delibere':
       return i18n.t('blocage.jury_delibere', { ns: 'errors', count: blocage.count ?? 1 });
+    case 'saisie_apres_deliberation':
+      return i18n.t('blocage.saisie_apres_deliberation', { ns: 'errors', count: blocage.count ?? 1 });
     case 'parent_en_corbeille':
       return i18n.t('blocage.parent_en_corbeille', { ns: 'errors', parents: libelleParents(blocage.parents) });
     case 'homonyme_actif':

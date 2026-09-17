@@ -25,7 +25,9 @@
     "jury_delibere_other": "Deletion impossible: {{count}} affected periods have a deliberated jury.",
     "parent_en_corbeille": "Restoration impossible: restore {{parents}} first.",
     "homonyme_actif": "Restoration impossible: an active object already bears one of the names to restore. Rename or delete it first.",
-    "note_sur_eleve_non_evalue": "No grade was imported."
+    "note_sur_eleve_non_evalue": "No grade was imported.",
+    "saisie_apres_deliberation_one": "Entry not allowed: {{count}} affected period has a deliberated jury. Cancel the deliberation to change grades.",
+    "saisie_apres_deliberation_other": "Entry not allowed: {{count}} affected periods have a deliberated jury. Cancel the deliberation to change grades."
   },
   "motifChamp": {
     "champ_obligatoire": "This field is required",

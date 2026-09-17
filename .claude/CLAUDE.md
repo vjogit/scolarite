@@ -145,9 +145,24 @@ existants). Pas encore en production.
    `Count*JuryDeliberePeriodes` ont été retirées). Le geste de correction
    légitime est l'annulation de la délibération (maillon `jury.cancel`).
    Hors règle, assumé : l'effacement d'un élève (RGPD, tracé `note.erase` /
-   `jury.erase`) et la saisie de notes en grille après délibération (une
-   question d'écriture, pas de suppression — constat consigné dans
-   « Défauts constatés »).
+   `jury.erase`). **La même définition verrouille les écritures de notes**
+   (17 septembre 2026) : création, mise à jour, effacement d'une cellule et
+   import de fiche d'un contrôle dont la période est délibérée sont refusés
+   **avant toute écriture** (`note/blocage.go`, `refuserSaisieSiJuryDelibere`,
+   périmètre contrôle), 409 `BUSINESS_CONFLICT` `reason:
+   saisie_apres_deliberation`, `count` = périodes — raison distincte parce
+   que le front la rédige autrement (« saisie », pas « suppression »,
+   `blocage.saisie_apres_deliberation` d'`errors.json`). Le détail du
+   contrôle (`GET /resultat/controle/{id}`) porte `jury_delibere`, calculé
+   par le domaine jury, à côté du barème : la grille s'y verrouille pour
+   tout le monde (ligne `role="status"` « Jury délibéré : la saisie est
+   verrouillée… », champs désactivés, import masqué) et le formulaire page
+   entière perd son `roleEcriture` — aucune requête ajoutée, aucun 409
+   depuis une action visible. Rouvrir la grille = annuler la délibération.
+   Preuves : `TestIntegration_NoteEcriture_JuryDelibere_Renvoie409`,
+   `TestIntegration_ControleDetail_PorteJuryDelibere`,
+   `grille-jury-delibere.spec.ts` (contrôle « E2E Controle Deliberee »
+   ajouté au seed sous la période délibérée, compte NOTES_ECRITURE).
 10. **Rien en dur qui diffère entre environnements.** Toute valeur
     local/prod passe par `config.yaml` typé (`services/config.go`) +
     `infra/env/`. Le spécifique-développement est marqué comme tel (Mailpit,
@@ -1068,14 +1083,6 @@ Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
 apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
 ils survivront à celle-ci si personne ne les reprend.
 
-- **La grille de notes reste saisissable après délibération** (17 septembre
-  2026, lot `correction-blocage-jury`, constaté à la lecture de
-  `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
-  cellule, ne consultent `jury_result`). `jury_result` est le relevé figé,
-  les bulletins se régénèrent depuis les notes : une note modifiée après
-  délibération change un document remis. Question d'écriture, pas de
-  suppression en cascade — hors du lot de blocage ; à trancher (bloquer, ou
-  tenir la grille pour libre tant que la délibération n'est pas annulée).
 - **Supprimer une UE, une matière ou un contrôle emporte des notes sans
   maillon de registre** (17 septembre 2026, même lot, constaté à la
   lecture) : `TracerSuppressionNotes` n'est appelé que par `DELETE /note`,
@@ -1183,6 +1190,10 @@ carte Intégrité recalculant toute la chaîne — la famille « sous charge » 
 lot 7. La spec attend désormais **par carte** (une alerte pour Intégrité et
 Ancrage, aucune pour Témoin, le message d'échec nomme la carte) ; ni
 `retry`, ni délai gonflé. Si un échec revient, l'artefact CI tranche.
+Le treizième — la grille de notes restait saisissable après délibération
+(consigné au lot `correction-blocage-jury`) — est **fermé** le 17 septembre
+2026, tranché par l'utilisateur : la grille se bloque tant que la
+délibération n'est pas annulée (invariant 9, dernier paragraphe).
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

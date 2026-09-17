@@ -96,3 +96,8 @@ JOIN public.periode_active pe            ON pe.id = ue.periode_id
 JOIN public.option_active o              ON o.id  = pe.option_id
 JOIN public.promotion_active prom        ON prom.id = o.promotion_id
 WHERE c.id = @controle_id;
+
+-- name: FetchControleIDsByNoteIDs :many
+-- Les contrôles que des notes désignent — pour le contrôle « jury délibéré »
+-- avant une suppression en masse (blocage.go).
+SELECT DISTINCT n.controle_id FROM public.note n WHERE n.id = ANY(@ids::int[]);

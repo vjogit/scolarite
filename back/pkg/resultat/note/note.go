@@ -31,6 +31,10 @@ func CreateNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if refuserSaisieSiJuryDelibere(w, r, []int32{input.ControleID}) {
+		return
+	}
+
 	queries := getQueriesFromCtx(r)
 
 	bareme, err := fetchBareme(r.Context(), queries, input.ControleID)
@@ -325,6 +329,9 @@ func Update(w http.ResponseWriter, r *http.Request) {
 	if existing := getNoteFromCtx(r); existing != nil {
 		controleID = existing.ControleID
 	}
+	if refuserSaisieSiJuryDelibere(w, r, []int32{controleID}) {
+		return
+	}
 
 	bareme, err := fetchBareme(r.Context(), queries, controleID)
 	if err != nil {
@@ -416,6 +423,17 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	queries := getQueriesFromCtx(r)
+
+	// Les contrôles visés se lisent depuis les notes en base, pas depuis le
+	// corps : c'est leur période qui décide du verrou.
+	controleIDs, err := queries.FetchControleIDsByNoteIDs(r.Context(), input.IDs)
+	if err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+	if refuserSaisieSiJuryDelibere(w, r, controleIDs) {
+		return
+	}
 
 	// Les maillons note.delete se posent avant le DELETE, dans la même
 	// transaction : l'état détruit doit être lu tant qu'il existe.

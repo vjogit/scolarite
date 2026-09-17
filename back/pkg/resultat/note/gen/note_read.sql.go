@@ -75,6 +75,32 @@ func (q *Queries) FetchBaremeByControleID(ctx context.Context, controleID int32)
 	return bareme, err
 }
 
+const fetchControleIDsByNoteIDs = `-- name: FetchControleIDsByNoteIDs :many
+SELECT DISTINCT n.controle_id FROM public.note n WHERE n.id = ANY($1::int[])
+`
+
+// Les contrôles que des notes désignent — pour le contrôle « jury délibéré »
+// avant une suppression en masse (blocage.go).
+func (q *Queries) FetchControleIDsByNoteIDs(ctx context.Context, ids []int32) ([]int32, error) {
+	rows, err := q.db.Query(ctx, fetchControleIDsByNoteIDs, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []int32
+	for rows.Next() {
+		var controle_id int32
+		if err := rows.Scan(&controle_id); err != nil {
+			return nil, err
+		}
+		items = append(items, controle_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const fetchGpaByUserID = `-- name: FetchGpaByUserID :many
 SELECT
     jr.periode_id,
