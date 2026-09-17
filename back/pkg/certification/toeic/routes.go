@@ -41,7 +41,7 @@ func ToeicUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			toeic, err := queries.FetchToeicById(context.Background(), int32(id))
+			toeic, err := queries.FetchToeicById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 				return

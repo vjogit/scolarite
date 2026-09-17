@@ -46,7 +46,7 @@ func UniteEnseignementUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			ue, err := queries.FetchUniteEnseignementById(context.Background(), int32(id))
+			ue, err := queries.FetchUniteEnseignementById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "UniteEnseignement introuvable", services.NOT_FOUND, nil)
 				return

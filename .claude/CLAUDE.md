@@ -1053,10 +1053,6 @@ Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
 apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
 ils survivront à celle-ci si personne ne les reprend.
 
-- **`UpdateToeic` n'écrit pas `user_id`** (lot 14). Changer l'élève d'un
-  résultat TOEIC en édition est **sans effet** : l'interface accepte, le PUT
-  porte la valeur, la requête SQL ne l'écrit pas. Perte de saisie
-  silencieuse, côté back. Le plus sérieux des quatre.
 - **La grille de notes reste saisissable après délibération** (17 septembre
   2026, lot `correction-blocage-jury`, constaté à la lecture de
   `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
@@ -1140,6 +1136,22 @@ comme dans `FetchUser`. Prouvé par
 `TestIntegration_User_FetchAllUser_PorteLesRolesKeycloak` et par
 `utilisateurs.spec.ts`, qui crée son agent par l'écran (aucun compte du seed
 n'est en base avec un compte Keycloak), lit la colonne, puis le supprime.
+Le onzième — `UpdateToeic` n'écrivait pas `user_id` (consigné au lot 14, le
+plus sérieux : perte de saisie silencieuse) — est **fermé** le 17 septembre
+2026 par le même lot, avec son jumeau découvert en le fermant :
+`UpdateMobilite` avait le même trou. Les deux requêtes écrivent la colonne,
+les deux handlers la passent ; prouvé par
+`TestIntegration_ToeicUpdate_EcritLEleve` et
+`TestIntegration_MobiliteUpdate_EcritLEleve` (le second élève de la fixture
+reprend le résultat). Dans le même commit, **les contextes détachés** que le
+grep exhaustif de `context.Background()` a trouvés hors `cmd/` : les
+quatorze intergiciels `*Use` de `routes.go` lisaient leur entité hors du
+contexte de la requête (ils passent `r.Context()`), `GenerateJury` prend le
+contexte en paramètre, et les quatre compensations de l'import
+d'utilisateurs disent leur intention par `context.WithoutCancel(ctx)` — un
+navigateur parti ne doit pas laisser de compte Keycloak orphelin. Restent
+légitimes : `cmd/*`, le scheduler du registre, `db.go`, la construction de
+`AuthMiddleware`, les fixtures de test.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

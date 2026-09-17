@@ -114,6 +114,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		Score:       input.Score,
 		DatePassage: input.DatePassage,
 		Remarque:    input.Remarque,
+		UserID:      input.UserID,
 	})
 	if err != nil {
 		errorsMap := services.MapPgErrorToValidationErrors(err, toeicConstraints)

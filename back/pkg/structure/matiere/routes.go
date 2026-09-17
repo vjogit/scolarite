@@ -46,7 +46,7 @@ func MatiereUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			matiere, err := queries.FetchMatiereById(context.Background(), int32(id))
+			matiere, err := queries.FetchMatiereById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Matiere introuvable", services.NOT_FOUND, nil)
 				return

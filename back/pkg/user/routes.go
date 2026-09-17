@@ -56,7 +56,7 @@ func UserUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			user, err := queries.FetchUserById(context.Background(), int32(id))
+			user, err := queries.FetchUserById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "User introuvable", services.NOT_FOUND, nil)
 				return

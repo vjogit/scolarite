@@ -50,7 +50,7 @@ func NoteUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			note, err := queries.FetchNoteById(context.Background(), int32(id))
+			note, err := queries.FetchNoteById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Note introuvable", services.NOT_FOUND, nil)
 				return

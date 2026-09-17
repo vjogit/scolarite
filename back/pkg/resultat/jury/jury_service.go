@@ -26,8 +26,7 @@ func NewJuryService(q *gen.Queries, periodeID int32) *JuryService {
 
 // GenerateJury génère un fichier Excel avec la synthèse du jury.
 // Cette fonction orchestre la récupération des données puis la création du fichier.
-func (s *JuryService) GenerateJury(f *excelize.File) error {
-	ctx := context.Background()
+func (s *JuryService) GenerateJury(ctx context.Context, f *excelize.File) error {
 
 	// 1. Récupération et préparation des données
 	juryData, err := s.PrepareJuryData(ctx)

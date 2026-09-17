@@ -46,7 +46,7 @@ func FormationUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			formation, err := queries.FetchFormationById(context.Background(), int32(id))
+			formation, err := queries.FetchFormationById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Formation introuvable", services.NOT_FOUND, nil)
 				return

@@ -12,6 +12,9 @@ SET pays = @pays,
     date_fin = @date_fin,
     est_valide = @est_valide,
     remarque = @remarque,
+    -- même défaut que UpdateToeic, fermé le même jour : l'élève se change
+    -- en édition, la colonne doit suivre.
+    user_id = @user_id,
     version = version + 1
 WHERE id = @id AND version = @version
 RETURNING version;
