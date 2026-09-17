@@ -38,7 +38,9 @@ func RouteUser(r chi.Router, cfg *services.KeycloakConfig) {
 		})
 	})
 
-	r.With(lecture).Get("/", FetchAllUser)
+	r.With(lecture).Get("/", func(w http.ResponseWriter, r *http.Request) {
+		FetchAllUser(w, r, cfg)
+	})
 	r.With(lecture).Get("/search", SearchUsers)
 }
 

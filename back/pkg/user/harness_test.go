@@ -66,7 +66,7 @@ func userRouter(cfg *services.KeycloakConfig) chi.Router {
 		r.With(user.UserUse).Put("/", func(w http.ResponseWriter, r *http.Request) { user.Update(w, r, cfg) })
 		r.Delete("/", func(w http.ResponseWriter, r *http.Request) { user.Delete(w, r, cfg) })
 	})
-	r.Get("/", user.FetchAllUser)
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) { user.FetchAllUser(w, r, cfg) })
 	r.Get("/search", user.SearchUsers)
 	return r
 }

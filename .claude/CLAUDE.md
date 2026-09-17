@@ -1057,8 +1057,6 @@ ils survivront à celle-ci si personne ne les reprend.
   résultat TOEIC en édition est **sans effet** : l'interface accepte, le PUT
   porte la valeur, la requête SQL ne l'écrit pas. Perte de saisie
   silencieuse, côté back. Le plus sérieux des quatre.
-- **Colonne « Rôles » vide dans la liste des utilisateurs** (lot 13) : la
-  consultation montre les rôles cochés, la liste ne semble pas les recevoir.
 - **La grille de notes reste saisissable après délibération** (17 septembre
   2026, lot `correction-blocage-jury`, constaté à la lecture de
   `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
@@ -1131,6 +1129,17 @@ matière, ECTS de l'UE, score TOEIC) portent une `error` sur le constructeur
 `z.number`, comme `bareme` et `ordre` déjà ; cinq clés `*Requis*` dans
 `validation.json` fr et en ; prouvé par « la capacité vidée reçoit son
 message métier » de `salle.spec.ts`.
+Le dixième — colonne « Rôles » vide dans la liste des utilisateurs (consigné
+au lot 13) — est **fermé** le 17 septembre 2026 par le même lot : la liste
+(`FetchAllUser`) ne lisait que la base, les rôles vivent dans Keycloak et
+seul le détail les demandait ; elle les rend désormais par `rolesParCompte`
+— un appel `GetUsersByRoleName` par rôle de `AssignableRoles`, paginé, dix
+appels bornés quel que soit le nombre d'utilisateurs, jamais un par ligne ;
+Keycloak injoignable, la liste sort sans rôles et l'incident est logué,
+comme dans `FetchUser`. Prouvé par
+`TestIntegration_User_FetchAllUser_PorteLesRolesKeycloak` et par
+`utilisateurs.spec.ts`, qui crée son agent par l'écran (aucun compte du seed
+n'est en base avec un compte Keycloak), lit la colonne, puis le supprime.
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
