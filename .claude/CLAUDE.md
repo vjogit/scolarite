@@ -418,6 +418,10 @@ existants). Pas encore en production.
   `make fetch-freetsa-cert` (racine TSA — acte volontaire, empreinte à
   vérifier).
 - **Ne jamais committer** captures, traces ou rapports.
+- Depuis le 17 septembre 2026, un `goto` direct sur une URL profonde arrive
+  sur l'écran visé (l'aller-retour Keycloak est rejoué par
+  `KeycloakContext.tsx`/`App.tsx`) : plus besoin du `pushState` +
+  `popstate` de contournement dans les scripts de vérification.
 
 ## Déroulé d'un lot — structure éprouvée sur ce projet
 
@@ -1092,18 +1096,20 @@ apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
 ils survivront à celle-ci si personne ne les reprend.
 
 
-Deux défauts plus anciens sont documentés dans « Pièges connus » et dans la
-suite e2e plutôt qu'ici, parce qu'ils piègent activement quiconque écrit du
-code : rendu figé de `BarreAxes`, et le **rebond Keycloak sur lien profond
-— réel le 17 septembre 2026**, prouvé par l'échec attendu de
-`navigation.spec.ts` (ligne 20, `test.fail`) dans le run vert de `main` du
-jour et dans trois passes locales : `redirectUri` fixé sur la racine
-(`KeycloakContext.tsx`) et `valid_redirect_uris` restreint à `/` dans
-Terraform, volontairement. Le `test.fail` garde son rôle de documentation.
-Une correction existe sans élargir les URI Keycloak — mémoriser le chemin
-visé en `sessionStorage` avant l'init et le rejouer après, une trentaine de
-lignes, le test redevenant un test qui passe — tenue hors du lot de
-nettoyage, à cadrer comme évolution du flux de connexion. Le
+Un défaut plus ancien est documenté dans « Pièges connus » et dans la
+suite e2e plutôt qu'ici, parce qu'il piège activement quiconque écrit du
+code : le rendu figé de `BarreAxes`. Le **rebond Keycloak sur lien profond**
+(réel jusqu'au 17 septembre 2026 : `redirectUri` fixé sur la racine, seule
+URL de retour que le client Terraform autorise, volontairement) est
+**fermé** le même jour, sans élargir les URI Keycloak : `KeycloakContext.tsx`
+mémorise l'écran visé en `sessionStorage` (clé `chemin-avant-connexion`,
+propre à l'onglet) avant l'init, rien sur la racine, l'entrée laissée en
+place sur le trajet retour (fragment `state=`) ; `App.tsx` la consomme une
+fois l'instance prête et navigue en `replace`, après l'armement de
+l'intercepteur. `navigation.spec.ts` (« lien profond copié dans un nouvel
+onglet ») est redevenu un test qui passe, `droits.spec.ts` atteint `/new`
+par un `goto` direct au lieu d'un `pushState` de contournement, et la
+promesse de `contexte.ts` est tenue. Le
 troisième — la désynchronisation des variables CSS MUI quand le mode choisi
 différait de l'OS (lots 7, 8, 10) — est **fermé** par la dépose de MUI
 (lot 17, vérifié au navigateur : sombre choisi + OS clair → tout l'écran
