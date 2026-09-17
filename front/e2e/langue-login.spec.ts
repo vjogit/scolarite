@@ -18,11 +18,9 @@ import appEn from '../src/i18n/locales/en/app.json' with { type: 'json' };
  * (application en anglais → page en anglais) ne prouverait rien. Avec elle,
  * la résolution propre de Keycloak (Accept-Language) donne le français, et
  * seul le script peut produire une page en anglais. `fr` nu, pas `fr-FR` :
- * un navigateur qui n'annonce QUE `fr-FR` fait démarrer l'application en
- * anglais — `fr-FR` n'est pas dans `supportedLngs`, et le détecteur i18next
- * retombe sur le `lang="en"` de index.html avant d'essayer la langue seule
- * (constaté dans le conteneur de référence ; les navigateurs réels envoient
- * `fr-FR,fr`, qui ne tombe pas dans ce cas).
+ * ici c'est la langue de la page Keycloak qui est en jeu, pas celle de
+ * l'application — le cas du navigateur qui n'annonce que `fr-FR` a sa propre
+ * spec, `langue-navigateur.spec.ts`.
  */
 test.describe('Langue de la page de connexion', () => {
     const env = chargerEnvLocal();

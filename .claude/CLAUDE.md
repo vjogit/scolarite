@@ -1054,25 +1054,6 @@ ils survivront à celle-ci si personne ne les reprend.
   consultation montre les rôles cochés, la liste ne semble pas les recevoir.
 - **Message zod brut pour un nombre requis vidé** (lot 13) : un message
   métier demande une `error` sur chaque schéma concerné.
-- **Un navigateur qui n'annonce que `fr-FR` fait démarrer l'application en
-  anglais** (5 septembre 2026, constaté dans le conteneur de référence
-  avec `locale: 'fr-FR'` ; rejoué le 17 septembre 2026, lot
-  `correction-langue`, `navigator.languages = ["fr-FR"]` → onglets anglais).
-  **Diagnostic posé** : le détecteur renvoie `['fr-FR', 'en']` — le
-  navigateur, puis `htmlTag` sur le `lang="en"` de `front/index.html` — et
-  i18next fait d'abord une passe d'**égalité stricte** sur toute la liste
-  contre `supportedLngs: ['fr', 'en']` : `fr-FR` échoue, `en` réussit, et la
-  seconde passe, qui aurait réduit `fr-FR` à `fr`, n'est jamais atteinte.
-  C'est le choix de la langue de départ, pas un texte qui ignore la langue
-  active : autre mécanisme que le lot `correction-langue`, donc laissé ici.
-  **Correctif identifié** : `detection: { convertDetectedLanguage: (l) =>
-  l.split('-')[0] }` dans `i18n/config.ts` (option de
-  `i18next-browser-languagedetector` 8.2, installée) — une ligne, qui garde
-  des codes à deux lettres partout (`i18nextLng`, `langue.js` du thème
-  Keycloak, pont zod). `<html lang="fr">` ne ferait que déplacer le biais
-  vers un navigateur `en-US` seul. À livrer avec une spec `locale: 'fr-FR'`
-  dans le conteneur de référence. Les navigateurs réels envoient `fr-FR,fr`
-  et n'y tombent pas.
 - **La grille de notes reste saisissable après délibération** (17 septembre
   2026, lot `correction-blocage-jury`, constaté à la lecture de
   `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
@@ -1129,6 +1110,15 @@ d'intégration `TestIntegration_CountPeriodesDeliberees_ToutPerimetre`,
 `ControleDelete_JuryDelibere_Renvoie409`, la spec « Blocage — jury
 délibéré » d'`analyse-impact.spec.ts`, et au navigateur dans les deux
 langues.
+Le huitième — un navigateur qui n'annonce que `fr-FR` faisait démarrer
+l'application en anglais (consigné le 5 septembre 2026, diagnostic posé au
+lot `correction-langue`) — est **fermé** le 17 septembre 2026 par le lot
+`nettoyage-registre` : `detection.convertDetectedLanguage` ramène chaque
+langue détectée à son code court dans `i18n/config.ts` (le détecteur rendait
+`['fr-FR', 'en']` et la passe d'égalité stricte d'i18next retenait `en`),
+codes à deux lettres conservés partout ; prouvé par `langue-navigateur.spec.ts`
+(contexte neuf `locale: 'fr-FR'`, rouge avant, vert après — la spec tourne
+sur tout poste, Playwright fixant `navigator.languages`).
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.
