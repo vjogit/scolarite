@@ -111,7 +111,8 @@ consommateur, les bulletins de jury le suivront. Configuration dans le bloc
 | Clé | Valeur | D'où |
 |---|---|---|
 | `url` | `http://${GOTENBERG_HOST}:3000` | `GOTENBERG_HOST` des `config-*.env` |
-| `timeout` | `25s` | littéral, sous le `writeTimeout` du serveur (30 s) |
+| `timeout` | `25s` | littéral, sous le `writeTimeout` du serveur (30 s) ; borne la conversion entière |
+| `timeout_connexion` | `2s` | littéral ; ne borne que l'ouverture de la connexion TCP — service arrêté, 503 en 2 s au lieu de 25 (17 septembre 2026) |
 | `etablissement` | `IMT Mines Alès` | littéral, la marque du pied de page |
 
 Volumes mesurés le 15 septembre 2026, sur le poste (démonstration INFRES,

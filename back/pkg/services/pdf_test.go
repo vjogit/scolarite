@@ -89,11 +89,29 @@ func TestConvertisseurPDF_Defaillances(t *testing.T) {
 		})
 	}
 
-	t.Run("service injoignable", func(t *testing.T) {
+	t.Run("service injoignable — port fermé", func(t *testing.T) {
 		c := services.NewConvertisseurPDF(services.PDFConfig{URL: "http://127.0.0.1:1", Timeout: time.Second})
 		_, err := c.ConvertirHTML(context.Background(), []byte("<html></html>"), services.A4Portrait)
 		require.Error(t, err)
 		assert.True(t, services.EstServicePDFIndisponible(err))
+	})
+
+	// Le cas du conteneur arrêté : une adresse sans hôte, où le SYN reste
+	// sans réponse. Le délai de connexion tranche seul, bien avant le délai
+	// de conversion — c'est ce que l'utilisateur voit (503 en ~2 s au lieu
+	// de 25). Adresse d'un réseau non routable (RFC 6598) ; le délai de
+	// conversion est laissé long à dessein, pour prouver que c'est bien la
+	// connexion qui a coupé.
+	t.Run("service injoignable — adresse qui ne répond pas", func(t *testing.T) {
+		c := services.NewConvertisseurPDF(services.PDFConfig{
+			URL: "http://100.64.255.254:3000", Timeout: 10 * time.Second, TimeoutConnexion: 200 * time.Millisecond,
+		})
+		debut := time.Now()
+		_, err := c.ConvertirHTML(context.Background(), []byte("<html></html>"), services.A4Portrait)
+		duree := time.Since(debut)
+		require.Error(t, err)
+		assert.True(t, services.EstServicePDFIndisponible(err), err.Error())
+		assert.Less(t, duree, 2*time.Second, "le délai de connexion doit trancher, pas celui de conversion")
 	})
 
 	t.Run("aucune URL configurée", func(t *testing.T) {

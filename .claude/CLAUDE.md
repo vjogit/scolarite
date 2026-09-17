@@ -626,8 +626,15 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    7 matières aux rubriques longues font 36 pages physiques. Volumes
    mesurés le 15 septembre 2026 : fiche de 4 pages ≈ 65 ko en 150 ms
    côté serveur (230 ms au clic), livret de 36 pages ≈ 266 ko en 280 ms
-   (480 ms au clic) ; le délai client de 25 s laisse deux ordres de
-   grandeur. Nom de fichier : `syllabus-ue-<slug>-<lang>.pdf`,
+   (480 ms au clic) ; le délai de conversion de 25 s laisse deux ordres de
+   grandeur. **Deux délais depuis le 17 septembre 2026** (lot
+   `nettoyage-registre`) : `pdf.timeout` borne la conversion entière (25 s),
+   `pdf.timeout_connexion` la seule ouverture de la connexion TCP (2 s,
+   `net.Dialer` d'un transport propre au client) — le conteneur arrêté laisse
+   son adresse sans hôte sur le réseau Docker et chaque SYN attendait les
+   25 s ; mesuré au clic après correction : 503 en 2,06 s. Test « adresse
+   qui ne répond pas » (RFC 6598, délai de test court) à côté du « port
+   fermé » dans `pdf_test.go`. Nom de fichier : `syllabus-ue-<slug>-<lang>.pdf`,
    `syllabus-livret-<slug>-<lang>.pdf` (ASCII, tirets). À l'écran :
    bouton « Télécharger la fiche PDF » à droite du titre de l'écran
    syllabus de l'UE ; action « Télécharger le livret PDF »
