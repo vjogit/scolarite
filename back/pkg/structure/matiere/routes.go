@@ -20,6 +20,10 @@ func RouteMatiere(r chi.Router) {
 		CreateMatiere(w, r)
 	})
 
+	// Analyse d'impact, en lecture seule malgré le POST, appelée avant toute suppression.
+	// Déclarée avant la route paramétrée pour ne pas être captée par {matiereID}.
+	r.With(lecture).Post("/delete-impact", DeleteImpact)
+
 	r.Route("/{matiereID}", func(r chi.Router) {
 		r.With(lecture, MatiereUse).Get("/", FetchMatiere)
 		r.With(ecriture, MatiereUse).Put("/", Update)

@@ -103,6 +103,22 @@ reservation_groupe_c AS (
     SELECT rg.reservation_id FROM public.reservation_groupe rg
     WHERE rg.reservation_id IN (SELECT id FROM reservation_c)
        OR rg.groupe_id IN (SELECT id FROM groupe_c)
+),
+-- Syllabus et référentiel de compétences (correction A1, 17 septembre 2026) :
+-- le référentiel suit la promotion, la liaison UE ↔ compétence est
+-- atteignable par la compétence ET par l'UE — un seul balayage avec OR, comme
+-- jury_c. Une racine option ou période n'a pas de bloc (promotion_c vide) :
+-- ses liaisons ne sont comptées que par les UE.
+bloc_c AS (
+    SELECT b.id FROM public.bloc_competence b WHERE b.promotion_id IN (SELECT id FROM promotion_c)
+),
+competence_c AS (
+    SELECT co.id FROM public.competence co WHERE co.bloc_id IN (SELECT id FROM bloc_c)
+),
+ue_competence_c AS (
+    SELECT uc.ue_id, uc.competence_id FROM public.ue_competence uc
+    WHERE uc.competence_id IN (SELECT id FROM competence_c)
+       OR uc.ue_id IN (SELECT id FROM ue_c)
 )
 SELECT
     (SELECT count(*) FROM promotion_c WHERE @racine_type::text <> 'promotion')::bigint AS promotion_count,
@@ -114,6 +130,7 @@ SELECT
     (SELECT count(*) FROM periode_c WHERE @racine_type::text <> 'periode')::bigint AS periode_count,
     (SELECT count(*) FROM ue_c)::bigint AS ue_count,
     (SELECT count(*) FROM matiere_c)::bigint AS matiere_count,
+    (SELECT count(*) FROM public.syllabus_matiere sm WHERE sm.matiere_id IN (SELECT id FROM matiere_c))::bigint AS syllabus_matiere_count,
     (SELECT count(*) FROM controle_c)::bigint AS controle_count,
     (SELECT count(*) FROM public.note n WHERE n.controle_id IN (SELECT id FROM controle_c))::bigint AS note_count,
     (SELECT count(*) FROM reservation_c)::bigint AS reservation_count,
@@ -121,6 +138,9 @@ SELECT
     (SELECT count(*) FROM public.reservation_salle rs WHERE rs.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_salle_count,
     (SELECT count(*) FROM reservation_groupe_c)::bigint AS reservation_groupe_count,
     (SELECT count(*) FROM jury_c)::bigint AS jury_result_count,
+    (SELECT count(*) FROM bloc_c)::bigint AS bloc_competence_count,
+    (SELECT count(*) FROM competence_c)::bigint AS competence_count,
+    (SELECT count(*) FROM ue_competence_c)::bigint AS ue_competence_count,
     (SELECT count(*) FROM periode_c pe
         WHERE EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id))::bigint AS jury_periode_count,
     (SELECT count(*) FROM public.reservation r

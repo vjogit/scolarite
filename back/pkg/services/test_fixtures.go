@@ -158,6 +158,54 @@ func SeedStructureFixture(t *testing.T, pool *pgxpool.Pool, suffixe string) Stru
 	return f
 }
 
+// SyllabusFixture contient les identifiants des données syllabus posées par
+// SeedSyllabusFixture sur une StructureFixture. Séparée de la fixture de
+// structure parce que les tests du domaine syllabus et celui de la copie de
+// promotion supposent une structure SANS donnée syllabus (fiche « jamais
+// écrite », référentiel vide, comptes exacts) ; seuls les tests d'analyse
+// d'impact la demandent.
+//
+// Ajouté à l'arbre de SeedStructureFixture :
+//
+//	promotion P1 → bloc B1 → compétence K1
+//	ue U1 ↔ K1 (1 liaison, enseignée)
+//	matiere M1 → 1 fiche syllabus
+type SyllabusFixture struct {
+	BlocID       int32
+	CompetenceID int32
+}
+
+// SeedSyllabusFixture pose une fiche sur M1, un bloc et une compétence sur P1,
+// et une liaison U1 ↔ K1 — le minimum pour qu'une analyse d'impact ait une
+// fiche et une liaison à compter, et rien sur les entités vides (P2, O2, PE2).
+func SeedSyllabusFixture(t *testing.T, pool *pgxpool.Pool, f StructureFixture) SyllabusFixture {
+	t.Helper()
+	ctx := context.Background()
+	sf := SyllabusFixture{}
+
+	exec := func(query string, args ...any) int32 {
+		t.Helper()
+		var id int32
+		if err := pool.QueryRow(ctx, query, args...).Scan(&id); err != nil {
+			t.Fatalf("insertion syllabus impossible (%s) : %v", query, err)
+		}
+		return id
+	}
+
+	exec(`INSERT INTO syllabus_matiere (matiere_id, contexte, heures_cours) VALUES ($1, 'Contexte', 20) RETURNING id`,
+		f.MatiereID)
+	sf.BlocID = exec(`INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 1, 'Bloc 1') RETURNING id`,
+		f.PromotionID)
+	sf.CompetenceID = exec(`INSERT INTO competence (bloc_id, ordre, action) VALUES ($1, 1, 'Analyser') RETURNING id`,
+		sf.BlocID)
+	if _, err := pool.Exec(ctx, `INSERT INTO ue_competence (ue_id, competence_id, enseignee, mise_en_oeuvre, evaluee)
+		VALUES ($1, $2, true, false, false)`, f.UeID, sf.CompetenceID); err != nil {
+		t.Fatalf("insertion ue_competence impossible : %v", err)
+	}
+
+	return sf
+}
+
 // SeedJuryResult insère un résultat de jury délibéré sur la période indiquée.
 func SeedJuryResult(t *testing.T, pool *pgxpool.Pool, f StructureFixture) {
 	t.Helper()

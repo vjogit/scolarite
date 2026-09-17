@@ -153,6 +153,7 @@ func impactVersReponse(impact gen.PurgeImpactRow) *services.DeleteImpactResponse
 	resp.AddCascade("periode", impact.PeriodeCount)
 	resp.AddCascade("unite_enseignement", impact.UeCount)
 	resp.AddCascade("matiere", impact.MatiereCount)
+	resp.AddCascade("syllabus_matiere", impact.SyllabusMatiereCount)
 	resp.AddCascade("controle", impact.ControleCount)
 	resp.AddCascade("note", impact.NoteCount)
 	resp.AddCascade("reservation", impact.ReservationCount)
@@ -160,6 +161,11 @@ func impactVersReponse(impact gen.PurgeImpactRow) *services.DeleteImpactResponse
 	resp.AddCascade("reservation_salle", impact.ReservationSalleCount)
 	resp.AddCascade("reservation_groupe", impact.ReservationGroupeCount)
 	resp.AddCascade("jury_result", impact.JuryResultCount)
+	// Référentiel et liaisons (correction A1) : la purge les emporte comme la
+	// mise en corbeille les annonçait.
+	resp.AddCascade("bloc_competence", impact.BlocCompetenceCount)
+	resp.AddCascade("competence", impact.CompetenceCount)
+	resp.AddCascade("ue_competence", impact.UeCompetenceCount)
 	resp.AddDetached("reservation", impact.ReservationDetacheeCount)
 	if impact.JuryPeriodeCount > 0 {
 		resp.AddBlocking(services.ReasonJuryDelibere, services.JuryDelibereMessage(impact.JuryPeriodeCount))

@@ -75,6 +75,9 @@ jury_c AS (
 SELECT
     (SELECT count(*) FROM ue_c)::bigint AS ue_count,
     (SELECT count(*) FROM matiere_c)::bigint AS matiere_count,
+    -- Syllabus (correction A1, 17 septembre 2026) : la fiche suit sa matière,
+    -- la liaison UE ↔ compétence suit son UE — toutes deux par cascade.
+    (SELECT count(*) FROM public.syllabus_matiere sm WHERE sm.matiere_id IN (SELECT id FROM matiere_c))::bigint AS syllabus_matiere_count,
     (SELECT count(*) FROM controle_c)::bigint AS controle_count,
     (SELECT count(*) FROM public.note n WHERE n.controle_id IN (SELECT id FROM controle_c))::bigint AS note_count,
     (SELECT count(*) FROM reservation_c)::bigint AS reservation_count,
@@ -82,6 +85,7 @@ SELECT
     (SELECT count(*) FROM public.reservation_salle rs WHERE rs.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_salle_count,
     (SELECT count(*) FROM public.reservation_groupe rg WHERE rg.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_groupe_count,
     (SELECT count(*) FROM jury_c)::bigint AS jury_result_count,
+    (SELECT count(*) FROM public.ue_competence uc WHERE uc.ue_id IN (SELECT id FROM ue_c))::bigint AS ue_competence_count,
     (SELECT count(*) FROM periode_c pe
         WHERE EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id))::bigint AS jury_periode_count,
     (SELECT count(*) FROM public.reservation r
@@ -92,6 +96,7 @@ SELECT
 type PeriodeDeleteImpactRow struct {
 	UeCount                     int64 `json:"ue_count"`
 	MatiereCount                int64 `json:"matiere_count"`
+	SyllabusMatiereCount        int64 `json:"syllabus_matiere_count"`
 	ControleCount               int64 `json:"controle_count"`
 	NoteCount                   int64 `json:"note_count"`
 	ReservationCount            int64 `json:"reservation_count"`
@@ -99,6 +104,7 @@ type PeriodeDeleteImpactRow struct {
 	ReservationSalleCount       int64 `json:"reservation_salle_count"`
 	ReservationGroupeCount      int64 `json:"reservation_groupe_count"`
 	JuryResultCount             int64 `json:"jury_result_count"`
+	UeCompetenceCount           int64 `json:"ue_competence_count"`
 	JuryPeriodeCount            int64 `json:"jury_periode_count"`
 	ReservationDetacheeCount    int64 `json:"reservation_detachee_count"`
 }
@@ -110,6 +116,7 @@ func (q *Queries) PeriodeDeleteImpact(ctx context.Context, ids []int32) (Periode
 	err := row.Scan(
 		&i.UeCount,
 		&i.MatiereCount,
+		&i.SyllabusMatiereCount,
 		&i.ControleCount,
 		&i.NoteCount,
 		&i.ReservationCount,
@@ -117,6 +124,7 @@ func (q *Queries) PeriodeDeleteImpact(ctx context.Context, ids []int32) (Periode
 		&i.ReservationSalleCount,
 		&i.ReservationGroupeCount,
 		&i.JuryResultCount,
+		&i.UeCompetenceCount,
 		&i.JuryPeriodeCount,
 		&i.ReservationDetacheeCount,
 	)

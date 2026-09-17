@@ -54,6 +54,11 @@ type Querier interface {
 	// racines elles-mêmes (elles sont nommées à part), comme delete-impact.
 	// jury_periode_count > 0 interdit la purge, comme il interdisait la
 	// suppression physique.
+	// Syllabus et référentiel de compétences (correction A1, 17 septembre 2026) :
+	// le référentiel suit la promotion, la liaison UE ↔ compétence est
+	// atteignable par la compétence ET par l'UE — un seul balayage avec OR, comme
+	// jury_c. Une racine option ou période n'a pas de bloc (promotion_c vide) :
+	// ses liaisons ne sont comptées que par les UE.
 	PurgeImpact(ctx context.Context, arg PurgeImpactParams) (PurgeImpactRow, error)
 	PurgeOptionsByOp(ctx context.Context, opID *int32) error
 	PurgePeriodesByOp(ctx context.Context, opID *int32) error

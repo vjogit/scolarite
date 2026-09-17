@@ -14,6 +14,7 @@ import (
 func TestIntegration_PromotionDeleteImpact(t *testing.T) {
 	pool := services.GetIntegrationDBPool(t)
 	fixture := services.SeedStructureFixture(t, pool, "prm")
+	services.SeedSyllabusFixture(t, pool, fixture)
 
 	req := services.NewBulkIDsRequest(t, pool, http.MethodPost, "/delete-impact", []int32{fixture.PromotionID})
 	rec := httptest.NewRecorder()
@@ -36,6 +37,10 @@ func TestIntegration_PromotionDeleteImpact(t *testing.T) {
 	assert.Equal(t, int64(2), counts["periode"])
 	assert.Equal(t, int64(1), counts["unite_enseignement"])
 	assert.Equal(t, int64(1), counts["matiere"])
+	assert.Equal(t, int64(1), counts["syllabus_matiere"], "la fiche de M1 suit sa matière")
+	assert.Equal(t, int64(1), counts["bloc_competence"])
+	assert.Equal(t, int64(1), counts["competence"])
+	assert.Equal(t, int64(1), counts["ue_competence"], "une seule ligne : la liaison est comptée par la compétence, pas aussi par l'UE")
 	assert.Equal(t, int64(2), counts["controle"])
 	assert.Equal(t, int64(3), counts["note"])
 	assert.Equal(t, int64(2), counts["reservation"])

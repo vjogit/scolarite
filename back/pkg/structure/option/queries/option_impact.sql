@@ -40,6 +40,9 @@ SELECT
     (SELECT count(*) FROM periode_c)::bigint AS periode_count,
     (SELECT count(*) FROM ue_c)::bigint AS ue_count,
     (SELECT count(*) FROM matiere_c)::bigint AS matiere_count,
+    -- Syllabus (correction A1, 17 septembre 2026) : la fiche suit sa matière,
+    -- la liaison UE ↔ compétence suit son UE — toutes deux par cascade.
+    (SELECT count(*) FROM public.syllabus_matiere sm WHERE sm.matiere_id IN (SELECT id FROM matiere_c))::bigint AS syllabus_matiere_count,
     (SELECT count(*) FROM controle_c)::bigint AS controle_count,
     (SELECT count(*) FROM public.note n WHERE n.controle_id IN (SELECT id FROM controle_c))::bigint AS note_count,
     (SELECT count(*) FROM reservation_c)::bigint AS reservation_count,
@@ -47,6 +50,7 @@ SELECT
     (SELECT count(*) FROM public.reservation_salle rs WHERE rs.reservation_id IN (SELECT id FROM reservation_c))::bigint AS reservation_salle_count,
     (SELECT count(*) FROM reservation_groupe_c)::bigint AS reservation_groupe_count,
     (SELECT count(*) FROM jury_c)::bigint AS jury_result_count,
+    (SELECT count(*) FROM public.ue_competence uc WHERE uc.ue_id IN (SELECT id FROM ue_c))::bigint AS ue_competence_count,
     (SELECT count(*) FROM periode_c pe
         WHERE EXISTS (SELECT 1 FROM public.jury_result jr WHERE jr.periode_id = pe.id))::bigint AS jury_periode_count,
     (SELECT count(*) FROM public.reservation r

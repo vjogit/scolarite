@@ -54,6 +54,11 @@ SELECT
     (SELECT count(*) FROM periode_c)::bigint AS periode_count,
     (SELECT count(*) FROM ue_c)::bigint AS ue_count,
     (SELECT count(*) FROM matiere_c)::bigint AS matiere_count,
+    -- Syllabus (correction A1, 17 septembre 2026) : la fiche suit sa matière
+    -- par cascade. Les liaisons UE ↔ compétence sont comptées plus bas par les
+    -- compétences de la promotion — une UE ne se lie qu'à celles de SA
+    -- promotion, les compter aussi par les UE doublerait la ligne.
+    (SELECT count(*) FROM public.syllabus_matiere sm WHERE sm.matiere_id IN (SELECT id FROM matiere_c))::bigint AS syllabus_matiere_count,
     (SELECT count(*) FROM controle_c)::bigint AS controle_count,
     (SELECT count(*) FROM public.note n WHERE n.controle_id IN (SELECT id FROM controle_c))::bigint AS note_count,
     (SELECT count(*) FROM reservation_c)::bigint AS reservation_count,

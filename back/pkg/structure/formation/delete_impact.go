@@ -48,6 +48,7 @@ func DeleteImpact(w http.ResponseWriter, r *http.Request) {
 	resp.AddCascade("periode", impact.PeriodeCount)
 	resp.AddCascade("unite_enseignement", impact.UeCount)
 	resp.AddCascade("matiere", impact.MatiereCount)
+	resp.AddCascade("syllabus_matiere", impact.SyllabusMatiereCount)
 	resp.AddCascade("controle", impact.ControleCount)
 	resp.AddCascade("note", impact.NoteCount)
 	resp.AddCascade("reservation", impact.ReservationCount)

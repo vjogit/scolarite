@@ -12,8 +12,16 @@ type Querier interface {
 	CheckPeriodeExists(ctx context.Context, id int32) (int32, error)
 	CreateUniteEnseignement(ctx context.Context, arg CreateUniteEnseignementParams) (int32, error)
 	DeleteUniteEnseignement(ctx context.Context, ids []int32) error
+	FetchUeNamesByIds(ctx context.Context, ids []int32) ([]FetchUeNamesByIdsRow, error)
 	FetchUniteEnseignementById(ctx context.Context, id int32) (UniteEnseignement, error)
 	FetchUniteEnseignementsByPeriodeID(ctx context.Context, periodeID int32) ([]UniteEnseignement, error)
+	// Analyse d'impact d'une suppression en masse d'UE (correction A1, 17
+	// septembre 2026 — l'UE n'en avait aucune, sa modale disait « irréversible »
+	// sans rien compter). Suppression physique, pas de corbeille : même descente
+	// que PeriodeDeleteImpact à partir de l'UE. Les résultats de jury rattachés à
+	// l'UE tombent par cascade (fk_jury_result_ue) et sont comptés comme tels ;
+	// rien ne bloque, le DELETE ne bloque pas non plus.
+	UeDeleteImpact(ctx context.Context, ids []int32) (UeDeleteImpactRow, error)
 	UpdateUniteEnseignement(ctx context.Context, arg UpdateUniteEnseignementParams) (int32, error)
 }
 

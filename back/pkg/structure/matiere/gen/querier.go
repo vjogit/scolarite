@@ -13,7 +13,12 @@ type Querier interface {
 	CreateMatiere(ctx context.Context, arg CreateMatiereParams) (int32, error)
 	DeleteMatiere(ctx context.Context, ids []int32) error
 	FetchMatiereById(ctx context.Context, id int32) (Matiere, error)
+	FetchMatiereNamesByIds(ctx context.Context, ids []int32) ([]FetchMatiereNamesByIdsRow, error)
 	FetchMatieresByUniteEnseignementID(ctx context.Context, uniteEnseignementID int32) ([]Matiere, error)
+	// Analyse d'impact d'une suppression en masse de matières (correction A1, 17
+	// septembre 2026 — la matière n'en avait aucune : sa fiche syllabus partait
+	// sans un mot). Suppression physique, pas de corbeille.
+	MatiereDeleteImpact(ctx context.Context, ids []int32) (MatiereDeleteImpactRow, error)
 	UpdateMatiere(ctx context.Context, arg UpdateMatiereParams) (int32, error)
 }
 
