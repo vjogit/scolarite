@@ -51,7 +51,11 @@ test.describe('Syllabus — traduction anglaise du contenu', () => {
         await boutonTraduire(pageSyllabus).click();
         await expect(pageSyllabus.getByText(T.traduit)).toBeVisible();
         await expect(pageSyllabus.getByRole('dialog')).toHaveCount(0);
-        await expect(champContexte(pageSyllabus)).toHaveValue(/^\[en\] Les systèmes logiciels évoluent vite/);
+        // Le texte français est celui de l'état courant, pas celui du seed : une
+        // spec précédente a pu le réécrire (invariant : les specs sont
+        // indépendantes). Le factice préfixe chaque ligne non vide de « [en] ».
+        const sourceContexte = await pageSyllabus.getByLabel(syllabus.matiere.rubriques.contexte).inputValue();
+        await expect(champContexte(pageSyllabus)).toHaveValue(`[en] ${sourceContexte}`);
         await expect(pageSyllabus.getByLabel(T.champs.objectifs)).toHaveValue(/^\[en\] /);
         await expect(panneau(pageSyllabus).getByText(debut(T.statut.automatique))).toContainText('factice/test');
         // Une rubrique sans texte français n'a pas de ligne dans le panneau.
@@ -95,7 +99,7 @@ test.describe('Syllabus — traduction anglaise du contenu', () => {
         await boutonTraduire(pageSyllabus).click();
         await dialogue.getByRole('button', { name: T.confirmation.remplacer }).click();
         await expect(pageSyllabus.getByText(T.traduit)).toBeVisible();
-        await expect(champContexte(pageSyllabus)).toHaveValue(/^\[en\] .*leurs dépendances aussi/);
+        await expect(champContexte(pageSyllabus)).toHaveValue('[en] Les systèmes logiciels évoluent vite ; leurs dépendances aussi.');
         await expect(panneau(pageSyllabus).getByText(debut(T.statut.automatique))).toBeVisible();
         await expect(panneau(pageSyllabus).getByText(T.statut.perimee)).toHaveCount(0);
     });
@@ -105,7 +109,8 @@ test.describe('Syllabus — traduction anglaise du contenu', () => {
         await expect(panneau(pageSyllabus).getByText(T.statut.absente)).toBeVisible();
         await boutonTraduire(pageSyllabus).click();
         await expect(pageSyllabus.getByText(T.traduit)).toBeVisible();
-        await expect(pageSyllabus.getByLabel(T.champs.description)).toHaveValue('[en] Concevoir et maintenir un logiciel dans la durée.');
+        const sourceDescription = await pageSyllabus.getByLabel(syllabus.ue.champDescription).inputValue();
+        await expect(pageSyllabus.getByLabel(T.champs.description)).toHaveValue(`[en] ${sourceDescription}`);
         await expect(panneau(pageSyllabus).getByText(interpoler(T.traduireEnCours, { fait: '1', total: '1' }))).toHaveCount(0);
     });
 });
