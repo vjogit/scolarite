@@ -1,104 +1,87 @@
 package extraction
 
 import (
-	"fmt"
-	"log"
 	"os"
+	"path/filepath"
 	"testing"
-	"time"
 
-	"cyb-react/cmd/programme-import/pkg/utils"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestExtractionSalle(t *testing.T) {
-	content, err := os.ReadFile("test_salle.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	salles, err := ExtractSalle(string(content))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("salles extraites:", len(salles))
+// Les fixtures de testdata/ sont des extraits des exports réels de l'outil de
+// planning tiers (cgiempt.exe, champs `CLE;valeur` séparés par `;`, une
+// ligne par objet, `EOT` en fin) : cinq lignes par flux, choisies pour
+// couvrir les valeurs vides, les accents et les parenthèses des libellés,
+// et pour se répondre d'un flux à l'autre (la promotion 38, le cours 59, la
+// salle 378 et le professeur 735 de resa.csv existent dans les autres
+// fichiers). Les personnes sont anonymisées : noms et courriels remplacés.
+// Jusqu'au 17 septembre 2026 ces tests lisaient des fichiers jamais commités,
+// n'affirmaient rien et sortaient par log.Fatal (docs/ci.md §9) — un rouge
+// permanent, écarté du verdict de la CI.
+func fixture(t *testing.T, nom string) string {
+	t.Helper()
+	contenu, err := os.ReadFile(filepath.Join("testdata", nom))
+	require.NoError(t, err)
+	return string(contenu)
 }
 
-func TestExtractionProf(t *testing.T) {
-	content, err := os.ReadFile("test_prof.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	profs, err := ExtractProf(string(content))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("profs extraits:", len(profs))
+func TestExtractSalle(t *testing.T) {
+	salles, err := ExtractSalle(fixture(t, "salle.csv"))
+	require.NoError(t, err)
+	require.Len(t, salles, 5, "cinq salles avant EOT")
+	assert.Equal(t, SallePull{SA: "5", NOM: "(O. DE GOUGES - CLAV) ", CAPACITE: "219", TYPE: "Amphithéâtre "}, salles[1])
+	assert.Equal(t, " ", salles[0].TYPE, "un type vide est un espace, pas une absence")
 }
 
-func TestExtractionCours(t *testing.T) {
-	content, err := os.ReadFile("test_cours.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cours, err := ExtractCours(string(content))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("cours extraits:", len(cours))
+func TestExtractProf(t *testing.T) {
+	profs, err := ExtractProf(fixture(t, "prof.csv"))
+	require.NoError(t, err)
+	require.Len(t, profs, 5)
+	// Seul flux normalisé à l'extraction : espaces retirés, nom et prénom
+	// capitalisés, courriel en minuscules — ce que l'import écrit en base.
+	assert.Equal(t, Prof{PR: "1344", DET: "Mme", NOM: "Martin", PRENOM: "Sylvie", MEL: "sylvie.martin@exemple.invalid"}, profs[2])
+	assert.Equal(t, "-", profs[0].NOM, "le professeur fictif du tiers garde son tiret")
 }
 
-func TestExtractionPromo(t *testing.T) {
-	content, err := os.ReadFile("test_promo.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	promos, err := ExtractPromo(string(content))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("promos extraites:", len(promos))
+func TestExtractCours(t *testing.T) {
+	cours, err := ExtractCours(fixture(t, "cours.csv"))
+	require.NoError(t, err)
+	require.Len(t, cours, 5)
+	assert.Equal(t, Cours{CO: "59", NOM: "7.4 SR ADMNISTRATION DES SERV RÉSEAUX "}, cours[3], "les accents traversent tels quels")
 }
 
-func TestExtractionResa(t *testing.T) {
-	start := time.Now()
-
-	content, err := os.ReadFile("test_resa.csv")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	reservations, err := ExtractReservation(string(content))
-	if err != nil {
-		t.Fatalf("%v", err)
-		return
-	}
-
-	end := time.Now()
-	fmt.Println("réservations extraites:", len(reservations), "en", end.UnixMilli()-start.UnixMilli(), "ms")
+func TestExtractPromo(t *testing.T) {
+	promos, err := ExtractPromo(fixture(t, "promo.csv"))
+	require.NoError(t, err)
+	require.Len(t, promos, 5)
+	assert.Equal(t, Promo{P0: "38", NOM: "INFRES 2A "}, promos[3])
 }
 
-func TestAA(t *testing.T) {
-	// Définir les dates de début et de fin
-	startDate := time.Date(2024, time.September, 15, 0, 0, 0, 0, time.UTC)
-	endDate := time.Date(2025, time.June, 10, 0, 0, 0, 0, time.UTC)
+func TestExtractReservation(t *testing.T) {
+	reservations, err := ExtractReservation(fixture(t, "resa.csv"))
+	require.NoError(t, err)
+	require.Len(t, reservations, 3)
+	r := reservations[1]
+	assert.Equal(t, "4820", r.PL)
+	assert.Equal(t, "38", r.P0CLE)
+	assert.Equal(t, "735", r.PRCLE)
+	assert.Equal(t, "59", r.COCLE)
+	assert.Equal(t, "378", r.SACLE)
+	assert.Equal(t, "20250127", r.DATE)
+	assert.Equal(t, "0830", r.HD)
+	assert.Equal(t, "1230", r.HF)
+	assert.Equal(t, "M162 - CROUP ", r.SALLE)
+	assert.Equal(t, "M. LAVOIE ", r.PROF)
+	assert.Equal(t, "SR ", r.GROUPE)
+}
 
-	// Par mois, manque des données
-	periodes, err := utils.GetWeeksBetweenDates(startDate, endDate)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, p := range periodes {
-		// Afficher la période du mois
-		start := p.Start.Format("20060102")
-		end := p.End.Format("20060102")
-		fmt.Printf("Début : %s, Fin : %s\n", start, end)
-	}
+// Rien après EOT n'est lu, et une ligne d'un autre type est ignorée sans
+// erreur : c'est le contrat de getItems, que chaque flux partage.
+func TestGetItems_ArreteAEOTEtIgnoreLesAutresTypes(t *testing.T) {
+	contenu := "SA;1;NOM;A ;CAPACITE;1;TYPE;x\nPR;9;DET;M. ;NOM;X ;PRENOM;Y ;MEL;z\nEOT\nSA;2;NOM;B ;CAPACITE;2;TYPE;y\n"
+	salles, err := ExtractSalle(contenu)
+	require.NoError(t, err)
+	require.Len(t, salles, 1)
+	assert.Equal(t, "1", salles[0].SA)
 }

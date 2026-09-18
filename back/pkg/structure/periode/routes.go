@@ -46,7 +46,7 @@ func PeriodeUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			periode, err := queries.FetchPeriodeById(context.Background(), int32(id))
+			periode, err := queries.FetchPeriodeById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Periode introuvable", services.NOT_FOUND, nil)
 				return

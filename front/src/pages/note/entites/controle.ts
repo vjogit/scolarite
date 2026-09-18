@@ -26,6 +26,10 @@ export const controleSchema = z.object({
     // à la promotion, il n'est pas saisi ici. Optionnel car la liste des
     // contrôles d'une matière ne le rapporte pas.
     bareme: z.number().optional(),
+    // Renvoyé par le même détail : la période du contrôle porte-t-elle un
+    // jury délibéré ? La grille s'y verrouille (17 septembre 2026), le
+    // serveur refuse de toute façon (409 saisie_apres_deliberation).
+    jury_delibere: z.boolean().optional(),
 });
 
 export type Controle = z.infer<typeof controleSchema>;

@@ -46,7 +46,7 @@ func OptionUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			option, err := queries.FetchOptionById(context.Background(), int32(id))
+			option, err := queries.FetchOptionById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Option introuvable", services.NOT_FOUND, nil)
 				return

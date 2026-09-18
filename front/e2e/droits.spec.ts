@@ -28,13 +28,11 @@ test.describe('Droits par rôle', () => {
         await pageConsultation.goto('/catalog_context/formation');
         await attendreChargementInitial(pageConsultation);
 
-        // Navigation interne (pushState) : isole le garde de rôle de
-        // `Crud.tsx` du défaut de rebond Keycloak sur `goto`, déjà prouvé par
-        // navigation.spec.ts et sans rapport avec les droits testés ici.
-        await pageConsultation.evaluate(() => {
-            history.pushState({}, '', '/catalog_context/formation/new');
-            window.dispatchEvent(new PopStateEvent('popstate'));
-        });
+        // URL directe, comme un lien collé : depuis le 17 septembre 2026 un
+        // lien profond arrive sur l'écran visé (plus de rebond Keycloak sur
+        // la racine), et c'est le garde de rôle de `Crud.tsx` qui renvoie.
+        await pageConsultation.goto('/catalog_context/formation/new');
+        await attendreChargementInitial(pageConsultation);
         await expect(pageConsultation).toHaveURL(/\/catalog_context\/formation$/);
         await expect(pageConsultation.getByRole('textbox', { name: 'Titre de la formation' })).toHaveCount(0);
     });

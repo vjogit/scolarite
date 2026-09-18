@@ -65,7 +65,7 @@ func TestJury(t *testing.T) {
 	s := NewJuryService(gen.New(conn), periodeID)
 	// L'erreur était ignorée : une génération en échec produisait un fichier
 	// vide et un test au vert.
-	if err := s.GenerateJury(f); err != nil {
+	if err := s.GenerateJury(ctx, f); err != nil {
 		t.Fatalf("génération du jury : %v", err)
 	}
 

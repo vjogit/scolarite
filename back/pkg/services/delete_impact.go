@@ -88,6 +88,20 @@ func (r *DeleteImpactResponse) AddBlocking(reason string, count int64) {
 // endroit, `jury.CountPeriodesDeliberees` (lot correction-blocage-jury).
 const ReasonJuryDelibere = "jury_delibere"
 
+// ReasonSaisieApresDeliberation : une écriture de note (création, mise à
+// jour, effacement, import de fiche) visant un contrôle dont la période est
+// délibérée. Même régime que jury_delibere — 409, `count` = périodes
+// délibérées —, raison distincte parce que le front la rédige autrement
+// (« saisie », pas « suppression »). Depuis le 17 septembre 2026.
+const ReasonSaisieApresDeliberation = "saisie_apres_deliberation"
+
+// ConflictSaisieApresDeliberation refuse une écriture de note sous jury
+// délibéré ; le geste légitime est l'annulation de la délibération.
+func ConflictSaisieApresDeliberation(w http.ResponseWriter, r *http.Request, nbPeriodes int64) {
+	ConflictError(w, r, "Saisie refusée : "+strconv.FormatInt(nbPeriodes, 10)+" période(s) à jury délibéré.",
+		BUSINESS_CONFLICT, map[string]any{"reason": ReasonSaisieApresDeliberation, "count": nbPeriodes})
+}
+
 // ConflictJuryDelibere refuse une suppression ou une purge en 409 : la raison
 // et le nombre de périodes délibérées touchées partent en extensions, c'est le
 // front qui rédige (`blocage.jury_delibere`, errors.json). Le `detail` n'est

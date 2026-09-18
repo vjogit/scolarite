@@ -1,10 +1,12 @@
 package controle
 
 import (
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat/controle/gen"
 	"cyb-react/pkg/resultat/jury"
 	"cyb-react/pkg/services"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -57,9 +59,25 @@ func CreateControle(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, input)
 }
 
+// controleDetail : la ligne du contrôle, plus ce que seul le détail rapporte
+// — comme le barème de la promotion. `jury_delibere` dit si la période du
+// contrôle porte un jury délibéré : la grille de saisie s'y verrouille (le
+// serveur refuse de toute façon, 409 saisie_apres_deliberation), et le front
+// n'a aucune requête de plus à faire — la définition reste celle du domaine
+// jury, pas une jointure recopiée ici.
+type controleDetail struct {
+	*gen.FetchControleByIdRow
+	JuryDelibere bool `json:"jury_delibere"`
+}
+
 func FetchControle(w http.ResponseWriter, r *http.Request) {
 	controle := getControleFromCtx(r)
-	render.JSON(w, r, controle)
+	nb, err := jury.CountPeriodesDeliberees(r.Context(), services.GetPgCtx(r.Context()).Db, jury.PerimetreControle, []int32{controle.ID})
+	if err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+	render.JSON(w, r, controleDetail{FetchControleByIdRow: controle, JuryDelibere: nb > 0})
 }
 
 func FetchControlesByMatiereID(w http.ResponseWriter, r *http.Request) {
@@ -162,9 +180,29 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	err := queries.DeleteControle(r.Context(), input.IDs)
+	// Les notes emportées par la cascade laissent leur maillon note.delete
+	// dans la transaction qui les détruit (invariant 5) — lues tant qu'elles
+	// existent, avant le DELETE.
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	if _, err := registre.TracerSuppressionEnCascade(r.Context(), tx, "controle", input.IDs, services.SubFromCtx(r)); err != nil {
 		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := queries.WithTx(tx).DeleteControle(r.Context(), input.IDs); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 

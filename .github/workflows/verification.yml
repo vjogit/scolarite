@@ -101,33 +101,11 @@ jobs:
       - name: Build
         run: go build ./...
 
-      # Un paquet a des tests qui lisent une fixture absente du dépôt
-      # (test_salle.csv, défaut signalé depuis le lot 5 — voir docs/ci.md). Il
-      # est écarté de cette étape, la seule qui décide du verdict, et rejoué
-      # dans la suivante : un échec permanent qu'on apprend à ignorer serait
-      # pire que pas de CI. Les tests d'intégration (base, Keycloak, Mailpit)
-      # se sautent d'eux-mêmes ici (t.Skip explicite) : ils ne sont PAS
-      # couverts, voir docs/ci.md.
-      - name: Tests (paquets sans défaut connu)
-        run: |
-          go test $(go list ./... | grep -vxF cyb-react/cmd/programme-import/pkg/extraction)
-
-      # Non bloquant (continue-on-error) mais VISIBLE : une annotation
-      # d'avertissement par paquet en échec sur la page de l'exécution, et une
-      # annotation de notification le jour où un paquet passe — c'est le
-      # signal pour le retirer de la liste ci-dessus et d'ici.
-      - name: Tests des paquets en défaut connu (fixtures absentes du dépôt)
-        continue-on-error: true
-        run: |
-          echec=0
-          for paquet in cyb-react/cmd/programme-import/pkg/extraction; do
-            if go test "$paquet"; then
-              echo "::notice title=Défaut résorbé::$paquet passe — le retirer des deux étapes de tests de verification.yml"
-              echo "- ✅ \`$paquet\` passe : retirer l'exception de verification.yml" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "::warning title=Défaut connu, non bloquant::$paquet échoue — fixture absente du dépôt (docs/ci.md)"
-              echo "- ⚠️ \`$paquet\` échoue (fixture absente du dépôt, défaut pré-existant, non bloquant)" >> "$GITHUB_STEP_SUMMARY"
-              echec=1
-            fi
-          done
-          exit $echec
+      # Tous les paquets, sans exception : programme-import/pkg/extraction lit
+      # ses fixtures dans testdata/ depuis le 17 septembre 2026 (docs/ci.md
+      # §12) — l'étape « défaut connu, non bloquant » qui le rejouait a
+      # disparu avec le défaut. Les tests d'intégration (base, Keycloak,
+      # Mailpit) se sautent d'eux-mêmes ici, sans TEST_DB_URL (t.Skip
+      # explicite) : ils tournent dans le job e2e, contre sa stack (§11).
+      - name: Tests
+        run: go test ./...

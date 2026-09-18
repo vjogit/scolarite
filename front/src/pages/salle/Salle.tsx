@@ -16,7 +16,7 @@ const salleSchema = z.object({
     id: z.number(),
     version: z.number(),
     name: z.string().min(1, { error: messageValidation('nomRequis') }),
-    capacite: z.number().min(0, { error: messageValidation('capaciteDoitEtrePositive') }),
+    capacite: z.number({ error: messageValidation('capaciteRequise') }).min(0, { error: messageValidation('capaciteDoitEtrePositive') }),
     equipement: z.string().nullish(),
     type_salle: z.string().nullish(),
     batiment: z.string().nullish(),

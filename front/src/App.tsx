@@ -1,7 +1,7 @@
-import { Outlet } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 import SessionContext from './SessionContext';
 import React from 'react';
-import { demarrerKeycloak, instantaneKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
+import { consommerCheminAvantConnexion, demarrerKeycloak, instantaneKeycloak, KeycloakContext, subscribeToKeycloak } from './KeycloakContext';
 import Keycloak from 'keycloak-js';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 // La locale FR de dayjs et son choix par langue i18next vivent désormais dans
@@ -70,6 +70,18 @@ export default function App() {
     if (!keycloak) return;
     setupAxiosInterceptors(keycloak);
   }, [keycloak]);
+
+  // L'aller-retour Keycloak revient sur la racine : l'écran visé avant lui,
+  // mémorisé par KeycloakContext, est rejoué ici — `replace`, pour que le
+  // bouton retour ne repasse pas par la racine. Après l'intercepteur : les
+  // écrans qu'on rejoue partent avec leur jeton.
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    if (!keycloak) return;
+    const chemin = consommerCheminAvantConnexion();
+    const courant = window.location.pathname + window.location.search + window.location.hash;
+    if (chemin !== null && chemin !== courant) void navigate(chemin, { replace: true });
+  }, [keycloak, navigate]);
 
   return (
     <SessionContext value={sessionContextValue}>

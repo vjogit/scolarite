@@ -9,7 +9,7 @@
  * Le marqueur est posé par l'image (`ENV` du Dockerfile), jamais par
  * l'appelant. Les deux specs de captures se sautent quand il manque, avec ce
  * motif visible dans le rapport — un `npx playwright test` direct sur le poste
- * reste le point d'entrée des 43 tests fonctionnels, et annonce « 20 skipped ».
+ * reste le point d'entrée des tests fonctionnels, et annonce les captures « skipped ».
  */
 export const EN_CONTENEUR_REFERENCE = process.env.PLAYWRIGHT_CONTENEUR_REFERENCE === '1';
 

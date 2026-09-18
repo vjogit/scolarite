@@ -267,6 +267,15 @@ with p as (
     returning id
 ), rattachement as (
     insert into groupe_user (groupe_id, user_id) select gr.id, eleve.id from gr, eleve
+), mat as (
+    -- Une matière et un contrôle sous la période délibérée : la grille de
+    -- saisie s'y verrouille (grille-jury-delibere.spec.ts). Sans fiche
+    -- syllabus ni note : les analyses d'impact de la branche restent celles
+    -- d'avant (analyse-impact.spec.ts).
+    insert into matiere (name, heure, coeff, unite_enseignement_id)
+    select 'E2E Matiere Deliberee', 10, 1, ue.id from ue returning id
+), ctrl as (
+    insert into controle (name, coeff, matiere_id) select 'E2E Controle Deliberee', 1, mat.id from mat
 )
 insert into jury_result (user_id, periode_id, unite_enseignement_id, grade, gpa_index, ects, compte_cumul)
 select eleve.id, pe.id, ue.id, 'B', 3, 5, true

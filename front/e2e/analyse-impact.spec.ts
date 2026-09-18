@@ -17,7 +17,8 @@ import { crud, errors, interpoler, ligneImpact, nomImpact, titreSuppression } fr
  * `ligneImpact`, jamais en clair.
  *
  * État semé : « E2E UE1 » porte une liaison (C1) et sa matière « E2E Matiere »
- * une fiche ; « E2E UE Deliberee » n'a ni matière, ni fiche, ni liaison — mais
+ * une fiche ; « E2E UE Deliberee » n'a ni fiche, ni liaison (sa matière
+ * « E2E Matiere Deliberee » sert à la grille verrouillée) — mais
  * sa période est délibérée : depuis le lot correction-blocage-jury (17
  * septembre 2026), sa modale est à l'état bloqué, comme celle de la période
  * (même raison, même message, rédigé par le front depuis `reason` + `count`).

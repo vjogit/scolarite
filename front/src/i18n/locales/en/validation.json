@@ -24,5 +24,10 @@
   "echelleNombreInvalideOuDecroissant": "A number is invalid, or the numbers are not decreasing",
   "ordreRequis": "Order is required: an integer from 1",
   "libelleRequis": "Label is required",
-  "actionRequise": "Action is required"
+  "actionRequise": "Action is required",
+  "capaciteRequise": "Capacity is required",
+  "coefficientRequis": "Coefficient is required",
+  "heuresRequises": "Hours are required",
+  "ectsRequis": "ECTS are required",
+  "scoreToeicRequis": "Score is required"
 }

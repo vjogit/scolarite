@@ -47,22 +47,27 @@ func (q *Queries) DeleteToeic(ctx context.Context, ids []int32) error {
 }
 
 const updateToeic = `-- name: UpdateToeic :one
-UPDATE toeic SET score = $1, date_passage = $2, remarque = $3, version = version + 1 WHERE id = $4 AND version = $5 RETURNING version
+UPDATE toeic SET score = $1, date_passage = $2, remarque = $3, user_id = $4, version = version + 1 WHERE id = $5 AND version = $6 RETURNING version
 `
 
 type UpdateToeicParams struct {
 	Score       int32              `json:"score"`
 	DatePassage pgtype.Timestamptz `json:"date_passage"`
 	Remarque    *string            `json:"remarque"`
+	UserID      int32              `json:"user_id"`
 	ID          int32              `json:"id"`
 	Version     int32              `json:"version"`
 }
 
+// user_id est écrit comme les autres champs : le formulaire permet de changer
+// l'élève, et cette colonne manquait (défaut consigné au lot 14, fermé le
+// 17 septembre 2026).
 func (q *Queries) UpdateToeic(ctx context.Context, arg UpdateToeicParams) (int32, error) {
 	row := q.db.QueryRow(ctx, updateToeic,
 		arg.Score,
 		arg.DatePassage,
 		arg.Remarque,
+		arg.UserID,
 		arg.ID,
 		arg.Version,
 	)

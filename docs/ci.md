@@ -356,12 +356,9 @@ Couvert, sur chaque push et chaque pull request :
 
 - ~~**Les 20 captures de référence.**~~ Couvertes depuis le 4 septembre
   2026 (§10) : décisives, dans le conteneur de référence.
-- **Les tests Go d'intégration** (`pkg/resultat/note`, `jury`, `user`,
-  `structure/exchange`, `registre` intégration…) : ils se sautent sans base,
-  Keycloak et Mailpit. La stack du job e2e les rendrait possibles — c'est le
-  prochain pas naturel, non fait ici (il faut la base `scolarite_tu` et
-  `-p 1`, voir la mémoire du projet).
-- **`programme-import/pkg/extraction`** : rejoué, jamais décisif.
+- ~~**Les tests Go d'intégration**~~ Couverts depuis le 17 septembre 2026
+  (§11) : le job e2e les lance contre sa stack par `make test-integration`.
+- ~~**`programme-import/pkg/extraction`**~~ Décisif depuis le 17 septembre 2026 (§12) : fixtures dans `testdata/`.
 - **`govulncheck`, `npm audit --omit=dev`, Dependabot, protection de
   branche** : listés dans la dette de CLAUDE.md, hors de ce lot.
 - **Le bundle du front est unique** (aucune URL figée, `front/.env` commun) :
@@ -387,8 +384,8 @@ Couvert, sur chaque push et chaque pull request :
   remplacer par une fixture synthétique — à décider avant d'ouvrir les tests
   d'intégration en CI. **Tranché le 4 septembre 2026 : ajouté**, et toute
   fixture de `testdata/` avec lui.
-- **`test_salle.csv` / `test_prof.csv`** (programme-import) : absents
-  partout, défaut signalé depuis le lot 5, intact.
+- ~~**`test_salle.csv` / `test_prof.csv`**~~ (programme-import) : fermé le
+  17 septembre 2026, §12.
 - **`makefile.prod`** n'a pas reçu le passage explicite de `CONFIG_FILE` /
   `SECRETS_FILE` à `start-scolarite.sh` : le script garde son repli par nom
   d'espace de travail, la prod fonctionne comme avant. À aligner le jour où
@@ -517,3 +514,49 @@ son nom. Keycloak n'est pas touché (sa base est distincte).
 - L'image de base (2,5 Go décompressée) est téléchargée à chaque run, sans
   cache, comme les images backend et nginx : le temps de l'étape
   « conteneur de référence » est relevé dans le résumé de chaque run (§6).
+
+## 11. Les tests Go d'intégration entrent dans le job e2e (17 septembre 2026, lot nettoyage-registre)
+
+Jusqu'ici la suite d'intégration (base, Keycloak, Mailpit) se sautait
+partout où l'infrastructure manquait — `verification.yml` compris — et
+n'était lancée nulle part en CI : un vert qui ne testait rien, consigné en
+« non couvert » au §9. Deux changements :
+
+- **Une cible, `make test-integration`** (`makefile.local`) : recrée
+  `scolarite_tu` depuis `back/schema.sql` (la base ne survit à aucune
+  réinstallation du poste, aucun autre script ne la produisait), puis
+  `go test -p 1 -count=1 ./pkg/...` avec `TEST_DB_URL` composé des
+  variables PostgreSQL de `config-*.env` et du fichier de secrets — le
+  secret Keycloak est exporté par le makefile avec le reste. Sur le poste :
+  303 tests passés, 0 échoué, 1 sauté (`TestJury`, `JURY_TEST_PERIODE_ID`)
+  en 30 s.
+- **Deux régimes des gardes** (`back/pkg/services/test_helpers.go`) :
+  `TEST_DB_URL` ou `KC_BACKEND_CLIENT_SECRET` posé dit l'intention de tester
+  pour de vrai, et l'infrastructure injoignable devient un `t.Fatal` ;
+  absents, le `t.Skip` reste — c'est le régime de `verification.yml`, qui
+  n'a pas de base.
+
+Dans `e2e.yml`, l'étape « Tests Go d'intégration » vient après la preuve que
+la stack répond et avant la suite Playwright ; le résumé du run compte les
+`--- PASS`, `--- FAIL` et `--- SKIP` de la sortie `-v`, pour qu'un « ok » sans
+test exécuté se voie. `set -o pipefail` : le `tee` ne masque pas l'échec.
+
+## 12. `programme-import/pkg/extraction` : des fixtures commitées, des tests qui affirment (17 septembre 2026, lot nettoyage-registre)
+
+Le rouge permanent du §9 avait une seule cause : `pull_test.go` lisait cinq
+CSV (`test_salle.csv`, `test_prof.csv`, `test_cours.csv`, `test_promo.csv`,
+`test_resa.csv`) que le dépôt n'a jamais portés — aucune trace dans
+l'historique git —, n'affirmait rien (il imprimait un compte) et sortait par
+`log.Fatal`, ce qui tuait le binaire de test au premier fichier absent.
+Tranché avec l'utilisateur, entre committer une fixture utile et retirer le
+test : **committer**. Les exports réels existent sur le poste ; cinq lignes
+par flux en sont extraites dans `testdata/` (personnes anonymisées : noms et
+courriels remplacés ; salles, promotions et cours ne sont pas nominatifs),
+choisies pour se répondre d'un flux à l'autre et pour couvrir les valeurs
+vides, les accents et les parenthèses. Les tests affirment le compte, un
+objet entier par flux, la normalisation propre au flux des professeurs
+(espaces retirés, capitalisation, courriel en minuscules) et le contrat de
+`getItems` (arrêt à `EOT`, autres types ignorés). `verification.yml` lance
+`go test ./...` sans exception ; les deux étapes « défaut connu » sont
+retirées.
+

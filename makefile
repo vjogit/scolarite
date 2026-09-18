@@ -93,6 +93,7 @@ all:
 	@echo ""
 	@echo "Suite Playwright (front/e2e), dans le conteneur de référence — stack locale déjà lancée :"
 	@echo "  make test-ihm            — la suite entière, captures comprises (PLAYWRIGHT_ARGS=… pour la restreindre)"
+	@echo "  make test-integration    — tests Go d'intégration contre la stack locale, base scolarite_tu recréée depuis schema.sql"
 	@echo "  make captures-reference  — régénère les 20 captures de référence, contre une base réduite au seed"
 	@echo ""
 	@echo "Configuration : $(CONFIG_FILE_LOCAL) / $(CONFIG_FILE_PROD) (versionnés)"

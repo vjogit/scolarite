@@ -43,7 +43,7 @@ func MobiliteUse(next http.Handler) http.Handler {
 		}
 
 		queries := getQueriesFromCtx(r)
-		mobilite, err := queries.FetchMobiliteById(context.Background(), int32(id))
+		mobilite, err := queries.FetchMobiliteById(r.Context(), int32(id))
 		if errors.Is(err, pgx.ErrNoRows) {
 			services.InvalidRequestError(w, r, "Mobilité introuvable", services.NOT_FOUND, nil)
 			return

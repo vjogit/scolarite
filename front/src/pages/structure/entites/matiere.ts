@@ -19,8 +19,8 @@ export const matiereSchema = z.object({
     id: z.number(),
     version: z.number(),
     name: z.string().min(1, { error: messageValidation('nomRequis') }),
-    coeff: z.number().min(0, { error: messageValidation('coefficientDoitEtrePositif') }),
-    heure: z.number().min(0, { error: messageValidation('heuresDoiventEtrePositives') }),
+    coeff: z.number({ error: messageValidation('coefficientRequis') }).min(0, { error: messageValidation('coefficientDoitEtrePositif') }),
+    heure: z.number({ error: messageValidation('heuresRequises') }).min(0, { error: messageValidation('heuresDoiventEtrePositives') }),
     unite_enseignement_id: z.number(),
     color: z.string().nullable().optional(),
 });

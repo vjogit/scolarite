@@ -64,8 +64,11 @@ SET pays = $1,
     date_fin = $5,
     est_valide = $6,
     remarque = $7,
+    -- même défaut que UpdateToeic, fermé le même jour : l'élève se change
+    -- en édition, la colonne doit suivre.
+    user_id = $8,
     version = version + 1
-WHERE id = $8 AND version = $9
+WHERE id = $9 AND version = $10
 RETURNING version
 `
 
@@ -77,6 +80,7 @@ type UpdateMobiliteParams struct {
 	DateFin      pgtype.Timestamptz `json:"date_fin"`
 	EstValide    bool               `json:"est_valide"`
 	Remarque     *string            `json:"remarque"`
+	UserID       int32              `json:"user_id"`
 	ID           int32              `json:"id"`
 	Version      int32              `json:"version"`
 }
@@ -90,6 +94,7 @@ func (q *Queries) UpdateMobilite(ctx context.Context, arg UpdateMobiliteParams) 
 		arg.DateFin,
 		arg.EstValide,
 		arg.Remarque,
+		arg.UserID,
 		arg.ID,
 		arg.Version,
 	)

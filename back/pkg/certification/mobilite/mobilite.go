@@ -115,6 +115,7 @@ func UpdateMobilite(w http.ResponseWriter, r *http.Request) {
 		DateFin:      input.DateFin,
 		EstValide:    input.EstValide,
 		Remarque:     input.Remarque,
+		UserID:       input.UserID,
 	})
 	if err != nil {
 		errorsMap := services.MapPgErrorToValidationErrors(err, mobiliteConstraints)

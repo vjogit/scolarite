@@ -19,12 +19,10 @@
     "chargement": "Loading…",
     "parametreObligatoire": "Parameter {{parametre}} is required."
   },
-
   "barreAxes": {
     "axe": "View",
     "axeIndirect": "{{libelle}}…"
   },
-
   "axes": {
     "eleve": {
       "libelle": "Student",
@@ -47,48 +45,39 @@
       "annonce": "GPAs set by the jury. Only the deliberation produces them; nothing is entered here."
     }
   },
-
   "provenance": {
     "originRattrapage": "Validation threshold assigned after a passed resit: this value does not correspond to any actual paper.",
     "nonEvaluee": "Not assessed"
   },
-
   "celluleNote": {
     "rattrapage": "Resit"
   },
-
   "ligneNote": {
     "valeurNumeriqueAttendue": "Numeric value expected",
     "noteInvalide": "Invalid grade"
   },
-
   "noteField": {
     "noteAvecBareme": "Grade (/{{bareme}})"
   },
-
   "routes": {
     "gererLesNotes": "Manage grades",
     "gererLesControles": "Manage assessments"
   },
-
   "noteChartButton": {
     "afficherGraphique": "Show grades chart"
   },
-
   "ficheImport": {
     "importerDepuisExcel": "Import grades from Excel",
     "creeesEtMisesAJour": "{{creees}} grade(s) created, {{misesAJour}} grade(s) updated.",
     "lignesSansNote": "{{nombre}} row(s) with no grade, left unchanged.",
     "aucuneNoteImportee": "No grade was imported. Fix the file, then run the import again."
   },
-
   "ficheExportModal": {
     "titre": "Export grade sheet",
     "groupeLabel": "Student group",
     "groupePlaceholder": "Search a group…",
     "telecharger": "Download"
   },
-
   "grilleNotes": {
     "voirNotesEleve": "View student's grades",
     "notesDuControleParDefaut": "Assessment grades",
@@ -102,9 +91,9 @@
     "raccourciSaisie": "Enter or Tab saves the row and moves to the next student.",
     "exporterLaFiche": "Export sheet",
     "contexteOptionIntrouvable": "The option's context could not be found: unable to list groups.",
-    "choisirGroupe": "Choose a group to see its roster and enter grades."
+    "choisirGroupe": "Choose a group to see its roster and enter grades.",
+    "juryDelibere": "Jury deliberated: entry is locked until the deliberation is cancelled."
   },
-
   "grilleNotesTable": {
     "ligneVide": "Enter a grade or check \"not assessed\"",
     "reseauIndisponible": "Server unreachable. Your entry is kept — retry saving.",
@@ -138,7 +127,6 @@
     "conflitDeVersion": "Version conflict",
     "rechargerLigneDeEleveAriaLabel": "Reload {{eleve}}'s row"
   },
-
   "noteChartModal": {
     "eleveParDefaut": "Student",
     "nombreDeleves": "Number of students: {{count}}",
@@ -158,7 +146,6 @@
     "axeElevesNom": "Student",
     "axeElevesLabel": "Students (alphabetical order)"
   },
-
   "noteEleveAxe": {
     "aucunElevePeriode": "No student graded in this period",
     "eleveLabel": "Student of the period",
@@ -177,7 +164,6 @@
     "colonneCoeff": "Coeff",
     "colonneType": "Type"
   },
-
   "controle": {
     "nomLabel": "Assessment name",
     "coefficientLabel": "Coefficient",
@@ -192,19 +178,16 @@
     "exporterLaFiche": "Export sheet",
     "parametreMatiereIdObligatoire": "Parameter matiereId is required"
   },
-
   "notePeriode": {
     "colonneGpa": "GPA",
     "nonDelibere": "Not deliberated",
     "gpaNonCalculable": "GPA not calculable"
   },
-
   "noteUe": {
     "indetermine": "Undetermined",
     "colonneGrade": "Grade",
     "colonneMatiereEliminatoire": "Eliminatory subject"
   },
-
   "noteControle": {
     "nonEvalueLabel": "Not assessed",
     "valideeLabel": "Validated",

@@ -52,6 +52,14 @@ void i18n
     },
     fallbackLng: 'fr',
     supportedLngs: ['fr', 'en'],
+    // Un navigateur qui n'annonce QUE `fr-FR` démarrait en anglais : le
+    // détecteur rend `['fr-FR', 'en']` (navigateur, puis `lang="en"` de
+    // index.html) et i18next fait d'abord une passe d'égalité stricte contre
+    // `supportedLngs` — `fr-FR` y échoue, `en` y réussit, la seconde passe qui
+    // aurait réduit `fr-FR` à `fr` n'est jamais atteinte. Ramener chaque
+    // langue détectée à son code court garde des codes à deux lettres partout
+    // (`i18nextLng`, `langue.js` du thème Keycloak, pont zod ci-dessous).
+    detection: { convertDetectedLanguage: (langue) => langue.split('-')[0] ?? langue },
     defaultNS,
     ns: ['errors', 'crud', 'validation', 'note', 'corbeille', 'registre', 'salle', 'catalog', 'certification', 'programme', 'jury', 'user', 'structure', 'app', 'syllabus'],
     interpolation: {

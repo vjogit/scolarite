@@ -36,7 +36,7 @@ func GenerateJury(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	err = s.GenerateJury(f)
+	err = s.GenerateJury(r.Context(), f)
 	if err != nil {
 		services.ServerError(w, r, fmt.Errorf("Erreur lors de la génération du fichier Excel: %w", err))
 		return

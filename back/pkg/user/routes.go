@@ -38,7 +38,9 @@ func RouteUser(r chi.Router, cfg *services.KeycloakConfig) {
 		})
 	})
 
-	r.With(lecture).Get("/", FetchAllUser)
+	r.With(lecture).Get("/", func(w http.ResponseWriter, r *http.Request) {
+		FetchAllUser(w, r, cfg)
+	})
 	r.With(lecture).Get("/search", SearchUsers)
 }
 
@@ -54,7 +56,7 @@ func UserUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			user, err := queries.FetchUserById(context.Background(), int32(id))
+			user, err := queries.FetchUserById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "User introuvable", services.NOT_FOUND, nil)
 				return

@@ -14,6 +14,9 @@ type Querier interface {
 	DeleteToeic(ctx context.Context, ids []int32) error
 	FetchToeicById(ctx context.Context, id int32) (FetchToeicByIdRow, error)
 	FetchToeicsByPromotionId(ctx context.Context, promotionID int32) ([]FetchToeicsByPromotionIdRow, error)
+	// user_id est écrit comme les autres champs : le formulaire permet de changer
+	// l'élève, et cette colonne manquait (défaut consigné au lot 14, fermé le
+	// 17 septembre 2026).
 	UpdateToeic(ctx context.Context, arg UpdateToeicParams) (int32, error)
 }
 

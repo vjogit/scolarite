@@ -47,7 +47,7 @@ func GroupeUse(next http.Handler) http.Handler {
 		}
 
 		queries := getQueriesFromCtx(r)
-		groupe, err := queries.FetchGroupeById(context.Background(), int32(id))
+		groupe, err := queries.FetchGroupeById(r.Context(), int32(id))
 		if err == pgx.ErrNoRows {
 			services.InvalidRequestError(w, r, "Groupe introuvable", services.NOT_FOUND, nil)
 			return

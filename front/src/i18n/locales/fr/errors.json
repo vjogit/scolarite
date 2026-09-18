@@ -25,7 +25,9 @@
     "jury_delibere_other": "Suppression impossible : {{count}} périodes concernées ont un jury délibéré.",
     "parent_en_corbeille": "Restauration impossible : restaurez d'abord {{parents}}.",
     "homonyme_actif": "Restauration impossible : un objet actif porte déjà l'un des noms à restaurer. Renommez-le ou supprimez-le d'abord.",
-    "note_sur_eleve_non_evalue": "Aucune note n'a été importée."
+    "note_sur_eleve_non_evalue": "Aucune note n'a été importée.",
+    "saisie_apres_deliberation_one": "Saisie impossible : {{count}} période concernée a un jury délibéré. Annulez la délibération pour modifier les notes.",
+    "saisie_apres_deliberation_other": "Saisie impossible : {{count}} périodes concernées ont un jury délibéré. Annulez la délibération pour modifier les notes."
   },
   "motifChamp": {
     "champ_obligatoire": "Ce champ est obligatoire",

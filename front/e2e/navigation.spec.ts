@@ -8,16 +8,15 @@ function idPeriodeDansUrl(url: string): string | null {
 }
 
 test.describe('Navigation et contexte', () => {
-    // Défaut découvert en écrivant ce lot, reproductible à 100% : toute
-    // première navigation réelle (goto/reload) vers une URL profonde rebondit
-    // sur Keycloak (`redirectUri` figé sur la racine dans KeycloakContext.tsx)
-    // et retombe sur `/catalog_context/formation` au lieu de l'écran visé —
-    // y compris pour un rechargement, contrairement à ce que documente le
-    // module de contexte (`contexte.ts` : « un lien collé dans un onglet neuf
-    // redonne exactement le même contexte »). `test.fail` documente le
-    // défaut sans faire échouer `make test-ihm` : voir le compte-rendu de
-    // vérification pour la reproduction complète et la piste de correction.
-    test.fail('lien profond copié dans un nouvel onglet reste sur le même écran', async ({ pageAdmin }) => {
+    // Longtemps un `test.fail` : toute première navigation réelle (goto) vers
+    // une URL profonde rebondissait sur Keycloak (`redirectUri` sur la
+    // racine, seule URL de retour autorisée) et retombait sur
+    // `/catalog_context/formation`. Fermé le 17 septembre 2026 : l'écran
+    // visé est mémorisé avant l'aller-retour et rejoué après
+    // (KeycloakContext.tsx, App.tsx) — ce que `contexte.ts` promettait
+    // (« un lien collé dans un onglet neuf redonne exactement le même
+    // contexte ») est vrai.
+    test('lien profond copié dans un nouvel onglet reste sur le même écran', async ({ pageAdmin }) => {
         await allerJusquaPeriode(pageAdmin, 'notes');
         const urlProfonde = pageAdmin.url();
 

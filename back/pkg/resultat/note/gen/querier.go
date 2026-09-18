@@ -20,6 +20,9 @@ type Querier interface {
 	// requête d'écriture (et une seule fois par import), la borne étant ensuite
 	// appliquée en mémoire.
 	FetchBaremeByControleID(ctx context.Context, controleID int32) (float32, error)
+	// Les contrôles que des notes désignent — pour le contrôle « jury délibéré »
+	// avant une suppression en masse (blocage.go).
+	FetchControleIDsByNoteIDs(ctx context.Context, ids []int32) ([]int32, error)
 	FetchElevesFiche(ctx context.Context, arg FetchElevesFicheParams) ([]FetchElevesFicheRow, error)
 	//
 	// GPA par période d'un élève, lu dans le relevé de jury.

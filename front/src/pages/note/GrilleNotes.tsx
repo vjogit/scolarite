@@ -62,13 +62,17 @@ interface Props {
     controle: Controle | undefined;
     isRattrapage: boolean;
     bareme?: number;
+    /** La période du contrôle porte un jury délibéré : saisie verrouillée. */
+    juryDelibere?: boolean;
 }
 
-export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bareme }: Props) {
+export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bareme, juryDelibere = false }: Props) {
     // Sans le rôle d'écriture des notes, la grille s'affiche en lecture seule :
-    // consulter les notes reste légitime, seule la saisie disparaît.
+    // consulter les notes reste légitime, seule la saisie disparaît. Sous jury
+    // délibéré, elle l'est pour tout le monde, tant que la délibération n'est
+    // pas annulée (17 septembre 2026) — le serveur refuse de toute façon.
     const { possedeRole } = useDroits();
-    const lectureSeule = !possedeRole(Role.NOTES_ECRITURE);
+    const lectureSeule = !possedeRole(Role.NOTES_ECRITURE) || juryDelibere;
 
     const navigate = useNavigate();
     const { pathname } = useLocation();
@@ -196,10 +200,12 @@ export function GrilleNotes({ controleId, optionId, controle, isRattrapage, bare
                     </p>
                     {/* Sans ce second cas, une grille aux champs tous grisés
                         n'expliquait pas pourquoi : elle passait pour en panne. */}
-                    <span className="text-xs text-muted-foreground">
-                        {lectureSeule
-                            ? t('grilleNotes.consultationSeule')
-                            : t('grilleNotes.raccourciSaisie')}
+                    <span className="text-xs text-muted-foreground" role="status">
+                        {juryDelibere
+                            ? t('grilleNotes.juryDelibere')
+                            : lectureSeule
+                                ? t('grilleNotes.consultationSeule')
+                                : t('grilleNotes.raccourciSaisie')}
                     </span>
                 </div>
 

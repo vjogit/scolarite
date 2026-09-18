@@ -173,6 +173,29 @@ func TracerSuppressionNotes(ctx context.Context, tx pgx.Tx, ids []int32, authorS
 	return len(notes), appendNotesDetruites(ctx, tx, OpNoteDelete, notes, authorSub, time.Now())
 }
 
+// TracerSuppressionEnCascade écrit un maillon note.delete par note que la
+// suppression physique d'UE, de matières ou de contrôles (racineType
+// 'unite_enseignement', 'matiere', 'controle') va emporter par cascade — à
+// appeler dans la transaction qui supprime, avant le DELETE. Jusqu'au
+// 17 septembre 2026, ces trois handlers cascadaient `note` sans rien tracer,
+// contre l'invariant 5 : le registre perdait la preuve de destruction.
+// Même descente structurelle que la purge (ListNotesToPurge), même maillon
+// que DELETE /note : c'est une suppression, pas une purge de corbeille.
+func TracerSuppressionEnCascade(ctx context.Context, tx pgx.Tx, racineType string, rootIDs []int32, authorSub string) (int, error) {
+	rows, err := gen.New(tx).ListNotesToPurge(ctx, gen.ListNotesToPurgeParams{
+		RacineType: racineType,
+		Ids:        rootIDs,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("registre: lecture des notes emportées par la suppression (%s): %w", racineType, err)
+	}
+	notes := make([]noteRow, len(rows))
+	for i, r := range rows {
+		notes[i] = noteRow(r)
+	}
+	return len(notes), appendNotesDetruites(ctx, tx, OpNoteDelete, notes, authorSub, time.Now())
+}
+
 // TracerPurgeNotes écrit un maillon note.purge par note que la purge d'une
 // opération de corbeille va détruire par cascade — à appeler dans la
 // transaction de purge, avant les DELETE des racines.

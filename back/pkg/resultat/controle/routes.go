@@ -42,7 +42,7 @@ func ControleUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			controle, err := queries.FetchControleById(context.Background(), int32(id))
+			controle, err := queries.FetchControleById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Contrôle introuvable", services.NOT_FOUND, nil)
 				return

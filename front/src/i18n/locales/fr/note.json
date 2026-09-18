@@ -19,12 +19,10 @@
     "chargement": "Chargement…",
     "parametreObligatoire": "Le paramètre {{parametre}} est obligatoire."
   },
-
   "barreAxes": {
     "axe": "Axe",
     "axeIndirect": "{{libelle}}…"
   },
-
   "axes": {
     "eleve": {
       "libelle": "Élève",
@@ -47,48 +45,39 @@
       "annonce": "GPA arrêtés par le jury. Seule la délibération les produit ; aucune valeur ne se saisit ici."
     }
   },
-
   "provenance": {
     "originRattrapage": "Seuil de validation attribué après un rattrapage validé : cette valeur ne correspond à aucune copie.",
     "nonEvaluee": "Non évaluée"
   },
-
   "celluleNote": {
     "rattrapage": "Rattrapage"
   },
-
   "ligneNote": {
     "valeurNumeriqueAttendue": "Valeur numérique attendue",
     "noteInvalide": "Note invalide"
   },
-
   "noteField": {
     "noteAvecBareme": "Note (/{{bareme}})"
   },
-
   "routes": {
     "gererLesNotes": "Gérer les notes",
     "gererLesControles": "Gérer les contrôles"
   },
-
   "noteChartButton": {
     "afficherGraphique": "Afficher le graphique des notes"
   },
-
   "ficheImport": {
     "importerDepuisExcel": "Importer les notes depuis Excel",
     "creeesEtMisesAJour": "{{creees}} note(s) créée(s), {{misesAJour}} note(s) mise(s) à jour.",
     "lignesSansNote": "{{nombre}} ligne(s) sans note, laissée(s) inchangée(s).",
     "aucuneNoteImportee": "Aucune note n'a été importée. Corrigez le fichier puis relancez l'import."
   },
-
   "ficheExportModal": {
     "titre": "Exporter la fiche de notes",
     "groupeLabel": "Groupe d'élèves",
     "groupePlaceholder": "Rechercher un groupe…",
     "telecharger": "Télécharger"
   },
-
   "grilleNotes": {
     "voirNotesEleve": "Voir les notes de l'élève",
     "notesDuControleParDefaut": "Notes du contrôle",
@@ -102,9 +91,9 @@
     "raccourciSaisie": "Entrée ou Tab enregistre la ligne et passe à l'élève suivant.",
     "exporterLaFiche": "Exporter la fiche",
     "contexteOptionIntrouvable": "Le contexte de l'option est introuvable : impossible de lister les groupes.",
-    "choisirGroupe": "Choisissez un groupe pour afficher son effectif et saisir les notes."
+    "choisirGroupe": "Choisissez un groupe pour afficher son effectif et saisir les notes.",
+    "juryDelibere": "Jury délibéré : la saisie est verrouillée tant que la délibération n'est pas annulée."
   },
-
   "grilleNotesTable": {
     "ligneVide": "Renseignez une note ou cochez « non évalué »",
     "reseauIndisponible": "Serveur injoignable. La saisie est conservée, relancez l'enregistrement.",
@@ -138,7 +127,6 @@
     "conflitDeVersion": "Conflit de version",
     "rechargerLigneDeEleveAriaLabel": "Recharger la ligne de {{eleve}}"
   },
-
   "noteChartModal": {
     "eleveParDefaut": "Élève",
     "nombreDeleves": "Nombre d'élèves : {{count}}",
@@ -158,7 +146,6 @@
     "axeElevesNom": "Élève",
     "axeElevesLabel": "Élèves (Ordre alphabétique)"
   },
-
   "noteEleveAxe": {
     "aucunElevePeriode": "Aucun élève noté sur cette période",
     "eleveLabel": "Élève de la période",
@@ -177,7 +164,6 @@
     "colonneCoeff": "Coeff",
     "colonneType": "Type"
   },
-
   "controle": {
     "nomLabel": "Nom du contrôle",
     "coefficientLabel": "Coefficient",
@@ -192,19 +178,16 @@
     "exporterLaFiche": "Exporter la fiche",
     "parametreMatiereIdObligatoire": "Le paramètre matiereId est obligatoire"
   },
-
   "notePeriode": {
     "colonneGpa": "GPA",
     "nonDelibere": "Non délibéré",
     "gpaNonCalculable": "GPA non calculable"
   },
-
   "noteUe": {
     "indetermine": "Indéterminé",
     "colonneGrade": "Grade",
     "colonneMatiereEliminatoire": "Matière éliminatoire"
   },
-
   "noteControle": {
     "nonEvalueLabel": "Non évalué",
     "valideeLabel": "Validée",

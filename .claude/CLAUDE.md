@@ -49,11 +49,13 @@ existants). Pas encore en production.
     ni dans `package.json`. L'historique de la migration est dans
     `docs/migration-shadcn/`, un document par lot. Ne pas le dupliquer ici.
 - **Tests** : Go unitaires + intégration gardés par l'environnement
-  (`t.Skip` explicite) ; suite Playwright versionnée dans `front/e2e/`.
+  (`t.Skip` explicite sans `TEST_DB_URL`, échec avec — `make
+  test-integration` recrée `scolarite_tu` depuis `schema.sql`, voir
+  « Dette ») ; suite Playwright versionnée dans `front/e2e/`.
 - **CI GitHub Actions** (`.github/workflows/`, un fichier par
   préoccupation, `docs/ci.md`) : `verification.yml` (lint, build, Go,
-  généré sqlc à jour) et `e2e.yml` (la suite complète — 95 tests, dont les
-  24 captures de référence — contre la stack montée par
+  généré sqlc à jour) et `e2e.yml` (la suite complète, captures de référence
+  comprises, contre la stack montée par
   `make start-local-reset` sur l'exécuteur, `infra/env/config-ci.env`, dans
   le conteneur de référence, voir « Suite e2e »).
 - Trois modes de lancement : `makefile.local` / `makefile.prod`, fichiers
@@ -107,7 +109,15 @@ existants). Pas encore en production.
    fonctionnel manquant.
 5. **Le registre observe, il ne gouverne pas.** Chaque écriture de note/jury
    laisse un maillon (`pkg/registre`) **dans la même transaction** ; un échec
-   d'ancrage TSA ou de témoin ne bloque jamais une écriture métier.
+   d'ancrage TSA ou de témoin ne bloque jamais une écriture métier. **Une
+   suppression en cascade aussi** (17 septembre 2026) : les DELETE physiques
+   d'UE, de matière et de contrôle ouvrent une transaction et posent un
+   maillon `note.delete` par note emportée avant le DELETE
+   (`registre.TracerSuppressionEnCascade`, même descente structurelle que la
+   purge — `ListNotesToPurge` accepte les racines `unite_enseignement`,
+   `matiere`, `controle`), comme `DELETE /note` et la purge de la corbeille
+   le faisaient déjà. Un `TestIntegration_Delete_TraceLesNotesEmportees`
+   par handler, chaîne vérifiée après coup.
 6. **Format canonique du registre : gelé.** Ordre et champs inaltérables ;
    jamais de texte libre ni de donnée nominative dans un maillon (la
    remarque entre par `HashRemarque`). Seuls seq + hash + date sortent vers
@@ -143,9 +153,24 @@ existants). Pas encore en production.
    `Count*JuryDeliberePeriodes` ont été retirées). Le geste de correction
    légitime est l'annulation de la délibération (maillon `jury.cancel`).
    Hors règle, assumé : l'effacement d'un élève (RGPD, tracé `note.erase` /
-   `jury.erase`) et la saisie de notes en grille après délibération (une
-   question d'écriture, pas de suppression — constat consigné dans
-   « Défauts constatés »).
+   `jury.erase`). **La même définition verrouille les écritures de notes**
+   (17 septembre 2026) : création, mise à jour, effacement d'une cellule et
+   import de fiche d'un contrôle dont la période est délibérée sont refusés
+   **avant toute écriture** (`note/blocage.go`, `refuserSaisieSiJuryDelibere`,
+   périmètre contrôle), 409 `BUSINESS_CONFLICT` `reason:
+   saisie_apres_deliberation`, `count` = périodes — raison distincte parce
+   que le front la rédige autrement (« saisie », pas « suppression »,
+   `blocage.saisie_apres_deliberation` d'`errors.json`). Le détail du
+   contrôle (`GET /resultat/controle/{id}`) porte `jury_delibere`, calculé
+   par le domaine jury, à côté du barème : la grille s'y verrouille pour
+   tout le monde (ligne `role="status"` « Jury délibéré : la saisie est
+   verrouillée… », champs désactivés, import masqué) et le formulaire page
+   entière perd son `roleEcriture` — aucune requête ajoutée, aucun 409
+   depuis une action visible. Rouvrir la grille = annuler la délibération.
+   Preuves : `TestIntegration_NoteEcriture_JuryDelibere_Renvoie409`,
+   `TestIntegration_ControleDetail_PorteJuryDelibere`,
+   `grille-jury-delibere.spec.ts` (contrôle « E2E Controle Deliberee »
+   ajouté au seed sous la période délibérée, compte NOTES_ECRITURE).
 10. **Rien en dur qui diffère entre environnements.** Toute valeur
     local/prod passe par `config.yaml` typé (`services/config.go`) +
     `infra/env/`. Le spécifique-développement est marqué comme tel (Mailpit,
@@ -269,9 +294,11 @@ existants). Pas encore en production.
   **Les fixtures de `testdata/` sont suivies** par git, quel que soit leur
   format (`.gitignore` : `!**/testdata/**`, tranché le 4 septembre 2026) —
   `pkg/structure/exchange/testdata/programme.xlsx`, que le test
-  d'intégration d'import exige, en est le précédent ; un test ne doit jamais
-  dépendre d'un fichier que le dépôt ne porte pas (les CSV manquants de
-  `programme-import` restent le contre-exemple, voir « Dette »).
+  d'intégration d'import exige, en est le précédent, et
+  `cmd/programme-import/pkg/extraction/testdata/` (cinq extraits anonymisés
+  des exports du planning tiers, 17 septembre 2026) le second ; un test ne
+  doit jamais dépendre d'un fichier que le dépôt ne porte pas (les CSV
+  manquants de `programme-import` en étaient le contre-exemple, fermé).
 
 ## Suite e2e (front/e2e) — le filet de régression
 
@@ -318,8 +345,8 @@ existants). Pas encore en production.
   nouveau validé au navigateur a vocation à rejoindre la suite. Ce critère
   suppose une suite déjà déterministe (point ci-dessus) — un « vert » sur
   une suite qui ne re-sème pas ne prouve rien. La CI (`e2e.yml`) rejoue la
-  suite complète sur chaque push par la même cible (`make test-ihm`, 95
-  tests, captures comprises), `retries: 0` inchangé, et publie à chaque run
+  suite complète sur chaque push par la même cible (`make test-ihm`, captures
+  comprises), `retries: 0` inchangé, et publie à chaque run
   `test-results/`, le rapport HTML et les journaux des conteneurs — **un
   échec intermittent en CI se diagnostique dans l'artefact, jamais par une
   relance** (consigne `registre.spec.ts`).
@@ -391,6 +418,10 @@ existants). Pas encore en production.
   `make fetch-freetsa-cert` (racine TSA — acte volontaire, empreinte à
   vérifier).
 - **Ne jamais committer** captures, traces ou rapports.
+- Depuis le 17 septembre 2026, un `goto` direct sur une URL profonde arrive
+  sur l'écran visé (l'aller-retour Keycloak est rejoué par
+  `KeycloakContext.tsx`/`App.tsx`) : plus besoin du `pushState` +
+  `popstate` de contournement dans les scripts de vérification.
 
 ## Déroulé d'un lot — structure éprouvée sur ce projet
 
@@ -626,8 +657,15 @@ d'écart sous les volumes horaires, même formulation). Ne pas rouvrir.
    7 matières aux rubriques longues font 36 pages physiques. Volumes
    mesurés le 15 septembre 2026 : fiche de 4 pages ≈ 65 ko en 150 ms
    côté serveur (230 ms au clic), livret de 36 pages ≈ 266 ko en 280 ms
-   (480 ms au clic) ; le délai client de 25 s laisse deux ordres de
-   grandeur. Nom de fichier : `syllabus-ue-<slug>-<lang>.pdf`,
+   (480 ms au clic) ; le délai de conversion de 25 s laisse deux ordres de
+   grandeur. **Deux délais depuis le 17 septembre 2026** (lot
+   `nettoyage-registre`) : `pdf.timeout` borne la conversion entière (25 s),
+   `pdf.timeout_connexion` la seule ouverture de la connexion TCP (2 s,
+   `net.Dialer` d'un transport propre au client) — le conteneur arrêté laisse
+   son adresse sans hôte sur le réseau Docker et chaque SYN attendait les
+   25 s ; mesuré au clic après correction : 503 en 2,06 s. Test « adresse
+   qui ne répond pas » (RFC 6598, délai de test court) à côté du « port
+   fermé » dans `pdf_test.go`. Nom de fichier : `syllabus-ue-<slug>-<lang>.pdf`,
    `syllabus-livret-<slug>-<lang>.pdf` (ASCII, tirets). À l'écran :
    bouton « Télécharger la fiche PDF » à droite du titre de l'écran
    syllabus de l'UE ; action « Télécharger le livret PDF »
@@ -1032,71 +1070,46 @@ est un acte de création, pas un lien vivant).
 - **Intégration continue : réduite, pas fermée** (lot CI, `docs/ci.md`).
   Couvert sur chaque push et pull request : lint + build du front, versions
   épinglées vérifiées, généré sqlc à jour, build + tests Go (hors
-  intégration : ils se sautent sans base), et la suite e2e complète (95
-  tests, les 24 captures de référence comprises, dans le conteneur de
-  référence) contre la stack complète. **Non couvert** : les tests Go
-  d'intégration (`t.Skip` sans PostgreSQL,
-  Keycloak, Mailpit — la stack du job e2e existe pourtant, à réutiliser) ;
-  `govulncheck`, `npm audit --omit=dev`, Dependabot, protection de branche.
-  `programme-import/pkg/extraction` échoue sur fixture absente : rejoué en
-  étape non bloquante, annotation d'avertissement à chaque run.
+  intégration : ils se sautent sans base), la suite e2e complète (captures
+  de référence comprises, dans le conteneur de référence) contre la stack
+  complète, et, **depuis le 17 septembre 2026** (lot `nettoyage-registre`),
+  **les tests Go d'intégration contre cette même stack** : le job e2e
+  appelle `make test-integration`, qui recrée `scolarite_tu` depuis
+  `back/schema.sql` et lance `go test -p 1 ./pkg/...` avec `TEST_DB_URL`
+  (303 tests, 30 s sur le poste) — le résumé du run compte passés, échoués
+  et sautés. **Deux régimes des gardes d'intégration**
+  (`services/test_helpers.go`) : `go test` nu, sans `TEST_DB_URL` ni
+  `KC_BACKEND_CLIENT_SECRET`, se saute quand l'infrastructure manque
+  (`verification.yml`, poste sans stack) ; l'une ou l'autre variable posée
+  dit l'intention, et une base ou un Keycloak injoignable est un **échec**,
+  plus jamais un vert qui ne teste rien. Reste sauté explicitement :
+  `TestJury` (`JURY_TEST_PERIODE_ID`, un test ad hoc sur une période
+  réelle). **Non couvert** : `govulncheck`, `npm audit --omit=dev`,
+  Dependabot, protection de branche.
+  `programme-import/pkg/extraction` lit ses fixtures dans `testdata/`
+  depuis le 17 septembre 2026 (`docs/ci.md` §12) : `verification.yml` lance
+  `go test ./...` sans exception.
 ### Défauts constatés, non corrigés
 
 Trouvés au cours de la migration, tous **hors périmètre du lot où ils sont
 apparus** — donc jamais traités. Ils ne sont pas des dettes de migration :
 ils survivront à celle-ci si personne ne les reprend.
 
-- **`UpdateToeic` n'écrit pas `user_id`** (lot 14). Changer l'élève d'un
-  résultat TOEIC en édition est **sans effet** : l'interface accepte, le PUT
-  porte la valeur, la requête SQL ne l'écrit pas. Perte de saisie
-  silencieuse, côté back. Le plus sérieux des quatre.
-- **Colonne « Rôles » vide dans la liste des utilisateurs** (lot 13) : la
-  consultation montre les rôles cochés, la liste ne semble pas les recevoir.
-- **Message zod brut pour un nombre requis vidé** (lot 13) : un message
-  métier demande une `error` sur chaque schéma concerné.
-- **Un navigateur qui n'annonce que `fr-FR` fait démarrer l'application en
-  anglais** (5 septembre 2026, constaté dans le conteneur de référence
-  avec `locale: 'fr-FR'` ; rejoué le 17 septembre 2026, lot
-  `correction-langue`, `navigator.languages = ["fr-FR"]` → onglets anglais).
-  **Diagnostic posé** : le détecteur renvoie `['fr-FR', 'en']` — le
-  navigateur, puis `htmlTag` sur le `lang="en"` de `front/index.html` — et
-  i18next fait d'abord une passe d'**égalité stricte** sur toute la liste
-  contre `supportedLngs: ['fr', 'en']` : `fr-FR` échoue, `en` réussit, et la
-  seconde passe, qui aurait réduit `fr-FR` à `fr`, n'est jamais atteinte.
-  C'est le choix de la langue de départ, pas un texte qui ignore la langue
-  active : autre mécanisme que le lot `correction-langue`, donc laissé ici.
-  **Correctif identifié** : `detection: { convertDetectedLanguage: (l) =>
-  l.split('-')[0] }` dans `i18n/config.ts` (option de
-  `i18next-browser-languagedetector` 8.2, installée) — une ligne, qui garde
-  des codes à deux lettres partout (`i18nextLng`, `langue.js` du thème
-  Keycloak, pont zod). `<html lang="fr">` ne ferait que déplacer le biais
-  vers un navigateur `en-US` seul. À livrer avec une spec `locale: 'fr-FR'`
-  dans le conteneur de référence. Les navigateurs réels envoient `fr-FR,fr`
-  et n'y tombent pas.
-- **La grille de notes reste saisissable après délibération** (17 septembre
-  2026, lot `correction-blocage-jury`, constaté à la lecture de
-  `note.go` : ni l'upsert ni `DELETE /note/bulk`, l'effacement d'une
-  cellule, ne consultent `jury_result`). `jury_result` est le relevé figé,
-  les bulletins se régénèrent depuis les notes : une note modifiée après
-  délibération change un document remis. Question d'écriture, pas de
-  suppression en cascade — hors du lot de blocage ; à trancher (bloquer, ou
-  tenir la grille pour libre tant que la délibération n'est pas annulée).
-- **Supprimer une UE, une matière ou un contrôle emporte des notes sans
-  maillon de registre** (17 septembre 2026, même lot, constaté à la
-  lecture) : `TracerSuppressionNotes` n'est appelé que par `DELETE /note`,
-  `TracerPurgeNotes` par la purge de la corbeille ; les trois DELETE
-  physiques (`ue.go`, `matiere.go`, `controle.go`) cascadent `note` sans
-  rien tracer, contre l'invariant 5. Depuis le blocage jury, cela ne
-  concerne plus que des notes hors jury délibéré ; le registre y perd
-  quand même la preuve de destruction.
-- **`registre.spec.ts` intermittent** (lot 11) : un échec unique, y compris
-  relancé seul, puis quatre passages verts ; cause non identifiée, artefacts
-  écrasés. **Si l'échec revient, sauver `test-results/` avant toute
-  relance.**
 
-Deux défauts plus anciens sont documentés dans « Pièges connus » et dans la
-suite e2e plutôt qu'ici, parce qu'ils piègent activement quiconque écrit du
-code : rendu figé de `BarreAxes`, rebond Keycloak sur lien profond. Le
+Un défaut plus ancien est documenté dans « Pièges connus » et dans la
+suite e2e plutôt qu'ici, parce qu'il piège activement quiconque écrit du
+code : le rendu figé de `BarreAxes`. Le **rebond Keycloak sur lien profond**
+(réel jusqu'au 17 septembre 2026 : `redirectUri` fixé sur la racine, seule
+URL de retour que le client Terraform autorise, volontairement) est
+**fermé** le même jour, sans élargir les URI Keycloak : `KeycloakContext.tsx`
+mémorise l'écran visé en `sessionStorage` (clé `chemin-avant-connexion`,
+propre à l'onglet) avant l'init, rien sur la racine, l'entrée laissée en
+place sur le trajet retour (fragment `state=`) ; `App.tsx` la consomme une
+fois l'instance prête et navigue en `replace`, après l'armement de
+l'intercepteur. `navigation.spec.ts` (« lien profond copié dans un nouvel
+onglet ») est redevenu un test qui passe, `droits.spec.ts` atteint `/new`
+par un `goto` direct au lieu d'un `pushState` de contournement, et la
+promesse de `contexte.ts` est tenue. Le
 troisième — la désynchronisation des variables CSS MUI quand le mode choisi
 différait de l'OS (lots 7, 8, 10) — est **fermé** par la dépose de MUI
 (lot 17, vérifié au navigateur : sombre choisi + OS clair → tout l'écran
@@ -1129,6 +1142,67 @@ d'intégration `TestIntegration_CountPeriodesDeliberees_ToutPerimetre`,
 `ControleDelete_JuryDelibere_Renvoie409`, la spec « Blocage — jury
 délibéré » d'`analyse-impact.spec.ts`, et au navigateur dans les deux
 langues.
+Le huitième — un navigateur qui n'annonce que `fr-FR` faisait démarrer
+l'application en anglais (consigné le 5 septembre 2026, diagnostic posé au
+lot `correction-langue`) — est **fermé** le 17 septembre 2026 par le lot
+`nettoyage-registre` : `detection.convertDetectedLanguage` ramène chaque
+langue détectée à son code court dans `i18n/config.ts` (le détecteur rendait
+`['fr-FR', 'en']` et la passe d'égalité stricte d'i18next retenait `en`),
+codes à deux lettres conservés partout ; prouvé par `langue-navigateur.spec.ts`
+(contexte neuf `locale: 'fr-FR'`, rouge avant, vert après — la spec tourne
+sur tout poste, Playwright fixant `navigator.languages`).
+Le neuvième — message zod brut pour un nombre requis vidé (consigné au lot
+13) — est **fermé** le 17 septembre 2026 par le même lot : les cinq champs
+numériques requis (capacité de la salle, coefficient et heures de la
+matière, ECTS de l'UE, score TOEIC) portent une `error` sur le constructeur
+`z.number`, comme `bareme` et `ordre` déjà ; cinq clés `*Requis*` dans
+`validation.json` fr et en ; prouvé par « la capacité vidée reçoit son
+message métier » de `salle.spec.ts`.
+Le dixième — colonne « Rôles » vide dans la liste des utilisateurs (consigné
+au lot 13) — est **fermé** le 17 septembre 2026 par le même lot : la liste
+(`FetchAllUser`) ne lisait que la base, les rôles vivent dans Keycloak et
+seul le détail les demandait ; elle les rend désormais par `rolesParCompte`
+— un appel `GetUsersByRoleName` par rôle de `AssignableRoles`, paginé, dix
+appels bornés quel que soit le nombre d'utilisateurs, jamais un par ligne ;
+Keycloak injoignable, la liste sort sans rôles et l'incident est logué,
+comme dans `FetchUser`. Prouvé par
+`TestIntegration_User_FetchAllUser_PorteLesRolesKeycloak` et par
+`utilisateurs.spec.ts`, qui crée son agent par l'écran (aucun compte du seed
+n'est en base avec un compte Keycloak), lit la colonne, puis le supprime.
+Le onzième — `UpdateToeic` n'écrivait pas `user_id` (consigné au lot 14, le
+plus sérieux : perte de saisie silencieuse) — est **fermé** le 17 septembre
+2026 par le même lot, avec son jumeau découvert en le fermant :
+`UpdateMobilite` avait le même trou. Les deux requêtes écrivent la colonne,
+les deux handlers la passent ; prouvé par
+`TestIntegration_ToeicUpdate_EcritLEleve` et
+`TestIntegration_MobiliteUpdate_EcritLEleve` (le second élève de la fixture
+reprend le résultat). Dans le même commit, **les contextes détachés** que le
+grep exhaustif de `context.Background()` a trouvés hors `cmd/` : les
+quatorze intergiciels `*Use` de `routes.go` lisaient leur entité hors du
+contexte de la requête (ils passent `r.Context()`), `GenerateJury` prend le
+contexte en paramètre, et les quatre compensations de l'import
+d'utilisateurs disent leur intention par `context.WithoutCancel(ctx)` — un
+navigateur parti ne doit pas laisser de compte Keycloak orphelin. Restent
+légitimes : `cmd/*`, le scheduler du registre, `db.go`, la construction de
+`AuthMiddleware`, les fixtures de test.
+Le douzième — `registre.spec.ts` intermittent (un échec au lot 11, artefact
+perdu) — est **fermé** le 17 septembre 2026 par le même lot, sans cause
+prouvée et sans cache-misère : **aucun échec en cinquante runs CI** depuis
+le 4 septembre (tous les rouges e2e sont le test d'écart syllabus des lots 2
+à 5, une fois `clavier.spec.ts`, et l'échec attendu de navigation), trois
+passes locales vertes. Hypothèse consignée, non prouvée : `toHaveCount(2)`
+sur les alertes de la page sous le délai d'assertion par défaut de 5 s, la
+carte Intégrité recalculant toute la chaîne — la famille « sous charge » du
+lot 7. La spec attend désormais **par carte** (une alerte pour Intégrité et
+Ancrage, aucune pour Témoin, le message d'échec nomme la carte) ; ni
+`retry`, ni délai gonflé. Si un échec revient, l'artefact CI tranche.
+Le treizième — la grille de notes restait saisissable après délibération
+(consigné au lot `correction-blocage-jury`) — est **fermé** le 17 septembre
+2026, tranché par l'utilisateur : la grille se bloque tant que la
+délibération n'est pas annulée (invariant 9, dernier paragraphe).
+Le quatorzième — supprimer une UE, une matière ou un contrôle emportait des
+notes sans maillon de registre (même lot) — est **fermé** le 17 septembre
+2026 : les trois handlers tracent dans leur transaction (invariant 5).
 
 - Colonnes de consultation `created_by`/`updated_by` (affichage « modifiée
   par X ») non implémentées — le registre en tient lieu pour la preuve.

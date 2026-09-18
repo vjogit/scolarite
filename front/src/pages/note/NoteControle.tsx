@@ -170,12 +170,17 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
 
     const isRattrapage = controle?.is_rattrapage ?? false;
     const bareme = controle?.bareme;
+    // Jury délibéré : plus aucune écriture de note tant que la délibération
+    // n'est pas annulée — la grille se verrouille, et le formulaire page
+    // entière perd son rôle d'écriture (pas de roleEcriture = pas d'écriture,
+    // invariant 3 : aucune action visible ne doit produire le 409 du serveur).
+    const juryDelibere = controle?.jury_delibere ?? false;
 
     const datasource = useMemo((): Datasource<NoteControle> | null => controleId ? ({
         ...createNoteControleRepository(controleId),
         ...noteControleViewConfig(controleId, isRattrapage, t, bareme),
         title: t('noteControle.titreNotesDuControle'),
-        roleEcriture: Role.NOTES_ECRITURE,
+        roleEcriture: juryDelibere ? undefined : Role.NOTES_ECRITURE,
         isAction,
         actionsLigne,
         isTopToolbar,
@@ -185,7 +190,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
                 <NoteChartButton onClick={() => { handleOpenChart(lignesVisibles); }} />
             </div>
         )
-    }) : null, [controleId, isRattrapage, bareme, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
+    }) : null, [controleId, isRattrapage, bareme, juryDelibere, isAction, isTopToolbar, actionsLigne, handleOpenChart, t]);
 
     // Le garde vient après les hooks, dont l'ordre doit être le même à chaque
     // rendu : sans le paramètre, le mémo ne construit rien.
@@ -211,6 +216,7 @@ export function CrudNoteControle({ mode, workflow, isAction, isTopToolbar, actio
                 controle={controle}
                 isRattrapage={isRattrapage}
                 bareme={bareme}
+                juryDelibere={juryDelibere}
             />
         );
     }

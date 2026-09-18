@@ -25,17 +25,26 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"strings"
 	"time"
 )
 
 // PDFConfig : bloc `pdf` du config.yaml. L'URL vient de l'environnement
-// (GOTENBERG_HOST), le délai et le nom de l'établissement sont des littéraux
-// du gabarit — ils ne varient pas d'un environnement à l'autre.
+// (GOTENBERG_HOST), les délais et le nom de l'établissement sont des
+// littéraux du gabarit — ils ne varient pas d'un environnement à l'autre.
+//
+// Deux délais, dissociés (17 septembre 2026) : Timeout borne la conversion
+// entière (un rendu long est légitime, un livret entier passe par là) ;
+// TimeoutConnexion ne borne que l'établissement de la connexion TCP. Le
+// conteneur Gotenberg arrêté laisse son adresse sans hôte sur le réseau
+// Docker : sans délai propre, chaque SYN attendait le délai total (503 en
+// 25 s, mesuré) — un port fermé, lui, répond tout de suite.
 type PDFConfig struct {
-	URL     string        `yaml:"url"`
-	Timeout time.Duration `yaml:"timeout"`
+	URL              string        `yaml:"url"`
+	Timeout          time.Duration `yaml:"timeout"`
+	TimeoutConnexion time.Duration `yaml:"timeout_connexion"`
 	// Etablissement : la marque portée par le pied de page des documents
 	// (« IMT Mines Alès »). Une valeur, un endroit — les gabarits la lisent.
 	Etablissement string `yaml:"etablissement"`
@@ -87,16 +96,36 @@ type ConvertisseurPDF struct {
 	client *http.Client
 }
 
-// NewConvertisseurPDF : client HTTP borné par le délai configuré. Un délai
-// nul vaut 30 s — celui de l'API Gotenberg elle-même.
+// Délais par défaut quand le config.yaml n'en pose pas : 30 s pour la
+// conversion (le délai de l'API Gotenberg elle-même), 2 s pour la connexion
+// (un service sur le même réseau Docker répond en millisecondes).
+const (
+	delaiConversionDefaut = 30 * time.Second
+	delaiConnexionDefaut  = 2 * time.Second
+)
+
+// NewConvertisseurPDF : client HTTP borné par les deux délais configurés —
+// la connexion par le Dialer du transport, la conversion entière par le
+// délai du client. Le transport est propre au client, jamais le transport
+// par défaut partagé.
 func NewConvertisseurPDF(cfg PDFConfig) *ConvertisseurPDF {
 	delai := cfg.Timeout
 	if delai <= 0 {
-		delai = 30 * time.Second
+		delai = delaiConversionDefaut
+	}
+	delaiConnexion := cfg.TimeoutConnexion
+	if delaiConnexion <= 0 {
+		delaiConnexion = delaiConnexionDefaut
+	}
+	transport := &http.Transport{
+		DialContext:         (&net.Dialer{Timeout: delaiConnexion}).DialContext,
+		MaxIdleConns:        4,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: delaiConnexion,
 	}
 	return &ConvertisseurPDF{
 		url:    strings.TrimRight(cfg.URL, "/"),
-		client: &http.Client{Timeout: delai},
+		client: &http.Client{Timeout: delai, Transport: transport},
 	}
 }
 

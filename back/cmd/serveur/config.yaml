@@ -88,10 +88,14 @@ registre:
 # bulletins de jury. Le client vit dans back/pkg/services/pdf.go. L'adresse
 # vient de l'environnement ; le délai borne chaque conversion et reste sous le
 # writeTimeout du serveur (30 s) — mesuré au lot 5 : un livret de 9 UE en
-# moins de 2 s. L'établissement est la marque du pied de page des documents.
+# moins de 2 s. Le délai de connexion, lui, ne borne que l'ouverture de la
+# connexion TCP : service arrêté, l'adresse reste sans hôte sur le réseau
+# Docker et le 503 arrive en 2 s au lieu d'attendre le délai de conversion.
+# L'établissement est la marque du pied de page des documents.
 pdf:
   url: http://${GOTENBERG_HOST}:3000
   timeout: 25s
+  timeout_connexion: 2s
   etablissement: IMT Mines Alès
 
 keycloak:

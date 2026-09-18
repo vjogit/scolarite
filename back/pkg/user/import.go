@@ -198,9 +198,12 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	}
 
 	if err := g.Wait(); err != nil {
-		// Rollback de tous les utilisateurs Keycloak créés pendant cet import
+		// Rollback de tous les utilisateurs Keycloak créés pendant cet import.
+		// Compensation volontairement détachée de l'annulation de la requête
+		// (WithoutCancel : les valeurs du contexte restent, l'annulation non) :
+		// un navigateur parti ne doit pas laisser des comptes orphelins.
 		for _, id := range createdKeycloakIDs {
-			_ = deleteKeycloakUser(context.Background(), id, cfg)
+			_ = deleteKeycloakUser(context.WithoutCancel(ctx), id, cfg)
 		}
 		services.ServerError(w, r, fmt.Errorf("Erreur lors de la création des comptes: %w", err))
 		return
@@ -211,7 +214,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 	tx, err := pgCtx.Db.Begin(ctx)
 	if err != nil {
 		for _, id := range createdKeycloakIDs {
-			_ = deleteKeycloakUser(context.Background(), id, cfg)
+			_ = deleteKeycloakUser(context.WithoutCancel(ctx), id, cfg)
 		}
 		services.ServerError(w, r, fmt.Errorf("Erreur initialisation transaction: %w", err))
 		return
@@ -234,7 +237,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 		})
 		if err != nil {
 			for _, id := range createdKeycloakIDs {
-				_ = deleteKeycloakUser(context.Background(), id, cfg)
+				_ = deleteKeycloakUser(context.WithoutCancel(ctx), id, cfg)
 			}
 			services.ServerError(w, r, fmt.Errorf("insertion user %s impossible: %w", u.Email, err))
 			return
@@ -243,7 +246,7 @@ func ImportUsers(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakC
 
 	if err := tx.Commit(ctx); err != nil {
 		for _, id := range createdKeycloakIDs {
-			_ = deleteKeycloakUser(context.Background(), id, cfg)
+			_ = deleteKeycloakUser(context.WithoutCancel(ctx), id, cfg)
 		}
 		services.ServerError(w, r, fmt.Errorf("Erreur Commit Transaction: %w", err))
 		return

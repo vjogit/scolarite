@@ -42,6 +42,44 @@ export const subscribeToKeycloak = (observer: () => void): (() => void) => {
  */
 export const instantaneKeycloak = (): Keycloak | null => keycloakPret;
 
+/**
+ * L'écran visé avant l'aller-retour Keycloak.
+ *
+ * `login-required` redirige vers Keycloak puis revient sur `redirectUri`, la
+ * racine — les `valid_redirect_uris` du client ne connaissent qu'elle, et
+ * c'est voulu. Un lien profond collé dans un onglet neuf, un rechargement
+ * sur un écran : tout retombait sur `/catalog_context/formation` (défaut
+ * documenté par navigation.spec.ts jusqu'au 17 septembre 2026). Le chemin
+ * visé est donc mémorisé dans sessionStorage — propre à l'onglet, il survit
+ * à la redirection et à rien d'autre — avant l'init, et rejoué par `App`
+ * une fois l'instance prête (`consommerCheminAvantConnexion`). Rien n'est
+ * mémorisé sur la racine ; sur le trajet retour (la racine avec le fragment
+ * `state=` de Keycloak) l'entrée est laissée en place, c'est elle qu'on
+ * vient rejouer. Sans sessionStorage, on retombe sur la racine comme avant.
+ */
+const CLE_CHEMIN_AVANT_CONNEXION = 'chemin-avant-connexion';
+
+function memoriserCheminAvantConnexion(): void {
+    const { pathname, search, hash } = window.location;
+    try {
+        if (pathname !== '/') sessionStorage.setItem(CLE_CHEMIN_AVANT_CONNEXION, pathname + search + hash);
+        else if (!hash.includes('state=')) sessionStorage.removeItem(CLE_CHEMIN_AVANT_CONNEXION);
+    } catch {
+        // sessionStorage indisponible : le comportement d'avant, la racine.
+    }
+}
+
+/** Le chemin mémorisé, s'il y en a un — lu une seule fois, puis effacé. */
+export const consommerCheminAvantConnexion = (): string | null => {
+    try {
+        const chemin = sessionStorage.getItem(CLE_CHEMIN_AVANT_CONNEXION);
+        sessionStorage.removeItem(CLE_CHEMIN_AVANT_CONNEXION);
+        return chemin;
+    } catch {
+        return null;
+    }
+};
+
 /** Crée et initialise l'instance, une seule fois. Rend celle qui existe. */
 export const demarrerKeycloak = (): Keycloak => {
     if (keycloakInstance) return keycloakInstance;
@@ -59,13 +97,15 @@ export const demarrerKeycloak = (): Keycloak => {
     // navigateur — signifie que l'initialisation a déjà eu lieu.
     if (instance.token) keycloakPret = instance;
 
+    memoriserCheminAvantConnexion();
     instance.init({
         onLoad: 'login-required',
         // PKCE S256 : exigé par le client Keycloak (pkce_code_challenge_method),
         // un code d'autorisation intercepté est inutilisable sans le verifier.
         pkceMethod: 'S256',
         // Redirection restreinte à la racine : les valid_redirect_uris du
-        // client n'autorisent plus le joker "/*".
+        // client n'autorisent plus le joker "/*". L'écran visé est rejoué
+        // après coup (memoriserCheminAvantConnexion).
         redirectUri: window.location.origin + '/',
     }).then(() => {
         console.log("Keycloak initialized");

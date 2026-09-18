@@ -193,7 +193,13 @@ func FetchUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakCon
 	render.JSON(w, r, userResponse{User: *user, Roles: roles})
 }
 
-func FetchAllUser(w http.ResponseWriter, r *http.Request) {
+// FetchAllUser liste les utilisateurs de la base, chacun avec ses rôles
+// Keycloak — la colonne « Rôles » de l'écran les lisait sans que personne ne
+// les fournisse (défaut consigné au lot 13, fermé le 17 septembre 2026). Les
+// rôles viennent de Keycloak par rolesParCompte : dix appels bornés, jamais
+// un par ligne. Lecture d'agrément, comme dans FetchUser : Keycloak
+// injoignable, la liste sort sans rôles et l'incident est logué.
+func FetchAllUser(w http.ResponseWriter, r *http.Request, cfg *services.KeycloakConfig) {
 	queries := getQueriesFromCtx(r)
 
 	users, err := queries.FetchAllUser(r.Context())
@@ -202,11 +208,23 @@ func FetchAllUser(w http.ResponseWriter, r *http.Request) {
 		services.ServerError(w, r, fmt.Errorf("Erreur de lecture: %w", err))
 		return
 	}
-	if users == nil {
-		users = []gen.User{}
+
+	roles, err := rolesParCompte(r.Context(), cfg)
+	if err != nil {
+		slog.Error("lecture des rôles Keycloak impossible pour la liste", "err", err)
+		roles = nil
 	}
 
-	render.JSON(w, r, users)
+	reponse := make([]userResponse, 0, len(users))
+	for _, u := range users {
+		var r []string
+		if u.KeycloakID != nil {
+			r = roles[*u.KeycloakID]
+		}
+		reponse = append(reponse, userResponse{User: u, Roles: r})
+	}
+
+	render.JSON(w, r, reponse)
 }
 
 // SearchUsers retourne les utilisateurs correspondant à une requête de recherche.
@@ -454,6 +472,39 @@ func deleteKeycloakUser(ctx context.Context, keycloakID string, cfg *services.Ke
 		return err
 	}
 	return client.DeleteUser(ctx, token, realm, keycloakID)
+}
+
+// rolesParCompte rend, par identifiant Keycloak, les rôles applicatifs portés
+// directement (comme fetchKeycloakRoles : le composite ADMIN se lit ADMIN, pas
+// ses membres). Un appel par rôle de AssignableRoles, paginé — le coût ne
+// dépend pas du nombre d'utilisateurs de la base. L'ordre des rôles est celui
+// de la liste fermée.
+func rolesParCompte(ctx context.Context, cfg *services.KeycloakConfig) (map[string][]string, error) {
+	client, token, realm, err := newKeycloakAdminClient(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	const page = 500
+	roles := map[string][]string{}
+	for _, role := range services.AssignableRoles {
+		for premier := 0; ; premier += page {
+			debut, taille := premier, page
+			porteurs, err := client.GetUsersByRoleName(ctx, token, realm, role, gocloak.GetUsersByRoleParams{First: &debut, Max: &taille})
+			if err != nil {
+				return nil, fmt.Errorf("porteurs du rôle %s : %w", role, err)
+			}
+			for _, porteur := range porteurs {
+				if porteur.ID != nil {
+					roles[*porteur.ID] = append(roles[*porteur.ID], role)
+				}
+			}
+			if len(porteurs) < page {
+				break
+			}
+		}
+	}
+	return roles, nil
 }
 
 // fetchKeycloakRoles retourne les rôles applicatifs (liste AssignableRoles)

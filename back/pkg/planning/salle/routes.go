@@ -37,7 +37,7 @@ func SalleUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			salle, err := queries.FetchSalleById(context.Background(), int32(id))
+			salle, err := queries.FetchSalleById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Salle introuvable", services.NOT_FOUND, nil)
 				return

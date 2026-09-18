@@ -41,7 +41,7 @@ func ReservationUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			reservation, err := queries.FetchReservationByID(context.Background(), int32(id))
+			reservation, err := queries.FetchReservationByID(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Réservation introuvable", services.NOT_FOUND, nil)
 				return

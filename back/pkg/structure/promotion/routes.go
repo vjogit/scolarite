@@ -46,7 +46,7 @@ func PromotionUse(next http.Handler) http.Handler {
 			}
 
 			queries := getQueriesFromCtx(r)
-			promotion, err := queries.FetchPromotionById(context.Background(), int32(id))
+			promotion, err := queries.FetchPromotionById(r.Context(), int32(id))
 			if err == pgx.ErrNoRows {
 				services.InvalidRequestError(w, r, "Promotion introuvable", services.NOT_FOUND, nil)
 				return

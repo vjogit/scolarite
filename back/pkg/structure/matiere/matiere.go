@@ -1,10 +1,12 @@
 package matiere
 
 import (
+	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat/jury"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure/matiere/gen"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -171,9 +173,29 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 
 	queries := getQueriesFromCtx(r)
 
-	err := queries.DeleteMatiere(r.Context(), input.IDs)
+	// Les notes emportées par la cascade laissent leur maillon note.delete
+	// dans la transaction qui les détruit (invariant 5) — lues tant qu'elles
+	// existent, avant le DELETE.
+	pgCtx := services.GetPgCtx(r.Context())
+	tx, err := pgCtx.Db.Begin(r.Context())
 	if err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur début transaction: %w", err))
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	if _, err := registre.TracerSuppressionEnCascade(r.Context(), tx, "matiere", input.IDs, services.SubFromCtx(r)); err != nil {
 		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := queries.WithTx(tx).DeleteMatiere(r.Context(), input.IDs); err != nil {
+		services.ServerError(w, r, err)
+		return
+	}
+
+	if err := tx.Commit(r.Context()); err != nil {
+		services.ServerError(w, r, fmt.Errorf("erreur commit transaction: %w", err))
 		return
 	}
 
