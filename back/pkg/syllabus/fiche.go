@@ -8,8 +8,9 @@ package syllabus
 // et conversion par le service PDF (services/pdf.go).
 //
 // Lecture sous CONSULTATION, comme les autres lectures du domaine. La langue
-// des libellés se demande par `?lang=fr|en` (défaut fr) ; le contenu saisi
-// n'est jamais traduit. Le service indisponible répond 503
+// des libellés se demande par `?lang=fr|en` (défaut fr). En anglais, le contenu
+// est servi par sa traduction stockée quand elle existe (lot 6), par le
+// français sinon — repli, jamais erreur —, et une mention dit ce qui est servi. Le service indisponible répond 503
 // SERVICE_UNAVAILABLE, jamais un document tronqué : le PDF est entier en
 // mémoire avant le premier octet écrit.
 //
@@ -36,6 +37,7 @@ import (
 	promotiongen "cyb-react/pkg/structure/promotion/gen"
 	uegen "cyb-react/pkg/structure/unite_enseignement/gen"
 	"cyb-react/pkg/syllabus/gen"
+	"cyb-react/pkg/syllabus/traduction"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -66,7 +68,7 @@ func (d *documentsPDF) FichePDF(w http.ResponseWriter, r *http.Request) {
 	ue := getUniteEnseignementFromCtx(r)
 	pgCtx := services.GetPgCtx(r.Context())
 
-	donnees, err := CollecterFiche(r.Context(), pgCtx.Db, ue.ID)
+	donnees, err := CollecterFiche(r.Context(), pgCtx.Db, ue.ID, l.Lang)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// L'UE existe mais sa branche est en corbeille : pour l'application,
@@ -101,7 +103,7 @@ func (d *documentsPDF) LivretPDF(w http.ResponseWriter, r *http.Request) {
 	}
 	pgCtx := services.GetPgCtx(r.Context())
 
-	donnees, err := CollecterLivret(r.Context(), pgCtx.Db, int32(id))
+	donnees, err := CollecterLivret(r.Context(), pgCtx.Db, int32(id), l.Lang)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			services.InvalidRequestError(w, r, "Promotion introuvable", services.NOT_FOUND, nil)
@@ -234,7 +236,7 @@ func (ref *referentiel) marquer(lignes []gen.UeCompetence) []BlocFiche {
 
 // collecterUE : la fiche d'une UE dont le chemin et le référentiel sont déjà
 // connus (le livret les partage entre ses UE).
-func collecterUE(ctx context.Context, pool *pgxpool.Pool, queries *gen.Queries, ue uegen.UniteEnseignement, c *chemin, ref *referentiel) (*DonneesFiche, error) {
+func collecterUE(ctx context.Context, pool *pgxpool.Pool, queries *gen.Queries, ue uegen.UniteEnseignement, c *chemin, ref *referentiel, langue string) (*DonneesFiche, error) {
 	matieres, err := matieregen.New(pool).FetchMatieresByUniteEnseignementID(ctx, ue.ID)
 	if err != nil {
 		return nil, err
@@ -273,12 +275,57 @@ func collecterUE(ctx context.Context, pool *pgxpool.Pool, queries *gen.Queries, 
 	for _, m := range matieres {
 		d.UE.Matieres = append(d.UE.Matieres, MatiereFiche{Nom: m.Name, Heure: m.Heure, Coeff: m.Coeff, Fiche: ficheDe[m.ID]})
 	}
+	if traduction.LangueAdmise(langue) {
+		if err := collecterTraductions(ctx, queries, ue.ID, ids, langue, d); err != nil {
+			return nil, err
+		}
+	}
 	return d, nil
+}
+
+// collecterTraductions attache au document les traductions stockées (lot 6) :
+// celle de la description de l'UE, celles des fiches. Une traduction absente
+// reste nil — le gabarit replie sur le français et le dit. La péremption se
+// juge ici, empreinte contre empreinte, par les vues « source ».
+func collecterTraductions(ctx context.Context, queries *gen.Queries, ueID int32, matiereIDs []int32, langue string, d *DonneesFiche) error {
+	sourcesUe, err := queries.FetchSourcesUeByIDs(ctx, []int32{ueID})
+	if err != nil {
+		return err
+	}
+	traductionsUe, err := queries.FetchTraductionsUeByIDs(ctx, gen.FetchTraductionsUeByIDsParams{Ids: []int32{ueID}, Langue: langue})
+	if err != nil {
+		return err
+	}
+	if len(traductionsUe) == 1 && len(sourcesUe) == 1 {
+		t := traductionsUe[0]
+		d.UE.Traduction = &TraductionDescription{Ligne: t, Perimee: t.EmpreinteSource != sourcesUe[0].Empreinte}
+	}
+
+	sources, err := queries.FetchSourcesMatieresByMatiereIDs(ctx, matiereIDs)
+	if err != nil {
+		return err
+	}
+	empreinteDe := map[int32]string{}
+	for _, src := range sources {
+		empreinteDe[src.MatiereID] = src.Empreinte
+	}
+	traductions, err := queries.FetchTraductionsMatieresByMatiereIDs(ctx, gen.FetchTraductionsMatieresByMatiereIDsParams{Ids: matiereIDs, Langue: langue})
+	if err != nil {
+		return err
+	}
+	traductionDe := map[int32]*TraductionFiche{}
+	for _, t := range traductions {
+		traductionDe[t.MatiereID] = &TraductionFiche{Ligne: t, Perimee: t.EmpreinteSource != empreinteDe[t.MatiereID]}
+	}
+	for i, id := range matiereIDs {
+		d.UE.Matieres[i].Traduction = traductionDe[id]
+	}
+	return nil
 }
 
 // CollecterFiche rassemble tout ce que la fiche d'une UE affiche.
 // pgx.ErrNoRows si l'UE ou son chemin n'existe pas (vues actives).
-func CollecterFiche(ctx context.Context, pool *pgxpool.Pool, ueID int32) (*DonneesFiche, error) {
+func CollecterFiche(ctx context.Context, pool *pgxpool.Pool, ueID int32, langue string) (*DonneesFiche, error) {
 	queries := gen.New(pool)
 	ue, err := uegen.New(pool).FetchUniteEnseignementById(ctx, ueID)
 	if err != nil {
@@ -292,14 +339,14 @@ func CollecterFiche(ctx context.Context, pool *pgxpool.Pool, ueID int32) (*Donne
 	if err != nil {
 		return nil, err
 	}
-	return collecterUE(ctx, pool, queries, ue, c, ref)
+	return collecterUE(ctx, pool, queries, ue, c, ref, langue)
 }
 
 // CollecterLivret rassemble les fiches de toutes les UE d'une promotion :
 // options par nom, périodes par date de début puis nom, UE par identifiant
 // (l'ordre de saisie de la structure). pgx.ErrNoRows si la promotion n'est
 // pas active.
-func CollecterLivret(ctx context.Context, pool *pgxpool.Pool, promotionID int32) (*DonneesLivret, error) {
+func CollecterLivret(ctx context.Context, pool *pgxpool.Pool, promotionID int32, langue string) (*DonneesLivret, error) {
 	queries := gen.New(pool)
 	promotion, err := promotiongen.New(pool).FetchPromotionById(ctx, promotionID)
 	if err != nil {
@@ -346,7 +393,7 @@ func CollecterLivret(ctx context.Context, pool *pgxpool.Pool, promotionID int32)
 			sort.SliceStable(ues, func(i, j int) bool { return ues[i].ID < ues[j].ID })
 			c := &chemin{Formation: formation, Promotion: promotion, Option: o, Periode: pe}
 			for _, ue := range ues {
-				fiche, err := collecterUE(ctx, pool, queries, ue, c, ref)
+				fiche, err := collecterUE(ctx, pool, queries, ue, c, ref, langue)
 				if err != nil {
 					return nil, err
 				}

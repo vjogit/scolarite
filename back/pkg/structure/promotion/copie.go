@@ -97,6 +97,11 @@ func copierUE(ctx context.Context, q *gen.Queries, ue int32, periode int32, comp
 	if err != nil {
 		return fmt.Errorf("copie de l'UE %d : %w", ue, err)
 	}
+	// Les traductions suivent ce qu'elles traduisent (lot 6) : une relecture
+	// faite sur le gabarit n'est pas à refaire sur la promotion suivante.
+	if _, err := q.CopierUniteEnseignementTraductions(ctx, gen.CopierUniteEnseignementTraductionsParams{UeID: nue, Source: ue}); err != nil {
+		return fmt.Errorf("copie des traductions de l'UE %d : %w", ue, err)
+	}
 	matieres, err := q.FetchMatiereIdsByUeID(ctx, ue)
 	if err != nil {
 		return err
@@ -108,6 +113,9 @@ func copierUE(ctx context.Context, q *gen.Queries, ue int32, periode int32, comp
 		}
 		if _, err := q.CopierSyllabusMatiere(ctx, gen.CopierSyllabusMatiereParams{MatiereID: nm, Source: m}); err != nil {
 			return fmt.Errorf("copie de la fiche syllabus de la matière %d : %w", m, err)
+		}
+		if _, err := q.CopierSyllabusMatiereTraductions(ctx, gen.CopierSyllabusMatiereTraductionsParams{MatiereID: nm, Source: m}); err != nil {
+			return fmt.Errorf("copie des traductions de la fiche de la matière %d : %w", m, err)
 		}
 	}
 	liaisons, err := q.FetchUeCompetencesByUeID(ctx, ue)

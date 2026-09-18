@@ -61,6 +61,28 @@ SELECT @matiere_id, s.contexte, s.objectifs, s.prerequis, s.activites, s.evaluat
        s.responsable_id
 FROM public.syllabus_matiere s WHERE s.matiere_id = @source;
 
+-- Les traductions de la fiche (lot 6), toutes langues, après la fiche : textes,
+-- statut, modèle et date tels quels — une relecture faite sur le gabarit n'est
+-- pas à refaire. L'empreinte de la source est recopiée, pas recalculée : les
+-- textes de la fiche copiée sont ceux de la source, elle vaut donc pour la
+-- copie, et une traduction périmée sur le gabarit le reste sur la copie, ce
+-- qui est exact. version_source est la version de la NOUVELLE fiche.
+-- name: CopierSyllabusMatiereTraductions :execrows
+INSERT INTO syllabus_matiere_traduction (
+    matiere_id, langue, contexte, objectifs, prerequis, activites, evaluation, plan_cours, ressources, dimension_socio_env,
+    version_source, empreinte_source, statut, modele, traduit_le
+)
+SELECT @matiere_id, t.langue, t.contexte, t.objectifs, t.prerequis, t.activites, t.evaluation, t.plan_cours, t.ressources, t.dimension_socio_env,
+       (SELECT s.version FROM public.syllabus_matiere s WHERE s.matiere_id = @matiere_id), t.empreinte_source, t.statut, t.modele, t.traduit_le
+FROM public.syllabus_matiere_traduction t WHERE t.matiere_id = @source;
+
+-- Les traductions de la description de l'UE (lot 6), même règle.
+-- name: CopierUniteEnseignementTraductions :execrows
+INSERT INTO unite_enseignement_traduction (ue_id, langue, description, version_source, empreinte_source, statut, modele, traduit_le)
+SELECT @ue_id, t.langue, t.description,
+       (SELECT ue.version FROM public.unite_enseignement ue WHERE ue.id = @ue_id), t.empreinte_source, t.statut, t.modele, t.traduit_le
+FROM public.unite_enseignement_traduction t WHERE t.ue_id = @source;
+
 -- name: FetchBlocIdsByPromotionID :many
 SELECT id FROM public.bloc_competence WHERE promotion_id = @promotion_id ORDER BY ordre;
 

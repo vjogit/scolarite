@@ -1,0 +1,72 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-create-unite-enseignement-traduction
+      author: dev
+      comment: "Traduction de la description syllabus d'une UE (lot 6), 1-1 par (UE, langue). Suit l'UE par cascade. Le français fait référence : la traduction est un dérivé stocké, jamais une seconde source. langue en colonne (seul en est visé, fr est refusé : la source n'est pas une traduction). version_source et empreinte_source disent de quelle source la traduction est tirée — l'empreinte juge la péremption (changeset 006), la version informe. statut : automatique (la machine propose) ou relue (le rédacteur dispose) ; retraduire fait perdre relue. modele : le dernier traducteur automatique passé, nul pour une traduction saisie à la main. version : verrou optimiste de l'écran de relecture. Péremption signalée, jamais bloquante : aucune contrainte ne lie la traduction à l'état de sa source."
+      changes:
+        - createTable:
+            tableName: unite_enseignement_traduction
+            columns:
+              - column:
+                  name: ue_id
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: langue
+                  type: VARCHAR(2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: INTEGER
+                  defaultValueNumeric: 1
+                  constraints:
+                    nullable: false
+              - column: { name: description, type: TEXT }
+              - column:
+                  name: version_source
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: empreinte_source
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: statut
+                  type: VARCHAR(12)
+                  constraints:
+                    nullable: false
+              - column: { name: modele, type: TEXT }
+              - column:
+                  name: traduit_le
+                  type: TIMESTAMP WITH TIME ZONE
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            constraintName: pk_unite_enseignement_traduction
+            tableName: unite_enseignement_traduction
+            columnNames: ue_id, langue
+
+        - addForeignKeyConstraint:
+            constraintName: fk_unite_enseignement_traduction_ue
+            baseTableName: unite_enseignement_traduction
+            baseColumnNames: ue_id
+            referencedTableName: unite_enseignement
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - sql:
+            dbms: postgresql
+            sql: |
+              ALTER TABLE unite_enseignement_traduction ADD CONSTRAINT chk_unite_enseignement_traduction_statut CHECK (statut IN ('automatique', 'relue'));
+              ALTER TABLE unite_enseignement_traduction ADD CONSTRAINT chk_unite_enseignement_traduction_langue CHECK (langue ~ '^[a-z]{2}$' AND langue <> 'fr');
+
+      rollback:
+        - dropTable:
+            tableName: unite_enseignement_traduction
+            cascadeConstraints: true

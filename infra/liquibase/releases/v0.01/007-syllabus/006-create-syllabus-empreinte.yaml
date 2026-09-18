@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-syllabus-empreinte
+      author: dev
+      comment: "Empreinte de la source d'une traduction (lot 6 syllabus). Le français fait référence ; une traduction est périmée quand les TEXTES de sa source ont changé — pas quand le compteur version avance : l'upsert de la fiche l'incrémente aussi pour les heures et le responsable, UpdateUniteEnseignement pour le nom et les ECTS, et une péremption à tort ferait retraduire par la machine un texte relu. Une seule définition : SHA-256 des textes joints par U+001F, NULL compté vide, exposée par deux vues « source » que lisent le serveur, le CLI et le seed e2e — personne ne recalcule l'empreinte de son côté."
+      changes:
+        - sql:
+            dbms: postgresql
+            splitStatements: false
+            sql: |
+              CREATE FUNCTION syllabus_empreinte(VARIADIC textes text[]) RETURNS text
+              LANGUAGE sql IMMUTABLE
+              AS $$ SELECT encode(sha256(convert_to(array_to_string(textes, E'\x1f', ''), 'UTF8')), 'hex') $$;
+        - sql:
+            dbms: postgresql
+            sql: |
+              CREATE VIEW syllabus_matiere_source AS
+              SELECT matiere_id, version, contexte, objectifs, prerequis, activites, evaluation, plan_cours, ressources, dimension_socio_env,
+                     syllabus_empreinte(contexte, objectifs, prerequis, activites, evaluation, plan_cours, ressources, dimension_socio_env) AS empreinte
+              FROM syllabus_matiere;
+        - sql:
+            dbms: postgresql
+            sql: |
+              CREATE VIEW unite_enseignement_source AS
+              SELECT id AS ue_id, version, description, syllabus_empreinte(description) AS empreinte
+              FROM unite_enseignement;
+
+      rollback:
+        - sql:
+            dbms: postgresql
+            sql: |
+              DROP VIEW unite_enseignement_source;
+              DROP VIEW syllabus_matiere_source;
+              DROP FUNCTION syllabus_empreinte(VARIADIC text[]);

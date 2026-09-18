@@ -39,6 +39,15 @@ type Querier interface {
 	// c'est ce que la matrice de l'UE affiche, en une requête. Un bloc sans
 	// compétence n'y figure pas — il n'a aucune ligne à cocher.
 	FetchReferentielByPromotionID(ctx context.Context, promotionID int32) ([]FetchReferentielByPromotionIDRow, error)
+	// Traduction du contenu (lot 6). Le français fait référence : la source se lit
+	// par les vues « source » (textes + empreinte, changeset 006), la traduction
+	// par sa table. La péremption — empreinte_source ≠ empreinte de la source
+	// courante — se juge chez l'appelant, à partir de ces deux lectures ; personne
+	// ne recalcule l'empreinte hors de la base.
+	FetchSourceMatiere(ctx context.Context, matiereID int32) (SyllabusMatiereSource, error)
+	FetchSourceUe(ctx context.Context, ueID int32) (UniteEnseignementSource, error)
+	FetchSourcesMatieresByMatiereIDs(ctx context.Context, ids []int32) ([]SyllabusMatiereSource, error)
+	FetchSourcesUeByIDs(ctx context.Context, ids []int32) ([]UniteEnseignementSource, error)
 	FetchSyllabusMatiereByMatiereID(ctx context.Context, matiereID int32) (SyllabusMatiere, error)
 	// Les fiches des matières d'une UE, pour la fiche PDF (lot 5) : les
 	// identifiants viennent du repository des matières (structure), la requête
@@ -46,6 +55,10 @@ type Querier interface {
 	// rend comme une fiche vide. Ordre stable sur matiere_id, l'appelant
 	// réordonne sur celui de la structure.
 	FetchSyllabusMatieresByMatiereIDs(ctx context.Context, ids []int32) ([]SyllabusMatiere, error)
+	FetchTraductionMatiere(ctx context.Context, arg FetchTraductionMatiereParams) (SyllabusMatiereTraduction, error)
+	FetchTraductionUe(ctx context.Context, arg FetchTraductionUeParams) (UniteEnseignementTraduction, error)
+	FetchTraductionsMatieresByMatiereIDs(ctx context.Context, arg FetchTraductionsMatieresByMatiereIDsParams) ([]SyllabusMatiereTraduction, error)
+	FetchTraductionsUeByIDs(ctx context.Context, arg FetchTraductionsUeByIDsParams) ([]UniteEnseignementTraduction, error)
 	// La matrice de l'UE (lot 3) : les compétences que l'UE adresse, avec leurs
 	// trois axes. Lecture ordonnée par bloc puis compétence ; écriture par
 	// remplacement intégral dans une transaction (DELETE puis INSERT … SELECT),
@@ -72,6 +85,14 @@ type Querier interface {
 	// Aucune donnée de structure n'est lue ni recopiée ici (matiere.heure fait foi,
 	// l'écart avec la ventilation se signale à l'affichage, jamais en base).
 	UpsertSyllabusMatiere(ctx context.Context, arg UpsertSyllabusMatiereParams) (SyllabusMatiere, error)
+	// Écriture d'une traduction : upsert sous verrou optimiste, comme la fiche.
+	// version_source et empreinte_source sont celles de la source que l'auteur de
+	// la traduction a LUE (le rédacteur à l'écran, le CLI au moment de traduire) :
+	// une source modifiée entre-temps donne une traduction périmée dès sa
+	// naissance, ce qui est exact. modele ne s'écrit que par une traduction
+	// automatique ; une relecture (modele nul) garde le dernier traducteur passé.
+	UpsertTraductionMatiere(ctx context.Context, arg UpsertTraductionMatiereParams) (SyllabusMatiereTraduction, error)
+	UpsertTraductionUe(ctx context.Context, arg UpsertTraductionUeParams) (UniteEnseignementTraduction, error)
 }
 
 var _ Querier = (*Queries)(nil)

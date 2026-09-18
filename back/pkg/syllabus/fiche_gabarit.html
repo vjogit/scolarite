@@ -90,6 +90,7 @@ tr.total td { border-bottom: 0; border-top: 1.5px solid var(--encre); font-weigh
 .pastille { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
 .note-bas { font-size: .85rem; color: var(--secondaire); margin-top: 6px; max-width: 78ch; }
 .absente { color: var(--secondaire); font-style: italic; }
+.mention-traduction { margin: 0 0 6px; color: var(--secondaire); font-style: italic; font-size: 8.5pt; }
 
 .pied { position: absolute; left: 16mm; right: 16mm; bottom: 7mm; padding-top: 8px; border-top: 1px solid var(--filet); display: flex; justify-content: space-between; font-size: .8rem; color: var(--secondaire); }
 /* Le pied est hors du flux : sur une page pleine, il ne pousse plus le
@@ -166,6 +167,9 @@ tr.total td { border-bottom: 0; border-top: 1.5px solid var(--encre); font-weigh
   {{- if .Description}}
   <section>
     <h2>{{$L.PourquoiUe}}</h2>
+    {{- if .MentionTraduction}}
+    <p class="mention-traduction">{{.MentionTraduction}}</p>
+    {{- end}}
     <div class="texte">{{template "texte" .Description}}</div>
   </section>
   {{- end}}
@@ -241,6 +245,9 @@ tr.total td { border-bottom: 0; border-top: 1.5px solid var(--encre); font-weigh
   {{- if .FicheAbsente}}
   <p class="absente">{{$L.FicheAbsente}}</p>
   {{- else}}
+  {{- if .MentionTraduction}}
+  <p class="mention-traduction">{{.MentionTraduction}}</p>
+  {{- end}}
   <div class="deux-colonnes">
     <div>
       {{- if .Contexte}}

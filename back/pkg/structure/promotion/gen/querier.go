@@ -18,10 +18,19 @@ type Querier interface {
 	// La fiche syllabus de la matière, si elle existe (0 ou 1 ligne) : rubriques,
 	// ventilation et responsable, en version 1 sur la copie.
 	CopierSyllabusMatiere(ctx context.Context, arg CopierSyllabusMatiereParams) (int64, error)
+	// Les traductions de la fiche (lot 6), toutes langues, après la fiche : textes,
+	// statut, modèle et date tels quels — une relecture faite sur le gabarit n'est
+	// pas à refaire. L'empreinte de la source est recopiée, pas recalculée : les
+	// textes de la fiche copiée sont ceux de la source, elle vaut donc pour la
+	// copie, et une traduction périmée sur le gabarit le reste sur la copie, ce
+	// qui est exact. version_source est la version de la NOUVELLE fiche.
+	CopierSyllabusMatiereTraductions(ctx context.Context, arg CopierSyllabusMatiereTraductionsParams) (int64, error)
 	CopierUeCompetence(ctx context.Context, arg CopierUeCompetenceParams) error
 	// Les deux colonnes syllabus de l'UE (description, responsable) suivent :
 	// la reconduction d'une année à l'autre est le geste réel des rédacteurs.
 	CopierUniteEnseignement(ctx context.Context, arg CopierUniteEnseignementParams) (int32, error)
+	// Les traductions de la description de l'UE (lot 6), même règle.
+	CopierUniteEnseignementTraductions(ctx context.Context, arg CopierUniteEnseignementTraductionsParams) (int64, error)
 	CreatePromotion(ctx context.Context, arg CreatePromotionParams) (int32, error)
 	FetchBlocIdsByPromotionID(ctx context.Context, promotionID int32) ([]int32, error)
 	FetchCompetenceIdsByBlocID(ctx context.Context, blocID int32) ([]int32, error)

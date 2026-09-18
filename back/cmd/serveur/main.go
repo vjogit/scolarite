@@ -4,12 +4,14 @@ import (
 	"context"
 	"cyb-react/pkg/certification"
 	"cyb-react/pkg/corbeille"
+	"cyb-react/pkg/ia/fournisseurs"
 	"cyb-react/pkg/planning"
 	"cyb-react/pkg/registre"
 	"cyb-react/pkg/resultat"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/structure"
 	"cyb-react/pkg/syllabus"
+	"cyb-react/pkg/syllabus/traduction"
 	"cyb-react/pkg/user"
 	"errors"
 	"fmt"
@@ -65,6 +67,20 @@ func main() {
 	// concerne que ces routes : elles répondent 503, le reste tourne.
 	convertisseurPDF := services.NewConvertisseurPDF(cfg.PDF)
 
+	// Le traducteur du contenu syllabus (lot 6) : fournisseur choisi par
+	// configuration, borné par le délai interactif (le bouton « Traduire »
+	// traduit un champ par requête). Fournisseur vide : pas de traducteur, le
+	// bouton n'est pas offert. Fournisseur inconnu : le serveur démarre quand
+	// même — la traduction est un confort, pas une fonction vitale.
+	var traducteur *traduction.Traducteur
+	connecteurIA, err := fournisseurs.Nouveau(cfg.IA.Provider, cfg.Rack, cfg.IA.TimeoutInteractif, cfg.IA.TimeoutConnexion)
+	if err != nil {
+		slog.Error("traduction automatique désactivée", "err", err)
+	} else if connecteurIA != nil {
+		traducteur = &traduction.Traducteur{Connecteur: connecteurIA}
+		slog.Info("traducteur du syllabus", "modele", connecteurIA.Nom())
+	}
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger) // Log HTTP requests
@@ -114,7 +130,7 @@ func main() {
 
 	r.Route("/api/v0/syllabus", func(r chi.Router) {
 		r.Use(services.AuthMiddleware(&cfg.Keycloak))
-		syllabus.RouteSyllabus(r, convertisseurPDF, cfg.PDF.Etablissement)
+		syllabus.RouteSyllabus(r, convertisseurPDF, cfg.PDF.Etablissement, traducteur)
 	})
 
 	// Ancrage RFC 3161 périodique du registre (portage rex-imt). L'ancrage

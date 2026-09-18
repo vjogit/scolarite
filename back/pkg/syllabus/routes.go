@@ -4,6 +4,7 @@ import (
 	"context"
 	"cyb-react/pkg/services"
 	"cyb-react/pkg/syllabus/gen"
+	"cyb-react/pkg/syllabus/traduction"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -22,18 +23,29 @@ import (
 // Les documents PDF (lot 5) — fiche de l'UE, livret de la promotion — se
 // lisent sous CONSULTATION et passent par le convertisseur reçu (nil : les
 // deux routes répondent 503).
-func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement string) {
+//
+// La traduction du contenu (lot 6, relecture.go) : lecture sous CONSULTATION,
+// relecture et proposition sous SYLLABUS_ECRITURE. `traducteur` nil : pas de
+// traduction automatique, la proposition répond 503 et le GET le dit.
+func RouteSyllabus(r chi.Router, pdf *services.ConvertisseurPDF, etablissement string, traducteur *traduction.Traducteur) {
 	lecture := services.RequireRole(services.RoleConsultation)
 	ecriture := services.RequireRole(services.RoleSyllabusEcriture)
 	documents := &documentsPDF{convertisseur: pdf, etablissement: etablissement}
+	relire := &relecture{traducteur: traducteur}
 
 	r.Route("/matiere/{matiereID}", func(r chi.Router) {
 		r.With(lecture, MatiereExiste).Get("/", FetchSyllabusMatiere)
 		r.With(ecriture, MatiereExiste).Put("/", UpsertSyllabusMatiere)
+		r.With(lecture, MatiereExiste).Get("/traduction/{langue}", relire.FetchTraductionMatiere)
+		r.With(ecriture, MatiereExiste).Put("/traduction/{langue}", relire.UpsertTraductionMatiere)
+		r.With(ecriture, MatiereExiste).Post("/traduction/{langue}/proposition", relire.ProposerTraductionMatiere)
 	})
 
 	r.Route("/ue/{ueID}", func(r chi.Router) {
 		r.With(ecriture, UniteEnseignementUse).Put("/", UpdateUniteEnseignementSyllabus)
+		r.With(lecture, UniteEnseignementUse).Get("/traduction/{langue}", relire.FetchTraductionUe)
+		r.With(ecriture, UniteEnseignementUse).Put("/traduction/{langue}", relire.UpsertTraductionUe)
+		r.With(ecriture, UniteEnseignementUse).Post("/traduction/{langue}/proposition", relire.ProposerTraductionUe)
 		// La matrice de compétences de l'UE (lot 3) : lecture symétrique du
 		// remplacement intégral, sans verrou.
 		r.With(lecture, UniteEnseignementUse).Get("/competences", FetchUeCompetences)

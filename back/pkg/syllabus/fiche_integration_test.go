@@ -57,7 +57,7 @@ func exigerGotenberg(t *testing.T) {
 
 func routeurAvec(pdf *services.ConvertisseurPDF) chi.Router {
 	r := chi.NewRouter()
-	r.Route("/syllabus", func(r chi.Router) { syllabus.RouteSyllabus(r, pdf, "Établissement test") })
+	r.Route("/syllabus", func(r chi.Router) { syllabus.RouteSyllabus(r, pdf, "Établissement test", traducteurTest()) })
 	return r
 }
 

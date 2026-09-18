@@ -31,6 +31,7 @@ import (
 	"unicode"
 
 	"cyb-react/pkg/syllabus/gen"
+	"cyb-react/pkg/syllabus/traduction"
 )
 
 //go:embed fiche_gabarit.html
@@ -77,13 +78,20 @@ type Libelles struct {
 	Ressources           string
 	DimensionSocioEnv    string
 	FicheAbsente         string
-	Page                 string
-	Heure                string
-	HeuresVentilation    map[string]string
-	Formation            string
-	Promotion            string
-	Option               string
-	Periode              string
+	// Traduit : le contenu du document est servi par sa traduction stockée
+	// (lot 6). Faux pour le français, la langue de référence. Les trois
+	// mentions ne servent qu'à un document traduit.
+	Traduit            bool
+	MentionNonTraduit  string
+	MentionAutomatique string
+	MentionPerimee     string // format : date de la traduction
+	Page               string
+	Heure              string
+	HeuresVentilation  map[string]string
+	Formation          string
+	Promotion          string
+	Option             string
+	Periode            string
 }
 
 var libellesFr = Libelles{
@@ -178,6 +186,10 @@ var libellesEn = Libelles{
 	Ressources:           "Resources and references",
 	DimensionSocioEnv:    "Social and environmental dimension",
 	FicheAbsente:         "No syllabus sheet has been written for this course yet.",
+	Traduit:              true,
+	MentionNonTraduit:    "Not yet translated — shown in the French original.",
+	MentionAutomatique:   "Machine translation, not yet reviewed — the French original prevails.",
+	MentionPerimee:       "Translation of an earlier version of the French original (translated on %s) — the French original prevails.",
 	Page:                 "page",
 	Heure:                "h",
 	HeuresVentilation: map[string]string{
@@ -227,7 +239,22 @@ type UEFiche struct {
 	Nom         string
 	Ects        float32
 	Description *string
-	Matieres    []MatiereFiche
+	// Traduction de la description dans la langue du document (lot 6) ; nil
+	// si elle n'existe pas ou si le document est en français.
+	Traduction *TraductionDescription
+	Matieres   []MatiereFiche
+}
+
+// TraductionDescription / TraductionFiche : la ligne stockée et son état
+// vis-à-vis de la source courante.
+type TraductionDescription struct {
+	Ligne   gen.UniteEnseignementTraduction
+	Perimee bool
+}
+
+type TraductionFiche struct {
+	Ligne   gen.SyllabusMatiereTraduction
+	Perimee bool
 }
 
 // MatiereFiche : la matière de la structure et, si elle existe, sa fiche.
@@ -236,6 +263,8 @@ type MatiereFiche struct {
 	Heure float32
 	Coeff float32
 	Fiche *gen.SyllabusMatiere
+	// Traduction de la fiche dans la langue du document (lot 6), ou nil.
+	Traduction *TraductionFiche
 }
 
 // BlocFiche : un bloc du référentiel avec ses compétences et, pour chacune,
@@ -304,22 +333,23 @@ type vueSommairePeriode struct {
 }
 
 type vueFiche struct {
-	Formation       string
-	Periode         string
-	Annee           string
-	Nom             string
-	Ects            string
-	VolumeEncadre   string
-	TravailPerso    string
-	NbEnseignements int
-	Description     []blocTexte
-	Matieres        []vueMatiereLigne
-	BlocsMobilises  []vueBloc
-	AucuneLiaison   bool
-	AutresBlocs     bool
-	Pages           int
-	PagesMatiere    []vuePageMatiere
-	PiedContexte    string
+	Formation         string
+	Periode           string
+	Annee             string
+	Nom               string
+	Ects              string
+	VolumeEncadre     string
+	TravailPerso      string
+	NbEnseignements   int
+	Description       []blocTexte
+	MentionTraduction string
+	Matieres          []vueMatiereLigne
+	BlocsMobilises    []vueBloc
+	AucuneLiaison     bool
+	AutresBlocs       bool
+	Pages             int
+	PagesMatiere      []vuePageMatiere
+	PiedContexte      string
 }
 
 type vueMatiereLigne struct {
@@ -346,6 +376,7 @@ type vuePageMatiere struct {
 	Numero            int
 	Nom               string
 	FicheAbsente      bool
+	MentionTraduction string
 	Contexte          []blocTexte
 	Prerequis         []blocTexte
 	Objectifs         []blocTexte
@@ -432,10 +463,22 @@ func construireVueFiche(d DonneesFiche, l *Libelles) vueFiche {
 		Nom:             d.UE.Nom,
 		Ects:            nombre(float64(d.UE.Ects), l.Lang),
 		NbEnseignements: len(d.UE.Matieres),
-		Description:     decouperTexte(d.UE.Description),
 		Pages:           1 + len(d.UE.Matieres),
 		PiedContexte:    d.Formation + " · " + d.Periode + " · " + annee,
 	}
+
+	// La description : sa traduction quand le document est traduit et qu'elle
+	// existe, le français sinon — et la mention qui dit ce qui est servi.
+	description := d.UE.Description
+	if l.Traduit && nonBlanc(description) {
+		var ligne *etatTraduction
+		if t := d.UE.Traduction; t != nil {
+			ligne = &etatTraduction{t.Ligne.Statut, t.Perimee, t.Ligne.TraduitLe.Time}
+			description = traduitOuSource(t.Ligne.Description, description)
+		}
+		vue.MentionTraduction = mentionTraduction(l, ligne)
+	}
+	vue.Description = decouperTexte(description)
 
 	// Chiffres clés : la structure fait référence — le volume encadré de l'UE
 	// est la somme des matiere.heure, pas des ventilations. Le travail
@@ -503,14 +546,33 @@ func construireVuePageMatiere(m MatiereFiche, numero int, l *Libelles) vuePageMa
 		page.FicheAbsente = true
 		return page
 	}
-	page.Contexte = decouperTexte(f.Contexte)
-	page.Prerequis = decouperTexte(f.Prerequis)
-	page.Objectifs = decouperTexte(f.Objectifs)
-	page.Activites = decouperTexte(f.Activites)
-	page.Evaluation = decouperTexte(f.Evaluation)
-	page.PlanCours = decouperTexte(f.PlanCours)
-	page.Ressources = decouperTexte(f.Ressources)
-	page.DimensionSocioEnv = decouperTexte(f.DimensionSocioEnv)
+	// Les rubriques : la traduction champ par champ quand le document est
+	// traduit — un champ que la traduction laisse vide replie sur le français,
+	// rien ne disparaît —, et la mention qui dit ce qui est servi. Une fiche
+	// sans aucun texte (des heures seulement) n'a rien à traduire : pas de
+	// mention.
+	source := rubriques{f.Contexte, f.Prerequis, f.Objectifs, f.Activites, f.Evaluation, f.PlanCours, f.Ressources, f.DimensionSocioEnv}
+	servi := source
+	if l.Traduit && source.aDuTexte() {
+		var ligne *etatTraduction
+		if t := m.Traduction; t != nil {
+			tl := t.Ligne
+			ligne = &etatTraduction{tl.Statut, t.Perimee, tl.TraduitLe.Time}
+			traduit := rubriques{tl.Contexte, tl.Prerequis, tl.Objectifs, tl.Activites, tl.Evaluation, tl.PlanCours, tl.Ressources, tl.DimensionSocioEnv}
+			for i := range servi {
+				servi[i] = traduitOuSource(traduit[i], source[i])
+			}
+		}
+		page.MentionTraduction = mentionTraduction(l, ligne)
+	}
+	page.Contexte = decouperTexte(servi[0])
+	page.Prerequis = decouperTexte(servi[1])
+	page.Objectifs = decouperTexte(servi[2])
+	page.Activites = decouperTexte(servi[3])
+	page.Evaluation = decouperTexte(servi[4])
+	page.PlanCours = decouperTexte(servi[5])
+	page.Ressources = decouperTexte(servi[6])
+	page.DimensionSocioEnv = decouperTexte(servi[7])
 
 	valeurs := heuresVentilation(f)
 	var total float64
@@ -537,6 +599,55 @@ func construireVuePageMatiere(m MatiereFiche, numero int, l *Libelles) vuePageMa
 		page.FicheAbsente = true
 	}
 	return page
+}
+
+// ── Traduction du contenu (lot 6) ────────────────────────────────────────────
+
+// rubriques : les huit textes d'une fiche, dans l'ordre contexte, prérequis,
+// objectifs, activités, évaluation, plan de cours, ressources, dimension
+// socio-environnementale.
+type rubriques [8]*string
+
+func (r rubriques) aDuTexte() bool {
+	for _, t := range r {
+		if nonBlanc(t) {
+			return true
+		}
+	}
+	return false
+}
+
+func nonBlanc(t *string) bool { return t != nil && strings.TrimSpace(*t) != "" }
+
+func traduitOuSource(traduit, source *string) *string {
+	if nonBlanc(traduit) {
+		return traduit
+	}
+	return source
+}
+
+// etatTraduction : ce que la mention a besoin de savoir d'une traduction.
+type etatTraduction struct {
+	Statut    string
+	Perimee   bool
+	TraduitLe time.Time
+}
+
+// mentionTraduction : la ligne discrète d'un document traduit — aucune
+// absence n'est silencieuse. Pas de traduction : le français est servi, dit.
+// Périmée (quel que soit le statut) : dit, avec la date de la traduction.
+// Automatique non relue : dit. Relue et à jour : rien.
+func mentionTraduction(l *Libelles, t *etatTraduction) string {
+	switch {
+	case t == nil:
+		return l.MentionNonTraduit
+	case t.Perimee:
+		return fmt.Sprintf(l.MentionPerimee, t.TraduitLe.Format("2 January 2006"))
+	case t.Statut == traduction.StatutRelue:
+		return ""
+	default:
+		return l.MentionAutomatique
+	}
 }
 
 // ── Aides de mise en forme ───────────────────────────────────────────────────

@@ -115,6 +115,16 @@ dans `pdf.url` de `back/cmd/serveur/config.yaml` — hors conteneur (debugger)
 comme en conteneur, le réseau Docker est joignable depuis le poste. Port et
 délai ne varient pas : ils sont des littéraux du `config.yaml`.
 
+## La traduction du syllabus : `IA_PROVIDER`, `RACK_API_KEY`
+
+`IA_PROVIDER` (topologie) choisit le modèle de langage du bouton « Traduire »
+et du CLI `syllabus-translate` (`ia.provider` de `config.yaml`, `back/pkg/ia`) :
+`rack` en prod (le rack de l'IMT Mines Alès, adresse et modèle en littéral dans
+le bloc `rack` du `config.yaml`), `factice` en local et en CI — **spécifique
+développement**, aucun réseau, texte rendu préfixé de « [en] » —, vide pour ne
+pas offrir la traduction automatique. `RACK_API_KEY` (secret) n'est lue que par
+le fournisseur `rack` ; absente, rien n'échoue au démarrage.
+
 ## Les images applicatives : `IMAGES_MODE`, `IMAGES_REGISTRE`, `IMAGES_TAG`
 
 Trois variables de topologie disent à `start-scolarite.sh` comment obtenir les

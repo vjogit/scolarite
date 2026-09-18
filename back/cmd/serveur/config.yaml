@@ -98,6 +98,29 @@ pdf:
   timeout_connexion: 2s
   etablissement: IMT Mines Alès
 
+# Traduction du contenu syllabus (lot 6) : le modèle de langage est
+# interchangeable (pkg/ia, motif porté de rex-imt) — changer de fournisseur ou
+# de modèle se fait ici, jamais dans le code. `provider` vient de
+# l'environnement : rack en production, factice (SPÉCIFIQUE DÉVELOPPEMENT,
+# aucun réseau) sur les postes et en CI, vide = pas de traduction automatique
+# (le bouton « Traduire » n'est pas offert, le reste fonctionne).
+# timeout : un appel de campagne (CLI) ; timeout_interactif : un appel du
+# bouton « Traduire », sous le writeTimeout du serveur (30 s) et le
+# proxy_read_timeout de nginx (35 s) ; timeout_connexion : l'ouverture TCP.
+ia:
+  provider: ${IA_PROVIDER}
+  timeout: 120s
+  timeout_interactif: 25s
+  timeout_connexion: 5s
+
+# Le rack de l'IMT Mines Alès (Open WebUI, API compatible OpenAI). Même adresse
+# depuis tous les environnements : littéral. Certificat HTTPS auto-signé,
+# accepté pour ce fournisseur seulement (voir pkg/ia/rack/rack.go).
+rack:
+  base_url: https://rag.159.31.247.5.nip.io
+  model: mistral-small:latest
+  api_key: ${RACK_API_KEY}
+
 keycloak:
   host: http://${KC_INTERNAL_HOSTNAME}:8080${KC_HTTP_RELATIVE_PATH}
   issuer: ${KC_HOSTNAME}

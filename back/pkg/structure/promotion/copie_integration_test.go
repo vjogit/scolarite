@@ -86,7 +86,11 @@ func photo(t *testing.T, pool *pgxpool.Pool, promotionID int32) string {
 		|| '#' || coalesce((SELECT string_agg(ordre || ':' || libelle || ':' || coalesce(code, '') || ':' || coalesce(activites, ''), '|' ORDER BY ordre) FROM b), '')
 		|| '#' || coalesce((SELECT string_agg(b_ordre || ':' || ordre || ':' || action || ':' || coalesce(contexte, ''), '|' ORDER BY b_ordre, ordre) FROM c), '')
 		|| '#' || coalesce((SELECT string_agg(ue.name || ':' || c.b_ordre || ':' || c.ordre || ':' || uc.enseignee || uc.mise_en_oeuvre || uc.evaluee, '|' ORDER BY ue.name, c.b_ordre, c.ordre)
-		             FROM ue_competence uc JOIN ue ON ue.id = uc.ue_id JOIN c ON c.id = uc.competence_id), '')`,
+		             FROM ue_competence uc JOIN ue ON ue.id = uc.ue_id JOIN c ON c.id = uc.competence_id), '')
+		|| '#' || coalesce((SELECT string_agg(m.name || ':' || t.langue || ':' || coalesce(t.contexte, '') || ':' || t.statut || ':' || coalesce(t.modele, '') || ':' || t.traduit_le::text || ':' || (t.empreinte_source = src.empreinte), '|' ORDER BY m.name, t.langue)
+		             FROM syllabus_matiere_traduction t JOIN m ON m.id = t.matiere_id JOIN syllabus_matiere_source src ON src.matiere_id = t.matiere_id), '')
+		|| '#' || coalesce((SELECT string_agg(ue.name || ':' || t.langue || ':' || coalesce(t.description, '') || ':' || t.statut || ':' || (t.empreinte_source = src.empreinte), '|' ORDER BY ue.name, t.langue)
+		             FROM unite_enseignement_traduction t JOIN ue ON ue.id = t.ue_id JOIN unite_enseignement_source src ON src.ue_id = t.ue_id), '')`,
 		promotionID).Scan(&s))
 	return s
 }
@@ -113,6 +117,13 @@ func TestIntegration_CreatePromotion_ParGabarit(t *testing.T) {
 	exec(`INSERT INTO syllabus_matiere (matiere_id, contexte, plan_cours, heures_cours_td, heures_tp, heures_perso, responsable_id)
 		VALUES ($1, 'Contexte source', '1. Intro', 15, 4, 10, $2)`, fixture.MatiereID, agentID)
 	exec(`UPDATE syllabus_matiere SET version = 3 WHERE matiere_id = $1`, fixture.MatiereID)
+	// Les traductions (lot 6) : une fiche relue et à jour, une description
+	// automatique tirée d'une source plus ancienne (périmée) — la copie garde
+	// textes, statut et état de péremption.
+	exec(`INSERT INTO syllabus_matiere_traduction (matiere_id, langue, contexte, version_source, empreinte_source, statut, modele, traduit_le)
+		SELECT matiere_id, 'en', 'Source context', version, empreinte, 'relue', 'rack/test', '2026-03-03 10:00:00+00' FROM syllabus_matiere_source WHERE matiere_id = $1`, fixture.MatiereID)
+	exec(`INSERT INTO unite_enseignement_traduction (ue_id, langue, description, version_source, empreinte_source, statut)
+		VALUES ($1, 'en', 'Why this unit', 1, repeat('0', 64), 'automatique')`, fixture.UeID)
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO bloc_competence (promotion_id, ordre, libelle, code, activites) VALUES ($1, 1, 'Bloc source', 'BC1', 'Activités') RETURNING id`, fixture.PromotionID).Scan(&blocID))
 	exec(`INSERT INTO bloc_competence (promotion_id, ordre, libelle) VALUES ($1, 2, 'Bloc source 2')`, fixture.PromotionID)
 	require.NoError(t, pool.QueryRow(ctx, `INSERT INTO competence (bloc_id, ordre, action, contexte) VALUES ($1, 1, 'Analyser', 'en contexte') RETURNING id`, blocID).Scan(&c1))
@@ -155,6 +166,11 @@ func TestIntegration_CreatePromotion_ParGabarit(t *testing.T) {
 		JOIN unite_enseignement ue ON ue.id = m.unite_enseignement_id JOIN periode_active pe ON pe.id = ue.periode_id
 		JOIN option_active o ON o.id = pe.option_id WHERE o.promotion_id = $1 AND m.name = 'Matiere 1 copie'`, creee.ID))
 	assert.Contains(t, copie, "UE 1 copie:1:1:truefalsetrue")
+	assert.Contains(t, copie, "Matiere 1 copie:en:Source context:relue:rack/test:", "la relecture du gabarit est reprise")
+	assert.Contains(t, copie, "UE 1 copie:en:Why this unit:automatique:false", "périmée sur le gabarit, périmée sur la copie")
+	assert.Equal(t, 1, compter(t, pool, `SELECT t.version_source FROM syllabus_matiere_traduction t JOIN matiere m ON m.id = t.matiere_id
+		JOIN unite_enseignement ue ON ue.id = m.unite_enseignement_id JOIN periode_active pe ON pe.id = ue.periode_id
+		JOIN option_active o ON o.id = pe.option_id WHERE o.promotion_id = $1`, creee.ID), "version_source : celle de la fiche copiée")
 	assert.Equal(t, 2, compter(t, pool, `SELECT count(*) FROM option_active WHERE promotion_id = $1`, creee.ID), "l'option vide est copiée aussi")
 	assert.Equal(t, 2, compter(t, pool, `SELECT count(*) FROM periode_active pe JOIN option_active o ON o.id = pe.option_id WHERE o.promotion_id = $1`, creee.ID))
 	assert.Equal(t, 2, compter(t, pool, `SELECT count(*) FROM bloc_competence WHERE promotion_id = $1`, creee.ID))
@@ -182,7 +198,7 @@ func TestIntegration_CreatePromotion_ParGabarit(t *testing.T) {
 	require.Equal(t, http.StatusCreated, rec.Code, rec.Body.String())
 	var vide gen.PromotionActive
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &vide))
-	assert.Equal(t, "#######", photo(t, pool, vide.ID), "huit sections, toutes vides")
+	assert.Equal(t, "#########", photo(t, pool, vide.ID), "dix sections, toutes vides")
 
 	// Refus : source inconnue, source d'une autre formation, source en
 	// corbeille — rien n'est créé (le nom reste libre).

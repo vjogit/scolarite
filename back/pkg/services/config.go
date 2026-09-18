@@ -1,6 +1,7 @@
 package services
 
 import (
+	"cyb-react/pkg/ia"
 	"fmt"
 	"log/slog"
 	"os"
@@ -18,6 +19,10 @@ type Config struct {
 	Registre RegistreConfig `yaml:"registre"`
 	// PDF : le service de conversion HTML → PDF (Gotenberg), voir pdf.go.
 	PDF PDFConfig `yaml:"pdf"`
+	// IA : le modèle de langage de la traduction du syllabus (lot 6), voir
+	// pkg/ia. Rack : le premier fournisseur, le rack de l'IMT Mines Alès.
+	IA   ia.Config            `yaml:"ia"`
+	Rack ia.FournisseurConfig `yaml:"rack"`
 }
 
 // RegistreConfig porte l'étage d'ancrage externe du registre chaîné :

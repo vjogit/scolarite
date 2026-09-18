@@ -307,6 +307,39 @@ type SyllabusMatiere struct {
 	ResponsableID     *int32         `json:"responsable_id"`
 }
 
+type SyllabusMatiereSource struct {
+	MatiereID         int32   `json:"matiere_id"`
+	Version           int32   `json:"version"`
+	Contexte          *string `json:"contexte"`
+	Objectifs         *string `json:"objectifs"`
+	Prerequis         *string `json:"prerequis"`
+	Activites         *string `json:"activites"`
+	Evaluation        *string `json:"evaluation"`
+	PlanCours         *string `json:"plan_cours"`
+	Ressources        *string `json:"ressources"`
+	DimensionSocioEnv *string `json:"dimension_socio_env"`
+	Empreinte         string  `json:"empreinte"`
+}
+
+type SyllabusMatiereTraduction struct {
+	MatiereID         int32              `json:"matiere_id"`
+	Langue            string             `json:"langue"`
+	Version           int32              `json:"version"`
+	Contexte          *string            `json:"contexte"`
+	Objectifs         *string            `json:"objectifs"`
+	Prerequis         *string            `json:"prerequis"`
+	Activites         *string            `json:"activites"`
+	Evaluation        *string            `json:"evaluation"`
+	PlanCours         *string            `json:"plan_cours"`
+	Ressources        *string            `json:"ressources"`
+	DimensionSocioEnv *string            `json:"dimension_socio_env"`
+	VersionSource     int32              `json:"version_source"`
+	EmpreinteSource   string             `json:"empreinte_source"`
+	Statut            string             `json:"statut"`
+	Modele            *string            `json:"modele"`
+	TraduitLe         pgtype.Timestamptz `json:"traduit_le"`
+}
+
 type Toeic struct {
 	ID          int32              `json:"id"`
 	Version     int32              `json:"version"`
@@ -334,6 +367,25 @@ type UniteEnseignement struct {
 	PeriodeID     int32   `json:"periode_id"`
 	Description   *string `json:"description"`
 	ResponsableID *int32  `json:"responsable_id"`
+}
+
+type UniteEnseignementSource struct {
+	UeID        int32   `json:"ue_id"`
+	Version     int32   `json:"version"`
+	Description *string `json:"description"`
+	Empreinte   string  `json:"empreinte"`
+}
+
+type UniteEnseignementTraduction struct {
+	UeID            int32              `json:"ue_id"`
+	Langue          string             `json:"langue"`
+	Version         int32              `json:"version"`
+	Description     *string            `json:"description"`
+	VersionSource   int32              `json:"version_source"`
+	EmpreinteSource string             `json:"empreinte_source"`
+	Statut          string             `json:"statut"`
+	Modele          *string            `json:"modele"`
+	TraduitLe       pgtype.Timestamptz `json:"traduit_le"`
 }
 
 type User struct {

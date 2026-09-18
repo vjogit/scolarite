@@ -128,6 +128,35 @@ func (q *Queries) CopierSyllabusMatiere(ctx context.Context, arg CopierSyllabusM
 	return result.RowsAffected(), nil
 }
 
+const copierSyllabusMatiereTraductions = `-- name: CopierSyllabusMatiereTraductions :execrows
+INSERT INTO syllabus_matiere_traduction (
+    matiere_id, langue, contexte, objectifs, prerequis, activites, evaluation, plan_cours, ressources, dimension_socio_env,
+    version_source, empreinte_source, statut, modele, traduit_le
+)
+SELECT $1, t.langue, t.contexte, t.objectifs, t.prerequis, t.activites, t.evaluation, t.plan_cours, t.ressources, t.dimension_socio_env,
+       (SELECT s.version FROM public.syllabus_matiere s WHERE s.matiere_id = $1), t.empreinte_source, t.statut, t.modele, t.traduit_le
+FROM public.syllabus_matiere_traduction t WHERE t.matiere_id = $2
+`
+
+type CopierSyllabusMatiereTraductionsParams struct {
+	MatiereID int32 `json:"matiere_id"`
+	Source    int32 `json:"source"`
+}
+
+// Les traductions de la fiche (lot 6), toutes langues, après la fiche : textes,
+// statut, modèle et date tels quels — une relecture faite sur le gabarit n'est
+// pas à refaire. L'empreinte de la source est recopiée, pas recalculée : les
+// textes de la fiche copiée sont ceux de la source, elle vaut donc pour la
+// copie, et une traduction périmée sur le gabarit le reste sur la copie, ce
+// qui est exact. version_source est la version de la NOUVELLE fiche.
+func (q *Queries) CopierSyllabusMatiereTraductions(ctx context.Context, arg CopierSyllabusMatiereTraductionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, copierSyllabusMatiereTraductions, arg.MatiereID, arg.Source)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const copierUeCompetence = `-- name: CopierUeCompetence :exec
 INSERT INTO ue_competence (ue_id, competence_id, enseignee, mise_en_oeuvre, evaluee)
 VALUES ($1, $2, $3, $4, $5)
@@ -171,6 +200,27 @@ func (q *Queries) CopierUniteEnseignement(ctx context.Context, arg CopierUniteEn
 	var id int32
 	err := row.Scan(&id)
 	return id, err
+}
+
+const copierUniteEnseignementTraductions = `-- name: CopierUniteEnseignementTraductions :execrows
+INSERT INTO unite_enseignement_traduction (ue_id, langue, description, version_source, empreinte_source, statut, modele, traduit_le)
+SELECT $1, t.langue, t.description,
+       (SELECT ue.version FROM public.unite_enseignement ue WHERE ue.id = $1), t.empreinte_source, t.statut, t.modele, t.traduit_le
+FROM public.unite_enseignement_traduction t WHERE t.ue_id = $2
+`
+
+type CopierUniteEnseignementTraductionsParams struct {
+	UeID   int32 `json:"ue_id"`
+	Source int32 `json:"source"`
+}
+
+// Les traductions de la description de l'UE (lot 6), même règle.
+func (q *Queries) CopierUniteEnseignementTraductions(ctx context.Context, arg CopierUniteEnseignementTraductionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, copierUniteEnseignementTraductions, arg.UeID, arg.Source)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const fetchBlocIdsByPromotionID = `-- name: FetchBlocIdsByPromotionID :many
