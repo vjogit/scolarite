@@ -51,8 +51,12 @@ interface Props<D extends FieldValues> {
      * et c'est celle-ci.
      */
     modificationsExternes?: boolean;
-    /** Ce qui s'affiche sous le formulaire, sous la même garde. */
-    complement?: ReactNode;
+    /**
+     * Ce qui s'affiche sous le formulaire, sous la même garde. En fonction, il
+     * reçoit l'état du formulaire : le panneau de traduction (lot 6) part du
+     * texte ENREGISTRÉ et n'offre pas « Traduire » sur une saisie en cours.
+     */
+    complement?: ReactNode | ((etat: { sourceModifiee: boolean }) => ReactNode);
     /**
      * Ce qui s'affiche à droite du titre : une action de lecture, comme le
      * téléchargement de la fiche PDF (lot 5), visible quel que soit le rôle.
@@ -103,7 +107,8 @@ export function FormulaireSyllabus<D extends FieldValues>({
         },
     });
 
-    const hasUnsavedChanges = (peutEcrire && Object.keys(dirtyFields).length > 0 && !mutation.isPending) || modificationsExternes;
+    const sourceModifiee = peutEcrire && Object.keys(dirtyFields).length > 0;
+    const hasUnsavedChanges = (sourceModifiee && !mutation.isPending) || modificationsExternes;
     const guard = useUnsavedChangesGuard(hasUnsavedChanges);
 
     useEffect(() => {
@@ -151,8 +156,8 @@ export function FormulaireSyllabus<D extends FieldValues>({
             </div>
 
             {complement !== undefined && (
-                <div className="mt-8 flex justify-center">
-                    {complement}
+                <div className="mt-8 flex flex-col items-center gap-8">
+                    {typeof complement === 'function' ? complement({ sourceModifiee }) : complement}
                 </div>
             )}
 

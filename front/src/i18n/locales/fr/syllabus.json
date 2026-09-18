@@ -99,5 +99,44 @@
       "enregistre": "Compétences de l'UE enregistrées.",
       "erreurChargement": "Impossible de charger les compétences."
     }
+  },
+  "traduction": {
+    "titre": "Traduction anglaise",
+    "intro": "Le français fait référence. La traduction alimente la fiche et le livret PDF en anglais ; sans elle, ils affichent le texte français.",
+    "source": "{{champ}} — texte français enregistré",
+    "champs": {
+      "contexte": "Context and stakes (anglais)",
+      "objectifs": "Learning objectives (anglais)",
+      "prerequis": "Prerequisites (anglais)",
+      "activites": "Activities (anglais)",
+      "evaluation": "Assessment and feedback (anglais)",
+      "plan_cours": "Course outline (anglais)",
+      "ressources": "Resources and references (anglais)",
+      "dimension_socio_env": "Social and environmental dimension (anglais)",
+      "description": "Why this unit? (anglais)"
+    },
+    "statut": {
+      "absente": "Pas encore traduite.",
+      "automatique": "Traduction automatique, non relue ({{modele}}, {{date}}).",
+      "automatiqueSansModele": "Traduction non relue ({{date}}).",
+      "relue": "Traduction relue le {{date}}.",
+      "perimee": "Périmée : le texte français a changé depuis cette traduction."
+    },
+    "rienATraduire": "Aucun texte français enregistré : rien à traduire.",
+    "traduire": "Traduire automatiquement",
+    "traduireEnCours": "Traduction… {{fait}}/{{total}}",
+    "traduireSourceModifiee": "Enregistrez d'abord le texte français : la traduction part du texte enregistré.",
+    "marquerRelue": "Enregistrer comme relue",
+    "enregistre": "Traduction enregistrée comme relue.",
+    "traduit": "Traduction automatique enregistrée. Relisez-la avant de la marquer comme relue.",
+    "sourceChangee": "Le texte français a changé pendant la traduction : rien n'a été enregistré. Rechargez puis recommencez.",
+    "erreurChargement": "Impossible de charger la traduction.",
+    "confirmation": {
+      "titre": "Remplacer la traduction ?",
+      "corps": "La traduction automatique remplace tous les textes anglais ci-dessous.",
+      "corpsRelue": "La traduction automatique remplace tous les textes anglais ci-dessous, et cette traduction perd son statut « relue ».",
+      "garder": "Garder la traduction",
+      "remplacer": "Remplacer"
+    }
   }
 }

@@ -33,7 +33,10 @@ import {
     CHAMPS_NOM_RESPONSABLE, enregistrerSyllabusUe, syllabusUeSchema, telechargerFichePdf, type SyllabusUeFormulaire,
 } from './entites/syllabus';
 import { FormulaireSyllabus } from './FormulaireSyllabus';
+import { UES } from '../structure/def';
+import { cleTraduction } from './entites/traduction';
 import { MatriceCompetences } from './MatriceCompetences';
+import { PanneauTraduction } from './PanneauTraduction';
 import { useNomResponsable } from './useNomResponsable';
 
 const estAgent = (option: UserOption) => option.type_personne === 'AGENT';
@@ -96,6 +99,8 @@ function SyllabusDeUe({ promotionId, periodeId, ueId }: { promotionId: string; p
     // La matrice (lot 3) a son propre bouton d'enregistrement mais partage la
     // garde de saisie du formulaire : un seul bloqueur par routeur.
     const [matriceModifiee, setMatriceModifiee] = useState(false);
+    // Le panneau de traduction (lot 6) : même régime, même garde.
+    const [traductionModifiee, setTraductionModifiee] = useState(false);
 
     const repository = useMemo(() => createUeRepository(periodeId), [periodeId]);
     const cleDetail = useMemo(() => [...repository.queryKey, ueId], [repository, ueId]);
@@ -114,6 +119,8 @@ function SyllabusDeUe({ promotionId, periodeId, ueId }: { promotionId: string; p
             responsable_id,
         });
         queryClient.setQueryData<Ue>(cleDetail, sauvee);
+        // La description a peut-être changé : le serveur redit si sa traduction est périmée.
+        void queryClient.invalidateQueries({ queryKey: cleTraduction(UES, ueId) });
         queryClient.setQueryData<Ue[]>(
             repository.queryKey,
             (liste) => liste?.map((element) => (element.id === sauvee.id ? sauvee : element)),
@@ -155,15 +162,25 @@ function SyllabusDeUe({ promotionId, periodeId, ueId }: { promotionId: string; p
             messageSucces={t('ue.enregistre')}
             cheminRetour={pathname.replace(new RegExp(`/${SYLLABUS}$`), '')}
             render={(props) => <ChampsUe {...props} />}
-            modificationsExternes={matriceModifiee}
+            modificationsExternes={matriceModifiee || traductionModifiee}
             actions={<BoutonFichePdf ueId={ueId} />}
-            complement={(
-                <MatriceCompetences
-                    promotionId={promotionId}
-                    ueId={ueId}
-                    peutEcrire={peutEcrire}
-                    onModification={setMatriceModifiee}
-                />
+            complement={({ sourceModifiee }) => (
+                <>
+                    <PanneauTraduction
+                        nature={UES}
+                        id={ueId}
+                        champs={[{ cle: 'description', libelle: t('ue.champDescription'), source: ue.description ?? null }]}
+                        peutEcrire={peutEcrire}
+                        sourceModifiee={sourceModifiee}
+                        onModification={setTraductionModifiee}
+                    />
+                    <MatriceCompetences
+                        promotionId={promotionId}
+                        ueId={ueId}
+                        peutEcrire={peutEcrire}
+                        onModification={setMatriceModifiee}
+                    />
+                </>
             )}
         />
     );

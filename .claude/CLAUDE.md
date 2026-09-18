@@ -24,6 +24,13 @@ existants). Pas encore en production.
   fiche syllabus est son premier consommateur, **les bulletins de jury sont
   le second prévu** — toute génération de document passe par lui, jamais par
   un appel enfoui dans un domaine.
+- **Modèle de langage** : la traduction du contenu syllabus (lot 6) passe par
+  un fournisseur **externe à la stack**, interchangeable par configuration
+  (`back/pkg/ia/`, motif porté de rex-imt ; bloc `ia` du `config.yaml`,
+  `IA_PROVIDER` des `config-*.env`) : le rack de l'IMT Mines Alès en prod,
+  un connecteur **factice sans réseau** en local et en CI. Rien à
+  conteneuriser, aucun appel réseau réel dans les tests ni la CI. Voir
+  « Syllabus › Traduction du contenu ».
 - **Front** : React 19, TypeScript durci (`noUncheckedIndexedAccess`, zéro
   `any`), **shadcn/ui sur Base UI + Tailwind v4** (`components/ui/`) — le
   seul système de composants ; aucun moteur CSS-in-JS. Une seule feuille de
@@ -439,7 +446,7 @@ existants). Pas encore en production.
   le corriger silencieusement**. Le « Hors périmètre » d'un lot est
   contraignant.
 
-## Syllabus — domaine à l'état stable (chantier clos le 15 septembre 2026, référentiel rattaché à la promotion le 16)
+## Syllabus — domaine à l'état stable (chantier clos le 15 septembre 2026, référentiel rattaché à la promotion le 16, contenu traduisible le 18)
 
 Cadré le 14 septembre 2026 à partir de l'analyse de la base d'une application
 tierce, livré en cinq lots (schéma et module, écrans, référentiel de
@@ -729,11 +736,119 @@ Lot `competences-promotion`, deux changements tranchés par l'utilisateur :
   test d'intégration `copie_integration_test.go`, photo table à table de la
   source avant et après).
 
+### Traduction du contenu (18 septembre 2026)
+
+Lot `syllabus-traduction`, `docs/syllabus-traduction.md`. Les étudiants
+étrangers lisent la fiche et le livret en anglais : le lot 5 avait rendu les
+*libellés* bilingues, le **contenu** l'est désormais.
+
+- **Le français fait référence ; la traduction est un dérivé stocké.** Une
+  table par nature — `syllabus_matiere_traduction` (les huit rubriques) et
+  `unite_enseignement_traduction` (la description) —, clé `(entité,
+  langue)`, cascade depuis ce qu'elles traduisent, `langue` en colonne
+  (`chk_*_langue` refuse `fr` : la source n'est pas une traduction ; seul
+  `en` est visé, une troisième langue n'est pas fermée). Changesets 006 à
+  008 de `007-syllabus`.
+- **La péremption se juge sur les TEXTES, jamais sur le compteur
+  `version`** : `syllabus_empreinte(VARIADIC text[])` (SHA-256 des textes
+  joints par U+001F, NULL compté vide) et deux vues `syllabus_matiere_source`
+  / `unite_enseignement_source` en donnent l'unique définition — serveur,
+  CLI et tests la lisent, personne ne la recalcule. Motif : l'upsert de la
+  fiche incrémente `version` pour les heures et le responsable,
+  `UpdateUniteEnseignement` pour le nom et les ECTS — une péremption à tort
+  ferait retraduire par la machine un texte relu. `version_source` reste,
+  informative. Périmée est **signalé, jamais bloquant** : rien n'est refusé,
+  rien n'est effacé, et relire contre la source courante guérit.
+- **La machine propose, le rédacteur dispose.** `statut` vaut `automatique`
+  ou `relue` ; retraduire fait perdre « relue » (l'écran le confirme, la
+  campagne s'en abstient sauf `--retraduire-relues`). `modele` nomme le
+  dernier traducteur passé (`rack/mistral-small:latest`) ; une relecture ne
+  le change pas.
+- **Routes** (`relecture.go`), par nature : `GET …/traduction/{langue}`
+  (CONSULTATION ; traduction vide `version: 0` si jamais écrite, plus
+  `perimee`, la source courante et `traduction_automatique`) ;
+  `PUT …/traduction/{langue}` (SYLLABUS_ECRITURE, upsert sous verrou
+  optimiste, `statut` + source lue) ; `POST
+  …/traduction/{langue}/proposition` (SYLLABUS_ECRITURE) qui traduit **UN
+  champ** de la source enregistrée sans rien écrire — une fiche entière
+  dépasserait le `writeTimeout` du serveur (30 s) et le
+  `proxy_read_timeout` de nginx (35 s), l'écran enchaîne. Traducteur absent,
+  en panne, ou sortie refusée : 503 `SERVICE_UNAVAILABLE`, la cause au log.
+- **Le modèle de langage est interchangeable, motif porté de `rex-imt`**
+  (`backend/admin/pkg/ia/`) dans `back/pkg/ia/` : interface `Connecteur`,
+  client commun `openaichat` (API compatible OpenAI, `/api/chat/completions`
+  — convention Open WebUI, pas `/v1/…`), fournisseurs minces choisis par
+  configuration (`fournisseurs.Nouveau`). Trois adaptations assumées : la
+  consigne voyage en message `system` (rex-imt n'envoyait qu'un `user`), la
+  température est à zéro, le délai de limitation cède à l'annulation du
+  contexte. Fournisseurs : `rack` (le rack de l'IMT Mines Alès, `base_url`
+  et `model` en littéral dans le bloc `rack` du `config.yaml`, clé
+  `RACK_API_KEY` dans `infra/env`) et `factice` — **spécifique
+  développement**, comme Mailpit : aucun réseau, texte préfixé de « [en] »,
+  c'est lui qu'`IA_PROVIDER` donne en local et en CI. **Aucun appel réseau
+  réel dans les tests ni la CI.** `IA_PROVIDER` vide : pas de traduction
+  automatique, tout le reste fonctionne. **Assomption consignée** : le
+  certificat HTTPS du rack est auto-signé et sa vérification est désactivée
+  **pour ce fournisseur seulement** (en-tête de `pkg/ia/rack/rack.go`) —
+  jamais pour un endpoint public.
+- **Consigne et glossaire versionnés dans le dépôt**, pas dans la
+  configuration (`pkg/syllabus/traduction/consigne.txt`, `glossaire.csv`,
+  embarqués) : la même entrée doit donner la même sortie d'une machine à
+  l'autre. Registre académique, anglais britannique, **mise en page
+  conservée** (le gabarit PDF découpe sur les lignes vides et les puces),
+  nombres, unités, sigles, noms propres et références inchangés, glossaire
+  de l'école imposé (UE → *teaching unit*, TP → *lab session*…). Un appel
+  par champ, texte brut. Trois garde-fous **avant** toute écriture : sortie
+  vide, longueur hors du rapport 0,3–3 (au-delà de 40 caractères), nombre de
+  lignes à puce différent — une sortie refusée est un échec rapporté, jamais
+  un texte enregistré.
+- **Deux gestes, jamais un seul.** À l'écran (`PanneauTraduction.tsx`, dans
+  l'emplacement `complement` des deux écrans syllabus) : source à gauche,
+  traduction à droite, « Traduire automatiquement » (confirmation si une
+  traduction existe) et « Enregistrer comme relue ». Comme la matrice, le
+  panneau a son bouton mais **pas sa garde** — un seul `useBlocker` par
+  routeur, l'état remonte par `modificationsExternes` ; `complement` accepte
+  désormais une fonction qui reçoit `sourceModifiee`, parce que la traduction
+  part du texte **enregistré** : une saisie française en cours désactive
+  « Traduire » et le dit. En campagne (`back/cmd/syllabus-translate`,
+  `pkg/syllabus/campagne`, `make traduire-syllabus`) : calquée sur
+  `syllabus-import` — simulation par défaut (le traducteur EST appelé, rien
+  n'est écrit), `--apply`, rapport horodaté, continuer-et-rapporter,
+  **idempotence par empreinte** (ce qui est à jour n'est pas retraduit), et
+  un **comparatif** source/traduction côte à côte, le document qui sert à
+  juger un modèle. Une fiche se traduit en entier ou pas du tout ; après
+  trois échecs consécutifs du fournisseur le disjoncteur s'ouvre et le reste
+  est rapporté « non tentée ».
+- **La création par gabarit reprend les traductions** (élargissement assumé
+  du périmètre de copie du 16 septembre) : textes, statut, modèle et date,
+  dans la même transaction, avec l'empreinte recopiée et non recalculée —
+  une relecture faite sur le gabarit n'est pas à refaire, et une traduction
+  périmée sur le gabarit le reste sur la copie.
+- **Les compétences ne se traduisent pas** (décision : textes réglementaires
+  France Compétences) : sur la fiche anglaise elles restent en français.
+- **Les documents PDF** servent la traduction quand elle existe, le français
+  sinon — **repli par champ**, jamais d'erreur — et une ligne discrète dit
+  ce qui est servi : rien si relue et à jour, « Machine translation, not yet
+  reviewed… » si automatique, « Translation of an earlier version…
+  (translated on <date>) » si périmée, « Not yet translated… » si absente.
+  La fiche française ignore les traductions.
+- **Tests** : consigne et garde-fous en unitaire ; client `openaichat`
+  contre un serveur de test (route, message système, température, clé,
+  défaillances) ; gabarit PDF traduit (`FicheTraduite`, quatre mentions et
+  repli par champ) ; intégration du cycle et de la campagne avec le factice
+  (dont « une version qui avance sans ses textes ne périme pas ») ; copie de
+  promotion étendue ; `traduction.spec.ts` (quatre tests, ordre intra-fichier
+  documenté) ; captures `syllabus-ue-*` régénérées (le panneau entre dans le
+  cadre de l'UE ; celles de la matière, panneau hors cadre, sont restées à
+  HEAD).
+
 **Périmètre négatif, contraignant** : pas de registre (l'invariant 5 couvre
 notes et jurys, les écritures syllabus n'ancrent rien) ; pas de corbeille
 (`syllabus_matiere` suit `matiere` par cascade, le référentiel suit sa
 formation) ; pas de versionnement annuel ; pas d'éditeur riche (des
-`textarea`) ; aucune langue au-delà de fr/en ; les tables `utilisateur`,
+`textarea`) ; aucune langue au-delà de fr/en ; pas de traduction à la volée
+(elle est stockée, jamais calculée au moment de produire un document) ; pas
+de registre sur les écritures de traduction ; les tables `utilisateur`,
 `role`, `session_config` et le schéma `syllabus2` de la base tierce ne
 sont jamais repris ; les dimensions ODD/ONU sont abandonnées (la rubrique
 socio-environnementale porte l'intention rédigée) ; pas de niveau
@@ -792,7 +907,10 @@ période ; cloisonnement fin du rôle d'écriture ; responsable sur la fiche
 (la colonne existe) ; numérotation physique des pages du livret (en-tête ou
 pied Gotenberg, globaux au document) ; colonne `ordre` sur `matiere` ; copie
 entre formations différentes ; synchronisation entre promotions (la copie
-est un acte de création, pas un lien vivant).
+est un acte de création, pas un lien vivant) ; troisième langue (le schéma
+la porte, la consigne et le glossaire seraient à écrire) ; traduction des
+compétences du référentiel ; campagne déclenchée depuis l'interface (le CLI
+la fait, l'écran traduit fiche par fiche).
 
 ## Pièges connus du code
 

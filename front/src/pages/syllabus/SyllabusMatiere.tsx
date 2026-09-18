@@ -10,7 +10,7 @@
  * chargée pour afficher la matière : aucune requête de plus (invariant 2).
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation, useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ import { UserSelector, type UserOption } from '../../services/UserSelector';
 import { DUREE_FRAICHEUR_NOMS } from '../../services/context/resolution';
 import { useDroits } from '../../services/context/droits';
 import type { RenderProps } from '../../services/crud/def';
+import { MATIERE } from '../structure/def';
 import { createMatiereRepository, type Matiere } from '../structure/entites/matiere';
 import { Role } from '../user/def';
 import { SYLLABUS } from './def';
@@ -33,7 +34,9 @@ import {
     cleFicheMatiere, enregistrerFicheMatiere, fetchFicheMatiere, ficheMatiereSchema, normaliserRubriques,
     type FicheMatiereFormulaire,
 } from './entites/syllabus';
+import { cleTraduction } from './entites/traduction';
 import { FormulaireSyllabus } from './FormulaireSyllabus';
+import { PanneauTraduction } from './PanneauTraduction';
 import { useNomResponsable } from './useNomResponsable';
 
 /** Seuls les agents peuvent être responsables ; rien en base ne l'impose, le sélecteur filtre. */
@@ -139,6 +142,9 @@ function FicheMatiere({ ueId, matiereId }: { ueId: string; matiereId: string }) 
     const queryClient = useQueryClient();
     const { possedeRole } = useDroits();
     const peutEcrire = possedeRole(Role.SYLLABUS_ECRITURE);
+    // Le panneau de traduction (lot 6) a son bouton mais pas sa garde : un seul
+    // bloqueur par routeur, son état modifié remonte ici.
+    const [traductionModifiee, setTraductionModifiee] = useState(false);
 
     const { data: fiche, isError } = useQuery({
         queryKey: cleFicheMatiere(matiereId),
@@ -151,6 +157,9 @@ function FicheMatiere({ ueId, matiereId }: { ueId: string; matiereId: string }) 
         const { responsable_prenom, responsable_nom, ...brute } = valeurs;
         const sauvee = await enregistrerFicheMatiere(matiereId, normaliserRubriques(brute));
         queryClient.setQueryData(cleFicheMatiere(matiereId), sauvee);
+        // Le texte français a peut-être changé : le serveur redit si la
+        // traduction est périmée, et contre quelle source elle s'écrirait.
+        void queryClient.invalidateQueries({ queryKey: cleTraduction(MATIERE, matiereId) });
         return { ...sauvee, responsable_prenom, responsable_nom };
     }, [matiereId, queryClient]);
 
@@ -180,6 +189,17 @@ function FicheMatiere({ ueId, matiereId }: { ueId: string; matiereId: string }) 
             messageSucces={t('matiere.enregistre')}
             cheminRetour={pathname.replace(new RegExp(`/${SYLLABUS}$`), '')}
             render={render}
+            modificationsExternes={traductionModifiee}
+            complement={({ sourceModifiee }) => (
+                <PanneauTraduction
+                    nature={MATIERE}
+                    id={matiereId}
+                    champs={RUBRIQUES.map((cle) => ({ cle, libelle: t(`matiere.rubriques.${cle}`), source: fiche[cle] }))}
+                    peutEcrire={peutEcrire}
+                    sourceModifiee={sourceModifiee}
+                    onModification={setTraductionModifiee}
+                />
+            )}
         />
     );
 }

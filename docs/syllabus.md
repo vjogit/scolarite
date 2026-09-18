@@ -53,13 +53,20 @@ d'une fiche se lit sur le référentiel de la promotion de l'UE.
 
 ## 2. Deux langues
 
-La fiche est bilingue **par ses libellés seulement** : titres de sections,
-en-têtes de colonnes, ligne d'écart, phrases des points 3 et 4, existent en
-français et en anglais côté serveur (`fiche_gabarit.go`, `libellesFr` /
-`libellesEn`). Le **contenu saisi** — rubriques, noms d'UE et de matières,
-libellés du référentiel — est rendu tel quel, dans sa langue de rédaction :
-la fiche ne traduit pas les données. Le séparateur décimal suit la langue
-(« 17,5 » / « 17.5 »).
+Les **libellés** — titres de sections, en-têtes de colonnes, ligne d'écart,
+phrases des points 3 et 4 — existent en français et en anglais côté serveur
+(`fiche_gabarit.go`, `libellesFr` / `libellesEn`). Le séparateur décimal
+suit la langue (« 17,5 » / « 17.5 »).
+
+Le **contenu** suit depuis le lot 6 (`docs/syllabus-traduction.md`) : en
+anglais, les huit rubriques d'une fiche et la description d'une UE sont
+servies par leur traduction stockée quand elle existe, par le français
+sinon — repli **par champ**, jamais d'erreur —, et une ligne discrète dit ce
+qui est servi (jamais traduit, traduction automatique non relue, traduction
+périmée ; rien quand elle est relue et à jour). Restent rendus tels quels,
+dans leur langue de rédaction : les noms d'UE et de matières, et les
+libellés du référentiel de compétences (textes réglementaires France
+Compétences). La fiche française, elle, ignore les traductions.
 
 La langue se demande par `?lang=fr|en` (défaut `fr`, toute autre valeur →
 400 `INVALID_PARAM`). Le bouton et l'action de l'écran passent la langue

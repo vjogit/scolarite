@@ -99,5 +99,44 @@
       "enregistre": "Unit competencies saved.",
       "erreurChargement": "The competencies could not be loaded."
     }
+  },
+  "traduction": {
+    "titre": "English translation",
+    "intro": "French is the reference. The translation feeds the English PDF sheet and booklet; without it, they show the French text.",
+    "source": "{{champ}} — saved French text",
+    "champs": {
+      "contexte": "Context and stakes (English)",
+      "objectifs": "Learning objectives (English)",
+      "prerequis": "Prerequisites (English)",
+      "activites": "Activities (English)",
+      "evaluation": "Assessment and feedback (English)",
+      "plan_cours": "Course outline (English)",
+      "ressources": "Resources and references (English)",
+      "dimension_socio_env": "Social and environmental dimension (English)",
+      "description": "Why this unit? (English)"
+    },
+    "statut": {
+      "absente": "Not translated yet.",
+      "automatique": "Machine translation, not reviewed ({{modele}}, {{date}}).",
+      "automatiqueSansModele": "Translation not reviewed ({{date}}).",
+      "relue": "Translation reviewed on {{date}}.",
+      "perimee": "Outdated: the French text has changed since this translation."
+    },
+    "rienATraduire": "No saved French text: nothing to translate.",
+    "traduire": "Translate automatically",
+    "traduireEnCours": "Translating… {{fait}}/{{total}}",
+    "traduireSourceModifiee": "Save the French text first: the translation starts from the saved text.",
+    "marquerRelue": "Save as reviewed",
+    "enregistre": "Translation saved as reviewed.",
+    "traduit": "Machine translation saved. Review it before marking it as reviewed.",
+    "sourceChangee": "The French text changed during translation: nothing was saved. Reload and try again.",
+    "erreurChargement": "Unable to load the translation.",
+    "confirmation": {
+      "titre": "Replace the translation?",
+      "corps": "The machine translation replaces all the English texts below.",
+      "corpsRelue": "The machine translation replaces all the English texts below, and this translation loses its \"reviewed\" status.",
+      "garder": "Keep the translation",
+      "remplacer": "Replace"
+    }
   }
 }
