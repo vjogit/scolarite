@@ -41,6 +41,9 @@ back/cmd/programme-import/data/
 # d'exploitation, jamais versionnées — la fixture réduite vit dans
 # back/pkg/syllabus/legacy/testdata/.
 back/cmd/syllabus-import/data/
+# Rapports et comparatifs des campagnes de traduction (lot 6) : sorties
+# d'exploitation, jamais versionnées.
+back/cmd/syllabus-translate/data/
 # L'export réel du tiers déposé à la racine (5 Mo, données d'exploitation) :
 # ce dossier-là seulement — la règle !**/testdata/** ci-dessous ne concerne que
 # les fixtures des paquets Go, et git ne redescend pas dans un dossier exclu.

@@ -77,6 +77,7 @@ all:
 	@echo "  make stop-local          — arrêt de la pile locale"
 	@echo "  make clean-local         — arrêt et suppression des conteneurs locaux"
 	@echo "  make importer-syllabus   — import du syllabus tiers ; simulation sans SYLLABUS_IMPORT_ARGS=\"--apply\" (docs/syllabus-import.md)"
+	@echo "  make traduire-syllabus   — traduction du syllabus d'une promotion ; SYLLABUS_TRANSLATE_ARGS=\"--promotion <id> [--provider rack] [--apply]\" (docs/syllabus-traduction.md)"
 	@echo ""
 	@echo "Espace de travail prod :"
 	@echo "  make start-prod-reset    — déploiement prod, RÉINITIALISE LA BASE (confirmation demandée)"

@@ -19,7 +19,7 @@ include $(CONFIG_FILE_LOCAL)
 include $(SECRETS_FILE_LOCAL)
 export
 
-.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up _pdf-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus test-ihm captures-reference test-integration
+.PHONY: start-local-reset start-local-keep start-dev start-dev-reset restart-local-keep reset-db _purge _pg-up _keycloak-down _keycloak-up _mailpit-up _pdf-up keycloak liquibase gen_sql start-scolarite stop-local restart-local-reset clean clean-local fetch-freetsa-cert ancrer importer-syllabus traduire-syllabus test-ihm captures-reference test-integration
 
 # ── Registre — ancrage RFC 3161 (portage rex-imt) ──────────────────────────────
 # Télécharge le certificat racine de FreeTSA vers REGISTRE_TSA_CA_CERT
@@ -51,6 +51,18 @@ ancrer:
 importer-syllabus:
 	@echo "--- 📚 Import du syllabus tiers ---"
 	cd $(BACK_DIR) && go run ./cmd/syllabus-import --config ./cmd/serveur/config.yaml $(SYLLABUS_IMPORT_ARGS)
+
+# ── Syllabus — traduction par campagne (lot 6) ────────────────────────────────
+# Simulation par défaut : le traducteur est appelé, rien n'est écrit sans
+# --apply. SYLLABUS_TRANSLATE_ARGS porte les options (--promotion <id>
+# obligatoire, --provider rack, --limite, --sortie, --apply,
+# --retraduire-relues). Le fournisseur par défaut est IA_PROVIDER
+# (config-local.env : factice) ; le vrai traducteur se demande par
+# `--provider rack`, avec RACK_API_KEY dans secrets-local.env.
+# Mode d'emploi : docs/syllabus-traduction.md.
+traduire-syllabus:
+	@echo "--- 🌍 Traduction du syllabus ---"
+	cd $(BACK_DIR) && go run ./cmd/syllabus-translate --config ./cmd/serveur/config.yaml $(SYLLABUS_TRANSLATE_ARGS)
 
 # ── Suite Playwright (front/e2e) — filet de régression de l'interface ──────────
 # Présuppose une stack déjà lancée (`make start-local-keep`) : la cible ne la
